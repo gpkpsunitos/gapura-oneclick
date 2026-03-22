@@ -1,0 +1,274 @@
+{
+    "total_records": 1021,
+    "gse_records": 38,
+    "overall_status": {
+        "Unknown": 17,
+        "Unserviceable": 9,
+        "Maintenance": 6,
+        "Serviceable": 6
+    },
+    "by_unit": {
+        "Other": {
+            "count": 21,
+            "percentage": 55.3,
+            "statuses": {
+                "Unknown": 12,
+                "Unserviceable": 3,
+                "Serviceable": 5,
+                "Maintenance": 1
+            },
+            "top_areas": {
+                "Apron Area": 14,
+                "Terminal Area": 6,
+                "General": 1
+            },
+            "top_branches": {
+                "CGK": 15,
+                "DPS": 2,
+                "HLP": 1
+            },
+            "top_airlines": {
+                "Thai Airways": 5,
+                "Air China": 5,
+                "China Airlines": 2
+            },
+            "top_keywords": {
+                "manual": 1,
+                "engine": 1
+            },
+            "examples": [
+                {
+                    "row_id": "NON CARGO_3",
+                    "date": 45687,
+                    "unit": "Other",
+                    "status": "Unknown",
+                    "report": "1. VJ848 DPS-SGN 30JAN Pax who sit at OWE row cannot understand the instructions from cabin crew about the Overwing Exit.\n 2. Loading position not match with LDM/Load Summary",
+                    "root_cause": "-",
+                    "action_taken": "-",
+                    "area": "Apron Area",
+                    "branch": "DPS",
+                    "airlines": "VietJet Air"
+                },
+                {
+                    "row_id": "NON CARGO_22",
+                    "date": 45713,
+                    "unit": "Other",
+                    "status": "Unknown",
+                    "report": "Ramp safety & security issue regarding unloading process",
+                    "root_cause": "Inappropriate rope and inadequate cage conditions",
+                    "action_taken": "Directly report the Airlines, and contact the passenger who owns the dog",
+                    "area": "Apron Area",
+                    "branch": "CGK",
+                    "airlines": "Thai Airways"
+                }
+            ],
+            "timeline_monthly": {}
+        },
+        "HLL Hose": {
+            "count": 7,
+            "percentage": 18.4,
+            "statuses": {
+                "Unknown": 2,
+                "Unserviceable": 2,
+                "Maintenance": 3
+            },
+            "top_areas": {
+                "Apron Area": 6,
+                "Terminal Area": 1
+            },
+            "top_branches": {
+                "DPS": 2,
+                "CGK": 2,
+                "BDJ": 1
+            },
+            "top_airlines": {
+                "KLM": 1,
+                "Airasia": 1,
+                "Citilink": 1
+            },
+            "top_keywords": {
+                "hose": 1,
+                "manual": 1,
+                "bocor": 1
+            },
+            "examples": [
+                {
+                    "row_id": "NON CARGO_32",
+                    "date": 45725,
+                    "unit": "HLL Hose",
+                    "status": "Unknown",
+                    "report": "HLL Problem",
+                    "root_cause": "HLL 13008 Fuel selenoid problem",
+                    "action_taken": "Immediately informed the technician",
+                    "area": "Apron Area",
+                    "branch": "DPS",
+                    "airlines": "KLM"
+                },
+                {
+                    "row_id": "NON CARGO_57",
+                    "date": 45752,
+                    "unit": "HLL Hose",
+                    "status": "Unserviceable",
+                    "report": "Problem GSE",
+                    "root_cause": "Kerusakan HLL dan CBL saat proses penangganan pesawat freighter Airnesia",
+                    "action_taken": "Official letter permohonan maaf kepada AAP dari management Gapura",
+                    "area": "Apron Area",
+                    "branch": "BDJ",
+                    "airlines": "Airasia"
+                }
+            ],
+            "timeline_monthly": {}
+        },
+        "Tractor/Tug": {
+            "count": 7,
+            "percentage": 18.4,
+            "statuses": {
+                "Unknown": 3,
+                "Maintenance": 2,
+                "Serviceable": 1,
+                "Unserviceable": 1
+            },
+            "top_areas": {
+                "Apron Area": 6,
+                "Terminal Area": 1
+            },
+            "top_branches": {
+                "CGK": 4,
+                "YIA": 1,
+                "SUB": 1
+            },
+            "top_airlines": {
+                "Garuda Indonesia": 3,
+                "Citilink": 2,
+                "Japan Airlines": 1
+            },
+            "top_keywords": {
+                "manual": 1,
+                "engine": 1
+            },
+            "examples": [
+                {
+                    "row_id": "NON CARGO_60",
+                    "date": 45754,
+                    "unit": "Tractor/Tug",
+                    "status": "Unknown",
+                    "report": "Request Clarification for JL726/07APR Baggage Towing Truck (BTT) Number & Condition",
+                    "root_cause": "a mechanical function occured with BTT unit, spesifically BTT 449 which subsequently impeded the baggage loading process",
+                    "action_taken": "- Coordinate immediately with the team if a GSE problem occurs to arrange for a replacement.\n \n  * Coordinate with the technical team regarding the GSE issue.\n \n  * Conduct a brief",
+                    "area": "Apron Area",
+                    "branch": "CGK",
+                    "airlines": "Japan Airlines"
+                },
+                {
+                    "row_id": "NON CARGO_110",
+                    "date": 45808,
+                    "unit": "Tractor/Tug",
+                    "status": "Maintenance",
+                    "report": "Petugas operator GSE menabrak pelindung dan tower parkir Stand 5B saat menarik bagasi tambahan menggunakan BTT No. 330 dalam kondisi hujan deras, sehingga mengakibatkan 2 tiang pel",
+                    "root_cause": "Kurangnya fokus operator saat berkendara dalam kondisi hujan, dengan pandangan terbagi antara arah gerak BTT dan lalu lintas kendaraan di apron.",
+                    "action_taken": "1. Petugas langsung melapor ke atasan.\n 2. Pass bandara petugas ditahan sementara oleh AMC.\n 3. Koordinasi dengan pihak bandara untuk perbaikan tower oleh vendor.\n 4. Briefing ulan",
+                    "area": "Apron Area",
+                    "branch": "YIA",
+                    "airlines": "Citilink"
+                }
+            ],
+            "timeline_monthly": {}
+        },
+        "ATW": {
+            "count": 2,
+            "percentage": 5.3,
+            "statuses": {
+                "Unserviceable": 2
+            },
+            "top_areas": {
+                "Apron Area": 2
+            },
+            "top_branches": {
+                "YIA": 1,
+                "CGK": 1
+            },
+            "top_airlines": {
+                "Garuda Indonesia": 1,
+                "Korean Air": 1
+            },
+            "top_keywords": {
+                "engine": 1,
+                "atw": 1,
+                "gpu": 1
+            },
+            "examples": [
+                {
+                    "row_id": "NON CARGO_177",
+                    "date": 45893,
+                    "unit": "ATW",
+                    "status": "Unserviceable",
+                    "report": "Late positioning push back for GA207/24AUG due to una to turn on the Engine",
+                    "root_cause": "Operator Push Back saat akan menghidupkan ATW 235, tidak bisa start engine karena Cable Accu longgar dan harus dikencengin untuk bisa dihidupkan.",
+                    "action_taken": "Petugas operator segera menghubungi teman GSE operator yang lain untuk bisa membantu memegang cable ACCU yang longgar supaya ATW 235 ( Push Back Car ) bisa dihidupkan untuk segera ",
+                    "area": "Apron Area",
+                    "branch": "YIA",
+                    "airlines": "Garuda Indonesia"
+                },
+                {
+                    "row_id": "NON CARGO_280",
+                    "date": 45948,
+                    "unit": "ATW",
+                    "status": "Unserviceable",
+                    "report": "Telah terjadi dua pelanggaran keselamatan pada penerbangan KE 628/18Oct.\n ​Mobil GSE AC Car bergerak tanpa panduan light stick di jalur keluar (Exit ramp).\n ​Operator memindahkan G",
+                    "root_cause": "Kurangnya kesadaran dan kepatuhan prosedur keselamatan oleh operator GSE serta Avsec, tidak kooperatif, dan mengacuhkan perintah dari petugas Ramp",
+                    "action_taken": "Meningkatkan kesadaran keselamatan bagi setiap operator GSE dan unit terkait.",
+                    "area": "Apron Area",
+                    "branch": "CGK",
+                    "airlines": "Korean Air"
+                }
+            ],
+            "timeline_monthly": {}
+        },
+        "Dolly/Palette": {
+            "count": 1,
+            "percentage": 2.6,
+            "statuses": {
+                "Unserviceable": 1
+            },
+            "top_areas": {
+                "Apron Area": 1
+            },
+            "top_branches": {
+                "CGK": 1
+            },
+            "top_airlines": {
+                "Air China": 1
+            },
+            "top_keywords": {},
+            "examples": [
+                {
+                    "row_id": "CGO_10",
+                    "date": 45750,
+                    "unit": "Dolly/Palette",
+                    "status": "Unserviceable",
+                    "report": "LOAD MASTER MISCOMMUNICATED WITH BTT OPERATOR ON 3 PALLETS LOADED WITHOUT INSTRUCTION OF THE LOAD MASTER",
+                    "root_cause": "MISCOMMUNICATION BETWEEN THE LOAD MASTER AND OPERATOR BTT ABOUT 3 PALLETS OF CARGO IN THE AFT COMPARTMENT WITHOUT THE INSTRUCTION OF THE LOAD MASTER",
+                    "action_taken": "1. ENSURE THAT COMMUNICATION BETWEEN LOADING PERSONNEL, LOAD MASTER IS EFFECTIVE AND EFFICIENT TO PREVENT CARGO LOADING ERROR\n 2. IMPLEMENT STRICTER SUPERVISION OF THE CARGO LOADIN",
+                    "area": "Apron Area",
+                    "branch": "CGK",
+                    "airlines": "Air China"
+                }
+            ],
+            "timeline_monthly": {}
+        }
+    },
+    "top_units": [
+        [
+            "Other",
+            21
+        ],
+        [
+            "HLL Hose",
+            7
+        ],
+        [
+            "Tractor/Tug",
+            7
+        ]
+    ]
+}

@@ -1,0 +1,116 @@
+{
+    "total_records": 1021,
+    "gse_records": 38,
+    "by_subcategory": {
+        "SDM": {
+            "count": 9,
+            "percentage": 23.7,
+            "top_areas": {
+                "Apron Area": 5,
+                "Terminal Area": 4
+            },
+            "top_branches": {
+                "CGK": 5,
+                "DPS": 1,
+                "SUB": 1
+            },
+            "top_airlines": {
+                "Thai Airways": 2,
+                "Garuda Indonesia": 2,
+                "Citilink": 2
+            },
+            "top_keywords": {
+                "operator": 4,
+                "staff": 3,
+                "training": 1
+            },
+            "examples": [
+                {
+                    "row_id": "NON CARGO_25",
+                    "report": "Check in staf Failed check return ticket when check in",
+                    "root_cause": "it caused misinformation Bgr staff do manual chk in and bgr completed on system",
+                    "action_taken": "Offload all the passenger and their baggage",
+                    "area": "Terminal Area",
+                    "branch": "CGK",
+                    "airlines": "China Airlines"
+                },
+                {
+                    "row_id": "NON CARGO_34",
+                    "report": "FAKE VISA INCIDENT",
+                    "root_cause": "- The check-in agent did not thoroughly examine the visa and failed to notice a discrepancy in the\n passenger’s date of birth between the personal details section and the area belo",
+                    "action_taken": "Verification of Visa Authenticity\n Check-in agents must ensure that the visa presented by the passenger is valid and issued by an\n authorized government body. They should verify th",
+                    "area": "Terminal Area",
+                    "branch": "DPS",
+                    "airlines": "IndiGo"
+                }
+            ],
+            "recommendations": [
+                "Redistribusi SDM dan tambah shift malam saat peak hour.",
+                "Perkuat kontrol jadwal dan monitoring oleh leader/controller.",
+                "Lakukan refresh training terarah sesuai kompetensi unit."
+            ],
+            "timeline_monthly": {}
+        },
+        "Maintenance": {
+            "count": 19,
+            "percentage": 50.0,
+            "top_areas": {
+                "Apron Area": 16,
+                "Terminal Area": 3
+            },
+            "top_branches": {
+                "CGK": 11,
+                "DPS": 2,
+                "YIA": 2
+            },
+            "top_airlines": {
+                "Garuda Indonesia": 4,
+                "Thai Airways": 2,
+                "Citilink": 2
+            },
+            "top_keywords": {
+                "ban": 7,
+                "hll": 5,
+                "perbaikan": 5
+            },
+            "examples": [
+                {
+                    "row_id": "NON CARGO_32",
+                    "report": "HLL Problem",
+                    "root_cause": "HLL 13008 Fuel selenoid problem",
+                    "action_taken": "Immediately informed the technician",
+                    "area": "Apron Area",
+                    "branch": "DPS",
+                    "airlines": "KLM"
+                },
+                {
+                    "row_id": "NON CARGO_57",
+                    "report": "Problem GSE",
+                    "root_cause": "Kerusakan HLL dan CBL saat proses penangganan pesawat freighter Airnesia",
+                    "action_taken": "Official letter permohonan maaf kepada AAP dari management Gapura",
+                    "area": "Apron Area",
+                    "branch": "BDJ",
+                    "airlines": "Airasia"
+                }
+            ],
+            "recommendations": [
+                "Perkuat maintenance rutin: ban, bearing, gearbox, filter, oli/hidrolik.",
+                "Cek hose dan kebocoran, tambah inspeksi preventif berkala.",
+                "Jadwalkan inspeksi komponen engine/elektrikal dan penggantian preventif."
+            ],
+            "timeline_monthly": {}
+        }
+    },
+    "top": [
+        {
+            "subcategory": "Maintenance",
+            "count": 19,
+            "percentage": 50.0
+        },
+        {
+            "subcategory": "SDM",
+            "count": 9,
+            "percentage": 23.7
+        }
+    ]
+}
