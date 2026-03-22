@@ -233,9 +233,9 @@ export async function notifyNewRecordEmail(
     }
 
     const sourceFingerprint = String(report.source_fingerprint || buildReportFingerprint(report));
-    const subject = `[IRRS] Record baru: ${report.title || report.report || 'Tanpa Judul'}`;
+    const subject = `[OneClick] Record baru: ${report.title || report.report || 'Tanpa Judul'}`;
     const text = [
-        'Terdapat record baru pada IRRS.',
+        'Terdapat record baru pada OneClick.',
         '',
         `Judul: ${report.title || report.report || '-'}`,
         `Kategori: ${category || '-'}`,
@@ -271,9 +271,9 @@ export async function sendTestEmail(options: TestEmailOptions) {
         throw new Error('Recipient email is required');
     }
 
-    const subject = options.subject || '[IRRS] SMTP Gmail test';
+    const subject = options.subject || '[OneClick] SMTP Gmail test';
     const text = options.text || [
-        'Email test berhasil dikirim dari IRRS.',
+        'Email test berhasil dikirim dari OneClick.',
         '',
         'Transport: Gmail SMTP',
         `Waktu: ${new Date().toISOString()}`,
