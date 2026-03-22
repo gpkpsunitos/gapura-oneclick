@@ -9,7 +9,7 @@ import type { HCLeaveLetterStatus, HCLeaveRecord, HCLeaveSubmissionStatus } from
 
 const HC_LEAVE_BACKUP_PATH = '/tmp/gapura-hc-leave-records.xlsx';
 const HC_LEAVE_SHEET_NAME = 'HC_LEAVE_RECORDS';
-const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID || process.env.NEXT_PUBLIC_GOOGLE_SHEET_ID;
+const SPREADSHEET_ID = process.env.HC_SHEETS || process.env.NEXT_PUBLIC_HC_SHEETS;
 
 interface HCLeaveRecordRow {
     id: string;
