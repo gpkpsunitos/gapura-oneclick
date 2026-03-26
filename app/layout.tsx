@@ -16,9 +16,9 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-    title: 'Gapura Operations Dashboard',
-    applicationName: 'Gapura IRRS',
-    description: 'Gapura Operations Dashboard - Sistem Pelaporan & Monitoring Operasional Bandara',
+    title: 'Gapura OneClick',
+    applicationName: 'OneClick',
+    description: 'Gapura OneClick - Sistem Pelaporan & Monitoring Operasional Bandara',
     manifest: '/manifest.webmanifest',
     icons: {
         icon: [
@@ -33,20 +33,20 @@ export const metadata: Metadata = {
     appleWebApp: {
         capable: true,
         statusBarStyle: 'black-translucent',
-        title: 'Gapura IRRS',
+        title: 'OneClick',
     },
     formatDetection: {
         telephone: false,
     },
     openGraph: {
         type: 'website',
-        siteName: 'Gapura IRRS',
-        title: 'Gapura Operations Dashboard',
+        siteName: 'OneClick',
+        title: 'Gapura OneClick',
         description: 'Sistem Pelaporan & Monitoring Operasional Bandara',
     },
     twitter: {
         card: 'summary_large_image',
-        title: 'Gapura Operations Dashboard',
+        title: 'Gapura OneClick',
         description: 'Sistem Pelaporan & Monitoring Operasional Bandara',
     },
 };

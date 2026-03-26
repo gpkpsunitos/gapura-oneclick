@@ -3,10 +3,10 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "OneClick",
-    short_name: "OneClick",
+    name: "Gapura Operations Dashboard",
+    short_name: "Gapura",
     description:
-      "Sistem pelaporan dan monitoring operasional OneClick yang dapat diinstal sebagai aplikasi web progresif.",
+      "Sistem pelaporan dan monitoring operasional Gapura Angkasa yang dapat diinstal sebagai aplikasi web progresif.",
     start_url: "/",
     scope: "/",
     display: "standalone",

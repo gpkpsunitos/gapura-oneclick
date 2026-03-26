@@ -309,10 +309,10 @@ function buildDataContext(
     }
   }
 
-  return `# IRRS Report Data\nTotal records matching filters: ${totalRows}\n${parts.join('\n')}`;
+  return `# OneClick Report Data\nTotal records matching filters: ${totalRows}\n${parts.join('\n')}`;
 }
 
-const SYSTEM_PROMPT = `Kamu adalah AI Data Analyst untuk sistem IRRS (Irregularity Reporting & Resolution System) Gapura Angkasa.
+const SYSTEM_PROMPT = `Kamu adalah AI Data Analyst untuk sistem OneClick (Irregularity Reporting & Resolution System) Gapura Angkasa.
 
 ATURAN UTAMA:
 1. HANYA berikan analisis berdasarkan data yang diberikan. JANGAN mengarang data.
@@ -403,7 +403,7 @@ export async function POST(request: NextRequest) {
       { role: 'system', content: SYSTEM_PROMPT },
       {
         role: 'user',
-        content: `Berikut data IRRS yang sudah difilter:\n\n${dataContext}\n\nPertanyaan user: ${question}\n\nBerikan analisis mendalam berdasarkan data di atas. Sertakan angka spesifik dan rekomendasi actionable.`,
+        content: `Berikut data OneClick yang sudah difilter:\n\n${dataContext}\n\nPertanyaan user: ${question}\n\nBerikan analisis mendalam berdasarkan data di atas. Sertakan angka spesifik dan rekomendasi actionable.`,
       },
     ];
 

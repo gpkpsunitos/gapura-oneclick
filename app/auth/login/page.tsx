@@ -158,7 +158,7 @@ export default function LoginPage() {
 
                     <div className="mb-6 sm:mb-8">
                         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Selamat Datang</h1>
-                        <p className="text-gray-500 mt-1.5 sm:mt-2 text-sm sm:text-base">Masuk ke dashboard operasional Anda</p>
+                        <p className="text-gray-500 mt-1.5 sm:mt-2 text-sm sm:text-base">Masuk ke platform OneClick Anda</p>
                     </div>
 
                     <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-5 sm:p-6 md:p-8">

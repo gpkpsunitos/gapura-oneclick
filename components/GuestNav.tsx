@@ -99,7 +99,7 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
               </div>
             </div>
             <div className="p-3 border-t border-dashed border-gray-200 text-center text-[10px] text-[var(--text-muted)]">
-              Guest Mode
+              OneClick - Guest Mode
             </div>
           </div>
         </aside>

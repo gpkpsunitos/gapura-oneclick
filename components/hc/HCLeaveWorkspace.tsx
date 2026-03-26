@@ -167,8 +167,8 @@ const LETTER_STATUS_OPTIONS: Array<{ value: HCLeaveLetterStatus; label: string }
 ];
 
 const SUBMISSION_STATUS_OPTIONS: Array<{ value: HCLeaveSubmissionStatus; label: string }> = [
-    { value: 'PENDING', label: 'Menunggu HC' },
-    { value: 'APPROVED', label: 'Disetujui HC' },
+    { value: 'PENDING', label: 'Menunggu Approval GM/EGM' },
+    { value: 'APPROVED', label: 'Disetujui GM/EGM' },
     { value: 'REJECTED', label: 'Ditolak' },
 ];
 
@@ -194,7 +194,7 @@ function getStatusLabel(status: HCLeaveLetterStatus) {
 }
 
 function getSubmissionStatusLabel(status: HCLeaveSubmissionStatus | string | null | undefined) {
-    return SUBMISSION_STATUS_OPTIONS.find((option) => option.value === status)?.label || 'Menunggu HC';
+    return SUBMISSION_STATUS_OPTIONS.find((option) => option.value === status)?.label || 'Menunggu Approval GM/EGM';
 }
 
 function getSubmissionStatusClasses(status: HCLeaveSubmissionStatus | string | null | undefined) {
@@ -434,7 +434,7 @@ function getLeaveFormErrors(form: LeaveFormState): LeaveFormErrorMap {
     }
 
     if (!form.pic_name.trim()) {
-        errors.pic_name = 'PIC / PH pengganti wajib diisi.';
+        errors.pic_name = 'Pejabat Harian (PH) / Pengganti wajib diisi.';
     }
 
     if (form.pic_email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.pic_email.trim())) {
@@ -528,7 +528,7 @@ function HCSubmissionQuickFilters({
         },
         {
             value: 'PENDING',
-            label: 'Menunggu HC',
+            label: 'Menunggu Approval GM/EGM',
             count: counts.PENDING,
             className: '',
         },
@@ -623,7 +623,7 @@ function HCLeaveReviewModal({
                                 <Icon className="h-5 w-5" />
                             </div>
                             <div>
-                                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">Review HC</p>
+                                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">Review GM/EGM</p>
                                 <h2 className="mt-2 text-2xl font-black text-[var(--text-primary)]">
                                     {isReject ? 'Tolak Pengajuan' : 'Setujui Pengajuan'}
                                 </h2>
@@ -647,7 +647,7 @@ function HCLeaveReviewModal({
                             </p>
                         </div>
                         <div className="rounded-2xl border border-[var(--surface-4)] bg-white/80 p-4">
-                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">PIC / PH</p>
+                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">Pejabat Harian (PH)</p>
                             <p className="mt-2 text-sm font-semibold text-[var(--text-primary)]">{record.pic_name || '-'}</p>
                         </div>
                         <div className="rounded-2xl border border-[var(--surface-4)] bg-white/80 p-4">
@@ -658,7 +658,7 @@ function HCLeaveReviewModal({
 
                     <div className="mt-6">
                         <FieldLabel
-                            label={isReject ? 'Alasan Penolakan' : 'Catatan HC'}
+                            label={isReject ? 'Alasan Penolakan' : 'Catatan GM/EGM'}
                             required={isReject}
                             hint={isReject ? 'Wajib diisi' : 'Opsional'}
                         />
@@ -674,7 +674,7 @@ function HCLeaveReviewModal({
                     <div className="mt-4 rounded-2xl border border-[var(--surface-4)] bg-white/80 px-4 py-3">
                         <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">Status Tujuan</p>
                         <p className="mt-2 text-sm font-semibold text-[var(--text-primary)]">
-                            {isReject ? 'Pengajuan akan ditandai Ditolak HC.' : 'Pengajuan akan ditandai Disetujui HC.'}
+                            {isReject ? 'Pengajuan akan ditandai Ditolak.' : 'Pengajuan akan ditandai Disetujui GM/EGM.'}
                         </p>
                     </div>
                 </div>
@@ -784,7 +784,7 @@ function HCDeleteConfirmModal({
                             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">Arsipkan Data</p>
                             <h2 className="mt-2 text-2xl font-black text-[var(--text-primary)]">Konfirmasi Arsip</h2>
                             <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                                Data cuti ini akan keluar dari monitoring aktif HC dan backup aktif, tanpa dihapus permanen dari database.
+                                Data cuti ini akan keluar dari monitoring aktif GM/EGM dan backup aktif, tanpa dihapus permanen dari database.
                             </p>
                         </div>
                     </div>
@@ -797,7 +797,7 @@ function HCDeleteConfirmModal({
                         <div className="mt-3 space-y-1 text-sm text-[var(--text-secondary)]">
                             <p><strong>Periode:</strong> {formatLeavePeriod(record.start_date, record.end_date)}</p>
                             <p><strong>Cabang:</strong> {record.station ? `${record.station.code} - ${record.station.name}` : '-'}</p>
-                            <p><strong>Status HC:</strong> {getSubmissionStatusLabel(record.submission_status)}</p>
+                            <p><strong>Status Approval:</strong> {getSubmissionStatusLabel(record.submission_status)}</p>
                         </div>
                     </div>
                 </div>
@@ -931,7 +931,7 @@ function LeaveFormCard({
         { label: 'Durasi', value: duration ? `${duration} hari` : '-' },
         { label: 'Status', value: statusLabel },
         ...(showStationSelect ? [{ label: 'Cabang', value: selectedStationLabel }] : []),
-        { label: 'PIC / PH', value: form.pic_name.trim() || '-' },
+        { label: 'PH / Pengganti', value: form.pic_name.trim() || '-' },
     ];
     const canToggleSupporting = !editing && !hasSupportingValues;
     const supportingVisible = supportingOpen || editing !== null || hasSupportingValues;
@@ -1914,7 +1914,7 @@ function LeaveRecordsTable({
                                 <p><strong>Periode:</strong> {formatLeavePeriod(record.start_date, record.end_date)}</p>
                                 <p><strong>Cabang:</strong> {record.station ? `${record.station.code} - ${record.station.name}` : '-'}</p>
                                 <p><strong>Divisi / Unit:</strong> {record.division_name || '-'} / {record.unit_name || '-'}</p>
-                                <p><strong>PIC / PH:</strong> {record.pic_name || '-'} / {record.pic_phone || '-'}</p>
+                                <p><strong>PH / Pengganti:</strong> {record.pic_name || '-'} / {record.pic_phone || '-'}</p>
                                 {record.reviewed_by_name || record.reviewed_at ? (
                                     <p><strong>Review HC:</strong> {record.reviewed_by_name || 'HC'}{record.reviewed_at ? ` • ${formatLeaveDate(record.reviewed_at.slice(0, 10))}` : ''}</p>
                                 ) : null}
@@ -2700,8 +2700,12 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
     }, [isHCManager, user?.id, user?.role, user?.station_id]);
 
     const canReviewRecord = useCallback((record: HCLeaveRecord) => {
-        return isHCManager && record.submission_status === 'PENDING';
-    }, [isHCManager]);
+        if (isHCManager) return record.submission_status === 'PENDING';
+        if (user?.role === 'MANAGER_CABANG') {
+            return user.station_id === record.station_id && record.submission_status === 'PENDING';
+        }
+        return false;
+    }, [isHCManager, user?.role, user?.station_id]);
 
     const startCreate = useCallback(() => {
         setBranchSuccessVisible(false);
@@ -2824,7 +2828,7 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
                 pushFeedback(
                     'success',
                     editing ? 'Perubahan tersimpan' : 'Pengajuan terkirim',
-                    editing ? 'Data cuti berhasil diperbarui.' : 'Pengajuan cuti langsung masuk ke monitoring HC.'
+                    editing ? 'Data cuti berhasil diperbarui.' : 'Pengajuan cuti langsung masuk ke monitoring GM/EGM.'
                 );
             }
         } catch (error) {
@@ -2885,7 +2889,7 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
         const nextStatus = reviewState.nextStatus;
         const reviewNotes = reviewState.notes.trim();
         if (nextStatus === 'REJECTED' && !reviewNotes) {
-            pushFeedback('error', 'Alasan wajib diisi', 'Isi alasan penolakan sebelum mengirim review HC.');
+            pushFeedback('error', 'Alasan wajib diisi', 'Isi alasan penolakan sebelum mengirim review.');
             return;
         }
 
@@ -2920,10 +2924,10 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
             pushFeedback(
                 'success',
                 nextStatus === 'REJECTED' ? 'Pengajuan ditolak' : 'Pengajuan disetujui',
-                `${record.employee_name} berhasil diproses oleh HC.`
+                `${record.employee_name} berhasil diproses oleh GM/EGM.`
             );
         } catch (error) {
-            pushFeedback('error', 'Gagal memperbarui status HC', error instanceof Error ? error.message : 'Gagal memperbarui status HC');
+            pushFeedback('error', 'Gagal memperbarui status', error instanceof Error ? error.message : 'Gagal memperbarui status');
         } finally {
             setBusy(false);
         }
@@ -2942,16 +2946,16 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
             });
             if (!response.ok) {
                 const error = await response.json().catch(() => ({}));
-                throw new Error(error.error || 'Gagal memperbarui status HC');
+                throw new Error(error.error || 'Gagal memperbarui status');
             }
 
             const updatedRecord = await response.json().catch(() => null);
             if (updatedRecord) {
                 setRecords((current) => upsertLeaveRecord(current, updatedRecord));
             }
-            pushFeedback('success', 'Pengajuan disetujui', `${record.employee_name} berhasil diproses oleh HC.`);
+            pushFeedback('success', 'Pengajuan disetujui', `${record.employee_name} berhasil diproses oleh GM/EGM.`);
         } catch (error) {
-            pushFeedback('error', 'Gagal memperbarui status HC', error instanceof Error ? error.message : 'Gagal memperbarui status HC');
+            pushFeedback('error', 'Gagal memperbarui status', error instanceof Error ? error.message : 'Gagal memperbarui status');
             throw error;
         } finally {
             setBusy(false);
@@ -2978,7 +2982,7 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
             if (updatedRecord) {
                 setRecords((current) => upsertLeaveRecord(current, updatedRecord));
             }
-            pushFeedback('success', 'Pengajuan ditolak', `${record.employee_name} berhasil diproses oleh HC.`);
+            pushFeedback('success', 'Pengajuan ditolak', `${record.employee_name} berhasil diproses.`);
         } catch (error) {
             pushFeedback('error', 'Gagal memperbarui status HC', error instanceof Error ? error.message : 'Gagal memperbarui status HC');
             throw error;

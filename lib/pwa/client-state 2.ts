@@ -37,43 +37,31 @@ export async function purgePwaClientState() {
     return;
   }
 
-  // CRITICAL: Clear localStorage synchronously to ensure immediate UI state reset
   Object.keys(localStorage)
     .filter((key) => isPwaStorageKey(key))
     .forEach((key) => localStorage.removeItem(key));
 
   localStorage.removeItem(PWA_AUTH_SCOPE_KEY);
-  sessionStorage.clear();
-
-  // NON-BLOCKING: ServiceWorker, IndexedDB and Cache deletions
-  // These are heavy and potentially slow, especially on Safari or if other tabs are open.
-  // We don't await them to ensure the logout redirection happens instantly.
-  
-  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({ type: "PURGE_RUNTIME_CACHE" });
-  }
 
   if ("indexedDB" in window) {
-    // Fire-and-forget IndexedDB deletion
-    try {
-      indexedDB.deleteDatabase(PWA_DB_NAME);
-    } catch {
-      // Ignore background errors
-    }
+    await new Promise<void>((resolve) => {
+      const request = indexedDB.deleteDatabase(PWA_DB_NAME);
+      request.onsuccess = () => resolve();
+      request.onerror = () => resolve();
+      request.onblocked = () => resolve();
+    });
   }
 
   if ("caches" in window) {
-    // Fire-and-forget cache deletions
-    caches.keys().then((cacheKeys) => {
-      Promise.all(
-        cacheKeys
-          .filter((key) => PWA_DYNAMIC_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)))
-          .map((key) => caches.delete(key))
-      ).catch(() => {
-        // Ignore background errors
-      });
-    }).catch(() => {
-      // Ignore background errors
-    });
+    const cacheKeys = await caches.keys();
+    await Promise.all(
+      cacheKeys
+        .filter((key) => PWA_DYNAMIC_CACHE_PREFIXES.some((prefix) => key.startsWith(prefix)))
+        .map((key) => caches.delete(key))
+    );
+  }
+
+  if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.controller.postMessage({ type: "PURGE_RUNTIME_CACHE" });
   }
 }

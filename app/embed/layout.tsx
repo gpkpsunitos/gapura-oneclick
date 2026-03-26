@@ -1,7 +1,7 @@
 import './embed.css';
 
 export const metadata = {
-  title: 'Gapura IRRS - Dashboard Detail',
+  title: 'Gapura OneClick - Dashboard Detail',
   description: 'Interactive report detail view'
 };
 

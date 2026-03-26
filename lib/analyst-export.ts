@@ -34,7 +34,7 @@ export async function exportToExcel(ctx: ExportContext): Promise<void> {
 
   const summaryData = [
     [''],
-    ['', 'LAPORAN ANALITIK IRRS'],
+    ['', 'LAPORAN ANALITIK OneClick'],
     ['', 'Gapura Angkasa - Incident Report & Resolution System'],
     [''],
     ['', 'Tanggal Export:', exportDate],
@@ -64,7 +64,7 @@ export async function exportToExcel(ctx: ExportContext): Promise<void> {
     }) || []),
     [''],
     ['', '═══════════════════════════════════════════════════'],
-    ['', 'Digenerate oleh IRRS Analytics Engine'],
+    ['', 'Digenerate oleh OneClick Analytics Engine'],
     ['', `© ${now.getFullYear()} Gapura Angkasa. All rights reserved.`],
   ];
 
@@ -77,7 +77,7 @@ export async function exportToExcel(ctx: ExportContext): Promise<void> {
   XLSX.utils.book_append_sheet(wb, ws1, '📊 Ringkasan');
 
   const reportsHeader = [
-    ['DETAIL LAPORAN - IRRS'],
+    ['DETAIL LAPORAN - OneClick'],
     ['Total: ' + reports.length + ' laporan | Export: ' + exportDate],
     [],
   ];
@@ -234,7 +234,7 @@ export async function exportToPDF(ctx: ExportContext): Promise<void> {
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Gapura Angkasa - IRRS Analytics | Halaman ${i} dari ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
+    doc.text(`Gapura Angkasa - OneClick Analytics | Halaman ${i} dari ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
   }
 
   doc.save(`Analytics-IRRS-${new Date().toISOString().split('T')[0]}.pdf`);

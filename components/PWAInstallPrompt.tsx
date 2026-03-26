@@ -124,7 +124,7 @@ export default function PWAInstallPrompt() {
                     <Smartphone className="w-6 h-6" />
                   </div>
                   <div>
-                    <h3 className="font-bold">Install Gapura App</h3>
+                    <h3 className="font-bold">Install OneClick</h3>
                     <p className="text-sm text-white/90">Akses lebih cepat & offline</p>
                   </div>
                 </div>
@@ -141,7 +141,7 @@ export default function PWAInstallPrompt() {
             <div className="p-4">
               {platform === 'ios' ? (
                 <div className="space-y-3 text-sm text-gray-700">
-                  <p>Untuk menginstall aplikasi Gapura di iPhone/iPad:</p>
+                  <p>Untuk menginstall aplikasi OneClick di iPhone/iPad:</p>
                   <ol className="list-decimal list-inside space-y-2">
                     <li>Tap tombol <Share className="w-4 h-4 inline mx-1" /> Share di bawah</li>
                     <li>Scroll ke bawah, tap <strong>&quot;Add to Home Screen&quot;</strong></li>
