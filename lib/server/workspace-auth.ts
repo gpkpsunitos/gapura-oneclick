@@ -30,6 +30,10 @@ export function canManageHCWorkspace(role: string | null | undefined): boolean {
     return HC_MANAGER_ROLES.includes(normalizeRole(role) as any);
 }
 
+export function isBranchManager(role: string | null | undefined): boolean {
+    return normalizeRole(role) === 'MANAGER_CABANG';
+}
+
 export function canManageDivisionDocuments(role: string | null | undefined, division: 'HC' | 'HT'): boolean {
     const normalized = normalizeRole(role);
     if (normalized === 'SUPER_ADMIN' || normalized === 'ANALYST') return true;

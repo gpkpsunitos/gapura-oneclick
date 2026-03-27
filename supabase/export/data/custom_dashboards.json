@@ -1,1 +1,140 @@
-[]
+[
+  {
+    "id": "64883ff8-2052-4e3c-9a78-eab8e3684da9",
+    "name": "Customer Feedback Dashboard",
+    "description": "Comprehensive Customer Feedback Dashboard \u2013 Irregularity, Complaint & Compliment Report",
+    "created_by": null,
+    "is_public": true,
+    "slug": "customer-feedback-mm109l3p",
+    "config": {
+      "pages": [
+        "Case Category",
+        "Detail Category",
+        "Detail Report",
+        "CGO Overview",
+        "CGO Detail"
+      ],
+      "dateTo": "2026-02-25",
+      "filters": {
+        "hubs": [],
+        "airlines": [],
+        "branches": [],
+        "categories": []
+      },
+      "dateFrom": "2025-01-01",
+      "hideControls": true,
+      "sourceDashboardId": "customer-feedback-main"
+    },
+    "created_at": "2026-02-24T19:35:35.522739+00:00",
+    "updated_at": "2026-02-24T19:35:35.522739+00:00",
+    "folder": null
+  },
+  {
+    "id": "0bfddb6b-6530-4ab8-92a9-0ef33c309927",
+    "name": "Customer Feedback Dashboard",
+    "description": "Comprehensive Customer Feedback Dashboard \u2013 Irregularity, Complaint & Compliment Report",
+    "created_by": null,
+    "is_public": true,
+    "slug": "customer-feedback-main",
+    "config": {
+      "pages": [
+        "Case Category",
+        "Detail Category",
+        "Detail Report",
+        "CGO Overview",
+        "CGO Detail"
+      ],
+      "dateTo": "2099-12-31",
+      "dateFrom": "1900-01-01",
+      "hideControls": false
+    },
+    "created_at": "2026-02-17T21:39:56.915209+00:00",
+    "updated_at": "2026-03-12T04:33:59.988+00:00",
+    "folder": null
+  },
+  {
+    "id": "fe3684cf-46ec-4a44-9d3f-828a7ebb83ab",
+    "name": "FEB 2026",
+    "description": "Custom Analysis: FEB 2026",
+    "created_by": null,
+    "is_public": true,
+    "slug": "customer-feedback-mltt0757",
+    "config": {
+      "pages": [
+        "Case Category",
+        "Detail Category",
+        "Detail Report",
+        "CGO Overview",
+        "CGO Detail"
+      ],
+      "dateTo": "2026-02-28",
+      "filters": {
+        "hubs": [
+          "HUB 1"
+        ],
+        "airlines": [],
+        "branches": [
+          "CGK"
+        ],
+        "categories": []
+      },
+      "dateFrom": "2026-02-01",
+      "hideControls": true,
+      "sourceDashboardId": "customer-feedback-main"
+    },
+    "created_at": "2026-02-19T18:37:56.468435+00:00",
+    "updated_at": "2026-02-19T18:37:56.468435+00:00",
+    "folder": "FEB 2026"
+  },
+  {
+    "id": "f90fbe30-797b-46da-9cb2-f4ba8f2b6dcb",
+    "name": "Februari 2026",
+    "description": "Custom Analysis: Februari 2026",
+    "created_by": null,
+    "is_public": true,
+    "slug": "customer-feedback-mlurnlxa",
+    "config": {
+      "pages": [
+        "Case Category",
+        "Detail Category",
+        "Detail Report",
+        "CGO Overview",
+        "CGO Detail"
+      ],
+      "dateTo": "2026-02-28",
+      "filters": {
+        "hubs": [],
+        "airlines": [],
+        "branches": [],
+        "categories": []
+      },
+      "dateFrom": "2026-02-01",
+      "hideControls": true,
+      "sourceDashboardId": "customer-feedback-main"
+    },
+    "created_at": "2026-02-20T10:47:55.63872+00:00",
+    "updated_at": "2026-02-20T10:47:55.63872+00:00",
+    "folder": "FEB 2026"
+  },
+  {
+    "id": "20098141-91d8-4252-ab67-31e995c87ca6",
+    "name": "1-18 FEB",
+    "description": "Custom Analysis: 1-18 FEB",
+    "created_by": null,
+    "is_public": true,
+    "slug": "customer-feedback-mlrk6mos",
+    "config": {
+      "pages": [
+        "Case Category",
+        "Detail Category",
+        "Detail Report",
+        "CGO Overview",
+        "CGO Detail"
+      ],
+      "hideControls": true
+    },
+    "created_at": "2026-02-18T04:55:27.701788+00:00",
+    "updated_at": "2026-02-18T04:55:27.701788+00:00",
+    "folder": "FEB 2026"
+  }
+]

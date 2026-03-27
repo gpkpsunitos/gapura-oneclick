@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
@@ -242,11 +243,11 @@ function getELetterLabel(status: HCLeaveLetterStatus) {
 function getELetterPillClass(status: HCLeaveLetterStatus) {
     switch (status) {
         case 'TERBIT':
-            return 'border-transparent bg-[#374151] text-white';
+            return 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-[0_2px_10px_-3px_rgba(16,185,129,0.2)]';
         case 'PENGAJUAN':
-            return 'border-transparent bg-[#3B82F6] text-white';
+            return 'bg-sky-50 text-sky-700 border-sky-200 shadow-[0_2px_10px_-3px_rgba(14,165,233,0.2)]';
         default:
-            return 'border-transparent bg-[#F59E0B] text-white';
+            return 'bg-amber-50 text-amber-700 border-amber-200 shadow-[0_2px_10px_-3px_rgba(245,158,11,0.2)]';
     }
 }
 
@@ -598,8 +599,6 @@ function HCLeaveReviewModal({
     onNotesChange: (value: string) => void;
     onSubmit: () => void;
 }) {
-    if (!open || !record) return null;
-
     const isReject = nextStatus === 'REJECTED';
     const toneClass = isReject
         ? 'border-rose-100 bg-gradient-to-br from-rose-50 via-white to-white'
@@ -610,12 +609,24 @@ function HCLeaveReviewModal({
     const Icon = isReject ? XCircle : CheckCircle2;
 
     return (
-        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/45 p-0 backdrop-blur-sm md:items-center md:p-4">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[70] flex items-end justify-center bg-black/45 p-0 backdrop-blur-sm md:items-center md:p-4"
+        >
             <div className="absolute inset-0" onClick={busy ? undefined : onClose} />
-            <GlassCard
-                hover={false}
-                className={`relative z-10 flex max-h-[92dvh] w-full max-w-2xl flex-col rounded-t-[32px] border shadow-2xl md:max-h-[88vh] md:rounded-[32px] ${toneClass}`}
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 400 }}
+                className="relative z-10 w-full max-w-2xl"
             >
+                <GlassCard
+                    hover={false}
+                    className={`flex max-h-[92dvh] w-full flex-col rounded-t-[32px] border shadow-2xl md:max-h-[88vh] md:rounded-[32px] ${toneClass}`}
+                >
                 <div className="border-b border-white/70 px-5 pb-4 pt-5 md:px-6 md:pb-5 md:pt-6">
                     <div className="flex items-start justify-between gap-4">
                         <div className="flex items-start gap-4">
@@ -698,7 +709,8 @@ function HCLeaveReviewModal({
                     </div>
                 </div>
             </GlassCard>
-        </div>
+            </motion.div>
+        </motion.div>
     );
 }
 
@@ -753,6 +765,65 @@ function HCFeedbackStack({
     );
 }
 
+function HCLeaveSuccessModal({
+    open,
+    onClose,
+    onViewHistory,
+}: {
+    open: boolean;
+    onClose: () => void;
+    onViewHistory: () => void;
+}) {
+    return (
+        <AnimatePresence>
+            {open && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+                >
+                    <div className="absolute inset-0" onClick={onClose} />
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        className="relative w-full max-w-sm"
+                    >
+                        <GlassCard hover={false} className="overflow-hidden rounded-[32px] border-emerald-100 bg-white shadow-2xl">
+                            <div className="bg-gradient-to-b from-emerald-50/50 to-transparent p-8 text-center">
+                                <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-emerald-100/50 text-emerald-600 shadow-[inset_0_1px_1px_rgba(255,255,255,0.8)]">
+                                    <CheckCircle2 className="h-10 w-10" />
+                                </div>
+                                <h3 className="text-2xl font-black tracking-tight text-[var(--text-primary)]">Pengajuan Terkirim</h3>
+                                <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">
+                                    Data cuti Anda telah berhasil dikirim dan kini sedang dalam tahap review oleh GM/EGM.
+                                </p>
+                            </div>
+                            <div className="flex flex-col gap-3 p-6 pt-0">
+                                <Button
+                                    onClick={onViewHistory}
+                                    className="h-12 w-full rounded-2xl bg-emerald-600 font-bold text-white hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all active:scale-[0.98]"
+                                >
+                                    Lihat Riwayat
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    onClick={onClose}
+                                    className="h-12 w-full rounded-2xl border-[var(--surface-4)] font-semibold text-[var(--text-secondary)] hover:bg-[var(--surface-1)] transition-all"
+                                >
+                                    Tutup
+                                </Button>
+                            </div>
+                        </GlassCard>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+    );
+}
+
 function HCDeleteConfirmModal({
     open,
     busy,
@@ -766,60 +837,72 @@ function HCDeleteConfirmModal({
     onClose: () => void;
     onConfirm: () => void;
 }) {
-    if (!open || !record) return null;
 
     return (
-        <div className="fixed inset-0 z-[71] flex items-end justify-center bg-black/45 p-0 backdrop-blur-sm md:items-center md:p-4">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[71] flex items-end justify-center bg-black/45 p-0 backdrop-blur-sm md:items-center md:p-4"
+        >
             <div className="absolute inset-0" onClick={busy ? undefined : onClose} />
-            <GlassCard
-                hover={false}
-                className="relative z-10 flex w-full max-w-xl flex-col rounded-t-[32px] border border-rose-100 bg-gradient-to-br from-rose-50 via-white to-white shadow-2xl md:rounded-[32px]"
+            <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 400 }}
+                className="relative z-10 w-full max-w-xl"
             >
-                <div className="border-b border-white/70 px-5 pb-4 pt-5 md:px-6 md:pb-5 md:pt-6">
-                    <div className="flex items-start gap-4">
-                        <div className="mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
-                            <Trash2 className="h-5 w-5" />
-                        </div>
-                        <div>
-                            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">Arsipkan Data</p>
-                            <h2 className="mt-2 text-2xl font-black text-[var(--text-primary)]">Konfirmasi Arsip</h2>
-                            <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                                Data cuti ini akan keluar dari monitoring aktif GM/EGM dan backup aktif, tanpa dihapus permanen dari database.
-                            </p>
+                <GlassCard
+                    hover={false}
+                    className="flex w-full flex-col rounded-t-[32px] border border-rose-100 bg-gradient-to-br from-rose-50 via-white to-white shadow-2xl md:rounded-[32px]"
+                >
+                    <div className="border-b border-white/70 px-5 pb-4 pt-5 md:px-6 md:pb-5 md:pt-6">
+                        <div className="flex items-start gap-4">
+                            <div className="mt-0.5 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-100 text-rose-700">
+                                <Trash2 className="h-5 w-5" />
+                            </div>
+                            <div>
+                                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">Arsipkan Data</p>
+                                <h2 className="mt-2 text-2xl font-black text-[var(--text-primary)]">Konfirmasi Arsip</h2>
+                                <p className="mt-2 text-sm text-[var(--text-secondary)]">
+                                    Data cuti ini akan keluar dari monitoring aktif GM/EGM dan backup aktif, tanpa dihapus permanen dari database.
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="px-5 pb-5 pt-5 md:px-6">
-                    <div className="rounded-2xl border border-[var(--surface-4)] bg-white/80 p-4">
-                        <p className="text-lg font-black text-[var(--text-primary)]">{record.employee_name}</p>
-                        <p className="mt-1 text-sm text-[var(--text-secondary)]">{record.leave_type}</p>
-                        <div className="mt-3 space-y-1 text-sm text-[var(--text-secondary)]">
-                            <p><strong>Periode:</strong> {formatLeavePeriod(record.start_date, record.end_date)}</p>
-                            <p><strong>Cabang:</strong> {record.station ? `${record.station.code} - ${record.station.name}` : '-'}</p>
-                            <p><strong>Status Approval:</strong> {getSubmissionStatusLabel(record.submission_status)}</p>
+                    <div className="px-5 pb-5 pt-5 md:px-6">
+                        <div className="rounded-2xl border border-[var(--surface-4)] bg-white/80 p-4">
+                            <p className="text-lg font-black text-[var(--text-primary)]">{record.employee_name}</p>
+                            <p className="mt-1 text-sm text-[var(--text-secondary)]">{record.leave_type}</p>
+                            <div className="mt-3 space-y-1 text-sm text-[var(--text-secondary)]">
+                                <p><strong>Periode:</strong> {formatLeavePeriod(record.start_date, record.end_date)}</p>
+                                <p><strong>Cabang:</strong> {record.station ? `${record.station.code} - ${record.station.name}` : '-'}</p>
+                                <p><strong>Status Approval:</strong> {getSubmissionStatusLabel(record.submission_status)}</p>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div className="border-t border-white/70 bg-white/90 px-5 py-4 backdrop-blur md:px-6">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                        <Button type="button" variant="outline" className="h-11 rounded-2xl px-5" onClick={onClose} disabled={busy}>
-                            Batal
-                        </Button>
-                        <Button
-                            type="button"
-                            className="h-11 rounded-2xl bg-rose-600 px-5 font-bold text-white hover:bg-rose-700"
-                            onClick={onConfirm}
-                            disabled={busy}
-                        >
-                            {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                            Arsipkan Data
-                        </Button>
+                    <div className="border-t border-white/70 bg-white/90 px-5 py-4 backdrop-blur md:px-6">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+                            <Button type="button" variant="outline" className="h-11 rounded-2xl px-5" onClick={onClose} disabled={busy}>
+                                Batal
+                            </Button>
+                            <Button
+                                type="button"
+                                className="h-11 rounded-2xl bg-rose-600 px-5 font-bold text-white hover:bg-rose-700"
+                                onClick={onConfirm}
+                                disabled={busy}
+                            >
+                                {busy ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                                Arsipkan Data
+                            </Button>
+                        </div>
                     </div>
-                </div>
-            </GlassCard>
-        </div>
+                </GlassCard>
+            </motion.div>
+        </motion.div>
     );
 }
 
@@ -1559,8 +1642,11 @@ function HCMonitoringTable({
                                             <p className="mt-2 text-[11px] text-[var(--text-muted)]">{reviewerMeta}</p>
                                         </td>
                                         <td className="px-5 py-4">
-                                            <span className={cn('inline-flex rounded-full px-2.5 py-1 text-[12px] font-semibold', getELetterPillClass(record.e_letter_status))}>
-                                                {getELetterLabel(record.e_letter_status)}
+                                            <span className={cn(
+                                                'inline-flex whitespace-nowrap rounded-lg border px-2 py-1 text-[11px] font-bold tracking-wide transition-all duration-200',
+                                                getELetterPillClass(record.e_letter_status)
+                                            )}>
+                                                {getELetterLabel(record.e_letter_status).toUpperCase()}
                                             </span>
                                         </td>
                                         <td className="px-5 py-4" onClick={(event) => event.stopPropagation()}>
@@ -1843,8 +1929,11 @@ function LeaveRecordsTable({
                                         </div>
                                     </td>
                                     <td className="px-4 py-4">
-                                        <span className={cn('rounded-full px-3 py-1 text-xs font-bold', getELetterPillClass(record.e_letter_status))}>
-                                            {getStatusLabel(record.e_letter_status)}
+                                        <span className={cn(
+                                            'inline-flex whitespace-nowrap rounded-lg border px-2.5 py-1 text-[11px] font-bold tracking-wide transition-all duration-200', 
+                                            getELetterPillClass(record.e_letter_status)
+                                        )}>
+                                            {getStatusLabel(record.e_letter_status).toUpperCase()}
                                         </span>
                                     </td>
                                     <td className="px-4 py-4 text-[var(--text-secondary)]">{record.notes || '-'}</td>
@@ -1905,8 +1994,11 @@ function LeaveRecordsTable({
                                         <SubmissionIcon className="h-3.5 w-3.5" />
                                         {getSubmissionStatusLabel(record.submission_status)}
                                     </span>
-                                    <span className={cn('rounded-full px-3 py-1 text-xs font-bold', getELetterPillClass(record.e_letter_status))}>
-                                        {getStatusLabel(record.e_letter_status)}
+                                    <span className={cn(
+                                        'inline-flex whitespace-nowrap rounded-lg border px-2 py-1 text-[10px] font-bold tracking-wide transition-all duration-200', 
+                                        getELetterPillClass(record.e_letter_status)
+                                    )}>
+                                        {getStatusLabel(record.e_letter_status).toUpperCase()}
                                     </span>
                                 </div>
                             </div>
@@ -2126,6 +2218,8 @@ function BranchStaffLeaveSubmissionView({
     onFormChange,
     onSubmit,
     onReset,
+    onCloseSuccess,
+    onViewHistory,
 }: {
     busy: boolean;
     editing: HCLeaveRecord | null;
@@ -2134,6 +2228,8 @@ function BranchStaffLeaveSubmissionView({
     onFormChange: (field: keyof LeaveFormState, value: string) => void;
     onSubmit: (event: React.FormEvent) => void;
     onReset: () => void;
+    onCloseSuccess: () => void;
+    onViewHistory: () => void;
 }) {
     return (
         <div className="mx-auto max-w-[1240px]" style={{ fontFamily: 'Inter, var(--font-body), sans-serif' }}>
@@ -2146,17 +2242,11 @@ function BranchStaffLeaveSubmissionView({
                     </p>
                 </div>
 
-                {successVisible ? (
-                    <div className="flex items-start gap-3 rounded-[24px] border border-emerald-200 bg-emerald-50 px-4 py-4">
-                        <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
-                        <div>
-                            <p className="text-sm font-semibold text-[var(--text-primary)]">Pengajuan terkirim</p>
-                            <Link href={BRANCH_HISTORY_HREF} className="mt-1 inline-flex text-sm font-medium text-emerald-700 hover:text-emerald-800">
-                                Lihat riwayat
-                            </Link>
-                        </div>
-                    </div>
-                ) : null}
+                <HCLeaveSuccessModal 
+                    open={successVisible} 
+                    onClose={onCloseSuccess}
+                    onViewHistory={onViewHistory}
+                />
 
                 <LeaveFormCard
                     busy={busy}
@@ -2632,10 +2722,13 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
     }, [loading, load]);
 
     useEffect(() => {
+        if (loading) return;
         if (presentation === 'staff') {
             setFormOpen(true);
+        } else {
+            setFormOpen(false);
         }
-    }, [presentation]);
+    }, [presentation, loading]);
 
     useEffect(() => {
         const submissionStatus = searchParams.get('submission_status');
@@ -2740,6 +2833,15 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
         setForm(emptyForm(mode === 'branch' ? user?.station_id : null));
         setFormOpen(presentation === 'staff');
     }, [mode, presentation, user?.station_id]);
+
+    const closeBranchSuccess = useCallback(() => setBranchSuccessVisible(false), []);
+
+    const viewHistory = useCallback(() => {
+        setBranchSuccessVisible(false);
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('view', 'history');
+        router.push(`${window.location.pathname}?${params.toString()}`);
+    }, [router, searchParams]);
 
     const closeReviewModal = useCallback(() => {
         if (busy) return;
@@ -3021,6 +3123,8 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
                             onFormChange={handleFormChange}
                             onSubmit={submit}
                             onReset={resetForm}
+                            onCloseSuccess={closeBranchSuccess}
+                            onViewHistory={viewHistory}
                         />
                     )
                 )}
@@ -3082,24 +3186,32 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
                 )}
             </div>
 
-            <HCLeaveReviewModal
-                open={reviewState.open}
-                busy={busy}
-                record={reviewState.record}
-                nextStatus={reviewState.nextStatus}
-                notes={reviewState.notes}
-                onClose={closeReviewModal}
-                onNotesChange={(value) => setReviewState((current) => ({ ...current, notes: value }))}
-                onSubmit={submitReview}
-            />
+            <AnimatePresence>
+                {reviewState.open && reviewState.record && (
+                    <HCLeaveReviewModal
+                        open={reviewState.open}
+                        busy={busy}
+                        record={reviewState.record}
+                        nextStatus={reviewState.nextStatus}
+                        notes={reviewState.notes}
+                        onClose={closeReviewModal}
+                        onNotesChange={(value) => setReviewState((current) => ({ ...current, notes: value }))}
+                        onSubmit={submitReview}
+                    />
+                )}
+            </AnimatePresence>
 
-            <HCDeleteConfirmModal
-                open={deleteState.open}
-                busy={busy}
-                record={deleteState.record}
-                onClose={closeDeleteModal}
-                onConfirm={removeRecord}
-            />
+            <AnimatePresence>
+                {deleteState.open && deleteState.record && (
+                    <HCDeleteConfirmModal
+                        open={deleteState.open}
+                        busy={busy}
+                        record={deleteState.record}
+                        onClose={closeDeleteModal}
+                        onConfirm={removeRecord}
+                    />
+                )}
+            </AnimatePresence>
 
             <HCFeedbackStack items={feedbackItems} onDismiss={dismissFeedback} />
         </div>

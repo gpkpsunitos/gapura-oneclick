@@ -2,7 +2,7 @@ import 'server-only';
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import * as XLSX from 'xlsx';
+import * as ExcelJS from 'exceljs';
 import { getGoogleSheets } from '@/lib/google-sheets';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import type { HCLeaveLetterStatus, HCLeaveRecord, HCLeaveSubmissionStatus } from '@/types';
@@ -149,47 +149,67 @@ export async function fetchHCLeaveRecordsForBackup(options?: { includeDeleted?: 
     });
 }
 
-function toWorksheetRows(records: HCLeaveRecord[]): string[][] {
-    return [
-        [...HEADERS],
-        ...records.map((record) => [
-            record.id,
-            record.employee_name,
-            record.leave_type,
-            record.start_date,
-            record.end_date,
-            record.submission_status,
-            record.station?.code || '',
-            record.station?.name || '',
-            record.division_name || '',
-            record.unit_name || '',
-            record.pic_name || '',
-            record.pic_email || '',
-            record.pic_phone || '',
-            record.e_letter_status,
-            record.notes || '',
-            record.review_notes || '',
-            record.reviewed_by_name || '',
-            record.reviewed_at || '',
-            record.created_by_name || record.created_by,
-            record.created_at,
-            record.updated_at,
-        ]),
-    ];
+function toWorksheetRows(records: HCLeaveRecord[]): any[][] {
+    return records.map((record) => [
+        record.id,
+        record.employee_name,
+        record.leave_type,
+        record.start_date,
+        record.end_date,
+        record.submission_status,
+        record.station?.code || '',
+        record.station?.name || '',
+        record.division_name || '',
+        record.unit_name || '',
+        record.pic_name || '',
+        record.pic_email || '',
+        record.pic_phone || '',
+        record.e_letter_status,
+        record.notes || '',
+        record.review_notes || '',
+        record.reviewed_by_name || '',
+        record.reviewed_at || '',
+        record.created_by_name || record.created_by,
+        record.created_at,
+        record.updated_at,
+    ]);
 }
 
-export function buildHCLeaveWorkbook(records: HCLeaveRecord[]): Buffer {
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.aoa_to_sheet(toWorksheetRows(records));
-    ws['!cols'] = [
-        { wch: 22 }, { wch: 24 }, { wch: 18 }, { wch: 12 }, { wch: 12 },
-        { wch: 18 }, { wch: 10 }, { wch: 24 }, { wch: 18 }, { wch: 18 },
-        { wch: 18 }, { wch: 24 }, { wch: 18 }, { wch: 16 }, { wch: 40 },
-        { wch: 36 }, { wch: 20 }, { wch: 22 }, { wch: 20 }, { wch: 22 },
-        { wch: 22 },
+export async function buildHCLeaveWorkbook(records: HCLeaveRecord[]): Promise<Buffer> {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(HC_LEAVE_SHEET_NAME);
+
+    // Add headers
+    const headerRow = worksheet.addRow([...HEADERS]);
+    headerRow.font = { bold: true };
+    headerRow.eachCell((cell) => {
+        cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0E0E0' }
+        };
+        cell.border = {
+            top: { style: 'thin' },
+            left: { style: 'thin' },
+            bottom: { style: 'thin' },
+            right: { style: 'thin' }
+        };
+    });
+
+    // Add data
+    worksheet.addRows(toWorksheetRows(records));
+
+    // Set column widths
+    worksheet.columns = [
+        { width: 22 }, { width: 24 }, { width: 18 }, { width: 12 }, { width: 12 },
+        { width: 18 }, { width: 10 }, { width: 24 }, { width: 18 }, { width: 18 },
+        { width: 18 }, { width: 24 }, { width: 18 }, { width: 16 }, { width: 40 },
+        { width: 36 }, { width: 20 }, { width: 22 }, { width: 20 }, { width: 22 },
+        { width: 22 },
     ];
-    XLSX.utils.book_append_sheet(wb, ws, HC_LEAVE_SHEET_NAME);
-    return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
 }
 
 async function ensureSheetExists() {
@@ -256,7 +276,7 @@ async function syncHCLeaveRecordsToGoogleSheet(records: HCLeaveRecord[]) {
 }
 
 async function writeLocalBackup(records: HCLeaveRecord[]) {
-    const buffer = buildHCLeaveWorkbook(records);
+    const buffer = await buildHCLeaveWorkbook(records);
     await fs.mkdir(path.dirname(HC_LEAVE_BACKUP_PATH), { recursive: true });
     await fs.writeFile(HC_LEAVE_BACKUP_PATH, buffer);
 }

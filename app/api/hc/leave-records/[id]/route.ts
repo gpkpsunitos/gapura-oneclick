@@ -4,6 +4,7 @@ import { fetchHCLeaveRecordsForBackup, syncHCLeaveBackup } from '@/lib/services/
 import {
     canManageHCWorkspace,
     getWorkspaceUser,
+    isBranchManager,
     normalizeRole,
 } from '@/lib/server/workspace-auth';
 import type { HCLeaveRecord, HCLeaveSubmissionStatus } from '@/types';
@@ -26,6 +27,10 @@ function canModifyRecord(user: NonNullable<Awaited<ReturnType<typeof getWorkspac
     if (canManageHCWorkspace(user.role)) return true;
 
     const role = normalizeRole(user.role);
+    if (role === 'MANAGER_CABANG') {
+        return user.station_id === record.station_id;
+    }
+
     if (record.submission_status && record.submission_status !== 'PENDING') return false;
     if (role === 'STAFF_CABANG') return record.created_by === user.id;
     return false;
@@ -75,7 +80,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             }
         }
 
-        if (isHCManager && 'submission_status' in body) {
+        const isPic = normalizeRole(user.role) === 'MANAGER_CABANG';
+        const isStationMatch = existing.station_id === user.station_id;
+        const canReview = isHCManager || (isPic && isStationMatch);
+
+        if (canReview && 'submission_status' in body) {
             const nextSubmissionStatus = String(body.submission_status || '').trim().toUpperCase() as HCLeaveSubmissionStatus;
             if (!SUBMISSION_STATUS_VALUES.includes(nextSubmissionStatus)) {
                 return NextResponse.json({ error: 'submission_status is invalid' }, { status: 400 });

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+console.log(`Checking Node.js version (current: v${process.versions.node})...`);
+
 const [majorRaw, minorRaw] = process.versions.node.split(".");
 const major = Number(majorRaw);
 const minor = Number(minorRaw);

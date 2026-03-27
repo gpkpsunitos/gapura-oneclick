@@ -25,130 +25,152 @@ interface ExportContext {
 
 // Complexity: Time O(N) where N = reports.length | Space O(N)
 export async function exportToExcel(ctx: ExportContext): Promise<void> {
-  const XLSX = await import('xlsx');
-  const { reports, filteredReports, analytics, dateRange } = ctx;
-  const wb = XLSX.utils.book_new();
+  const exceljs = await import('exceljs');
+  const workbook = new exceljs.Workbook();
+  const summarySheet = workbook.addWorksheet('📊 Ringkasan');
+  
+  const { reports, analytics, dateRange } = ctx;
   const now = new Date();
   const exportDate = now.toLocaleDateString('id-ID', { dateStyle: 'full' });
   const exportTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-  const summaryData = [
-    [''],
-    ['', 'LAPORAN ANALITIK OneClick'],
-    ['', 'Gapura Angkasa - Incident Report & Resolution System'],
-    [''],
-    ['', 'Tanggal Export:', exportDate],
-    ['', 'Waktu Export:', exportTime],
-    ['', 'Periode:', typeof dateRange === 'string' ? dateRange.toUpperCase() : `${dateRange.from} → ${dateRange.to}`],
-    [''],
-    ['', '═══════════════════════════════════════════════════'],
-    ['', 'RINGKASAN EKSEKUTIF'],
-    ['', '═══════════════════════════════════════════════════'],
-    [''],
-    ['', 'Metrik', 'Nilai', 'Status'],
-    ['', 'Total Laporan', analytics?.summary.totalReports || 0, '📊'],
-    ['', 'Laporan Selesai', analytics?.summary.resolvedReports || 0, '✅'],
-    ['', 'Laporan Pending', analytics?.summary.pendingReports || 0, '⏳'],
-    ['', 'Tingkat Resolusi', `${analytics?.summary.avgResolutionRate || 0}%`, analytics?.summary.avgResolutionRate && analytics.summary.avgResolutionRate >= 80 ? '🟢' : '🟡'],
-    ['', 'Kasus High Severity', analytics?.summary.highSeverity || 0, '🔴'],
-    ['', 'SLA Breach', analytics?.summary.slaBreachCount || 0, '⚠️'],
-    [''],
-    ['', '═══════════════════════════════════════════════════'],
-    ['', 'DISTRIBUSI PER DIVISI'],
-    ['', '═══════════════════════════════════════════════════'],
-    [''],
-    ['', 'Divisi', 'Jumlah Laporan', 'Persentase'],
-    ...(analytics?.divisionData?.map(d => {
-      const total = analytics?.divisionData?.reduce((sum, x) => sum + x.count, 0) || 1;
-      return ['', d.division, d.count, `${Math.round((d.count / total) * 100)}%`];
-    }) || []),
-    [''],
-    ['', '═══════════════════════════════════════════════════'],
-    ['', 'Digenerate oleh OneClick Analytics Engine'],
-    ['', `© ${now.getFullYear()} Gapura Angkasa. All rights reserved.`],
-  ];
+  // Styling
+  const titleStyle: any = {
+    font: { bold: true, size: 14, color: { argb: 'FF10B981' } },
+    alignment: { horizontal: 'left' }
+  };
+  const headerStyle: any = {
+    font: { bold: true, color: { argb: 'FFFFFFFF' } },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } },
+    alignment: { horizontal: 'center' }
+  };
 
-  const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
-  ws1['!cols'] = [{ wch: 3 }, { wch: 35 }, { wch: 20 }, { wch: 15 }];
-  ws1['!merges'] = [
-    { s: { r: 1, c: 1 }, e: { r: 1, c: 3 } },
-    { s: { r: 2, c: 1 }, e: { r: 2, c: 3 } },
-  ];
-  XLSX.utils.book_append_sheet(wb, ws1, '📊 Ringkasan');
+  summarySheet.addRow([]);
+  summarySheet.addRow(['', 'LAPORAN ANALITIK OneClick']).getCell(2).style = titleStyle;
+  summarySheet.addRow(['', 'Gapura Angkasa - Incident Report & Resolution System']).getCell(2).font = { bold: true };
+  summarySheet.addRow([]);
+  summarySheet.addRow(['', 'Tanggal Export:', exportDate]);
+  summarySheet.addRow(['', 'Waktu Export:', exportTime]);
+  const period = typeof dateRange === 'string' ? dateRange.toUpperCase() : `${dateRange.from} → ${dateRange.to}`;
+  summarySheet.addRow(['', 'Periode:', period]);
+  summarySheet.addRow([]);
+  summarySheet.addRow(['', '═══════════════════════════════════════════════════']);
+  summarySheet.addRow(['', 'RINGKASAN EKSEKUTIF']).getCell(2).font = { bold: true };
+  summarySheet.addRow(['', '═══════════════════════════════════════════════════']);
+  summarySheet.addRow([]);
+  
+  const metricsHeader = summarySheet.addRow(['', 'Metrik', 'Nilai', 'Status']);
+  metricsHeader.getCell(2).style = headerStyle;
+  metricsHeader.getCell(3).style = headerStyle;
+  metricsHeader.getCell(4).style = headerStyle;
 
-  const reportsHeader = [
-    ['DETAIL LAPORAN - OneClick'],
-    ['Total: ' + reports.length + ' laporan | Export: ' + exportDate],
-    [],
-  ];
+  summarySheet.addRow(['', 'Total Laporan', analytics?.summary.totalReports || 0, '📊']);
+  summarySheet.addRow(['', 'Laporan Selesai', analytics?.summary.resolvedReports || 0, '✅']);
+  summarySheet.addRow(['', 'Laporan Pending', analytics?.summary.pendingReports || 0, '⏳']);
+  summarySheet.addRow(['', 'Tingkat Resolusi', `${analytics?.summary.avgResolutionRate || 0}%`, analytics?.summary.avgResolutionRate && analytics.summary.avgResolutionRate >= 80 ? '🟢' : '🟡']);
+  summarySheet.addRow(['', 'Kasus High Severity', analytics?.summary.highSeverity || 0, '🔴']);
+  summarySheet.addRow(['', 'SLA Breach', analytics?.summary.slaBreachCount || 0, '⚠️']);
+  summarySheet.addRow([]);
+  summarySheet.addRow(['', '═══════════════════════════════════════════════════']);
+  summarySheet.addRow(['', 'DISTRIBUSI PER DIVISI']).getCell(2).font = { bold: true };
+  summarySheet.addRow(['', '═══════════════════════════════════════════════════']);
+  summarySheet.addRow([]);
+  
+  const divHeader = summarySheet.addRow(['', 'Divisi', 'Jumlah Laporan', 'Persentase']);
+  divHeader.getCell(2).style = headerStyle;
+  divHeader.getCell(3).style = headerStyle;
+  divHeader.getCell(4).style = headerStyle;
 
-  const reportsTableData = reports.map((r, idx) => ({
-    'No': idx + 1,
-    'ID Laporan': r.id.slice(0, 8).toUpperCase(),
-    'Judul Laporan': r.title,
-    'Status': STATUS_CONFIG[r.status as keyof typeof STATUS_CONFIG]?.label || r.status,
-    'Severity': r.severity?.toUpperCase() || '-',
-    'Stasiun': r.stations?.code || r.branch || '-',
-    'Nama Stasiun': r.stations?.name || '-',
-    'Divisi Tujuan': r.target_division || '-',
-    'Pelapor': r.users?.full_name || '-',
-    'Lokasi': r.location || '-',
-    'Tanggal Dibuat': new Date(r.created_at).toLocaleDateString('id-ID'),
-    'Waktu': new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-  }));
+  if (analytics?.divisionData) {
+    const total = analytics.divisionData.reduce((sum, x) => sum + x.count, 0) || 1;
+    analytics.divisionData.forEach(d => {
+      summarySheet.addRow(['', d.division, d.count, `${Math.round((d.count / total) * 100)}%`]);
+    });
+  }
 
-  const ws2Header = XLSX.utils.aoa_to_sheet(reportsHeader);
-  XLSX.utils.sheet_add_json(ws2Header, reportsTableData, { origin: 'A4' });
-  ws2Header['!cols'] = [
-    { wch: 5 }, { wch: 12 }, { wch: 40 }, { wch: 18 }, { wch: 10 },
-    { wch: 8 }, { wch: 25 }, { wch: 12 }, { wch: 20 }, { wch: 20 },
-    { wch: 14 }, { wch: 8 },
-  ];
-  XLSX.utils.book_append_sheet(wb, ws2Header, '📋 Detail Laporan');
+  summarySheet.addRow([]);
+  summarySheet.addRow(['', '═══════════════════════════════════════════════════']);
+  summarySheet.addRow(['', 'Digenerate oleh OneClick Analytics Engine']);
+  summarySheet.addRow(['', `© ${now.getFullYear()} Gapura Angkasa. All rights reserved.`]);
 
-  const stationHeader = [
-    ['PERFORMA PER STASIUN'],
-    ['Analisis efisiensi penyelesaian laporan'],
-    [],
-  ];
+  summarySheet.getColumn(2).width = 35;
+  summarySheet.getColumn(3).width = 20;
+  summarySheet.getColumn(4).width = 15;
 
-  const stationTableData = (analytics?.stationData || []).map((s, idx) => {
-    const efficiency = Math.round((s.resolved / Math.max(s.total, 1)) * 100);
-    return {
-      'No': idx + 1,
-      'Kode Stasiun': s.station,
-      'Total Laporan': s.total,
-      'Selesai': s.resolved,
-      'Pending': s.total - s.resolved,
-      'Efisiensi (%)': `${efficiency}%`,
-      'Rating': efficiency >= 90 ? '⭐⭐⭐⭐⭐' : efficiency >= 75 ? '⭐⭐⭐⭐' : efficiency >= 60 ? '⭐⭐⭐' : efficiency >= 40 ? '⭐⭐' : '⭐',
-    };
+  // Detail Sheet
+  const detailSheet = workbook.addWorksheet('📋 Detail Laporan');
+  detailSheet.addRow(['DETAIL LAPORAN - OneClick']).getCell(1).style = titleStyle;
+  detailSheet.addRow(['Total: ' + reports.length + ' laporan | Export: ' + exportDate]);
+  detailSheet.addRow([]);
+
+  const detailHeader = detailSheet.addRow([
+    'No', 'ID Laporan', 'Judul Laporan', 'Status', 'Severity', 'Stasiun', 
+    'Nama Stasiun', 'Divisi Tujuan', 'Pelapor', 'Lokasi', 'Tanggal Dibuat', 'Waktu'
+  ]);
+  detailHeader.eachCell(cell => { cell.style = headerStyle; });
+
+  reports.forEach((r, idx) => {
+    detailSheet.addRow([
+      idx + 1,
+      r.id.slice(0, 8).toUpperCase(),
+      r.title,
+      STATUS_CONFIG[r.status as keyof typeof STATUS_CONFIG]?.label || r.status,
+      r.severity?.toUpperCase() || '-',
+      r.stations?.code || r.branch || '-',
+      r.stations?.name || '-',
+      r.target_division || '-',
+      r.users?.full_name || '-',
+      r.location || '-',
+      new Date(r.created_at).toLocaleDateString('id-ID'),
+      new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+    ]);
   });
 
-  const ws3Header = XLSX.utils.aoa_to_sheet(stationHeader);
-  XLSX.utils.sheet_add_json(ws3Header, stationTableData, { origin: 'A4' });
-  ws3Header['!cols'] = [
-    { wch: 5 }, { wch: 15 }, { wch: 14 }, { wch: 12 },
-    { wch: 12 }, { wch: 14 }, { wch: 15 },
-  ];
-  XLSX.utils.book_append_sheet(wb, ws3Header, '📍 Performa Stasiun');
-
-  const statusData = [
-    ['DISTRIBUSI STATUS LAPORAN'],
-    [`Per tanggal ${exportDate}`],
-    [],
-    ['Status', 'Jumlah', 'Persentase', 'Indikator'],
-    ['Open', filteredReports.filter(r => r.status === 'OPEN').length, `${Math.round((filteredReports.filter(r => r.status === 'OPEN').length / Math.max(filteredReports.length, 1)) * 100)}%`, '🟡'],
-    ['On Progress', filteredReports.filter(r => r.status === 'ON PROGRESS').length, `${Math.round((filteredReports.filter(r => r.status === 'ON PROGRESS').length / Math.max(filteredReports.length, 1)) * 100)}%`, '🔵'],
-    ['Closed', filteredReports.filter(r => r.status === 'CLOSED').length, `${Math.round((filteredReports.filter(r => r.status === 'CLOSED').length / Math.max(filteredReports.length, 1)) * 100)}%`, '🟢'],
+  detailSheet.columns = [
+    { width: 5 }, { width: 12 }, { width: 40 }, { width: 18 }, { width: 10 },
+    { width: 8 }, { width: 25 }, { width: 12 }, { width: 20 }, { width: 20 },
+    { width: 14 }, { width: 8 }
   ];
 
-  const ws4 = XLSX.utils.aoa_to_sheet(statusData);
-  ws4['!cols'] = [{ wch: 35 }, { wch: 12 }, { wch: 12 }, { wch: 10 }];
-  XLSX.utils.book_append_sheet(wb, ws4, '📈 Distribusi Status');
+  // Performa Sheet
+  const performanceSheet = workbook.addWorksheet('📍 Performa Stasiun');
+  performanceSheet.addRow(['PERFORMA PER STASIUN']).getCell(1).style = titleStyle;
+  performanceSheet.addRow(['Analisis efisiensi penyelesaian laporan']);
+  performanceSheet.addRow([]);
 
+  const perfHeader = performanceSheet.addRow([
+    'No', 'Kode Stasiun', 'Total Laporan', 'Selesai', 'Pending', 'Efisiensi (%)', 'Rating'
+  ]);
+  perfHeader.eachCell(cell => { cell.style = headerStyle; });
+
+  (analytics?.stationData || []).forEach((s, idx) => {
+    const efficiency = Math.round((s.resolved / Math.max(s.total, 1)) * 100);
+    performanceSheet.addRow([
+      idx + 1,
+      s.station,
+      s.total,
+      s.resolved,
+      s.total - s.resolved,
+      `${efficiency}%`,
+      efficiency >= 90 ? '⭐⭐⭐⭐⭐' : efficiency >= 75 ? '⭐⭐⭐⭐' : efficiency >= 60 ? '⭐⭐⭐' : efficiency >= 40 ? '⭐⭐' : '⭐'
+    ]);
+  });
+
+  performanceSheet.columns = [
+    { width: 5 }, { width: 15 }, { width: 14 }, { width: 12 },
+    { width: 12 }, { width: 14 }, { width: 15 }
+  ];
+
+  // Buffer and download
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
   const filename = `IRRS-Analytics-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}.xlsx`;
-  XLSX.writeFile(wb, filename);
+  anchor.download = filename;
+  anchor.click();
+  window.URL.revokeObjectURL(url);
 }
 
 // Complexity: Time O(N) where N = reports.length | Space O(N)

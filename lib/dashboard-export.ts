@@ -90,51 +90,43 @@ function buildDetailUrl(payload: ExportPayload, tile: TileData): string {
 // ─── XLSX EXPORT ───────────────────────────────────────────────────────────
 // Complexity: Time O(pages * tiles * rows) | Space O(total_cells)
 export async function exportToXlsx(payload: ExportPayload): Promise<void> {
-  const XLSX = await import('xlsx-js-style');
-  const wb = XLSX.utils.book_new();
+  const exceljs = await import('exceljs');
+  const workbook = new exceljs.Workbook();
 
-  const headerStyle = {
-    font: { bold: true, color: { rgb: WHITE }, sz: 11 },
-    fill: { fgColor: { rgb: GAPURA_BANNER } },
-    alignment: { horizontal: 'center' as const, vertical: 'center' as const },
+  const headerStyle: any = {
+    font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GAPURA_BANNER } },
+    alignment: { horizontal: 'center', vertical: 'middle' },
     border: {
-      top: { style: 'thin' as const, color: { rgb: 'CCCCCC' } },
-      bottom: { style: 'thin' as const, color: { rgb: 'CCCCCC' } },
-      left: { style: 'thin' as const, color: { rgb: 'CCCCCC' } },
-      right: { style: 'thin' as const, color: { rgb: 'CCCCCC' } },
+      top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+      bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+      left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
+      right: { style: 'thin', color: { argb: 'FFCCCCCC' } },
     },
   };
 
-  const cellBorder = {
-    top: { style: 'thin' as const, color: { rgb: 'E0E0E0' } },
-    bottom: { style: 'thin' as const, color: { rgb: 'E0E0E0' } },
-    left: { style: 'thin' as const, color: { rgb: 'E0E0E0' } },
-    right: { style: 'thin' as const, color: { rgb: 'E0E0E0' } },
+  const cellBorder: any = {
+    top: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+    bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+    left: { style: 'thin', color: { argb: 'FFE0E0E0' } },
+    right: { style: 'thin', color: { argb: 'FFE0E0E0' } },
   };
 
   for (const page of payload.pages) {
-    const sheetData: Record<string, unknown>[][] = [];
-    const merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [];
+    const safeName = page.name.replace(/[\\/*?[\]]/g, '').slice(0, 31) || 'Sheet';
+    const worksheet = workbook.addWorksheet(safeName);
 
-    // Page title row
-    sheetData.push([{
-      v: `${payload.dashboardName} — ${page.name}`,
-      s: {
-        font: { bold: true, sz: 14, color: { rgb: GAPURA_GREEN } },
-        alignment: { horizontal: 'left' as const },
-      },
-    }]);
-
+    // Page title
+    const titleRow = worksheet.addRow([`${payload.dashboardName} — ${page.name}`]);
+    titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FF' + GAPURA_GREEN } };
+    
     // Subtitle
     if (payload.subtitle) {
-      sheetData.push([{
-        v: payload.subtitle,
-        s: { font: { italic: true, sz: 10, color: { rgb: '888888' } } },
-      }]);
+      const subtitleRow = worksheet.addRow([payload.subtitle]);
+      subtitleRow.getCell(1).font = { italic: true, size: 10, color: { argb: 'FF888888' } };
     }
 
-    // Empty separator
-    sheetData.push([]);
+    worksheet.addRow([]); // Empty separator
 
     let maxCols = 1;
 
@@ -143,80 +135,77 @@ export async function exportToXlsx(payload: ExportPayload): Promise<void> {
       if (!cr) continue;
 
       // Tile title
-      sheetData.push([{
-        v: tile.title,
-        s: {
-          font: { bold: true, sz: 12, color: { rgb: WHITE } },
-          fill: { fgColor: { rgb: GAPURA_GREEN } },
-          alignment: { horizontal: 'left' as const },
-        },
-      }]);
+      const tileTitleRow = worksheet.addRow([tile.title]);
+      tileTitleRow.getCell(1).style = {
+        font: { bold: true, size: 12, color: { argb: 'FFFFFFFF' } },
+        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GAPURA_GREEN } },
+        alignment: { horizontal: 'left' },
+      };
 
       if (cr.queryResult) {
         const cols = cr.queryResult.columns;
         if (cols.length > maxCols) maxCols = cols.length;
 
         // Header row
-        sheetData.push(cols.map(c => ({ v: formatCol(c), s: headerStyle })));
+        const headerRow = worksheet.addRow(cols.map(c => formatCol(c)));
+        headerRow.eachCell(cell => { cell.style = headerStyle; });
 
         // Data rows
         const rows = cr.queryResult.rows as Record<string, unknown>[];
         for (const row of rows) {
-          sheetData.push(cols.map(c => {
+          const dataRow = worksheet.addRow(cols.map(c => {
             const val = row[c];
             const numVal = Number(val);
             const isNum = !isNaN(numVal) && val !== null && val !== '' && typeof val !== 'boolean';
-            return {
-              v: isNum ? numVal : (val ?? ''),
-              t: isNum ? 'n' as const : 's' as const,
-              s: {
-                border: cellBorder,
-                alignment: { horizontal: isNum ? 'center' as const : 'left' as const },
-                font: { sz: 10 },
-              },
-            };
+            return isNum ? numVal : (val ?? '');
           }));
+          dataRow.eachCell((cell, colNumber) => {
+            const isNum = typeof cell.value === 'number';
+            cell.style = {
+              border: cellBorder,
+              alignment: { horizontal: isNum ? 'center' : 'left' },
+              font: { size: 10 },
+            };
+          });
         }
       } else if (cr.stats) {
         if (3 > maxCols) maxCols = 3;
-        sheetData.push([
-          { v: 'Nama', s: headerStyle },
-          { v: 'Jumlah', s: headerStyle },
-          { v: 'Persentase', s: headerStyle },
-        ]);
+        const headerRow = worksheet.addRow(['Nama', 'Jumlah', 'Persentase']);
+        headerRow.eachCell(cell => { cell.style = headerStyle; });
 
         for (const item of cr.stats.distribution) {
-          sheetData.push([
-            { v: item.name, s: { border: cellBorder, font: { sz: 10 } } },
-            { v: item.count, t: 'n' as const, s: { border: cellBorder, alignment: { horizontal: 'center' as const }, font: { sz: 10 } } },
-            { v: `${item.percentage}%`, s: { border: cellBorder, alignment: { horizontal: 'center' as const }, font: { sz: 10 } } },
-          ]);
+          const dataRow = worksheet.addRow([item.name, item.count, `${item.percentage}%`]);
+          dataRow.eachCell((cell, colNumber) => {
+              const isNum = typeof cell.value === 'number';
+              cell.style = {
+                  border: cellBorder,
+                  alignment: { horizontal: isNum ? 'center' : 'left' },
+                  font: { size: 10 },
+              };
+          });
         }
       }
 
-      // Separator
-      sheetData.push([]);
+      worksheet.addRow([]); // Separator
+      
+      // Merge tile titles across relevant columns
+      const currentLastRow = worksheet.rowCount;
+      const tileTitleRowNum = currentLastRow - (cr.queryResult ? cr.queryResult.rows.length + 2 : (cr.stats ? cr.stats.distribution.length + 2 : 1));
+      // worksheet.mergeCells(tileTitleRowNum, 1, tileTitleRowNum, Math.max(1, cr.queryResult?.columns.length || (cr.stats ? 3 : 1)));
+      // Note: merging in a loop like this can be tricky. Simplified for now.
     }
-
-    const ws = XLSX.utils.aoa_to_sheet(sheetData.map(r =>
-      (r as { v: unknown; t?: string; s?: unknown }[]).map(c => (typeof c === 'object' && c !== null && 'v' in c ? c : { v: '' }))
-    ));
 
     // Merge title row across all columns
     if (maxCols > 1) {
-      merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: maxCols - 1 } });
+      worksheet.mergeCells(1, 1, 1, maxCols);
     }
-    ws['!merges'] = merges;
 
     // Column widths
-    ws['!cols'] = Array.from({ length: maxCols }, () => ({ wch: 18 }));
-
-    const safeName = page.name.replace(/[\\/*?[\]]/g, '').slice(0, 31) || 'Sheet';
-    XLSX.utils.book_append_sheet(wb, ws, safeName);
+    worksheet.columns = Array.from({ length: maxCols }, () => ({ width: 22 }));
   }
 
-  const buf = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  downloadBlob(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${payload.dashboardName}.xlsx`);
+  const buffer = await workbook.xlsx.writeBuffer();
+  downloadBlob(new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `${payload.dashboardName}.xlsx`);
 }
 
 // ─── Fetch AI insights ─────────────────────────────────────────────────────

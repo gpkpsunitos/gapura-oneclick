@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import * as XLSX from 'xlsx';
+// ExcelJS will be imported dynamically in parseFile
 import { Upload, FileUp, AlertCircle, CheckCircle, Loader2, X, Database, Truck, Plane, FileSpreadsheet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -203,32 +203,53 @@ export default function ImportDataPage() {
     multiple: false
   });
 
-  const parseFile = (file: File) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
-        const sheetName = workbook.SheetNames[0]; // Always take first sheet
-        const sheet = workbook.Sheets[sheetName];
-        
-        // Use header:1 to get raw array of arrays first to inspect headers
-        const rawRows = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
-        if (rawRows.length === 0) throw new Error("File kosong");
-        
-        const fileHeaders = rawRows[0] as string[];
-        setHeaders(fileHeaders);
-
-        // Parse object data
-        const jsonData = XLSX.utils.sheet_to_json(sheet) as any[];
-        setPreviewData(jsonData);
-        setUploadStatus('idle');
-      } catch (err) {
-        setErrorMessage("Gagal membaca file. Pastikan format Excel/CSV valid.");
-        setUploadStatus('error');
+  const parseFile = async (file: File) => {
+    try {
+      const ExcelJS = await import('exceljs');
+      const workbook = new ExcelJS.Workbook();
+      const arrayBuffer = await file.arrayBuffer();
+      
+      if (file.name.endsWith('.csv')) {
+        // ExcelJS CSV reading in browser is slightly different, we use a Buffer/Uint8Array
+        await workbook.csv.read(new Response(arrayBuffer).body! as any);
+      } else {
+        await workbook.xlsx.load(arrayBuffer);
       }
-    };
-    reader.readAsBinaryString(file);
+
+      const worksheet = workbook.worksheets[0];
+      if (!worksheet) throw new Error("File kosong");
+
+      const jsonData: any[] = [];
+      const fileHeaders: string[] = [];
+
+      // Get headers from first row
+      const firstRow = worksheet.getRow(1);
+      firstRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+        const val = cell.text || (typeof cell.value === 'string' ? cell.value : '');
+        fileHeaders[colNumber - 1] = val.trim();
+      });
+      setHeaders(fileHeaders.filter(Boolean));
+
+      // Parse data rows
+      worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+         if (rowNumber === 1) return;
+         const rowData: any = {};
+         row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
+            const header = fileHeaders[colNumber - 1];
+            if (header) {
+                rowData[header] = cell.value;
+            }
+         });
+         jsonData.push(rowData);
+      });
+
+      setPreviewData(jsonData);
+      setUploadStatus('idle');
+    } catch (err) {
+      console.error('Parse Error:', err);
+      setErrorMessage("Gagal membaca file. Pastikan format Excel/CSV valid.");
+      setUploadStatus('error');
+    }
   };
 
   const handleImport = async () => {
