@@ -1,0 +1,67 @@
+{
+  "total_records": 30,
+  "classified": 27,
+  "unknown": 3,
+  "classification_rate": 90.0,
+  "by_category": {
+    "Operational Delay": {
+      "count": 12,
+      "percentage": 40.0,
+      "top_issue_categories": { "Delay": 8, "Ground Handling": 4 },
+      "top_areas": { "Ramp": 6, "Check-in": 6 },
+      "top_airlines": { "GA": 5, "SJ": 3, "QG": 4 },
+      "description": "Keterlambatan operasional multi-sebab."
+    },
+    "Equipment Failure": {
+      "count": 8,
+      "percentage": 26.7,
+      "top_issue_categories": { "Baggage": 5, "Equipment": 3 },
+      "top_areas": { "Belt": 3, "Gate": 5 },
+      "top_airlines": { "GA": 2, "SJ": 3, "QG": 3 },
+      "description": "Gangguan peralatan darat."
+    },
+    "Staffing": {
+      "count": 7,
+      "percentage": 23.3,
+      "top_issue_categories": { "Rostering": 3, "Training": 4 },
+      "top_areas": { "Counter": 3, "Boarding": 4 },
+      "top_airlines": { "JT": 2, "ID": 2, "GA": 3 },
+      "description": "Keterbatasan/ketidaksiapan personel."
+    }
+  },
+  "top_categories": [
+    [
+      "Operational Delay",
+      {
+        "count": 12,
+        "percentage": 40.0,
+        "top_issue_categories": { "Delay": 8, "Ground Handling": 4 },
+        "top_areas": { "Ramp": 6, "Check-in": 6 },
+        "top_airlines": { "GA": 5, "SJ": 3, "QG": 4 },
+        "description": "Keterlambatan operasional multi-sebab."
+      }
+    ],
+    [
+      "Equipment Failure",
+      {
+        "count": 8,
+        "percentage": 26.7,
+        "top_issue_categories": { "Baggage": 5, "Equipment": 3 },
+        "top_areas": { "Belt": 3, "Gate": 5 },
+        "top_airlines": { "GA": 2, "SJ": 3, "QG": 3 },
+        "description": "Gangguan peralatan darat."
+      }
+    ],
+    [
+      "Staffing",
+      {
+        "count": 7,
+        "percentage": 23.3,
+        "top_issue_categories": { "Rostering": 3, "Training": 4 },
+        "top_areas": { "Counter": 3, "Boarding": 4 },
+        "top_airlines": { "JT": 2, "ID": 2, "GA": 3 },
+        "description": "Keterbatasan/ketidaksiapan personel."
+      }
+    ]
+  ]
+}

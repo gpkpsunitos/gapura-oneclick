@@ -1,0 +1,442 @@
+{
+    "CGK": {
+        "risk_score": 81.75,
+        "risk_level": "Critical",
+        "total_issues": 780,
+        "severity_distribution": {
+            "High": 344,
+            "Medium": 75,
+            "Low": 357,
+            "Critical": 4
+        },
+        "issue_categories": [
+            "Operation",
+            "Cargo Problems",
+            "Pax Handling",
+            "GSE",
+            "Baggage Handling"
+        ],
+        "category_count": 5,
+        "data_quality_score": 1.0,
+        "frequency_score": 5.0,
+        "severity_score": 2.91
+    },
+    "DPS": {
+        "risk_score": 51.01,
+        "risk_level": "High",
+        "total_issues": 93,
+        "severity_distribution": {
+            "Low": 55,
+            "Medium": 30,
+            "High": 5,
+            "Critical": 3
+        },
+        "issue_categories": [
+            "Operation",
+            "Cargo Problems",
+            "Pax Handling",
+            "Baggage Handling",
+            "GSE"
+        ],
+        "category_count": 5,
+        "data_quality_score": 1.01,
+        "frequency_score": 2.46,
+        "severity_score": 1.83
+    },
+    "BDJ": {
+        "risk_score": 43.26,
+        "risk_level": "Medium",
+        "total_issues": 1,
+        "severity_distribution": {
+            "High": 1
+        },
+        "issue_categories": [
+            "GSE"
+        ],
+        "category_count": 1,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.03,
+        "severity_score": 5.0
+    },
+    "BPN": {
+        "risk_score": 37.79,
+        "risk_level": "Medium",
+        "total_issues": 3,
+        "severity_distribution": {
+            "Low": 2,
+            "Critical": 1
+        },
+        "issue_categories": [
+            "Operation"
+        ],
+        "category_count": 1,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.08,
+        "severity_score": 4.0
+    },
+    "SUB": {
+        "risk_score": 37.54,
+        "risk_level": "Medium",
+        "total_issues": 50,
+        "severity_distribution": {
+            "Medium": 10,
+            "Low": 38,
+            "High": 2
+        },
+        "issue_categories": [
+            "Pax Handling",
+            "Operation",
+            "GSE",
+            "Cargo Problems"
+        ],
+        "category_count": 4,
+        "data_quality_score": 1.0,
+        "frequency_score": 1.32,
+        "severity_score": 1.36
+    },
+    "LBJ": {
+        "risk_score": 30.26,
+        "risk_level": "Medium",
+        "total_issues": 1,
+        "severity_distribution": {
+            "High": 1
+        },
+        "issue_categories": [],
+        "category_count": 0,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.03,
+        "severity_score": 5.0
+    },
+    "BKS": {
+        "risk_score": 29.37,
+        "risk_level": "Low",
+        "total_issues": 8,
+        "severity_distribution": {
+            "Medium": 6,
+            "High": 1,
+            "Low": 1
+        },
+        "issue_categories": [
+            "Pax Handling",
+            "Operation",
+            "Baggage Handling"
+        ],
+        "category_count": 3,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.21,
+        "severity_score": 2.25
+    },
+    "MDC": {
+        "risk_score": 28.85,
+        "risk_level": "Low",
+        "total_issues": 7,
+        "severity_distribution": {
+            "Medium": 3,
+            "Low": 3,
+            "High": 1
+        },
+        "issue_categories": [
+            "Operation",
+            "GSE",
+            "Baggage Handling"
+        ],
+        "category_count": 3,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.19,
+        "severity_score": 2.0
+    },
+    "KNO": {
+        "risk_score": 27.89,
+        "risk_level": "Low",
+        "total_issues": 15,
+        "severity_distribution": {
+            "Low": 13,
+            "Medium": 1,
+            "High": 1
+        },
+        "issue_categories": [
+            "Pax Handling",
+            "GSE",
+            "Baggage Handling",
+            "Cargo Problems"
+        ],
+        "category_count": 4,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.4,
+        "severity_score": 1.33
+    },
+    "UPG": {
+        "risk_score": 27.49,
+        "risk_level": "Low",
+        "total_issues": 9,
+        "severity_distribution": {
+            "Low": 4,
+            "Medium": 5
+        },
+        "issue_categories": [
+            "Pax Handling",
+            "Operation",
+            "Cargo Problems"
+        ],
+        "category_count": 3,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.24,
+        "severity_score": 1.56
+    },
+    "PNK": {
+        "risk_score": 27.31,
+        "risk_level": "Low",
+        "total_issues": 4,
+        "severity_distribution": {
+            "Low": 2,
+            "Critical": 1,
+            "High": 1
+        },
+        "issue_categories": [],
+        "category_count": 0,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.11,
+        "severity_score": 4.25
+    },
+    "TKG": {
+        "risk_score": 26.59,
+        "risk_level": "Low",
+        "total_issues": 6,
+        "severity_distribution": {
+            "Medium": 2,
+            "Low": 4
+        },
+        "issue_categories": [
+            "Operation",
+            "GSE",
+            "Cargo Problems"
+        ],
+        "category_count": 3,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.16,
+        "severity_score": 1.33
+    },
+    "PLM": {
+        "risk_score": 25.79,
+        "risk_level": "Low",
+        "total_issues": 3,
+        "severity_distribution": {
+            "Low": 3
+        },
+        "issue_categories": [
+            "Cargo Problems"
+        ],
+        "category_count": 1,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.08,
+        "severity_score": 1.0
+    },
+    "YIA": {
+        "risk_score": 25.57,
+        "risk_level": "Low",
+        "total_issues": 11,
+        "severity_distribution": {
+            "Low": 10,
+            "Medium": 1
+        },
+        "issue_categories": [
+            "Operation",
+            "Cargo Problems",
+            "Pax Handling",
+            "GSE",
+            "Baggage Handling"
+        ],
+        "category_count": 5,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.29,
+        "severity_score": 1.09
+    },
+    "PKU": {
+        "risk_score": 24.09,
+        "risk_level": "Low",
+        "total_issues": 6,
+        "severity_distribution": {
+            "Low": 5,
+            "Medium": 1
+        },
+        "issue_categories": [
+            "Pax Handling",
+            "Operation",
+            "GSE"
+        ],
+        "category_count": 3,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.16,
+        "severity_score": 1.17
+    },
+    "PDG": {
+        "risk_score": 24.03,
+        "risk_level": "Low",
+        "total_issues": 2,
+        "severity_distribution": {
+            "Low": 1,
+            "Medium": 1
+        },
+        "issue_categories": [
+            "Baggage Handling"
+        ],
+        "category_count": 1,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.05,
+        "severity_score": 1.5
+    },
+    "HLP": {
+        "risk_score": 23.26,
+        "risk_level": "Low",
+        "total_issues": 1,
+        "severity_distribution": {
+            "Low": 1
+        },
+        "issue_categories": [
+            "GSE"
+        ],
+        "category_count": 1,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.03,
+        "severity_score": 1.0
+    },
+    "LOP": {
+        "risk_score": 20.53,
+        "risk_level": "Low",
+        "total_issues": 2,
+        "severity_distribution": {
+            "Low": 2
+        },
+        "issue_categories": [
+            "Pax Handling"
+        ],
+        "category_count": 1,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.05,
+        "severity_score": 1.0
+    },
+    "PGK": {
+        "risk_score": 20.26,
+        "risk_level": "Low",
+        "total_issues": 1,
+        "severity_distribution": {
+            "Low": 1
+        },
+        "issue_categories": [
+            "Pax Handling"
+        ],
+        "category_count": 1,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.03,
+        "severity_score": 1.0
+    },
+    "SRG": {
+        "risk_score": 16.32,
+        "risk_level": "Low",
+        "total_issues": 5,
+        "severity_distribution": {
+            "Medium": 1,
+            "Low": 3,
+            "High": 1
+        },
+        "issue_categories": [],
+        "category_count": 0,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.13,
+        "severity_score": 2.0
+    },
+    "MKQ": {
+        "risk_score": 15.26,
+        "risk_level": "Low",
+        "total_issues": 1,
+        "severity_distribution": {
+            "Medium": 1
+        },
+        "issue_categories": [],
+        "category_count": 0,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.03,
+        "severity_score": 2.0
+    },
+    "AMQ": {
+        "risk_score": 13.03,
+        "risk_level": "Low",
+        "total_issues": 2,
+        "severity_distribution": {
+            "Medium": 1,
+            "Low": 1
+        },
+        "issue_categories": [],
+        "category_count": 0,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.05,
+        "severity_score": 1.5
+    },
+    "BTH": {
+        "risk_score": 12.46,
+        "risk_level": "Low",
+        "total_issues": 3,
+        "severity_distribution": {
+            "Medium": 1,
+            "Low": 2
+        },
+        "issue_categories": [],
+        "category_count": 0,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.08,
+        "severity_score": 1.33
+    },
+    "BTJ": {
+        "risk_score": 12.46,
+        "risk_level": "Low",
+        "total_issues": 3,
+        "severity_distribution": {
+            "Low": 2,
+            "Medium": 1
+        },
+        "issue_categories": [],
+        "category_count": 0,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.08,
+        "severity_score": 1.33
+    },
+    "SOC": {
+        "risk_score": 10.26,
+        "risk_level": "Low",
+        "total_issues": 1,
+        "severity_distribution": {
+            "Low": 1
+        },
+        "issue_categories": [],
+        "category_count": 0,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.03,
+        "severity_score": 1.0
+    },
+    "DJJ": {
+        "risk_score": 10.26,
+        "risk_level": "Low",
+        "total_issues": 1,
+        "severity_distribution": {
+            "Low": 1
+        },
+        "issue_categories": [],
+        "category_count": 0,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.03,
+        "severity_score": 1.0
+    },
+    "TJQ": {
+        "risk_score": 10.26,
+        "risk_level": "Low",
+        "total_issues": 1,
+        "severity_distribution": {
+            "Low": 1
+        },
+        "issue_categories": [],
+        "category_count": 0,
+        "data_quality_score": 1.0,
+        "frequency_score": 0.03,
+        "severity_score": 1.0
+    }
+}

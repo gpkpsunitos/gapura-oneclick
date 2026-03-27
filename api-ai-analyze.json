@@ -1,0 +1,128 @@
+{
+    "regression": {
+        "predictions": [
+            {
+                "reportId": "row_0",
+                "predictedDays": 1.62,
+                "confidenceInterval": [
+                    1.12,
+                    2.12
+                ],
+                "featureImportance": {
+                    "category": 0.35,
+                    "airline": 0.28,
+                    "hub": 0.15,
+                    "reportLength": 0.12,
+                    "hasPhotos": 0.1
+                },
+                "hasUnknownCategories": true,
+                "shapExplanation": null,
+                "anomalyDetection": null
+            }
+        ],
+        "modelMetrics": {
+            "mae": null,
+            "rmse": null,
+            "r2": null,
+            "model_loaded": false,
+            "note": "Model not available - using fallback predictions"
+        }
+    },
+    "nlp": {
+        "classifications": [
+            {
+                "reportId": "row_0",
+                "severity": "Low",
+                "severityConfidence": 0.6713381409645081,
+                "areaType": "Terminal",
+                "issueType": "Baggage Handling",
+                "issueTypeConfidence": 0.85
+            }
+        ],
+        "entities": [
+            {
+                "reportId": "row_0",
+                "entities": [
+                    {
+                        "text": "GA",
+                        "label": "AIRLINE",
+                        "start": 40,
+                        "end": 42,
+                        "confidence": 0.95
+                    },
+                    {
+                        "text": "GA402",
+                        "label": "FLIGHT_NUMBER",
+                        "start": 0,
+                        "end": 5,
+                        "confidence": 0.92
+                    },
+                    {
+                        "text": "2026-02-20",
+                        "label": "DATE",
+                        "start": 0,
+                        "end": 10,
+                        "confidence": 0.9
+                    }
+                ]
+            }
+        ],
+        "summaries": [
+            {
+                "reportId": "row_0",
+                "executiveSummary": "Passenger reported damage on checked baggage upon arrival. Handling error during transfer Provided compensation and improved handling SOP.",
+                "keyPoints": [
+                    "Baggage handling issue",
+                    "Passenger service issue",
+                    "Physical damage reported"
+                ]
+            }
+        ],
+        "sentiment": [
+            {
+                "reportId": "row_0",
+                "urgencyScore": 0.41,
+                "sentiment": "Somewhat Negative",
+                "keywords": [
+                    "damage",
+                    "error"
+                ]
+            }
+        ]
+    },
+    "trends": {
+        "byAirline": {
+            "GA": {
+                "count": 1,
+                "avgResolutionDays": 2.367448610665277,
+                "topIssues": [
+                    "Baggage Handling"
+                ]
+            }
+        },
+        "byHub": {
+            "CGK": {
+                "count": 1,
+                "avgResolutionDays": 2.0369057904407972,
+                "topIssues": [
+                    "Baggage Handling"
+                ]
+            }
+        },
+        "byCategory": {
+            "Baggage Handling": {
+                "count": 1,
+                "trend": "stable"
+            }
+        },
+        "timeSeries": []
+    },
+    "metadata": {
+        "totalRecords": 1,
+        "processingTime": 55.22,
+        "modelVersions": {
+            "regression": "1.0.0-trained",
+            "nlp": "3.0.0-hf"
+        }
+    }
+}

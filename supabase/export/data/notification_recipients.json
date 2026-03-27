@@ -1,0 +1,11 @@
+[
+  {
+    "id": "1c29710b-af9d-449a-8676-27ef096c7b46",
+    "entity": "IRRS_NEW_RECORD",
+    "channel": "EMAIL",
+    "recipient_email": "projects.melisa@gmail.com",
+    "enabled": true,
+    "created_at": "2026-03-22T02:17:23.039329+00:00",
+    "updated_at": "2026-03-22T02:17:23.039329+00:00"
+  }
+]

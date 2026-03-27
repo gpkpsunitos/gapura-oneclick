@@ -1,0 +1,18 @@
+[
+  {
+    "provider_id": "2f8bedd1-a046-42c6-9dd1-b32bea406283",
+    "user_id": "2f8bedd1-a046-42c6-9dd1-b32bea406283",
+    "identity_data": {
+      "sub": "2f8bedd1-a046-42c6-9dd1-b32bea406283",
+      "email": "eskalasi.divisi@gapura.id",
+      "email_verified": false,
+      "phone_verified": false
+    },
+    "provider": "email",
+    "last_sign_in_at": "2026-03-06T14:07:25.512789+00:00",
+    "created_at": "2026-03-06T14:07:25.515699+00:00",
+    "updated_at": "2026-03-06T14:07:25.515699+00:00",
+    "email": "eskalasi.divisi@gapura.id",
+    "id": "0446b182-3551-421a-87af-e37af11100b6"
+  }
+]
