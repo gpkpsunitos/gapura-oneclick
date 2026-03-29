@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { 
-    LayoutDashboard, Inbox, FolderOpen, TrendingUp, 
+    Inbox, FolderOpen,
     AlertTriangle, CheckCircle, Clock, BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
@@ -21,8 +21,9 @@ interface DivisionStat {
 
 export default function EskalasiDashboard() {
     const [stats, setStats] = useState<DivisionStat[]>([]);
-    const [loading, setLoading] = useState(true);
     const [totalCount, setTotalCount] = useState(0);
+    const [switchError, setSwitchError] = useState<string | null>(null);
+    const [switchingCode, setSwitchingCode] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchStats = async () => {
@@ -48,13 +49,37 @@ export default function EskalasiDashboard() {
                 setTotalCount(reports.length);
             } catch (error) {
                 console.error('Failed to fetch stats:', error);
-            } finally {
-                setLoading(false);
             }
         };
 
         fetchStats();
     }, []);
+
+    const handleOpenDivision = async (code: string) => {
+        try {
+            setSwitchError(null);
+            setSwitchingCode(code);
+
+            const res = await fetch('/api/auth/switch-division', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ divisionCode: code }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data?.error || `Gagal switch ke Divisi ${code}`);
+            }
+
+            window.location.assign(data?.redirectPath || `/dashboard/${code.toLowerCase()}`);
+        } catch (error) {
+            console.error('Failed to switch division:', error);
+            setSwitchError(error instanceof Error ? error.message : 'Gagal switch ke akun divisi');
+            setSwitchingCode(null);
+        }
+    };
 
     const totalOpen = stats.reduce((acc, s) => acc + s.open, 0);
     const totalOnProgress = stats.reduce((acc, s) => acc + s.onProgress, 0);
@@ -68,6 +93,12 @@ export default function EskalasiDashboard() {
                     <p className="text-gray-500 mt-1">Monitoring laporan dari semua divisi</p>
                 </div>
             </div>
+
+            {switchError && (
+                <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                    {switchError}
+                </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <motion.div
@@ -150,11 +181,12 @@ export default function EskalasiDashboard() {
                         <BarChart3 className="w-5 h-5 text-gray-400" />
                     </div>
                     <div className="space-y-3">
-                        {stats.map((stat, index) => (
-                            <Link
+                        {stats.map((stat) => (
+                            <button
                                 key={stat.code}
-                                href={`/dashboard/eskalasi/${stat.code.toLowerCase()}`}
-                                className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group"
+                                onClick={() => handleOpenDivision(stat.code)}
+                                disabled={Boolean(switchingCode)}
+                                className="w-full flex items-center justify-between p-3 rounded-lg text-left hover:bg-gray-50 transition-colors group disabled:opacity-60"
                             >
                                 <div className="flex items-center gap-3">
                                     <div 
@@ -174,9 +206,11 @@ export default function EskalasiDashboard() {
                                         <span className="text-gray-300 mx-1">/</span>
                                         <span className="text-green-500">{stat.closed}</span>
                                     </span>
-                                    <span className="font-semibold text-gray-900">{stat.total}</span>
+                                    <span className="font-semibold text-gray-900">
+                                        {switchingCode === stat.code ? '...' : stat.total}
+                                    </span>
                                 </div>
-                            </Link>
+                            </button>
                         ))}
                     </div>
                 </motion.div>
@@ -197,14 +231,17 @@ export default function EskalasiDashboard() {
                             <span className="font-medium text-gray-700">Semua Laporan</span>
                         </Link>
                         {Object.values(DIVISIONS).map(div => (
-                            <Link
+                            <button
                                 key={div.code}
-                                href={`/dashboard/eskalasi/${div.code.toLowerCase()}`}
-                                className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                                onClick={() => handleOpenDivision(div.code)}
+                                disabled={Boolean(switchingCode)}
+                                className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-60"
                             >
                                 <FolderOpen className="w-5 h-5" style={{ color: div.color }} />
-                                <span className="font-medium text-gray-700">Divisi {div.code}</span>
-                            </Link>
+                                <span className="font-medium text-gray-700">
+                                    {switchingCode === div.code ? `Membuka ${div.code}...` : `Divisi ${div.code}`}
+                                </span>
+                            </button>
                         ))}
                     </div>
                 </motion.div>

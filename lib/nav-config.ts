@@ -13,8 +13,7 @@ import {
     Calendar,
     Layers,
     BookOpen,
-    GraduationCap,
-    ExternalLink
+    GraduationCap
 } from 'lucide-react';
 
 export interface NavItemConfig {
@@ -30,8 +29,6 @@ export interface NavGroupConfig {
     items: NavItemConfig[];
 }
 
-const LOOKER_JOUMPA = 'https://lookerstudio.google.com/reporting/6a7aba44-6bd1-439f-a5d2-8bed4af56448';
-const LOOKER_SLA    = 'https://lookerstudio.google.com/reporting/6a7aba44-6bd1-439f-a5d2-8bed4af56448';
 
 export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     'ADMIN': [
@@ -95,22 +92,8 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             title: 'Monitoring',
             items: [
                 { href: '/dashboard/os', label: 'Dashboard', icon: LayoutDashboard },
-                // Joumpa & SLA redirect to Looker until internal dashboards are stable
-                { href: LOOKER_JOUMPA, label: 'Dashboard Joumpa', icon: ExternalLink, external: true },
-                { href: LOOKER_SLA, label: 'Dashboard SLA', icon: ExternalLink, external: true },
-            ]
-        },
-        {
-            title: 'Analysis',
-            items: [
-                { href: '/dashboard/os/ai-reports', label: 'AI Reports', icon: Brain },
-            ]
-        },
-        {
-            title: 'Schedule',
-            items: [
-                { href: '/dashboard/os/calendar', label: 'Event Calendar', icon: Calendar },
-                { href: '/dashboard/os/meeting-calendar', label: 'Meeting Calendar', icon: Calendar },
+                { href: '/dashboard/os/dispatched', label: 'Laporan Divisi', icon: Inbox },
+                { href: '/dashboard/os/reports', label: 'Semua Laporan', icon: ClipboardList },
             ]
         }
     ],
@@ -122,12 +105,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             items: [
                 { href: '/dashboard/ot', label: 'OT Dashboard', icon: LayoutDashboard },
                 { href: '/dashboard/ot/dispatched', label: 'Laporan Divisi', icon: Inbox },
-            ]
-        },
-        {
-            title: 'Analysis',
-            items: [
-                { href: '/dashboard/ot/ai-reports', label: 'AI Reports', icon: Brain },
+                { href: '/dashboard/ot/reports', label: 'Semua Laporan', icon: ClipboardList },
             ]
         }
     ],
@@ -139,12 +117,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             items: [
                 { href: '/dashboard/op', label: 'OP Dashboard', icon: LayoutDashboard },
                 { href: '/dashboard/op/dispatched', label: 'Laporan Divisi', icon: Inbox },
-            ]
-        },
-        {
-            title: 'Analysis',
-            items: [
-                { href: '/dashboard/op/ai-reports', label: 'AI Reports', icon: Brain },
+                { href: '/dashboard/op/reports', label: 'Semua Laporan', icon: ClipboardList },
             ]
         }
     ],
@@ -156,12 +129,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             items: [
                 { href: '/dashboard/uq', label: 'UQ Dashboard', icon: LayoutDashboard },
                 { href: '/dashboard/uq/dispatched', label: 'Laporan Divisi', icon: Inbox },
-            ]
-        },
-        {
-            title: 'Analysis',
-            items: [
-                { href: '/dashboard/uq/ai-reports', label: 'AI Reports', icon: Brain },
+                { href: '/dashboard/uq/reports', label: 'Semua Laporan', icon: ClipboardList },
             ]
         }
     ],
@@ -185,7 +153,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             items: [
                 { href: '/dashboard/ht', label: 'HT Dashboard', icon: LayoutDashboard },
                 { href: '/dashboard/ht/dispatched', label: 'Laporan Divisi', icon: Inbox },
-                { href: '/dashboard/ht/training-hub', label: 'Training Hub', icon: GraduationCap },
+                { href: '/dashboard/ht/reports', label: 'Semua Laporan', icon: ClipboardList },
             ]
         }
     ],
@@ -196,32 +164,32 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             title: 'Laporan UQ',
             items: [
                 { href: '/dashboard/uq', label: 'UQ Dashboard', icon: LayoutDashboard },
-                { href: '/dashboard/uq/dispatched', label: 'Laporan Masuk UQ', icon: Inbox },
-                { href: '/dashboard/uq/ai-reports', label: 'AI Reports UQ', icon: Brain },
+                { href: '/dashboard/uq/dispatched', label: 'Laporan Divisi', icon: Inbox },
+                { href: '/dashboard/uq/reports', label: 'Semua Laporan', icon: ClipboardList },
             ]
         },
         {
             title: 'Laporan OP',
             items: [
                 { href: '/dashboard/op', label: 'OP Dashboard', icon: LayoutDashboard },
-                { href: '/dashboard/op/dispatched', label: 'Laporan Masuk OP', icon: Inbox },
-                { href: '/dashboard/op/ai-reports', label: 'AI Reports OP', icon: Brain },
+                { href: '/dashboard/op/dispatched', label: 'Laporan Divisi', icon: Inbox },
+                { href: '/dashboard/op/reports', label: 'Semua Laporan', icon: ClipboardList },
             ]
         },
         {
             title: 'Laporan OT',
             items: [
                 { href: '/dashboard/ot', label: 'OT Dashboard', icon: LayoutDashboard },
-                { href: '/dashboard/ot/dispatched', label: 'Laporan Masuk OT', icon: Inbox },
-                { href: '/dashboard/ot/ai-reports', label: 'AI Reports OT', icon: Brain },
+                { href: '/dashboard/ot/dispatched', label: 'Laporan Divisi', icon: Inbox },
+                { href: '/dashboard/ot/reports', label: 'Semua Laporan', icon: ClipboardList },
             ]
         },
         {
             title: 'Laporan HT',
             items: [
                 { href: '/dashboard/ht', label: 'HT Dashboard', icon: LayoutDashboard },
-                { href: '/dashboard/ht/dispatched', label: 'Laporan Masuk HT', icon: Inbox },
-                { href: '/dashboard/ht/training-hub', label: 'Training Hub HT', icon: GraduationCap },
+                { href: '/dashboard/ht/dispatched', label: 'Laporan Divisi', icon: Inbox },
+                { href: '/dashboard/ht/reports', label: 'Semua Laporan', icon: ClipboardList },
             ]
         }
     ],
@@ -231,18 +199,9 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
         {
             title: 'Pusat Eskalasi',
             items: [
+                { href: '/dashboard/eskalasi/select', label: 'Pilih Divisi', icon: Layers },
                 { href: '/dashboard/eskalasi', label: 'Dashboard', icon: LayoutDashboard },
-                { href: '/dashboard/eskalasi/laporan-divisi', label: 'Semua Laporan', icon: Layers },
-            ]
-        },
-        {
-            title: 'Laporan Per Divisi',
-            items: [
-                { href: '/dashboard/eskalasi/op', label: 'Divisi OP', icon: FolderOpen },
-                { href: '/dashboard/eskalasi/os', label: 'Divisi OS', icon: FolderOpen },
-                { href: '/dashboard/eskalasi/uq', label: 'Divisi UQ', icon: FolderOpen },
-                { href: '/dashboard/eskalasi/ot', label: 'Divisi OT', icon: FolderOpen },
-                { href: '/dashboard/eskalasi/ht', label: 'Divisi HT', icon: FolderOpen },
+                { href: '/dashboard/eskalasi/laporan-divisi', label: 'Semua Laporan', icon: ClipboardList },
             ]
         }
     ],
@@ -280,25 +239,17 @@ export const GET_LINKS_KEY = (role: string, pathname?: string): string => {
     if (r === 'ANALYST') return 'ANALYST';
     if (r === 'MANAGER_CABANG') return 'MANAGER';
 
-    // Eskalasi retains context-switching behaviour
     if (r === 'DIVISI_ESKALASI') {
-        if (pathname?.startsWith('/dashboard/op')) return 'OP';
-        if (pathname?.startsWith('/dashboard/os')) return 'OS';
-        if (pathname?.startsWith('/dashboard/ot')) return 'OT';
-        if (pathname?.startsWith('/dashboard/uq')) return 'UQ';
-        if (pathname?.startsWith('/dashboard/hc')) return 'HC';
-        if (pathname?.startsWith('/dashboard/ht')) return 'HT';
         return 'DIVISI_ESKALASI';
     }
 
     if (r === 'DIVISI_OS' || r === 'PARTNER_OS') return 'OS';
     if (r === 'DIVISI_HC' || r === 'PARTNER_HC') return 'HC';
 
-    // UQ / OP / OT / HT → all use shared DIVISI_PELAPORAN sidebar
-    if (r === 'DIVISI_UQ' || r === 'PARTNER_UQ') return 'DIVISI_PELAPORAN';
-    if (r === 'DIVISI_OP' || r === 'PARTNER_OP') return 'DIVISI_PELAPORAN';
-    if (r === 'DIVISI_OT' || r === 'PARTNER_OT') return 'DIVISI_PELAPORAN';
-    if (r === 'DIVISI_HT' || r === 'PARTNER_HT') return 'DIVISI_PELAPORAN';
+    if (r === 'DIVISI_UQ' || r === 'PARTNER_UQ') return 'UQ';
+    if (r === 'DIVISI_OP' || r === 'PARTNER_OP') return 'OP';
+    if (r === 'DIVISI_OT' || r === 'PARTNER_OT') return 'OT';
+    if (r === 'DIVISI_HT' || r === 'PARTNER_HT') return 'HT';
 
     return 'EMPLOYEE';
 };

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { supabaseAdmin as supabase } from '@/lib/supabase-admin';
 import { verifyPassword, signSession, registerSession } from '@/lib/auth-utils';
+import { serializeAuthBundle } from '@/lib/auth-bundle';
 import { logSecurityEvent } from '@/lib/security/event-service';
 import { getClientIp } from '@/lib/security/utils';
 
@@ -116,6 +117,28 @@ export async function POST(request: Request) {
             maxAge: 60 * 60 * 24, // 1 day
             path: '/',
         });
+
+        if (finalRole === 'DIVISI_ESKALASI') {
+            cookieStore.set('auth_bundle', serializeAuthBundle({
+                active_uid: user.id,
+                origin_uid: user.id,
+                sessions: {
+                    [user.id]: token,
+                },
+            }), {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 60 * 60 * 24,
+                path: '/',
+            });
+        } else {
+            cookieStore.set('auth_bundle', '', {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                maxAge: 0,
+                path: '/',
+            });
+        }
 
         await logSecurityEvent({
             source: 'auth-login-api',

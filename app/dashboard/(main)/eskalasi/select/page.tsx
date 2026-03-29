@@ -1,7 +1,7 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { useRouter } from 'next/navigation';
 import { 
     Plane, Shield, Wrench, Gauge, GraduationCap, Users,
     ArrowRight, Layers
@@ -59,10 +59,33 @@ const divisionCards = [
 ];
 
 export default function DivisionSelectPage() {
-    const router = useRouter();
+    const [error, setError] = useState<string | null>(null);
+    const [switchingCode, setSwitchingCode] = useState<string | null>(null);
 
-    const handleSelectDivision = (code: string) => {
-        router.push(`/dashboard/${code.toLowerCase()}`);
+    const handleSelectDivision = async (code: string) => {
+        try {
+            setError(null);
+            setSwitchingCode(code);
+
+            const res = await fetch('/api/auth/switch-division', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ divisionCode: code }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data?.error || `Gagal switch ke Divisi ${code}`);
+            }
+
+            window.location.assign(data?.redirectPath || `/dashboard/${code.toLowerCase()}`);
+        } catch (err) {
+            console.error('Failed to switch division:', err);
+            setError(err instanceof Error ? err.message : 'Gagal switch ke akun divisi');
+            setSwitchingCode(null);
+        }
     };
 
     return (
@@ -86,9 +109,16 @@ export default function DivisionSelectPage() {
                 </motion.div>
 
                 <div className="w-full max-w-4xl">
+                    {error && (
+                        <div className="mb-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700">
+                            {error}
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                         {divisionCards.map((card, index) => {
                             const Icon = card.icon;
+                            const isSwitching = switchingCode === card.code;
                             return (
                                 <motion.button
                                     key={card.code}
@@ -96,6 +126,7 @@ export default function DivisionSelectPage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
                                     onClick={() => handleSelectDivision(card.code)}
+                                    disabled={Boolean(switchingCode)}
                                     className={`
                                         relative group overflow-hidden
                                         bg-white rounded-2xl md:rounded-3xl
@@ -103,6 +134,7 @@ export default function DivisionSelectPage() {
                                         p-6 md:p-8 text-left
                                         transition-all duration-300
                                         hover:shadow-xl hover:scale-[1.02] hover:-translate-y-1
+                                        disabled:opacity-60 disabled:hover:scale-100 disabled:hover:translate-y-0
                                         ${card.hoverShadow}
                                     `}
                                 >
@@ -136,7 +168,7 @@ export default function DivisionSelectPage() {
                                                 inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold
                                                 bg-gradient-to-r ${card.gradient} bg-clip-text text-transparent
                                             `}>
-                                                Divisi {card.code}
+                                                {isSwitching ? 'Membuka...' : `Divisi ${card.code}`}
                                             </span>
                                         </div>
                                     </div>

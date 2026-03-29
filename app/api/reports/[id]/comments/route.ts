@@ -11,7 +11,7 @@ interface RouteParams {
 // Helper to check if user has access to the report's comments
 async function canAccessReportComments(reportId: string, userId: string, role: UserRole): Promise<boolean> {
     // 1. High-level admins always have access
-    const GLOBAL_ACCESS_ROLES: UserRole[] = ['SUPER_ADMIN', 'DIVISI_OS', 'ANALYST', 'DIVISI_OT', 'DIVISI_OP', 'DIVISI_UQ'];
+    const GLOBAL_ACCESS_ROLES: UserRole[] = ['SUPER_ADMIN', 'DIVISI_ESKALASI', 'DIVISI_OS', 'ANALYST', 'DIVISI_OT', 'DIVISI_OP', 'DIVISI_UQ'];
     if (GLOBAL_ACCESS_ROLES.includes(role)) {
         return true;
     }
@@ -160,7 +160,7 @@ export async function POST(request: Request, { params }: RouteParams) {
             return NextResponse.json({ error: 'Content or attachments required' }, { status: 400 });
         }
 
-        const GLOBAL_ACCESS_ROLES: UserRole[] = ['SUPER_ADMIN', 'DIVISI_OS', 'ANALYST', 'DIVISI_OT', 'DIVISI_OP', 'DIVISI_UQ'];
+        const GLOBAL_ACCESS_ROLES: UserRole[] = ['SUPER_ADMIN', 'DIVISI_ESKALASI', 'DIVISI_OS', 'ANALYST', 'DIVISI_OT', 'DIVISI_OP', 'DIVISI_UQ'];
         
         let hasAccess = false;
         // 1) Global roles can always comment

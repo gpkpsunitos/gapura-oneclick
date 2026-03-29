@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, FileText, LogOut, Plane, Menu, X, ClipboardList, Users, ChevronRight, Hash, FolderOpen, Shield, Brain, Inbox, Calendar } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { LogOut, Menu, Undo2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logoutWithPwaCleanup } from '@/lib/pwa/logout';
 
-import { LINKS_CONFIG, GET_LINKS_KEY, type NavGroupConfig as NavGroup, type NavItemConfig as NavItem } from '@/lib/nav-config';
+import { LINKS_CONFIG, GET_LINKS_KEY, type NavGroupConfig as NavGroup } from '@/lib/nav-config';
 
 declare global {
     interface Window {
@@ -21,7 +21,10 @@ interface NavContentProps {
     pathname: string;
     role: string;
     onLogout: () => void;
+    onReturnToOrigin: () => void;
+    canReturnToOrigin: boolean;
     loading: boolean;
+    switchingOrigin: boolean;
     setMobileOpen: (value: boolean) => void;
 }
 
@@ -58,7 +61,10 @@ const NavContent = ({
     pathname, 
     role, 
     onLogout, 
+    onReturnToOrigin,
+    canReturnToOrigin,
     loading,
+    switchingOrigin,
     setMobileOpen 
 }: NavContentProps) => (
     <div className="flex flex-col h-full bg-[var(--surface-1)] text-[var(--text-primary)]">
@@ -85,13 +91,14 @@ const NavContent = ({
                         </div>
 
                         <div className="relative pl-2.5 ml-1 border-l border-dashed border-gray-200 space-y-0.5 md:space-y-1">
-                            {group.items.map((link) => {
+                            {group.items.map((link, index) => {
                                 const isExternal = link.external || /^https?:\/\//.test(link.href);
                                 const isActive = !isExternal && pathname === link.href;
                                 const Icon = link.icon;
+                                const itemKey = `${group.title}:${link.label}:${link.href}:${index}`;
                                 return isExternal ? (
                                     <a
-                                        key={link.href}
+                                        key={itemKey}
                                         href={link.href}
                                         target="_blank"
                                         rel="noopener noreferrer"
@@ -113,7 +120,7 @@ const NavContent = ({
                                     </a>
                                 ) : (
                                     <Link
-                                        key={link.href}
+                                        key={itemKey}
                                         href={link.href}
                                         onClick={() => setMobileOpen(false)}
                                         className="block relative group pl-4"
@@ -173,9 +180,20 @@ const NavContent = ({
                      </div>
                 </div>
 
+                {canReturnToOrigin && (
+                    <button
+                        onClick={onReturnToOrigin}
+                        disabled={switchingOrigin || loading}
+                        className="w-full flex items-center justify-center gap-1.5 md:gap-2 py-1.5 mb-1.5 rounded-lg text-[9px] md:text-[10px] font-bold uppercase tracking-wide text-[var(--brand-primary)] hover:bg-emerald-50 active:bg-emerald-100 transition-colors"
+                    >
+                        <Undo2 size={12} />
+                        {switchingOrigin ? '...' : 'Kembali ke Eskalasi'}
+                    </button>
+                )}
+
                 <button
                     onClick={onLogout}
-                    disabled={loading}
+                    disabled={loading || switchingOrigin}
                     className="w-full flex items-center justify-center gap-1.5 md:gap-2 py-1.5 rounded-lg text-[9px] md:text-[10px] font-bold uppercase tracking-wide text-red-600 hover:bg-red-50 active:bg-red-100 transition-colors"
                 >
                     <LogOut size={12} />
@@ -188,9 +206,19 @@ const NavContent = ({
 
 export default function Sidebar({ role }: { role: string }) {
     const pathname = usePathname();
-    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [switchingOrigin, setSwitchingOrigin] = useState(false);
+    const [bundleInfo, setBundleInfo] = useState<{
+        active: string | null;
+        origin: string | null;
+        accounts: Array<{
+            id: string;
+            role: string;
+            isCurrent: boolean;
+            isOrigin: boolean;
+        }>;
+    } | null>(null);
 
     const configKey = GET_LINKS_KEY(role || '', pathname);
     const groups = LINKS_CONFIG[configKey];
@@ -200,12 +228,49 @@ export default function Sidebar({ role }: { role: string }) {
         await logoutWithPwaCleanup();
     };
 
+    const handleReturnToOrigin = async () => {
+        if (!bundleInfo?.origin) {
+            return;
+        }
+
+        try {
+            setSwitchingOrigin(true);
+            const res = await fetch('/api/auth/switch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ userId: bundleInfo.origin }),
+            });
+
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                throw new Error(data?.error || 'Gagal kembali ke akun eskalasi');
+            }
+
+            window.location.assign('/dashboard/eskalasi/select');
+        } catch (error) {
+            console.error('Failed to switch back to eskalasi:', error);
+            setSwitchingOrigin(false);
+            window.alert(error instanceof Error ? error.message : 'Gagal kembali ke akun eskalasi');
+        }
+    };
+
+    const canReturnToOrigin = Boolean(
+        bundleInfo?.origin &&
+        bundleInfo?.active &&
+        bundleInfo.origin !== bundleInfo.active
+    );
+
     const navContentProps = {
         groups,
         pathname,
         role,
         onLogout: handleLogout,
+        onReturnToOrigin: handleReturnToOrigin,
+        canReturnToOrigin,
         loading,
+        switchingOrigin,
         setMobileOpen
     };
 
@@ -214,6 +279,37 @@ export default function Sidebar({ role }: { role: string }) {
             window.toggleMobileSidebar = () => setMobileOpen(prev => !prev);
         }
     }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchBundle = async () => {
+            try {
+                const res = await fetch('/api/auth/bundle', { cache: 'no-store' });
+                if (!res.ok) {
+                    if (!cancelled) {
+                        setBundleInfo(null);
+                    }
+                    return;
+                }
+
+                const data = await res.json();
+                if (!cancelled) {
+                    setBundleInfo(data);
+                }
+            } catch {
+                if (!cancelled) {
+                    setBundleInfo(null);
+                }
+            }
+        };
+
+        fetchBundle();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [role, pathname]);
 
     return (
         <>

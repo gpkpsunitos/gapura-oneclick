@@ -128,27 +128,45 @@ export default async function proxy(request: NextRequest) {
 
         // Division Dashboards (OS, OT, OP, UQ, HC, HT)
         if (path.startsWith('/dashboard/os') && !path.startsWith('/dashboard/analyst')) {
-             if (!['DIVISI_OS', 'PARTNER_OS', 'DIVISI_OT', 'PARTNER_OT', 'DIVISI_OP', 'PARTNER_OP', 'DIVISI_UQ', 'PARTNER_UQ', 'DIVISI_ESKALASI'].includes(role)) {
+             if (!['DIVISI_OS', 'PARTNER_OS', 'DIVISI_OT', 'PARTNER_OT', 'DIVISI_OP', 'PARTNER_OP', 'DIVISI_UQ', 'PARTNER_UQ'].includes(role)) {
+                  if (role === 'DIVISI_ESKALASI') {
+                      return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
+                  }
                   return NextResponse.redirect(new URL('/dashboard/employee', request.url));
              }
         }
-        if (path.startsWith('/dashboard/ot') && !['DIVISI_OT', 'PARTNER_OT', 'DIVISI_ESKALASI'].includes(role)) {
+        if (path.startsWith('/dashboard/ot') && !['DIVISI_OT', 'PARTNER_OT'].includes(role)) {
+             if (role === 'DIVISI_ESKALASI') {
+                 return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
+             }
              return NextResponse.redirect(new URL('/dashboard/employee', request.url));
         }
-        if (path.startsWith('/dashboard/op') && !['DIVISI_OP', 'PARTNER_OP', 'DIVISI_ESKALASI'].includes(role)) {
+        if (path.startsWith('/dashboard/op') && !['DIVISI_OP', 'PARTNER_OP'].includes(role)) {
+             if (role === 'DIVISI_ESKALASI') {
+                 return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
+             }
              return NextResponse.redirect(new URL('/dashboard/employee', request.url));
         }
-        if (path.startsWith('/dashboard/uq') && !['DIVISI_UQ', 'PARTNER_UQ', 'DIVISI_ESKALASI'].includes(role)) {
+        if (path.startsWith('/dashboard/uq') && !['DIVISI_UQ', 'PARTNER_UQ'].includes(role)) {
+             if (role === 'DIVISI_ESKALASI') {
+                 return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
+             }
              return NextResponse.redirect(new URL('/dashboard/employee', request.url));
         }
         if (path.startsWith('/dashboard/hc') && !['DIVISI_HC', 'PARTNER_HC', 'ANALYST', 'SUPER_ADMIN'].includes(role)) {
+             if (role === 'DIVISI_ESKALASI') {
+                 return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
+             }
              return NextResponse.redirect(new URL('/dashboard/employee', request.url));
         }
-        if (path.startsWith('/dashboard/ht') && !['DIVISI_HT', 'PARTNER_HT', 'DIVISI_ESKALASI'].includes(role) && !path.startsWith('/dashboard/ht/training-hub')) {
+        if (path.startsWith('/dashboard/ht') && !['DIVISI_HT', 'PARTNER_HT'].includes(role) && !path.startsWith('/dashboard/ht/training-hub')) {
+             if (role === 'DIVISI_ESKALASI') {
+                 return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
+             }
              return NextResponse.redirect(new URL('/dashboard/employee', request.url));
         }
         if (path.startsWith('/dashboard/eskalasi') && role !== 'DIVISI_ESKALASI') {
-             return NextResponse.redirect(new URL('/dashboard/employee', request.url));
+             return NextResponse.redirect(new URL(ROLE_DASHBOARDS[role] || '/dashboard/employee', request.url));
         }
     }
 

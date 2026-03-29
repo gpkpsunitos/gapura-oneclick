@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
 import {
   AlertCircle,
   Building2,
@@ -152,6 +153,7 @@ export function ReportDetailView({
   currentUserId,
   currentUserStationId,
 }: ReportDetailViewProps) {
+  const pathname = usePathname();
   // State
   const [isDocxModalOpen, setIsDocxModalOpen] = useState(false);
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
@@ -180,6 +182,25 @@ export function ReportDetailView({
   const [dispatchForm, setDispatchForm] = useState({ primary_tag: "", sub_category_note: "", target_division: "" });
   const [mounted, setMounted] = useState(false);
   const prefillOnceRef = useRef(false);
+
+  const resolveEscalationDivisionLabel = () => {
+    if (pathname.startsWith('/dashboard/eskalasi/uq') || pathname.startsWith('/dashboard/uq')) return 'Divisi UQ';
+    if (pathname.startsWith('/dashboard/eskalasi/op') || pathname.startsWith('/dashboard/op')) return 'Divisi OP';
+    if (pathname.startsWith('/dashboard/eskalasi/ot') || pathname.startsWith('/dashboard/ot')) return 'Divisi OT';
+    if (pathname.startsWith('/dashboard/eskalasi/os') || pathname.startsWith('/dashboard/os')) return 'Unit Service';
+    if (pathname.startsWith('/dashboard/eskalasi/ht') || pathname.startsWith('/dashboard/ht')) return 'Divisi HT';
+    if (pathname.startsWith('/dashboard/eskalasi/hc') || pathname.startsWith('/dashboard/hc')) return 'Human Capital';
+    return 'Eskalasi Divisi';
+  };
+
+  const getCommentAuthorName = (comment: any) => {
+    if (userRole === 'DIVISI_ESKALASI' && comment?.users?.role === 'DIVISI_ESKALASI') {
+      return resolveEscalationDivisionLabel();
+    }
+    return comment?.users?.full_name || 'Unknown';
+  };
+
+  const getCommentAuthorInitial = (comment: any) => getCommentAuthorName(comment).charAt(0) || '?';
 
   useEffect(() => {
     onDispatchOpenChange?.(showDispatchModal);
@@ -1012,10 +1033,10 @@ export function ReportDetailView({
                         >
                           <div className="flex items-center gap-2.5 mb-2.5">
                             <div className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center text-[11px] font-bold text-gray-500">
-                              {comment.users?.full_name?.charAt(0) || "?"}
+                              {getCommentAuthorInitial(comment)}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <span className="text-[13px] font-semibold text-[var(--text-primary)]">{comment.users?.full_name}</span>
+                              <span className="text-[13px] font-semibold text-[var(--text-primary)]">{getCommentAuthorName(comment)}</span>
                               <span className="text-[11px] text-[var(--text-muted)] ml-2">
                                 {formatDate(comment.created_at)} • {new Date(comment.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
                               </span>

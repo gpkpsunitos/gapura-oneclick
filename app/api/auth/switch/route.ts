@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { parseAuthBundle, serializeAuthBundle } from '@/lib/auth-bundle';
 
 export async function POST(request: Request) {
     try {
@@ -7,10 +8,8 @@ export async function POST(request: Request) {
         if (!userId) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
 
         const cookieStore = await cookies();
-        const bundleStr = cookieStore.get('auth_bundle')?.value;
-        if (!bundleStr) return NextResponse.json({ error: 'No active bundle' }, { status: 401 });
-
-        const bundle = JSON.parse(bundleStr);
+        const bundle = parseAuthBundle(cookieStore.get('auth_bundle')?.value);
+        if (!bundle) return NextResponse.json({ error: 'No active bundle' }, { status: 401 });
         const targetToken = bundle.sessions[userId];
         
         if (!targetToken) return NextResponse.json({ error: 'Account not found in bundle' }, { status: 404 });
@@ -19,7 +18,7 @@ export async function POST(request: Request) {
         bundle.active_uid = userId;
 
         // Set cookies
-        cookieStore.set('auth_bundle', JSON.stringify(bundle), {
+        cookieStore.set('auth_bundle', serializeAuthBundle(bundle), {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             maxAge: 60 * 60 * 24,

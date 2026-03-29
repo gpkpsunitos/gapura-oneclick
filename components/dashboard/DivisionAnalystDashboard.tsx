@@ -209,9 +209,10 @@ export function DivisionAnalystDashboard({
   const listReports = useMemo(() => {
     const s = listSearch.toLowerCase();
     const divisionCode = division.code.toUpperCase();
+    const shouldScopeReports = enforceDivisionScope && view !== 'reports';
 
     return reports.filter(r => {
-      if (divisionCode && enforceDivisionScope && r.target_division !== divisionCode) return false;
+      if (divisionCode && shouldScopeReports && r.target_division !== divisionCode) return false;
 
       if (listFilter !== 'all' && r.status !== listFilter) return false;
       if (listSeverity !== 'all' && r.severity !== listSeverity) return false;
@@ -225,7 +226,7 @@ export function DivisionAnalystDashboard({
         (r.reference_number || '').toLowerCase().includes(s) ||
         (r.flight_number || '').toLowerCase().includes(s);
     });
-  }, [reports, listFilter, listSeverity, listSearch, division.code, enforceDivisionScope]);
+  }, [reports, listFilter, listSeverity, listSearch, division.code, enforceDivisionScope, view]);
   const setView = (v: 'dashboard' | 'reports') => {
     const basePath = `/dashboard/${division.code.toLowerCase()}`;
     const sp = new URLSearchParams(searchParams.toString());
@@ -805,9 +806,6 @@ export function DivisionAnalystDashboard({
     );
   }
 
-  const isOSAnalyst = user?.division === 'OS' && user?.role === 'ANALYST';
-  const hasAllReportsAccess = division.code === 'OS' || isOSAnalyst;
-
   return (
     <div
       className="min-h-screen"
@@ -830,9 +828,9 @@ export function DivisionAnalystDashboard({
             onDateRangeChange={setDateRange}
             onRefresh={() => fetchData(true)}
             refreshing={refreshing}
-            onCustomerFeedback={division.code === 'OP' ? undefined : handleCustomerFeedbackShortcut}
-            cfLoading={division.code === 'OP' ? false : cfLoading}
-            onFilterClick={division.code === 'OP' ? undefined : () => setShowFilterModal(true)}
+            onCustomerFeedback={division.code === 'OS' ? handleCustomerFeedbackShortcut : undefined}
+            cfLoading={division.code === 'OS' ? cfLoading : false}
+            onFilterClick={division.code === 'OS' ? () => setShowFilterModal(true) : undefined}
             onExportExcel={exportToExcel}
             onExportPDF={exportToPDF}
             exporting={exporting}
@@ -841,19 +839,17 @@ export function DivisionAnalystDashboard({
             onSwitchDivision={() => router.push('/dashboard/eskalasi/select')}
           />
           <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
-            {hasAllReportsAccess && (
-              <button
-                onClick={() => setView('reports')}
-                className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold tracking-tight transition-all ${view === 'reports' ? 'bg-[var(--brand-primary)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-              >
-                <span className="truncate max-w-[140px] sm:max-w-none">Semua Laporan</span>
-              </button>
-            )}
+            <button
+              onClick={() => setView('reports')}
+              className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold tracking-tight transition-all ${view === 'reports' ? 'bg-[var(--brand-primary)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+            >
+              <span className="truncate max-w-[140px] sm:max-w-none">Semua Laporan</span>
+            </button>
           </div>
           {view === 'dashboard' && division.code === 'OS' && (
             <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
               <button
-                onClick={() => router.push('/dashboard/os/joumpa')}
+                onClick={() => window.open('https://lookerstudio.google.com/reporting/6a7aba44-6bd1-439f-a5d2-8bed4af56448', '_blank', 'noopener,noreferrer')}
                 className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/30 active:scale-95 flex-1 sm:flex-none justify-center min-w-0 sm:min-w-[160px] whitespace-nowrap"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 sm:w-4 sm:h-4"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
@@ -874,7 +870,7 @@ export function DivisionAnalystDashboard({
                 <span className="truncate">Survey</span>
               </button>
               <button
-                onClick={() => router.push('/dashboard/os/sla')}
+                onClick={() => window.open('https://lookerstudio.google.com/u/0/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_etgy5p9ptd', '_blank', 'noopener,noreferrer')}
                 className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white shadow-lg shadow-fuchsia-500/20 hover:shadow-xl hover:shadow-fuchsia-500/30 active:scale-95 flex-1 sm:flex-none justify-center min-w-0 sm:min-w-[160px] whitespace-nowrap"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 sm:w-4 sm:h-4"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
@@ -886,13 +882,6 @@ export function DivisionAnalystDashboard({
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 sm:w-4 sm:h-4"><rect x="3" y="3" width="7" height="9" rx="1"/><path d="M14 3h7v5h-7z"/><path d="M14 12h7v9h-7z"/></svg>
                 <span className="truncate">WSN</span>
-              </button>
-              <button
-                onClick={() => router.push('/dashboard/os/handbook')}
-                className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-emerald-600 to-green-700 text-white shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:shadow-emerald-600/30 active:scale-95 flex-1 sm:flex-none justify-center min-w-0 sm:min-w-[160px] whitespace-nowrap"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 sm:w-4 sm:h-4"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M20 22H6.5A2.5 2.5 0 0 1 4 19.5V6"/><path d="M20 15V2H6.5A2.5 2.5 0 0 0 4 4.5V6"/><path d="M8 6h8"/></svg>
-                <span className="truncate">Handbook</span>
               </button>
               <button
                 onClick={() => window.open('https://lookerstudio.google.com/u/6/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_uyfwmq7usd', '_blank')}
