@@ -78,6 +78,7 @@ const items: GuestItem[] = [
         icon: AlertTriangle,
         href: 'https://linktr.ee/HSSE_GP',
         external: true,
+        protected: true,
     },
 ];
 

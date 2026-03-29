@@ -17,7 +17,7 @@ import { NoiseTexture } from '@/components/ui/NoiseTexture';
 import { PrismButton } from '@/components/ui/PrismButton';
 import { queueOfflineReport } from '@/lib/pwa/offline-queue';
 
-const QUICK_ACCESS_PASSWORD = 'Gapura123!';
+const QUICK_ACCESS_PASSWORD = process.env.NEXT_PUBLIC_QUICK_ACCESS_PASSWORD ?? 'Gapura123!';
 
 type QuickAccessLink = { label: string; url: string; sublabel?: string };
 type QRLink = { label: string; url: string };
@@ -31,6 +31,8 @@ type QuickAccessCategory = {
   qrLinks?: QRLink[];
   links?: QuickAccessLink[];
   passwordProtected?: boolean;
+  redirectUrl?: string;
+  externalRedirect?: boolean;
 };
 
 const CATEGORIES: QuickAccessCategory[] = [
@@ -101,6 +103,17 @@ const CATEGORIES: QuickAccessCategory[] = [
       { label: 'Monitoring WSN Dashboard', url: 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_ufv08vzhsd' },
       { label: 'Weekly Service Notice Dashboard', url: 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_1swzqz7usd' }
     ]
+  },
+  {
+    id: 'HSSE',
+    title: 'HSSE Report',
+    description: 'Akses cepat ke portal HSSE Report.',
+    icon: AlertTriangle,
+    color: 'oklch(0.62 0.22 28)',
+    span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+    passwordProtected: true,
+    redirectUrl: 'https://linktr.ee/HSSE_GP',
+    externalRedirect: true,
   },
   {
     id: 'Handbook',
@@ -354,11 +367,35 @@ export default function PublicReportPage() {
     setPasswordError('');
   };
 
+  const openProtectedRedirect = (category: QuickAccessCategory) => {
+    if (!category.redirectUrl) {
+      return;
+    }
+
+    closePasswordPrompt();
+
+    if (category.externalRedirect ?? /^https?:\/\//i.test(category.redirectUrl)) {
+      window.open(category.redirectUrl, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    router.push(category.redirectUrl);
+  };
+
   const openCategory = (category: QuickAccessCategory) => {
     if (category.passwordProtected) {
       setPendingProtectedCategory(category);
       setPasswordInput('');
       setPasswordError('');
+      return;
+    }
+
+    if (category.redirectUrl) {
+      if (category.externalRedirect ?? /^https?:\/\//i.test(category.redirectUrl)) {
+        window.open(category.redirectUrl, '_blank', 'noopener,noreferrer');
+      } else {
+        router.push(category.redirectUrl);
+      }
       return;
     }
 
@@ -370,6 +407,11 @@ export default function PublicReportPage() {
     if (!pendingProtectedCategory) return;
     if (passwordInput !== QUICK_ACCESS_PASSWORD) {
       setPasswordError('Kata sandi salah.');
+      return;
+    }
+
+    if (pendingProtectedCategory.redirectUrl) {
+      openProtectedRedirect(pendingProtectedCategory);
       return;
     }
 
