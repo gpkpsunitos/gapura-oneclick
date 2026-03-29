@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySession } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
+import { resolveCachedAI } from '@/lib/ai-route-cache';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -31,7 +32,6 @@ export async function GET(req: NextRequest) {
     const esklasiRegex = search.get('esklasi_regex') || '';
 
     const internalUrl = new URL('/api/ai/analyze-all', req.url);
-    internalUrl.searchParams.set('bypass_cache', 'true');
     if (division) internalUrl.searchParams.set('division', division);
     if (branch) internalUrl.searchParams.set('branch', branch);
     internalUrl.searchParams.set('esklasi_regex', esklasiRegex);
@@ -46,24 +46,6 @@ export async function GET(req: NextRequest) {
       results: ResultItem[];
       summary?: { totalRecords: number; severityDistribution?: Partial<SeverityDistribution>; predictionStats?: { min: number; max: number; mean: number } };
     }
-    let analyzeData: AnalyzeData = { results: [], summary: { totalRecords: 0 } };
-    try {
-      const internalRes = await fetch(internalUrl.toString(), {
-        headers: {
-          // forward cookies for session auth
-          cookie: req.headers.get('cookie') || ''
-        },
-        cache: 'no-store'
-      });
-      if (internalRes.ok) {
-        analyzeData = await internalRes.json();
-      }
-    } catch {
-      // ignore, we'll produce empty summary below
-    }
-
-    const results: ResultItem[] = Array.isArray(analyzeData?.results) ? analyzeData.results : [];
-
     const normSeverity = (s?: string): 'Low' | 'Medium' | 'High' | 'Critical' => {
       const v = String(s || 'Low').toLowerCase();
       if (/crit/.test(v)) return 'Critical';
@@ -72,138 +54,165 @@ export async function GET(req: NextRequest) {
       return 'Low';
     };
 
-    const overallDist = { Low: 0, Medium: 0, High: 0, Critical: 0 };
-    let totalDays = 0;
-    let daysCount = 0;
-    const categoriesMap: Record<string, {
-      count: number;
-      severity: typeof overallDist;
-      totalDays: number;
-      daysCount: number;
-      airlines: Record<string, number>;
-      hubs: Record<string, number>;
-    }> = {};
+    const result = await resolveCachedAI({
+      feature: 'action-summary',
+      scope: { division, branch, esklasiRegex },
+      resolver: async () => {
+        let analyzeData: AnalyzeData = { results: [], summary: { totalRecords: 0 } };
+        try {
+          const internalRes = await fetch(internalUrl.toString(), {
+            headers: {
+              cookie: req.headers.get('cookie') || ''
+            }
+          });
+          if (internalRes.ok) {
+            analyzeData = await internalRes.json();
+          }
+        } catch {
+          // ignore, we'll produce empty summary below
+        }
 
-    for (const r of results) {
-      const sev = normSeverity(r.classification?.severity);
-      overallDist[sev] += 1;
-      const d = Number(r.prediction?.predictedDays ?? NaN);
-      if (!Number.isNaN(d) && Number.isFinite(d)) {
-        totalDays += d;
-        daysCount += 1;
-      }
-      const cat = (r.classification?.issueType || 'Unknown') as string;
-      if (!categoriesMap[cat]) {
-        categoriesMap[cat] = {
-          count: 0,
-          severity: { Low: 0, Medium: 0, High: 0, Critical: 0 },
-          totalDays: 0,
-          daysCount: 0,
-          airlines: {},
-          hubs: {}
+        const results: ResultItem[] = Array.isArray(analyzeData?.results) ? analyzeData.results : [];
+        const overallDist = { Low: 0, Medium: 0, High: 0, Critical: 0 };
+        let totalDays = 0;
+        let daysCount = 0;
+        const categoriesMap: Record<string, {
+          count: number;
+          severity: typeof overallDist;
+          totalDays: number;
+          daysCount: number;
+          airlines: Record<string, number>;
+          hubs: Record<string, number>;
+        }> = {};
+
+        for (const r of results) {
+          const sev = normSeverity(r.classification?.severity);
+          overallDist[sev] += 1;
+          const d = Number(r.prediction?.predictedDays ?? NaN);
+          if (!Number.isNaN(d) && Number.isFinite(d)) {
+            totalDays += d;
+            daysCount += 1;
+          }
+          const cat = (r.classification?.issueType || 'Unknown') as string;
+          if (!categoriesMap[cat]) {
+            categoriesMap[cat] = {
+              count: 0,
+              severity: { Low: 0, Medium: 0, High: 0, Critical: 0 },
+              totalDays: 0,
+              daysCount: 0,
+              airlines: {},
+              hubs: {}
+            };
+          }
+          categoriesMap[cat].count += 1;
+          categoriesMap[cat].severity[sev] += 1;
+          if (!Number.isNaN(d) && Number.isFinite(d)) {
+            categoriesMap[cat].totalDays += d;
+            categoriesMap[cat].daysCount += 1;
+          }
+          const airline = String(r.originalData?.airline ?? r.originalData?.Airlines ?? '').trim();
+          const hub = String(r.originalData?.hub ?? r.originalData?.HUB ?? '').trim();
+          if (airline) categoriesMap[cat].airlines[airline] = (categoriesMap[cat].airlines[airline] || 0) + 1;
+          if (hub) categoriesMap[cat].hubs[hub] = (categoriesMap[cat].hubs[hub] || 0) + 1;
+        }
+
+        type TopAction = { action: string; priority: 'HIGH' | 'MEDIUM' | 'LOW'; source?: string; rationale?: string; confidence: number };
+        type CategoryDatum = {
+          count: number;
+          severityDistribution: SeverityDistribution;
+          topActions: TopAction[];
+          avgResolutionDays: number;
+          topHubs: string[];
+          topAirlines: string[];
+          effectivenessScore: number;
+          openCount: number;
+          closedCount: number;
+          highPriorityCount: number;
         };
-      }
-      categoriesMap[cat].count += 1;
-      categoriesMap[cat].severity[sev] += 1;
-      if (!Number.isNaN(d) && Number.isFinite(d)) {
-        categoriesMap[cat].totalDays += d;
-        categoriesMap[cat].daysCount += 1;
-      }
-      const airline = String(r.originalData?.airline ?? r.originalData?.Airlines ?? '').trim();
-      const hub = String(r.originalData?.hub ?? r.originalData?.HUB ?? '').trim();
-      if (airline) categoriesMap[cat].airlines[airline] = (categoriesMap[cat].airlines[airline] || 0) + 1;
-      if (hub) categoriesMap[cat].hubs[hub] = (categoriesMap[cat].hubs[hub] || 0) + 1;
-    }
+        const categories: Record<string, CategoryDatum> = {};
+        for (const [cat, info] of Object.entries(categoriesMap)) {
+          const topAirlines = Object.entries(info.airlines).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
+          const topHubs = Object.entries(info.hubs).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
+          const highPriorityCount = (info.severity.High || 0) + (info.severity.Critical || 0);
+          categories[cat] = {
+            count: info.count,
+            severityDistribution: info.severity,
+            topActions: [],
+            avgResolutionDays: info.daysCount > 0 ? info.totalDays / info.daysCount : 0,
+            topHubs,
+            topAirlines,
+            effectivenessScore: Math.min(1, highPriorityCount / Math.max(1, info.count)),
+            openCount: info.count,
+            closedCount: 0,
+            highPriorityCount
+          };
+        }
 
-    type TopAction = { action: string; priority: 'HIGH' | 'MEDIUM' | 'LOW'; source?: string; rationale?: string; confidence: number };
-    type CategoryDatum = {
-      count: number;
-      severityDistribution: SeverityDistribution;
-      topActions: TopAction[];
-      avgResolutionDays: number;
-      topHubs: string[];
-      topAirlines: string[];
-      effectivenessScore: number;
-      openCount: number;
-      closedCount: number;
-      highPriorityCount: number;
-    };
-    const categories: Record<string, CategoryDatum> = {};
-    for (const [cat, info] of Object.entries(categoriesMap)) {
-      const topAirlines = Object.entries(info.airlines).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
-      const topHubs = Object.entries(info.hubs).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
-      const highPriorityCount = (info.severity.High || 0) + (info.severity.Critical || 0);
-      categories[cat] = {
-        count: info.count,
-        severityDistribution: info.severity,
-        topActions: [],
-        avgResolutionDays: info.daysCount > 0 ? info.totalDays / info.daysCount : 0,
-        topHubs,
-        topAirlines,
-        effectivenessScore: Math.min(1, highPriorityCount / Math.max(1, info.count)),
-        openCount: info.count,
-        closedCount: 0,
-        highPriorityCount
-      };
-    }
+        const totalRecords = results.length;
+        const highPriorityTotal = overallDist.High + overallDist.Critical;
+        const avgResolutionDays = daysCount > 0 ? totalDays / daysCount : 0;
+        const categoriesCount = Object.keys(categories).length;
 
-    const totalRecords = results.length;
-    const highPriorityTotal = overallDist.High + overallDist.Critical;
-    const avgResolutionDays = daysCount > 0 ? totalDays / daysCount : 0;
-    const categoriesCount = Object.keys(categories).length;
+        const categoriesEntries = Object.entries(categories) as Array<[string, CategoryDatum]>;
+        const topCategoriesByCount = categoriesEntries
+          .map(([category, cd]) => ({
+            category,
+            count: cd.count,
+            highPriority: cd.highPriorityCount
+          }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5);
 
-    const categoriesEntries = Object.entries(categories) as Array<[string, CategoryDatum]>;
-    const topCategoriesByCount = categoriesEntries
-      .map(([category, cd]) => ({
-        category,
-        count: cd.count,
-        highPriority: cd.highPriorityCount
-      }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
+        const riskScore = (sev: SeverityDistribution) =>
+          sev.Critical * 4 + sev.High * 3 + sev.Medium * 2 + sev.Low * 1;
 
-    const riskScore = (sev: SeverityDistribution) =>
-      sev.Critical * 4 + sev.High * 3 + sev.Medium * 2 + sev.Low * 1;
+        const topCategoriesByRisk = categoriesEntries
+          .map(([category, cd]) => ({
+            category,
+            riskScore: riskScore(cd.severityDistribution),
+            count: cd.count
+          }))
+          .sort((a, b) => b.riskScore - a.riskScore)
+          .slice(0, 5);
 
-    const topCategoriesByRisk = categoriesEntries
-      .map(([category, cd]) => ({
-        category,
-        riskScore: riskScore(cd.severityDistribution),
-        count: cd.count
-      }))
-      .sort((a, b) => b.riskScore - a.riskScore)
-      .slice(0, 5);
+        const globalRecommendations = topCategoriesByRisk.slice(0, 3).map(c => ({
+          action: `Prioritaskan tindakan pada kategori ${c.category}`,
+          priority: 'HIGH' as const,
+          category: c.category,
+          rationale: 'Kategori dengan skor risiko tertinggi dari distribusi severity',
+          confidence: 0.7
+        }));
 
-    const globalRecommendations = topCategoriesByRisk.slice(0, 3).map(c => ({
-      action: `Prioritaskan tindakan pada kategori ${c.category}`,
-      priority: 'HIGH' as const,
-      category: c.category,
-      rationale: 'Kategori dengan skor risiko tertinggi dari distribusi severity',
-      confidence: 0.7
-    }));
-
-    const payload = {
-      status: 'ok',
-      totalRecords,
-      categories,
-      overallSummary: {
-        totalRecords,
-        openCount: totalRecords,
-        closedCount: 0,
-        highPriorityCount: highPriorityTotal,
-        severityDistribution: overallDist,
-        avgResolutionDays,
-        categoriesCount,
-        avgDaysSource: 'predictedDays'
+        return {
+          status: 'ok',
+          totalRecords,
+          categories,
+          overallSummary: {
+            totalRecords,
+            openCount: totalRecords,
+            closedCount: 0,
+            highPriorityCount: highPriorityTotal,
+            severityDistribution: overallDist,
+            avgResolutionDays,
+            categoriesCount,
+            avgDaysSource: 'predictedDays'
+          },
+          topCategoriesByCount,
+          topCategoriesByRisk,
+          globalRecommendations
+        };
       },
-      topCategoriesByCount,
-      topCategoriesByRisk,
-      globalRecommendations
-    };
+    });
 
-    return NextResponse.json(payload, {
+    return NextResponse.json({
+      ...(result.payload as Record<string, unknown>),
+      cached: result.cached,
+      generatedAt: result.generatedAt,
+      sourceSyncAt: result.sourceSyncAt,
+      stale: result.stale,
+    }, {
       headers: {
-        'Cache-Control': 'no-store'
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300'
       }
     });
   } catch (error) {
@@ -226,7 +235,13 @@ export async function GET(req: NextRequest) {
       topCategoriesByRisk: [],
       globalRecommendations: []
     };
-    return NextResponse.json(payload, {
+    return NextResponse.json({
+      ...payload,
+      cached: false,
+      generatedAt: new Date().toISOString(),
+      sourceSyncAt: null,
+      stale: true,
+    }, {
       headers: {
         'Cache-Control': 'no-store'
       }

@@ -1,6 +1,6 @@
 import 'server-only';
 import { getGoogleSheets } from '@/lib/google-sheets';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import type { Report, ReportStatus, UserRole, Station, Unit, Position, IncidentType } from '@/types';
 import { calculateSlaDeadline } from '@/lib/constants/report-status';
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
@@ -761,129 +761,25 @@ export class ReportsService {
     source?: 'auto' | 'sheets' | 'sync';
   }): Promise<Report[]> {
     const { refresh, filters, fields, source = 'auto' } = options || {};
-    
-    // Create a cache key that includes filters and fields
-    const filterKey = filters ? JSON.stringify(filters) : 'none';
-    const fieldsKey = fields ? fields.sort().join(',') : 'all';
-    const sourceKey = source || 'auto';
-    const cacheKey = `${CACHE_KEY_ALL_REPORTS}:${filterKey}:${fieldsKey}:${sourceKey}`;
-
-    if (!refresh) {
-      const cached = getCache<Report[]>(cacheKey, CACHE_TTL);
-      if (cached) return cached;
-      const fsCached = await readFsCache<Report[]>(cacheKey, CACHE_TTL);
-      if (fsCached) {
-        setCache(cacheKey, fsCached);
-        return fsCached;
-      }
-    }
 
     // --- DATA SOURCE SELECTION ---
-    let sheetReports: Report[] = [];
-    let dbReports: Report[] = [];
+    let selectedReports: Report[] = [];
     
     if (source === 'sheets') {
-      // Force direct Google Sheets
       try {
-        sheetReports = await this.fetchGoogleSheetsReports();
-        console.log(`[ReportsService] Using ${sheetReports.length} reports directly from Google Sheets (forced)`);
+        selectedReports = await this.fetchGoogleSheetsReports();
+        console.log(`[ReportsService] Using ${selectedReports.length} reports directly from Google Sheets (forced)`);
       } catch (err) {
         console.error('[ReportsService] Google Sheets fetch failed (forced):', err);
-        sheetReports = [];
+        selectedReports = [];
       }
-    } else if (source === 'sync') {
-      // Force reports_sync only
-      const syncReports = await this.fetchReportsFromSync();
-      sheetReports = syncReports;
-      console.log(`[ReportsService] Using ${sheetReports.length} reports from reports_sync (forced)`);
     } else {
-      // AUTO: Try reports_sync first then fallback to Sheets
-      const syncReports = await this.fetchReportsFromSync();
-      if (syncReports.length > 0) {
-        sheetReports = syncReports;
-        console.log(`[ReportsService] Using ${syncReports.length} reports from reports_sync (fast path)`);
-      } else {
-        const sheetsPromise = this.fetchGoogleSheetsReports();
-        const [sheetsResult] = await Promise.all([
-          sheetsPromise.catch(err => {
-            console.error('[ReportsService] Google Sheets fetch failed:', err);
-            return [] as Report[];
-          })
-        ]);
-        sheetReports = sheetsResult;
-      }
+      selectedReports = await this.fetchReportsFromSync();
+      console.log(`[ReportsService] Using ${selectedReports.length} reports from reports_sync (${source})`);
     }
-    
-    // Fetch from legacy reports table (for reports created directly in DB)
-    const supabasePromise = this.fetchSupabaseReports();
-    const [dbResult] = await Promise.all([
-      supabasePromise.catch(err => {
-        console.error('[ReportsService] Supabase fetch failed:', err);
-        return [] as Report[];
-      })
-    ]);
-    dbReports = dbResult;
-
-    console.log(`[ReportsService] Fetched ${sheetReports.length} from Sheets/Sync, ${dbReports.length} from Supabase`);
-
-    // --- MERGE STRATEGY ---
-    // 1. Create a map of Sheet reports by ID for O(1) lookup
-    // 2. Iterate DB reports
-    //    - If DB report matches a Sheet report (via sheet_id or id):
-    //      * ENRICH the Sheet report with critical fields from DB (user_id, status, etc.) if missing in Sheet
-    //    - If no match found in Sheet reports, add DB report to the list
-    
-    const combinedReports: Report[] = [...sheetReports];
-    const sheetReportMap = new Map<string, Report>();
-    sheetReports.forEach(r => sheetReportMap.set(r.id, r));
-    
-    // Add DB reports that are NOT in Sheets (based on sheet_id reference)
-    dbReports.forEach(dbReport => {
-      // Attempt to link a Supabase report to its Sheet counterpart using canonical UUID of sheet_id
-      let linkedSheetUuid: string | null = null;
-      const sheetIdRef = (dbReport as any).sheet_id as string | undefined;
-      if (sheetIdRef) {
-        try {
-          linkedSheetUuid = this.getReportUuid(sheetIdRef);
-        } catch {
-          linkedSheetUuid = null;
-        }
-      }
-
-      let matchFound = false;
-      let existingReport: Report | undefined;
-
-      if (linkedSheetUuid && sheetReportMap.has(linkedSheetUuid)) {
-        matchFound = true;
-        existingReport = sheetReportMap.get(linkedSheetUuid);
-      } else if (sheetReportMap.has(dbReport.id)) {
-        matchFound = true;
-        existingReport = sheetReportMap.get(dbReport.id);
-      }
-
-      if (matchFound && existingReport) {
-        // ENRICHMENT: Copy critical fields from DB if missing in Sheet
-        // This fixes the issue where user_id might be missing in Sheet but present in DB
-        if (!existingReport.user_id && dbReport.user_id) {
-            existingReport.user_id = dbReport.user_id;
-        }
-        if (!existingReport.created_at && dbReport.created_at) {
-            existingReport.created_at = dbReport.created_at;
-        }
-        if (!existingReport.target_division && dbReport.target_division) {
-            existingReport.target_division = dbReport.target_division;
-        }
-        // Sync status if DB is more recent (optional, but good for tracking)
-        // For now, trust Sheet as primary, but if Sheet status is 'Pending' and DB is 'Done', maybe update?
-        // Let's stick to Sheet as primary for status to avoid confusion.
-      } else {
-        // No match found in Sheets, so this is a Supabase-only report
-        combinedReports.push(dbReport);
-      }
-    });
 
     // --- FILTERING ---
-    const filteredReports = combinedReports.filter(report => {
+    const filteredReports = selectedReports.filter(report => {
         // ... (existing filtering logic)
         if (filters) {
           // Date filtering
@@ -946,9 +842,6 @@ export class ReportsService {
           return projected as Report;
         })
       : filteredReports;
-
-    setCache(cacheKey, finalReports);
-    writeFsCache(cacheKey, finalReports).catch(() => {});
     return finalReports;
   }
 
@@ -994,7 +887,7 @@ export class ReportsService {
       let hasMore = true;
 
       while (hasMore) {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseAdmin
           .from('reports_sync')
           .select('*')
           .order('date_of_event', { ascending: false })
@@ -1049,7 +942,7 @@ export class ReportsService {
     let hasMore = true;
 
     while (hasMore) {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseAdmin
         .from('reports')
         .select('*')
         .order('created_at', { ascending: false })
@@ -1102,7 +995,7 @@ export class ReportsService {
     if (cached) return cached;
 
     try {
-      const { data, error } = await supabase.from('stations').select('id, code, name').order('code');
+      const { data, error } = await supabaseAdmin.from('stations').select('id, code, name').order('code');
       if (!error && Array.isArray(data) && data.length > 0) {
         const stationsDb: Station[] = data.map((row: any) => ({
           id: row.id,
@@ -1133,22 +1026,22 @@ export class ReportsService {
 
   // Helper metadata fetchers to consolidate logic
   async getUnits(): Promise<Unit[]> {
-    const { data } = await supabase.from('units').select('*').order('name');
+    const { data } = await supabaseAdmin.from('units').select('*').order('name');
     return data || [];
   }
 
   async getPositions(): Promise<Position[]> {
-    const { data } = await supabase.from('positions').select('*').order('level');
+    const { data } = await supabaseAdmin.from('positions').select('*').order('level');
     return data || [];
   }
 
   async getIncidentTypes(): Promise<IncidentType[]> {
-    const { data } = await supabase.from('incident_types').select('*').order('name');
+    const { data } = await supabaseAdmin.from('incident_types').select('*').order('name');
     return data || [];
   }
 
   async getLocations(stationCode?: string): Promise<any[]> {
-    let query = supabase.from('locations').select('*').order('name');
+    let query = supabaseAdmin.from('locations').select('*').order('name');
     if (stationCode) {
       query = query.eq('station_id', stationCode);
     }

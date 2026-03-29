@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
-import { supabaseAdmin } from '@/lib/supabase-admin';
 import { validateQuery } from '@/lib/builder/sql-builder';
 import { normalizeQuery } from '@/lib/builder/normalization';
 import type { QueryDefinition } from '@/types/builder';
@@ -12,21 +11,19 @@ const MAX_BATCH_SIZE = 30;
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check - RELAXED for Public Access
     const cookieStore = await cookies();
     const session = cookieStore.get('session')?.value;
-    
-    let canViewAll = true; // Default to true to allow public access to all data
-    let userStationCode: string | null = null;
-
-    // Optional: Parse session if present just for context, but don't block
-    if (session) {
-        const payload = await verifySession(session);
-        if (payload) {
-             // We could extract user info here if needed for audit, 
-             // but we maintain canViewAll = true for everyone.
-        }
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const payload = await verifySession(session);
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    let canViewAll = true;
+    let userStationCode: string | null = null;
 
     const body = await request.json();
     const queries: { id: string; query: QueryDefinition }[] = body.queries;

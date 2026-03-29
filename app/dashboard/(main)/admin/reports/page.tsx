@@ -53,26 +53,6 @@ export default function AdminReportsPage() {
 
     useEffect(() => { fetchReports(); }, [fetchReports]);
     useEffect(() => { fetchStations(); }, [fetchStations]);
-    useEffect(() => {
-        const controller = new AbortController();
-        const run = async () => {
-            try {
-                await fetch('/api/reports/refresh', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    signal: controller.signal
-                });
-                await fetch('/api/admin/sync-reports', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    signal: controller.signal
-                });
-                await fetchReports();
-            } catch {}
-        };
-        run();
-        return () => controller.abort();
-    }, [fetchReports]);
 
     const filteredReports = reports.filter(report => {
         const matchesSearch = 

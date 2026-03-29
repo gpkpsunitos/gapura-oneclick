@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifySession } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { getHfClient } from '@/lib/hf-client';
+import { resolveCachedAI } from '@/lib/ai-route-cache';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes
@@ -24,22 +25,36 @@ export async function GET(req: NextRequest) {
     const esklasiRegex = searchParams.get('esklasi_regex') || '';
     const targetPath = `/api/ai/root-cause/categories?esklasi_regex=${encodeURIComponent(esklasiRegex)}`;
 
-    const hfClient = getHfClient();
-    const response = await hfClient.fetch(
-      targetPath,
-      { method: 'GET', headers: { 'Content-Type': 'application/json' } },
-      { ttl: 300000 }
-    );
+    const result = await resolveCachedAI({
+      feature: 'root-cause-categories',
+      scope: { esklasiRegex },
+      resolver: async () => {
+        const hfClient = getHfClient();
+        const response = await hfClient.fetch(
+          targetPath,
+          { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+          { ttl: 300000 }
+        );
 
-    if (!response.ok) {
-      return NextResponse.json(
-        { error: `AI Service Error: ${response.statusText}` },
-        { status: response.status }
-      );
-    }
+        if (!response.ok) {
+          throw new Error(`AI Service Error: ${response.statusText}`);
+        }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+        return response.json();
+      },
+    });
+
+    return NextResponse.json({
+      ...(result.payload as Record<string, unknown>),
+      cached: result.cached,
+      generatedAt: result.generatedAt,
+      sourceSyncAt: result.sourceSyncAt,
+      stale: result.stale,
+    }, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+      },
+    });
   } catch (error) {
     console.error('[Proxy] Error fetching root cause categories:', error);
     return NextResponse.json(

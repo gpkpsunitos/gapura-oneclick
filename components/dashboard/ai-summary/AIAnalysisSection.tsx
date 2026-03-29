@@ -252,9 +252,8 @@ export function AIAnalysisSection({
         Status: report.status || "Open",
       };
 
-      const baseUrl = process.env.NEXT_PUBLIC_AI_SERVICE_URL || "https://gapura-dev-gapura-ai.hf.space";
       const esklasiRegex = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('esklasi_regex') || '' : '';
-      const res = await fetch(`${baseUrl}/api/ai/analyze?esklasi_regex=${encodeURIComponent(esklasiRegex)}`, {
+      const res = await fetch(`/api/ai/analyze?esklasi_regex=${encodeURIComponent(esklasiRegex)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

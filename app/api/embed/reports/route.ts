@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 interface FilterParams {
   airline?: string;
@@ -31,8 +31,8 @@ export async function GET(request: NextRequest) {
     startDate.setDate(startDate.getDate() - rangeDays);
     
     // Build query with filters - Complexity: O(1) query building
-    let query = supabase
-      .from('reports')
+    let query = supabaseAdmin
+      .from('reports_sync')
       .select(`
         id,
         title,
@@ -40,13 +40,13 @@ export async function GET(request: NextRequest) {
         severity,
         priority,
         airline,
+        airlines,
         main_category,
-        sub_category,
+        irregularity_complain_category,
         area,
         target_division,
         station_code,
-        incident_date,
-        incident_time,
+        date_of_event,
         created_at,
         sla_deadline
       `)

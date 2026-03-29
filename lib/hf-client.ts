@@ -31,7 +31,9 @@ interface HfClientStats {
 }
 
 const DEFAULT_CONFIG: HfClientConfig = {
-  baseUrl: process.env.AI_SERVICE_URL || process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'https://gapura-dev-gapura-ai.hf.space',
+  baseUrl: typeof window !== 'undefined'
+    ? ''
+    : (process.env.AI_SERVICE_URL || process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'https://gapura-dev-gapura-ai.hf.space'),
   rateLimitRpm: parseInt(process.env.HF_RATE_LIMIT_RPM || '100', 10),
   cacheTtlMs: parseInt(process.env.HF_CACHE_TTL_MS || '300000', 10),
   maxRetries: parseInt(process.env.HF_MAX_RETRIES || '3', 10),

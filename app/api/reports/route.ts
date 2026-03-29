@@ -1,11 +1,77 @@
-import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { after, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { REPORT_STATUS } from '@/lib/constants/report-status';
 import { reportsService } from '@/lib/services/reports-service';
 import { notifyNewRecordEmail } from '@/lib/notifications';
 import { persistReportMetadata } from '@/lib/report-persistence';
+import { supabaseAdmin } from '@/lib/supabase-admin';
+import { bumpSyncVersion } from '@/lib/sync-state';
+import { purgeDashboardSnapshots, purgeExpiredDashboardSnapshots } from '@/lib/dashboard-cache';
+
+const DEFAULT_REPORT_SUMMARY_FIELDS = [
+    'id',
+    'sheet_id',
+    'title',
+    'description',
+    'status',
+    'severity',
+    'priority',
+    'created_at',
+    'updated_at',
+    'date_of_event',
+    'station_id',
+    'station_code',
+    'branch',
+    'hub',
+    'target_division',
+    'reporter_name',
+    'reporter_email',
+    'airlines',
+    'airline',
+    'flight_number',
+    'reference_number',
+    'area',
+    'category',
+    'main_category',
+    'irregularity_complain_category',
+    'evidence_url',
+    'evidence_urls',
+] as const;
+
+type ReportSummaryRow = {
+    id: string | number | null;
+    created_at: string | null;
+    [key: string]: unknown;
+};
+
+function encodeCursor(createdAt: string, id: string): string {
+    return Buffer.from(JSON.stringify({ createdAt, id }), 'utf8').toString('base64url');
+}
+
+function decodeCursor(cursor: string | null): { createdAt: string; id: string } | null {
+    if (!cursor) return null;
+    try {
+        const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
+        if (!parsed?.createdAt || !parsed?.id) return null;
+        return {
+            createdAt: String(parsed.createdAt),
+            id: String(parsed.id),
+        };
+    } catch {
+        return null;
+    }
+}
+
+function pickReportFields(report: any, fields: readonly string[]) {
+    const picked: Record<string, unknown> = {};
+    for (const field of fields) {
+        if (report[field] !== undefined) {
+            picked[field] = report[field];
+        }
+    }
+    return picked;
+}
 
 // GET reports for an employee
 export async function GET(request: Request) {
@@ -22,36 +88,21 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
         }
 
-        // Fetch reports from Google Sheets
-        let reports: any[] = [];
-        try {
-            reports = await reportsService.getReports();
-            console.log(`[REPORTS_API] Fetched ${reports?.length} raw reports`);
-            
-            // DEBUG: Log first report to check user_id presence
-            if (reports.length > 0) {
-                const firstReport = reports[0];
-                console.log('[REPORTS_API] First report sample:', {
-                    id: firstReport.id,
-                    title: firstReport.title,
-                    user_id: firstReport.user_id,
-                    sheet_id: firstReport.sheet_id
-                });
-            }
-        } catch (srvErr: any) {
-            console.error('[REPORTS_API] Service error:', srvErr.message);
-            throw srvErr;
-        }
-
         // Normalize role for consistent checking
         const role = String(payload.role).trim().toUpperCase();
         const userEmail = String(payload.email || '').trim().toLowerCase();
         const userFullName = String((payload as any).full_name || '').trim().toLowerCase();
         const url = new URL(request.url);
         const unfiltered = url.searchParams.get('unfiltered') === '1';
+        const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '50', 10), 1), 200);
+        const cursor = decodeCursor(url.searchParams.get('cursor'));
+        const fieldsParam = url.searchParams.get('fields');
+        const requestedFields = fieldsParam
+            ? fieldsParam.split(',').map((field) => field.trim()).filter(Boolean)
+            : [...DEFAULT_REPORT_SUMMARY_FIELDS];
 
         // Get user's station_id from database for role-based filtering
-        const { data: userData } = await supabase
+        const { data: userData } = await supabaseAdmin
             .from('users')
             .select('station_id')
             .eq('id', payload.id)
@@ -65,67 +116,71 @@ export async function GET(request: Request) {
 
         if (bypassFiltering) {
             console.log(`[REPORTS_API] Unfiltered mode active for role: ${role}`);
+            const reports = await reportsService.getReports();
+            return NextResponse.json(reports, {
+                headers: {
+                    'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+                    'Vary': 'Cookie'
+                }
+            });
         } else {
-            // APPLY STRICT FILTERING BASED ON ROLE
-            console.log(`[REPORTS_API] Filtering for role: ${role}, user_id: ${payload.id}, station_id: ${userStationId}`);
+            let query = supabaseAdmin
+                .from('reports_sync')
+                .select(requestedFields.join(','))
+                .order('created_at', { ascending: false })
+                .order('id', { ascending: false });
 
-            if (role === 'STAFF_CABANG') {
-                const originalCount = reports.length;
-                reports = reports.filter(r => {
-                    const repEmail = (r as any).reporter_email ? String((r as any).reporter_email).toLowerCase() : '';
-                    const userEmailJoined = (r as any).users?.email ? String((r as any).users.email).toLowerCase() : '';
-                    const repName = (r as any).reporter_name ? String((r as any).reporter_name).toLowerCase() : '';
-                    return (
-                        r.user_id === payload.id || 
-                        repEmail === userEmail || 
-                        userEmailJoined === userEmail ||
-                        (userFullName && repName === userFullName)
-                    );
-                });
-                console.log(`[REPORTS_API] STAFF_CABANG filtered reports from ${originalCount} to ${reports.length} for user ${payload.id} (email fallback enabled)`);
+            if (role === 'STAFF_CABANG' || role === 'CABANG' || role === 'EMPLOYEE') {
+                const orFilters = [
+                    `user_id.eq.${payload.id}`,
+                    userEmail ? `reporter_email.eq.${userEmail}` : null,
+                    userFullName ? `reporter_name.eq.${userFullName}` : null,
+                ].filter(Boolean).join(',');
+                if (orFilters) {
+                    query = query.or(orFilters);
+                } else {
+                    query = query.eq('user_id', payload.id);
+                }
             } else if (role === 'MANAGER_CABANG' && userStationId) {
-                const originalCount = reports.length;
-                reports = reports.filter(r => r.station_id === userStationId);
-                console.log(`[REPORTS_API] MANAGER_CABANG filtered reports from ${originalCount} to ${reports.length} for station ${userStationId}`);
-            } else if (role === 'CABANG' || role === 'EMPLOYEE') {
-                const originalCount = reports.length;
-                reports = reports.filter(r => {
-                    const repEmail = (r as any).reporter_email ? String((r as any).reporter_email).toLowerCase() : '';
-                    const userEmailJoined = (r as any).users?.email ? String((r as any).users.email).toLowerCase() : '';
-                    const repName = (r as any).reporter_name ? String((r as any).reporter_name).toLowerCase() : '';
-                    return (
-                        r.user_id === payload.id || 
-                        repEmail === userEmail || 
-                        userEmailJoined === userEmail ||
-                        (userFullName && repName === userFullName)
-                    );
-                });
-                console.log(`[REPORTS_API] ${role} filtered reports from ${originalCount} to ${reports.length} for user ${payload.id} (email fallback enabled)`);
+                query = query.eq('station_id', userStationId);
+            } else if (role === 'MANAGER_CABANG') {
+                query = query.eq('id', '__no-match__');
             } else if (isDivisionOrPartner) {
                 const division = role.split('_')[1];
-                reports = reports.filter(r => r.target_division === division);
+                query = query.eq('target_division', division);
             }
-            // ANALYST and SUPER_ADMIN retain full access for now
+
+            if (cursor) {
+                query = query.lt('created_at', cursor.createdAt);
+            }
+
+            const { data: rows, error } = await query.limit(limit + 1);
+            if (error) {
+                throw error;
+            }
+
+            const safeRows = (rows || []) as unknown as ReportSummaryRow[];
+            const hasMore = safeRows.length > limit;
+            const slicedRows = hasMore ? safeRows.slice(0, limit) : safeRows;
+            const reports = slicedRows.map((report) => pickReportFields(report, requestedFields));
+            const nextCursor = hasMore && slicedRows.length > 0
+                ? encodeCursor(String(slicedRows[slicedRows.length - 1].created_at || ''), String(slicedRows[slicedRows.length - 1].id))
+                : null;
+
+            return NextResponse.json({
+                reports,
+                pagination: {
+                    limit,
+                    nextCursor,
+                    hasMore,
+                },
+            }, {
+                headers: {
+                    'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+                    'Vary': 'Cookie'
+                }
+            });
         }
-
-        // ReportsService already handles basic enrichment (stations, categories) from Sheet data
-        const enrichedReports = (reports || []).map(report => {
-            if (!report) return null;
-            return {
-                ...report,
-                // Ensure compatibility with frontend expectations if needed
-                station: report.stations ? { ...report.stations, id: report.station_id } : undefined,
-                incident_type: report.category ? { id: 'manual', name: report.category } : undefined
-            };
-        }).filter(Boolean);
-
-        console.log(`[REPORTS_API] Returning ${enrichedReports.length} enriched reports`);
-        return NextResponse.json(enrichedReports, {
-            headers: {
-                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
-                'Vary': 'Cookie'
-            }
-        });
     } catch (error) {
         console.error('Error fetching reports:', error);
         return NextResponse.json({ error: 'Failed to fetch reports' }, { status: 500 });
@@ -205,7 +260,7 @@ export async function POST(request: Request) {
         }
 
         // Get user's station and unit from their profile (Supabase)
-        const { data: userData } = await supabase
+        const { data: userData } = await supabaseAdmin
             .from('users')
             .select('station_id, unit_id')
             .eq('id', payload.id)
@@ -288,6 +343,16 @@ export async function POST(request: Request) {
 
         await notifyNewRecordEmail(newReport, 'internal').catch((notificationError) => {
             console.warn('[REPORTS_API] New-record notification failed:', notificationError);
+        });
+
+        after(async () => {
+            try {
+                const state = await bumpSyncVersion('reports');
+                await purgeDashboardSnapshots({ maxSyncVersion: Number(state.sync_version) });
+                await purgeExpiredDashboardSnapshots();
+            } catch (syncStateError) {
+                console.warn('[REPORTS_API] Post-create cache invalidation failed:', syncStateError);
+            }
         });
 
         return NextResponse.json({ success: true, message: 'Laporan berhasil dikirim', data: newReport });

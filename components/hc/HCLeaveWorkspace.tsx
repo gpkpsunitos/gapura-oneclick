@@ -198,37 +198,111 @@ function getSubmissionStatusLabel(status: HCLeaveSubmissionStatus | string | nul
     return SUBMISSION_STATUS_OPTIONS.find((option) => option.value === status)?.label || 'Menunggu Approval GM/EGM';
 }
 
-function getSubmissionStatusClasses(status: HCLeaveSubmissionStatus | string | null | undefined) {
+function getSubmissionStatusCardClass(status: HCLeaveSubmissionStatus | string | null | undefined) {
     switch (status) {
         case 'APPROVED':
-            return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+            return 'border-[#7DD3C7] bg-[linear-gradient(135deg,#F2FFFC_0%,#D7F7F0_100%)] text-[#0B5F57] shadow-[0_14px_28px_rgba(0,150,136,0.12)]';
         case 'REJECTED':
-            return 'bg-rose-50 text-rose-700 border-rose-100';
+            return 'border-[#F5B5B5] bg-[linear-gradient(135deg,#FFF5F5_0%,#FEE2E2_100%)] text-[#B42318] shadow-[0_14px_28px_rgba(239,68,68,0.12)]';
         default:
-            return 'bg-amber-50 text-amber-700 border-amber-100';
+            return 'border-[#F8C471] bg-[linear-gradient(135deg,#FFF7E8_0%,#FFE0A3_100%)] text-[#9A5800] shadow-[0_14px_28px_rgba(245,158,11,0.16)]';
     }
 }
 
-function getSubmissionStatusIcon(status: HCLeaveSubmissionStatus | string | null | undefined) {
+function getSubmissionStatusIconBadgeClass(status: HCLeaveSubmissionStatus | string | null | undefined) {
     switch (status) {
         case 'APPROVED':
-            return CheckCircle2;
+            return 'bg-[#0F9D8F] text-white';
         case 'REJECTED':
-            return XCircle;
+            return 'bg-[#DC2626] text-white';
         default:
-            return Clock3;
+            return 'bg-[#F59E0B] text-white';
     }
 }
 
-function getSubmissionStatusPillClass(status: HCLeaveSubmissionStatus | string | null | undefined) {
+function getSubmissionStatusMetaClass(status: HCLeaveSubmissionStatus | string | null | undefined) {
     switch (status) {
         case 'APPROVED':
-            return 'border-transparent bg-[#009688] text-white';
+            return 'text-[#1F6F68]';
         case 'REJECTED':
-            return 'border-transparent bg-[#EF4444] text-white';
+            return 'text-[#B42318]';
         default:
-            return 'border-transparent bg-[#F59E0B] text-white';
+            return 'text-[#8A5A12]';
     }
+}
+
+function getSubmissionStatusHeading(status: HCLeaveSubmissionStatus | string | null | undefined) {
+    switch (status) {
+        case 'APPROVED':
+            return 'Disetujui';
+        case 'REJECTED':
+            return 'Ditolak';
+        default:
+            return 'Menunggu Approval';
+    }
+}
+
+function SubmissionStatusIcon({
+    status,
+    className,
+}: {
+    status: HCLeaveSubmissionStatus | string | null | undefined;
+    className?: string;
+}) {
+    if (status === 'APPROVED') {
+        return <CheckCircle2 className={className} />;
+    }
+
+    if (status === 'REJECTED') {
+        return <XCircle className={className} />;
+    }
+
+    return <Clock3 className={className} />;
+}
+
+function SubmissionStatusChip({
+    status,
+    meta,
+    compact = false,
+}: {
+    status: HCLeaveSubmissionStatus | string | null | undefined;
+    meta?: string | null;
+    compact?: boolean;
+}) {
+    return (
+        <div className={cn('flex flex-col gap-2', compact && 'gap-1.5')}>
+            <div
+                className={cn(
+                    'inline-flex max-w-[172px] flex-col gap-2 rounded-[22px] border px-3.5 py-3',
+                    compact && 'max-w-[164px] rounded-[20px] px-3 py-2.5',
+                    getSubmissionStatusCardClass(status)
+                )}
+            >
+                <div className="flex items-start gap-2.5">
+                    <span
+                        className={cn(
+                            'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl',
+                            compact && 'h-7 w-7 rounded-xl',
+                            getSubmissionStatusIconBadgeClass(status)
+                        )}
+                    >
+                        <SubmissionStatusIcon status={status} className={cn('h-4 w-4', compact && 'h-3.5 w-3.5')} />
+                    </span>
+                    <div className="min-w-0">
+                        <p className={cn('text-[14px] font-bold leading-[1.15]', compact && 'text-[13px]')}>{getSubmissionStatusHeading(status)}</p>
+                        <p className={cn('mt-1 text-[10px] font-semibold uppercase tracking-[0.18em]', compact && 'mt-0.5 text-[9px]')}>
+                            GM/EGM
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {meta ? (
+                <p className={cn('max-w-[172px] text-[11px] leading-5', compact && 'max-w-[164px] text-[10px] leading-4', getSubmissionStatusMetaClass(status))}>
+                    {meta}
+                </p>
+            ) : null}
+        </div>
+    );
 }
 
 function getELetterLabel(status: HCLeaveLetterStatus) {
@@ -243,11 +317,11 @@ function getELetterLabel(status: HCLeaveLetterStatus) {
 function getELetterPillClass(status: HCLeaveLetterStatus) {
     switch (status) {
         case 'TERBIT':
-            return 'bg-emerald-50 text-emerald-700 border-emerald-200 shadow-[0_2px_10px_-3px_rgba(16,185,129,0.2)]';
+            return 'border-transparent bg-[#10B981] text-white';
         case 'PENGAJUAN':
-            return 'bg-sky-50 text-sky-700 border-sky-200 shadow-[0_2px_10px_-3px_rgba(14,165,233,0.2)]';
+            return 'border-transparent bg-[#0EA5E9] text-white';
         default:
-            return 'bg-amber-50 text-amber-700 border-amber-200 shadow-[0_2px_10px_-3px_rgba(245,158,11,0.2)]';
+            return 'border-transparent bg-[#6B7280] text-white';
     }
 }
 
@@ -1560,7 +1634,7 @@ function HCMonitoringTable({
                                 { key: 'period', label: 'Periode', className: 'w-[190px]' },
                                 { key: 'station', label: 'Cabang / unit', className: 'w-[220px]' },
                                 { key: 'pic', label: 'PIC / PH', className: 'w-[220px]' },
-                                { key: 'submission_status', label: 'Status HC', className: 'w-[180px]' },
+                                { key: 'submission_status', label: 'Status', className: 'w-[180px]' },
                                 { key: 'e_letter_status', label: 'E-LETTER', className: 'w-[140px]' },
                                 { key: 'created_at', label: 'Aksi', className: 'w-[210px]' },
                             ].map((column) => {
@@ -1636,10 +1710,7 @@ function HCMonitoringTable({
                                             <p className="mt-1 text-[12px] text-[var(--text-secondary)]">{record.pic_email || '-'}</p>
                                         </td>
                                         <td className="px-5 py-4">
-                                            <span className={cn('inline-flex rounded-full px-2.5 py-1 text-[12px] font-semibold', getSubmissionStatusPillClass(record.submission_status))}>
-                                                {getSubmissionStatusLabel(record.submission_status)}
-                                            </span>
-                                            <p className="mt-2 text-[11px] text-[var(--text-muted)]">{reviewerMeta}</p>
+                                            <SubmissionStatusChip status={record.submission_status} meta={reviewerMeta} />
                                         </td>
                                         <td className="px-5 py-4">
                                             <span className={cn(
@@ -1877,7 +1948,7 @@ function LeaveRecordsTable({
                             <th className="px-4 py-3">Cabang</th>
                             <th className="px-4 py-3">Divisi / Unit</th>
                             <th className="px-4 py-3">PIC / PH</th>
-                            <th className="px-4 py-3">Status HC</th>
+                            <th className="px-4 py-3">Status</th>
                             <th className="px-4 py-3">E-Letter</th>
                             <th className="px-4 py-3">Catatan</th>
                             <th className="px-4 py-3">Aksi</th>
@@ -1885,7 +1956,6 @@ function LeaveRecordsTable({
                     </thead>
                     <tbody>
                         {records.map((record) => {
-                            const SubmissionIcon = getSubmissionStatusIcon(record.submission_status);
                             const canEditRecord = canModifyRecord(record);
                             const canReview = canReviewRecord(record);
 
@@ -1912,21 +1982,18 @@ function LeaveRecordsTable({
                                         <p className="mt-1 text-xs text-[var(--text-muted)]">{record.pic_phone || '-'}</p>
                                     </td>
                                     <td className="px-4 py-4">
-                                        <div className="space-y-2">
-                                            <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${getSubmissionStatusClasses(record.submission_status)}`}>
-                                                <SubmissionIcon className="h-3.5 w-3.5" />
-                                                {getSubmissionStatusLabel(record.submission_status)}
-                                            </span>
-                                            {record.reviewed_by_name || record.reviewed_at ? (
-                                                <p className="text-xs text-[var(--text-muted)]">
-                                                    {record.reviewed_by_name ? `Oleh ${record.reviewed_by_name}` : 'Sudah direview'}
-                                                    {record.reviewed_at ? ` • ${formatLeaveDate(record.reviewed_at.slice(0, 10))}` : ''}
-                                                </p>
-                                            ) : null}
-                                            {record.review_notes ? (
-                                                <p className="text-xs text-[var(--text-secondary)]">{record.review_notes}</p>
-                                            ) : null}
-                                        </div>
+                                        <SubmissionStatusChip
+                                            status={record.submission_status}
+                                            meta={
+                                                record.reviewed_by_name || record.reviewed_at
+                                                    ? `${record.reviewed_by_name ? `Oleh ${record.reviewed_by_name}` : 'Sudah direview'}${record.reviewed_at ? ` · ${formatLeaveDate(record.reviewed_at.slice(0, 10))}` : ''}`
+                                                    : undefined
+                                            }
+                                            compact
+                                        />
+                                        {record.review_notes ? (
+                                            <p className="mt-2 max-w-[164px] text-xs text-[var(--text-secondary)]">{record.review_notes}</p>
+                                        ) : null}
                                     </td>
                                     <td className="px-4 py-4">
                                         <span className={cn(
@@ -1978,7 +2045,6 @@ function LeaveRecordsTable({
 
             <div className="grid gap-4 md:hidden">
                 {records.map((record) => {
-                    const SubmissionIcon = getSubmissionStatusIcon(record.submission_status);
                     const canEditRecord = canModifyRecord(record);
                     const canReview = canReviewRecord(record);
 
@@ -1990,10 +2056,15 @@ function LeaveRecordsTable({
                                     <p className="mt-1 text-sm text-[var(--text-secondary)]">{record.leave_type}</p>
                                 </div>
                                 <div className="flex flex-col items-end gap-2">
-                                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${getSubmissionStatusClasses(record.submission_status)}`}>
-                                        <SubmissionIcon className="h-3.5 w-3.5" />
-                                        {getSubmissionStatusLabel(record.submission_status)}
-                                    </span>
+                                    <SubmissionStatusChip
+                                        status={record.submission_status}
+                                        meta={
+                                            record.reviewed_by_name || record.reviewed_at
+                                                ? `${record.reviewed_by_name ? `Oleh ${record.reviewed_by_name}` : 'Sudah direview'}${record.reviewed_at ? ` · ${formatLeaveDate(record.reviewed_at.slice(0, 10))}` : ''}`
+                                                : undefined
+                                        }
+                                        compact
+                                    />
                                     <span className={cn(
                                         'inline-flex whitespace-nowrap rounded-lg border px-2 py-1 text-[10px] font-bold tracking-wide transition-all duration-200', 
                                         getELetterPillClass(record.e_letter_status)
@@ -2007,9 +2078,6 @@ function LeaveRecordsTable({
                                 <p><strong>Cabang:</strong> {record.station ? `${record.station.code} - ${record.station.name}` : '-'}</p>
                                 <p><strong>Divisi / Unit:</strong> {record.division_name || '-'} / {record.unit_name || '-'}</p>
                                 <p><strong>PH / Pengganti:</strong> {record.pic_name || '-'} / {record.pic_phone || '-'}</p>
-                                {record.reviewed_by_name || record.reviewed_at ? (
-                                    <p><strong>Review HC:</strong> {record.reviewed_by_name || 'HC'}{record.reviewed_at ? ` • ${formatLeaveDate(record.reviewed_at.slice(0, 10))}` : ''}</p>
-                                ) : null}
                                 {record.review_notes ? <p><strong>Catatan HC:</strong> {record.review_notes}</p> : null}
                                 <p><strong>Catatan:</strong> {record.notes || '-'}</p>
                             </div>
@@ -2793,12 +2861,11 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
     }, [isHCManager, user?.id, user?.role, user?.station_id]);
 
     const canReviewRecord = useCallback((record: HCLeaveRecord) => {
-        if (isHCManager) return record.submission_status === 'PENDING';
         if (user?.role === 'MANAGER_CABANG') {
             return user.station_id === record.station_id && record.submission_status === 'PENDING';
         }
         return false;
-    }, [isHCManager, user?.role, user?.station_id]);
+    }, [user?.role, user?.station_id]);
 
     const startCreate = useCallback(() => {
         setBranchSuccessVisible(false);

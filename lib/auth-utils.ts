@@ -45,16 +45,15 @@ async function queryWithTimeout<T>(promise: Promise<T>, ms: number): Promise<T |
 
 export async function verifySession(token: string): Promise<SessionPayload | null> {
     try {
-        const { payload } = await jwtVerify(token, key, {
-            algorithms: ['HS256'],
-        });
-
-        const session = payload as unknown as SessionPayload;
+        const session = await readSessionPayload(token);
+        if (!session) {
+            return null;
+        }
 
         if (session.sid) {
             const queryResult = await supabaseAdmin
                 .from('security_sessions')
-                .select('is_revoked')
+                .select('is_revoked, last_active')
                 .eq('session_id', session.sid)
                 .single();
             
@@ -69,15 +68,31 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
                 return null;
             }
 
-            supabaseAdmin.from('security_sessions')
-                .update({ last_active: new Date().toISOString() })
-                .eq('session_id', session.sid)
-                .then();
+            const lastActive = data.last_active ? new Date(data.last_active).getTime() : 0;
+            if (!lastActive || (Date.now() - lastActive) > 15 * 60 * 1000) {
+                supabaseAdmin.from('security_sessions')
+                    .update({ last_active: new Date().toISOString() })
+                    .eq('session_id', session.sid)
+                    .then();
+            }
         }
 
         return session;
     } catch (err: any) {
         console.error(`[AUTH_UTILS] verifySession catch error for token:`, err.message || err);
+        return null;
+    }
+}
+
+export async function readSessionPayload(token: string): Promise<SessionPayload | null> {
+    try {
+        const { payload } = await jwtVerify(token, key, {
+            algorithms: ['HS256'],
+        });
+
+        return payload as unknown as SessionPayload;
+    } catch (err: any) {
+        console.error(`[AUTH_UTILS] readSessionPayload catch error for token:`, err.message || err);
         return null;
     }
 }

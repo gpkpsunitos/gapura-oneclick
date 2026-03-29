@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { syncHCLeaveBackup } from '@/lib/services/hc-leave-backup';
-import { canManageHCWorkspace, getWorkspaceUser } from '@/lib/server/workspace-auth';
+import { getWorkspaceUser, isBranchManager } from '@/lib/server/workspace-auth';
 import type { HCLeaveSubmissionStatus } from '@/types';
 
 const ALLOWED_STATUSES: HCLeaveSubmissionStatus[] = ['APPROVED', 'REJECTED'];
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        if (!canManageHCWorkspace(user.role)) {
+        if (!isBranchManager(user.role)) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
         const { data: pendingRows, error: fetchError } = await supabaseAdmin
             .from('hc_leave_records')
-            .select('id')
+            .select('id, station_id')
             .in('id', ids)
             .eq('submission_status', 'PENDING');
 
@@ -40,7 +40,9 @@ export async function POST(request: Request) {
             throw fetchError;
         }
 
-        const pendingIds = (pendingRows || []).map((row) => String(row.id));
+        const pendingIds = (pendingRows || [])
+            .filter((row) => row.station_id && row.station_id === user.station_id)
+            .map((row) => String(row.id));
         if (!pendingIds.length) {
             return NextResponse.json({
                 success: true,

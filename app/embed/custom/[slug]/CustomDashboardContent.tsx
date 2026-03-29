@@ -6,26 +6,32 @@ import Image from 'next/image';
 import { ChartPreview } from '@/components/builder/ChartPreview';
 import { Loader2, AlertCircle, ChevronLeft, ChevronRight, ChevronDown as ChevronDownIcon, X, Download, FileSpreadsheet, Presentation, LayoutGrid, Box, Menu, Calendar, ArrowLeft } from 'lucide-react';
 import { DynamicFilterHeader, type FilterData } from '@/components/builder/DynamicFilterHeader';
-import { processQuery } from '@/lib/engine/query-processor';
-import { useReportsData } from '@/hooks/use-reports-cache';
-import type { QueryResult, QueryDefinition, ChartType, ChartVisualization, QueryFilter, DashboardTile, TileLayout } from '@/types/builder';
+import type { QueryDefinition, QueryResult, ChartType, ChartVisualization, DashboardTile, TileLayout } from '@/types/builder';
 import { cn } from '@/lib/utils';
 import { CustomerFeedbackView } from '@/components/dashboard/customer-feedback/CustomerFeedbackView';
+import { DASHBOARD_FILTER_FIELDS, type DashboardScopeFilters } from '@/lib/dashboard-query-scope';
 
 // ─── Branding Palette ───────────────────────────────────────────────────────
 const GREEN_PALETTE = ['#7cb342', '#558b2f', '#aed581', '#33691e', '#9ccc65', '#689f38', '#c5e1a5', '#43a047', '#81c784', '#4caf50'];
 
-const FILTER_FIELDS = [
-  { key: 'hub', label: 'HUB', table: 'reports', field: 'hub' },
-  { key: 'branch', label: 'Branch', table: 'reports', field: 'branch' },
-  { key: 'maskapai', label: 'Maskapai', table: 'reports', field: 'jenis_maskapai' },
-  { key: 'airline', label: 'Airlines', table: 'reports', field: 'airlines' },
-  { key: 'main_category', label: 'Kategori', table: 'reports', field: 'category' },
-  { key: 'area', label: 'Area', table: 'reports', field: 'area' },
-  { key: 'target_division', label: 'Divisi', table: 'reports', field: 'target_division' },
-  { key: 'severity', label: 'Severity', table: 'reports', field: 'severity' },
-  { key: 'status', label: 'Status', table: 'reports', field: 'status' },
-];
+const FILTER_FIELDS = DASHBOARD_FILTER_FIELDS.map((field) => ({
+  key: field.key,
+  label: field.key === 'hub'
+    ? 'HUB'
+    : field.key === 'branch'
+    ? 'Branch'
+    : field.key === 'maskapai'
+    ? 'Maskapai'
+    : field.key === 'airline'
+    ? 'Airlines'
+    : field.key === 'main_category'
+    ? 'Kategori'
+    : field.key === 'target_division'
+    ? 'Divisi'
+    : field.key.charAt(0).toUpperCase() + field.key.slice(1),
+  table: field.table,
+  field: field.field,
+}));
 
 interface ChartData {
   id: string;
@@ -95,8 +101,7 @@ export function CustomDashboardContent() {
   const [activeFilters, setActiveFilters] = useState<FilterData>({});
   const [exportingFormat, setExportingFormat] = useState<'xlsx' | 'pptx' | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
-
-  const { reports: allReports } = useReportsData('/api/admin/reports');
+  const [investigativeResult, setInvestigativeResult] = useState<QueryResult | undefined>(undefined);
 
   // ─── Lifecycle: Sync state with URL params ──────────────────────────────────
   useEffect(() => {
@@ -124,9 +129,7 @@ export function CustomDashboardContent() {
 
   const fetchDashboard = useCallback(async () => {
     try {
-      const res = await fetch(`/api/dashboards?slug=${slug}&t=${Date.now()}`, {
-        headers: { 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
-      });
+      const res = await fetch(`/api/dashboards?slug=${slug}`);
       if (!res.ok) {
         if (res.status === 403) {
           setError('Akses ditolak');
@@ -184,144 +187,50 @@ export function CustomDashboardContent() {
     }
   }, [activeFilters, dateFrom, dateTo, activePage, filtersInitialized, router, searchParams]);
 
-  const applyFiltersToQuery = useCallback((queryConfig: QueryDefinition): QueryDefinition => {
-    const extraFilters = Object.entries(activeFilters)
-      .filter(([, val]) => val && val !== 'all')
-      .map(([key, val]) => {
-        const ff = FILTER_FIELDS.find(f => f.key === key);
-        return ff ? {
-          table: ff.table,
-          field: ff.field,
-          operator: 'eq' as const,
-          value: val,
-          conjunction: 'AND' as const,
-        } : null;
-      })
-      .filter(Boolean);
-
-    const dateFilters: QueryFilter[] = [];
-    if (dateFrom) {
-      dateFilters.push({
-        table: 'reports',
-        field: 'created_at',
-        operator: 'gte' as const,
-        value: dateFrom,
-        conjunction: 'AND' as const,
-      });
-    }
-    if (dateTo) {
-      dateFilters.push({
-        table: 'reports',
-        field: 'created_at',
-        operator: 'lte' as const,
-        value: dateTo,
-        conjunction: 'AND' as const,
-      });
-    }
-
-    return {
-      ...queryConfig,
-      joins: queryConfig.joins || [],
-      dimensions: queryConfig.dimensions || [],
-      measures: queryConfig.measures || [],
-      sorts: queryConfig.sorts || [],
-      filters: [
-        ...(queryConfig.filters || []),
-        ...extraFilters.filter((f): f is NonNullable<typeof f> => f !== null),
-        ...dateFilters,
-        // Enforce CGO source for pages 4 (index 3) and 5 (index 4)
-        ...([3, 4].includes(activePage) ? [{
-          table: 'reports',
-          field: 'source_sheet',
-          operator: 'eq' as const,
-          value: 'CGO',
-          conjunction: 'AND' as const,
-        }] : [])
-      ],
-    };
-  }, [activeFilters, dateFrom, dateTo, activePage]);
-
-  const fetchChartData = useCallback(async (charts: ChartData[]): Promise<Map<string, ChartResult>> => {
-    const dataMap = new Map<string, ChartResult>();
-    const queryCharts = charts.filter(c => c.query_config);
-    const legacyCharts = charts.filter(c => !c.query_config);
-    const serverQueryCharts: typeof queryCharts = [];
-
-    if (allReports.length > 0) {
-      for (const chart of queryCharts) {
-        const query = applyFiltersToQuery(chart.query_config!);
-        const source = (query.source || 'reports').toLowerCase();
-        
-        if (source === 'reports') {
-          try {
-            const result = processQuery(query, allReports);
-            dataMap.set(chart.id, { type: 'query', queryResult: result });
-          } catch (err) {
-            console.error(`Client query failed:`, err);
-            serverQueryCharts.push(chart);
-          }
-        } else {
-          serverQueryCharts.push(chart);
-        }
-      }
-    } else {
-      serverQueryCharts.push(...queryCharts);
-    }
-
-    const batchPromise = serverQueryCharts.length > 0
-      ? (async () => {
-          try {
-            const batchQueries = serverQueryCharts.map(chart => ({
-              id: chart.id,
-              query: applyFiltersToQuery(chart.query_config!),
-            }));
-            const res = await fetch('/api/dashboards/query/batch', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ queries: batchQueries }),
-            });
-            if (res.ok) {
-              const { results } = await res.json();
-              for (const r of results) {
-                if (!r.error) {
-                  dataMap.set(r.id, { type: 'query', queryResult: { columns: r.columns, rows: r.rows, rowCount: r.rowCount, executionTimeMs: 0 } });
-                }
-              }
-            }
-          } catch (err) { console.error('Batch fetch error:', err); }
-        })()
-      : Promise.resolve();
-
-    const legacyPromise = Promise.all(
-      legacyCharts.map(async (chart) => {
-        try {
-          const res = await fetch(`/api/embed/stats?type=${chart.data_field}&range=${range}`);
-          if (res.ok) {
-            const data = await res.json();
-            dataMap.set(chart.id, { type: 'legacy', stats: data });
-          }
-        } catch (err) { console.error('Legacy fetch error:', err); }
-      })
-    );
-
-    await Promise.all([batchPromise, legacyPromise]);
-    setChartsData(prev => {
-        const next = new Map(prev);
-        dataMap.forEach((v, k) => next.set(k, v));
-        return next;
+  const fetchPageData = useCallback(async (pageIndex: number): Promise<Map<string, ChartResult>> => {
+    const params = new URLSearchParams({
+      slug,
+      includeData: '1',
+      pageIndex: String(pageIndex),
+      range,
     });
-    return dataMap;
-  }, [range, applyFiltersToQuery, allReports]);
 
-  const dashboardChartsRef = useRef(dashboard?.dashboard_charts);
-  useEffect(() => {
-    dashboardChartsRef.current = dashboard?.dashboard_charts;
-  }, [dashboard?.dashboard_charts]);
+    if (dateFrom) params.set('dateFrom', dateFrom);
+    if (dateTo) params.set('dateTo', dateTo);
+    Object.entries(activeFilters).forEach(([key, value]) => {
+      if (value && value !== 'all') {
+        params.set(key, value);
+      }
+    });
 
-  const fetchChartDataRef = useRef(fetchChartData);
+    const response = await fetch(`/api/dashboards?${params.toString()}`);
+    if (!response.ok) {
+      if (response.status === 403) {
+        setError('Akses ditolak');
+        return new Map();
+      }
+      throw new Error('Gagal memuat data dashboard');
+    }
+
+    const payload = await response.json();
+    const nextMap = new Map<string, ChartResult>();
+    for (const [chartId, value] of Object.entries(payload.chartResults || {})) {
+      nextMap.set(chartId, value as ChartResult);
+    }
+
+    setChartsData((prev) => {
+      const merged = new Map(prev);
+      nextMap.forEach((value, key) => merged.set(key, value));
+      return merged;
+    });
+    setInvestigativeResult(payload.investigativeResult || undefined);
+    return nextMap;
+  }, [slug, range, dateFrom, dateTo, activeFilters]);
+
+  const fetchChartDataRef = useRef(fetchPageData);
   useEffect(() => {
-    fetchChartDataRef.current = fetchChartData;
-  }, [fetchChartData]);
+    fetchChartDataRef.current = fetchPageData;
+  }, [fetchPageData]);
 
   // ─── Computed: pages & metadata ──────────────────────────────────────────
   const pages = useMemo(() => {
@@ -366,57 +275,9 @@ export function CustomDashboardContent() {
 
   useEffect(() => {
     if (dashboard?.dashboard_charts && filtersInitialized) {
-      const currentPage = pages[activePage];
-      let chartsToFetch = currentPage ? [...currentPage.tiles] : [...dashboard.dashboard_charts];
-      
-      if (isCustomerFeedbackDashboard && [0, 1, 2, 3, 4].includes(activePage)) {
-        // Map KPI sources: Page 1 gets from Page 2, Page 4 gets from Page 5, others check themselves or neighboring detail pages
-        const kpiSourcePageIndex = activePage === 0 ? 1 : 
-                                  activePage === 3 ? 4 : 
-                                  activePage;
-        const kpiSourcePage = pages[kpiSourcePageIndex];
-        if (kpiSourcePage) {
-          const extraKpis = kpiSourcePage.tiles.filter(t => t.visualization_config?.chartType === 'kpi' || t.chart_type === 'kpi');
-          chartsToFetch = [...chartsToFetch, ...extraKpis];
-        }
-      }
-      fetchChartDataRef.current(chartsToFetch);
+      fetchChartDataRef.current(activePage);
     }
   }, [dashboard, activePage, activeFilters, dateFrom, dateTo, filtersInitialized, isCustomerFeedbackDashboard, pages]);
-
-  const investigativeResult = useMemo(() => {
-    if (!useCustomerFeedbackOverviewLayout || ![1, 4].includes(activePage)) return undefined;
-    if (allReports.length === 0) return { columns: [], rows: [], rowCount: 0, executionTimeMs: 0 };
-
-    const query: QueryDefinition = {
-      source: 'reports',
-      dimensions: [
-        { table: 'reports', field: 'date_of_event', alias: 'Date' },
-        { table: 'reports', field: 'main_category', alias: 'Category' },
-        { table: 'reports', field: 'branch', alias: 'Branch' },
-        { table: 'reports', field: 'airlines', alias: 'Airlines' },
-        { table: 'reports', field: 'flight_number', alias: 'Flight' },
-        { table: 'reports', field: 'report', alias: 'Report' },
-        { table: 'reports', field: 'root_caused', alias: 'Root Caused' },
-        { table: 'reports', field: 'action_taken', alias: 'Action Taken' },
-        { table: 'reports', field: 'preventive_action', alias: 'Preventive Action' },
-        { table: 'reports', field: 'status', alias: 'Status' },
-        { table: 'reports', field: 'evidence_url', alias: 'Evidence Link' }
-      ],
-      measures: [],
-      filters: [],
-      joins: [],
-      sorts: [{ field: 'created_at', direction: 'desc' }],
-      limit: 1000
-    };
-    
-    try {
-      return processQuery(applyFiltersToQuery(query), allReports);
-    } catch (err) {
-      console.error('Investigative query failed:', err);
-      return { columns: [], rows: [], rowCount: 0, executionTimeMs: 0 };
-    }
-  }, [allReports, activePage, useCustomerFeedbackOverviewLayout, applyFiltersToQuery]);
 
   // ─── Computed tiles ───────────────────────────────────────────────────────
   const currentPage = pages[activePage] || pages[0];
@@ -428,13 +289,14 @@ export function CustomDashboardContent() {
     setExportingFormat(format);
     setShowExportMenu(false);
     try {
-      const allCharts = pages.flatMap(p => p.tiles);
-      const missingCharts = allCharts.filter(t => !chartsData.has(t.id));
-      let completeChartsData = chartsData;
-      if (missingCharts.length > 0) {
-        const freshData = await fetchChartData(missingCharts);
-        completeChartsData = new Map(chartsData);
-        freshData.forEach((v, k) => completeChartsData.set(k, v));
+      let completeChartsData = new Map(chartsData);
+      for (let pageIndex = 0; pageIndex < pages.length; pageIndex += 1) {
+        const pageTiles = pages[pageIndex]?.tiles || [];
+        const hasMissingTiles = pageTiles.some((tile) => !completeChartsData.has(tile.id));
+        if (hasMissingTiles) {
+          const freshData = await fetchPageData(pageIndex);
+          freshData.forEach((value, key) => completeChartsData.set(key, value));
+        }
       }
       const payload = {
         dashboardName: dashboard.name,
@@ -459,7 +321,7 @@ export function CustomDashboardContent() {
       }
     } catch (err) { console.error('Export error:', err); }
     finally { setExportingFormat(null); }
-  }, [dashboard, pages, chartsData, fetchChartData, dateFrom, dateTo, slug]);
+  }, [dashboard, pages, chartsData, fetchPageData, dateFrom, dateTo, slug]);
 
   const getChartSlug = (chartTitle: string) => {
     const title = chartTitle.toLowerCase();

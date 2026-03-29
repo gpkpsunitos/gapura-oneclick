@@ -165,14 +165,28 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
       }
 
       try {
-        const response = await fetch('/api/auth/me', { cache: 'no-store' });
+        const cacheKey = 'gapura:pwa-auth-scope';
+        const now = Date.now();
+        const cached = typeof window !== 'undefined' ? sessionStorage.getItem(cacheKey) : null;
+        if (cached) {
+          const parsed = JSON.parse(cached) as { value?: string; expiresAt?: number };
+          if (parsed?.value && typeof parsed.expiresAt === 'number' && parsed.expiresAt > now) {
+            setPwaAuthScope(parsed.value);
+            return;
+          }
+        }
+
+        const response = await fetch('/api/auth/me');
         if (!response.ok) {
           setPwaAuthScope('guest');
+          sessionStorage.setItem(cacheKey, JSON.stringify({ value: 'guest', expiresAt: now + 60_000 }));
           return;
         }
 
         const user = await response.json();
-        setPwaAuthScope(user?.id ? `auth:${user.id}` : 'guest');
+        const scope = user?.id ? `auth:${user.id}` : 'guest';
+        setPwaAuthScope(scope);
+        sessionStorage.setItem(cacheKey, JSON.stringify({ value: scope, expiresAt: now + 5 * 60_000 }));
       } catch {
         setPwaAuthScope('guest');
       }

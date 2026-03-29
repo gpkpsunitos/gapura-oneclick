@@ -3,6 +3,8 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getPublicDashboardPageData } from '@/lib/public-dashboard-data';
+import type { DashboardScopeFilters } from '@/lib/dashboard-query-scope';
 
 interface DashboardConfig {
   dateRange?: string;
@@ -32,6 +34,7 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const slug = searchParams.get('slug');
+    const includeData = searchParams.get('includeData') === '1';
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value || null;
     const payload = token ? await verifySession(token) : null;
@@ -42,6 +45,46 @@ export async function GET(request: NextRequest) {
       if (slug.toLowerCase().includes('customer-feedback') && !allowCF) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
+
+      if (includeData) {
+        const filters: DashboardScopeFilters = {
+          hub: searchParams.get('hub') || undefined,
+          branch: searchParams.get('branch') || undefined,
+          maskapai: searchParams.get('maskapai') || undefined,
+          airline: searchParams.get('airline') || undefined,
+          main_category: searchParams.get('main_category') || undefined,
+          area: searchParams.get('area') || undefined,
+          target_division: searchParams.get('target_division') || undefined,
+          severity: searchParams.get('severity') || undefined,
+          status: searchParams.get('status') || undefined,
+        };
+        const pageIndex = Math.max(parseInt(searchParams.get('pageIndex') || '0', 10), 0);
+        const range = searchParams.get('range') || '7d';
+        try {
+          const payload = await getPublicDashboardPageData({
+            slug,
+            pageIndex,
+            range,
+            filters,
+            dateFrom: searchParams.get('dateFrom') || undefined,
+            dateTo: searchParams.get('dateTo') || undefined,
+            allowCustomerFeedback: allowCF,
+          });
+
+          return NextResponse.json(payload, {
+            headers: {
+              'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+              'CDN-Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+            },
+          });
+        } catch (fetchError) {
+          if (fetchError instanceof Error && fetchError.message === 'FORBIDDEN_CUSTOMER_FEEDBACK') {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+          }
+          throw fetchError;
+        }
+      }
+
       // Fetch specific dashboard with its charts
       const { data: dashboard, error } = await supabase
         .from('custom_dashboards')

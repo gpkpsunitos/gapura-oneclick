@@ -97,10 +97,6 @@ export function DivisionAnalystDashboard({
       else setLoading(true);
 
       try {
-        if (isRefresh) {
-          await fetch('/api/reports/refresh', { method: 'POST' });
-        }
-
         const [reportsRes, analyticsRes] = await Promise.all([
           fetch('/api/admin/reports'),
           fetch('/api/admin/analytics'),

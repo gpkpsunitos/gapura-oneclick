@@ -44,7 +44,7 @@ export async function GET(request: Request) {
             return true;
         });
 
-        const buffer = buildHCLeaveWorkbook(records);
+        const buffer = await buildHCLeaveWorkbook(records);
         const filename = `hc-leave-records-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
         return new NextResponse(new Uint8Array(buffer), {

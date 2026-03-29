@@ -79,11 +79,6 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
         else setLoading(true);
 
         try {
-            if (isRefresh) {
-                // Invalidate server-side cache
-                await fetch('/api/reports/refresh', { method: 'POST' });
-            }
-
             const [reportsRes, analyticsRes] = await Promise.all([
                 fetch('/api/admin/reports'),
                 fetch('/api/admin/analytics')

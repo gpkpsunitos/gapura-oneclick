@@ -1,4 +1,6 @@
-const BASE_URL = 'https://gapura-dev-gapura-ai.hf.space';
+const BASE_URL = typeof window !== 'undefined'
+  ? ''
+  : (process.env.AI_SERVICE_URL || process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'https://gapura-dev-gapura-ai.hf.space');
 
 export interface GseDistributionEntry {
   count: number;

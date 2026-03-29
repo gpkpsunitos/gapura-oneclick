@@ -25,6 +25,34 @@ interface NavContentProps {
     setMobileOpen: (value: boolean) => void;
 }
 
+
+// Maps raw DB role strings to human-readable display names
+// Complexity: Time O(1) | Space O(1)
+const ROLE_DISPLAY: Record<string, string> = {
+    DIVISI_OS: 'Unit Service',
+    PARTNER_OS: 'Unit Service',
+    DIVISI_UQ: 'Divisi UQ',
+    PARTNER_UQ: 'Divisi UQ',
+    DIVISI_OP: 'Divisi OP',
+    PARTNER_OP: 'Divisi OP',
+    DIVISI_OT: 'Divisi OT',
+    PARTNER_OT: 'Divisi OT',
+    DIVISI_HT: 'Divisi HT',
+    PARTNER_HT: 'Divisi HT',
+    DIVISI_HC: 'Human Capital',
+    PARTNER_HC: 'Human Capital',
+    DIVISI_ESKALASI: 'Eskalasi',
+    MANAGER_CABANG: 'Manager Cabang',
+    STAFF_CABANG: 'Staff Cabang',
+    SUPER_ADMIN: 'Super Admin',
+    ANALYST: 'Analyst',
+};
+
+function resolveRoleDisplayName(role: string): string {
+    const upper = role.toUpperCase();
+    return ROLE_DISPLAY[upper] ?? role.replace(/_/g, ' ');
+}
+
 const NavContent = ({ 
     groups, 
     pathname, 
@@ -135,11 +163,11 @@ const NavContent = ({
              <div className="bg-[var(--surface-2)] rounded-xl p-2.5 md:p-3 border border-gray-100 shadow-sm relative">
                 <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3 group/user">
                      <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] md:text-xs font-bold text-white border border-emerald-400">
-                         {role.charAt(0)}
+                         {resolveRoleDisplayName(role).charAt(0).toUpperCase()}
                      </div>
                      <div className="min-w-0 flex-1">
                          <p className="text-[10px] md:text-xs font-bold text-[var(--text-primary)] truncate group-hover/user:text-[var(--brand-primary)] italic transition-colors uppercase">
-                            {role.replace('_', ' ')}
+                            {resolveRoleDisplayName(role)}
                         </p>
                          <p className="text-[9px] md:text-[10px] text-[var(--text-muted)] truncate">Active Account</p>
                      </div>

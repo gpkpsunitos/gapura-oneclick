@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { reportsService } from '@/lib/services/reports-service';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
+import { purgeDashboardSnapshots, purgeExpiredDashboardSnapshots } from '@/lib/dashboard-cache';
 
 export async function POST(request: Request) {
     try {
@@ -22,11 +23,13 @@ export async function POST(request: Request) {
 
         // Invalidate Cache
         reportsService.invalidateCache();
+        await purgeDashboardSnapshots();
+        await purgeExpiredDashboardSnapshots();
         
         // Optionally, we could immediately fetch new data to warm the cache,
         // but let's just let the next request do it (or client will request immediately).
         
-        return NextResponse.json({ message: 'Cache invalidated successfully' });
+        return NextResponse.json({ message: 'Dashboard snapshots invalidated successfully' });
     } catch (error) {
         console.error('Refresh API Error:', error);
         return NextResponse.json({ error: 'Failed to refresh data' }, { status: 500 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifySession } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { getHfClient } from '@/lib/hf-client';
+import { resolveCachedAI } from '@/lib/ai-route-cache';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300; // 5 minutes
@@ -67,27 +68,43 @@ export async function POST(req: NextRequest) {
     const esklasiRegex = searchParams.get('esklasi_regex') || '';
 
     try {
-      const hfClient = getHfClient();
-      const aiResponse = await hfClient.fetch(
-        `/api/ai/analyze?esklasi_regex=${encodeURIComponent(esklasiRegex)}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            data: convertedData,
-            options: analysisOptions,
-          }),
-        }
-      );
+      const result = await resolveCachedAI({
+        feature: 'analyze',
+        scope: { esklasiRegex, data: convertedData, options: analysisOptions },
+        resolver: async () => {
+          const hfClient = getHfClient();
+          const aiResponse = await hfClient.fetch(
+            `/api/ai/analyze?esklasi_regex=${encodeURIComponent(esklasiRegex)}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                data: convertedData,
+                options: analysisOptions,
+              }),
+            }
+          );
 
-      if (!aiResponse.ok) {
-        throw new Error(`AI service error: ${aiResponse.status}`);
-      }
+          if (!aiResponse.ok) {
+            throw new Error(`AI service error: ${aiResponse.status}`);
+          }
 
-      const aiResult = await aiResponse.json();
-      const translatedResult = translateToIndonesian(aiResult);
+          const aiResult = await aiResponse.json();
+          return translateToIndonesian(aiResult);
+        },
+      });
 
-      return NextResponse.json(translatedResult);
+      return NextResponse.json({
+        ...(result.payload as Record<string, unknown>),
+        cached: result.cached,
+        generatedAt: result.generatedAt,
+        sourceSyncAt: result.sourceSyncAt,
+        stale: result.stale,
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      });
     } catch (aiError) {
       console.error('AI Service Error:', aiError);
       

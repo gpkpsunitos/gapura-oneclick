@@ -1,6 +1,8 @@
 import { getHfClient } from '@/lib/hf-client';
 
-const GAPURA_AI_BASE_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000';
+const GAPURA_AI_BASE_URL = typeof window !== 'undefined'
+  ? ''
+  : (process.env.AI_SERVICE_URL || process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000');
 
 const hfClient = getHfClient({ baseUrl: GAPURA_AI_BASE_URL });
 
@@ -470,8 +472,8 @@ export async function fetchBranchSummaryAi(signal?: AbortSignal): Promise<AiBran
 
 export async function fetchReportSummaryAi(source: 'non-cargo' | 'cgo'): Promise<AiReportSummaryResponse | null> {
   try {
-    const slug = source === 'cgo' ? 'cgo' : 'non-cargo';
-    const response = await fetchWithTimeout(`${GAPURA_AI_BASE_URL}/api/ai/summarize/${slug}?esklasi_regex=`, {}, 120000);
+    const category = source === 'cgo' ? 'cgo' : 'non-cargo';
+    const response = await fetchWithTimeout(`${GAPURA_AI_BASE_URL}/api/ai/summarize?category=${encodeURIComponent(category)}&esklasi_regex=`, {}, 120000);
     if (!response.ok) {
       console.error(`[gapura-ai] Failed to fetch report summary for ${source}:`, response.status);
       return null;
@@ -536,17 +538,8 @@ export async function fetchBranchRiskAnalysisAi(signal?: AbortSignal): Promise<B
     console.log('[gapura-ai] Fetching branch risk analysis from:', url);
     let response = await fetchWithTimeout(url, { signal }, 120000);
     if (!response.ok) {
-      console.warn('[gapura-ai] Local proxy returned', response.status, '- attempting direct fallback');
-      const fallback = 'https://gapura-dev-gapura-ai.hf.space/api/ai/risk/branches?bypass_cache=true&esklasi_regex=';
-      try {
-        response = await fetchWithTimeout(fallback, { signal }, 120000);
-      } catch {
-        // ignore, will handle below
-      }
-      if (!response || !response.ok) {
-        console.error('[gapura-ai] Failed to fetch branch risk analysis:', response ? response.status : 'no_response');
-        return null;
-      }
+      console.error('[gapura-ai] Failed to fetch branch risk analysis:', response.status);
+      return null;
     }
 
     const data = await response.json();

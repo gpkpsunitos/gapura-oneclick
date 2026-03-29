@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import {
   FileText, Search, Filter, ChevronDown,
   AlertTriangle, RefreshCw, LucideIcon
@@ -36,39 +36,11 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  const serverRefresh = useCallback(async () => {
-    try {
-      await fetch('/api/reports/refresh', { method: 'POST' });
-    } catch {}
-  }, []);
-
   const handleRefresh = async () => {
     setRefreshing(true);
-    await serverRefresh();
     await refresh();
     setRefreshing(false);
   };
-
-  useEffect(() => {
-    const controller = new AbortController();
-    const run = async () => {
-      try {
-        await fetch('/api/reports/refresh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal
-        });
-        await fetch('/api/admin/sync-reports', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal
-        });
-      } catch {}
-      await refresh();
-    };
-    run();
-    return () => controller.abort();
-  }, [refresh]);
 
   const filteredReports = useMemo(() => {
     const lowerSearch = search.toLowerCase();

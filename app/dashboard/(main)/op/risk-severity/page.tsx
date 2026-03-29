@@ -71,10 +71,9 @@ export default function OPRiskSeverity() {
         setLoading(true);
         setError(null);
         const esklasiRegex = 'OP';
-        const res = await fetch(`https://gapura-dev-gapura-ai.hf.space/api/ai/risk/summary?esklasi_regex=${encodeURIComponent(esklasiRegex)}`, {
+        const res = await fetch(`/api/ai/risk/summary?esklasi_regex=${encodeURIComponent(esklasiRegex)}`, {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
-          cache: 'no-store',
         });
         const ct = res.headers.get('content-type') || '';
         if (!res.ok || !ct.includes('application/json')) throw new Error(`Non-JSON or HTTP ${res.status}`);

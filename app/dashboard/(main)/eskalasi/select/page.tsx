@@ -3,10 +3,9 @@
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { 
-    Plane, Shield, Wrench, Gauge, GraduationCap, 
+    Plane, Shield, Wrench, Gauge, GraduationCap, Users,
     ArrowRight, Layers
 } from 'lucide-react';
-import { DIVISIONS } from '@/lib/constants/divisions';
 
 const divisionCards = [
     {
@@ -40,6 +39,14 @@ const divisionCards = [
         icon: Gauge,
         gradient: 'from-pink-500 via-pink-600 to-rose-600',
         hoverShadow: 'hover:shadow-pink-500/25',
+    },
+    {
+        code: 'HC',
+        name: 'Human Capital',
+        description: 'Akses workspace HC dan dokumen internal',
+        icon: Users,
+        gradient: 'from-violet-500 via-fuchsia-600 to-rose-500',
+        hoverShadow: 'hover:shadow-violet-500/25',
     },
     {
         code: 'HT',

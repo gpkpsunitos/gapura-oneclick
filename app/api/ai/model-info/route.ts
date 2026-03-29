@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { reportsService } from '@/lib/services/reports-service';
 import { getHfClient } from '@/lib/hf-client';
+import { resolveCachedAI } from '@/lib/ai-route-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,24 +46,40 @@ export async function GET(request: Request) {
     const esklasiRegex = searchParams.get('esklasi_regex') || '';
 
     try {
-      const hfClient = getHfClient();
-      const aiResponse = await hfClient.fetch(
-        `/api/ai/model-info?esklasi_regex=${encodeURIComponent(esklasiRegex)}`,
-        { method: 'GET', headers: { 'Content-Type': 'application/json' } },
-        { ttl: 60000 }
-      );
+      const result = await resolveCachedAI({
+        feature: 'model-info',
+        scope: { esklasiRegex, reportsCount },
+        resolver: async () => {
+          const hfClient = getHfClient();
+          const aiResponse = await hfClient.fetch(
+            `/api/ai/model-info?esklasi_regex=${encodeURIComponent(esklasiRegex)}`,
+            { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+            { ttl: 60000 }
+          );
 
-      if (!aiResponse.ok) {
-        throw new Error(`AI service returned ${aiResponse.status}`);
-      }
+          if (!aiResponse.ok) {
+            throw new Error(`AI service returned ${aiResponse.status}`);
+          }
 
-      const data = await aiResponse.json();
-      
-      if (data.regression?.metrics) {
-        data.regression.metrics.n_samples = reportsCount || data.regression.metrics.n_samples;
-      }
-      
-      return NextResponse.json(data);
+          const data = await aiResponse.json();
+          if (data.regression?.metrics) {
+            data.regression.metrics.n_samples = reportsCount || data.regression.metrics.n_samples;
+          }
+          return data;
+        },
+      });
+
+      return NextResponse.json({
+        ...(result.payload as Record<string, unknown>),
+        cached: result.cached,
+        generatedAt: result.generatedAt,
+        sourceSyncAt: result.sourceSyncAt,
+        stale: result.stale,
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      });
     } catch (error) {
       console.error('[AI Model Info] AI service unavailable:', error);
       

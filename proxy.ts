@@ -53,10 +53,7 @@ export default async function proxy(request: NextRequest) {
     const isDevelopment = process.env.NODE_ENV === 'development';
     const isPublicEmbedPath = path.startsWith('/embed') || 
                              path.startsWith('/api/embed') ||
-                             path.startsWith('/api/dashboards/query') ||
                              path.startsWith('/api/dashboards/insights') ||
-                             path.startsWith('/api/admin/reports') ||
-                             path.startsWith('/api/admin/analytics') ||
                              path.startsWith('/api/master-data') ||
                              path.startsWith('/api/ai/') ||
                              // Public report submission & evidence upload

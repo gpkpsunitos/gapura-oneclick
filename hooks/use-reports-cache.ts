@@ -14,7 +14,14 @@ interface CacheData {
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch reports');
-  return res.json();
+  const payload = await res.json();
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+  if (payload && Array.isArray(payload.reports)) {
+    return payload.reports;
+  }
+  return [];
 };
 
 export function useReportsData(url: string = '/api/reports', options?: SWRConfiguration) {

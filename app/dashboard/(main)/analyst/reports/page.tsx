@@ -52,27 +52,6 @@ export default function AnalystReportsPage() {
     setRefreshing(false);
   };
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const run = async () => {
-      try {
-        await fetch('/api/reports/refresh', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal
-        });
-        await fetch('/api/admin/sync-reports', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal
-        });
-        await refresh();
-      } catch {}
-    };
-    run();
-    return () => controller.abort();
-  }, [refresh]);
-
   // --- Filtering Logic ---
   const filteredReports = useMemo(() => {
     return allReports.filter(report => {

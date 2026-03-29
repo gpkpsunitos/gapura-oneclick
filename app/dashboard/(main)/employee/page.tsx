@@ -42,7 +42,7 @@ export default function EmployeeDashboard() {
             const res = await fetch('/api/reports');
             if (res.ok) {
                 const data = await res.json();
-                setReports(Array.isArray(data) ? data : []);
+                setReports(Array.isArray(data) ? data : (Array.isArray(data?.reports) ? data.reports : []));
             }
         } catch (error) {
             console.error('Error:', error);

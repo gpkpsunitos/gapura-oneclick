@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react';
 import { type Report, type UserRole } from '@/types';
 import { ReportMasterDetail } from '@/components/dashboard/ReportMasterDetail';
-import { canExportBranchData } from '@/lib/permissions';
 import { AISummaryKPICards } from '@/components/dashboard/ai-summary';
 
 interface UserSession {
@@ -47,9 +46,7 @@ export default function EmployeeReportsPage() {
             const res = await fetch('/api/reports');
             if (res.ok) {
                 const data = await res.json();
-                // API now handles all filtering server-side for security
-                // No client-side filtering needed
-                setReports(data || []);
+                setReports(Array.isArray(data) ? data : (data?.reports || []));
             }
         } catch (error) {
             console.error('Failed to fetch reports:', error);
@@ -60,24 +57,7 @@ export default function EmployeeReportsPage() {
 
     useEffect(() => {
         if (!userSession) return;
-        const controller = new AbortController();
-        const run = async () => {
-            try {
-                await fetch('/api/reports/refresh', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    signal: controller.signal
-                });
-                await fetch('/api/admin/sync-reports', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    signal: controller.signal
-                });
-            } catch {}
-            await fetchReports();
-        };
-        run();
-        return () => controller.abort();
+        void fetchReports();
     }, [userSession]);
 
     // Determine user role for ReportDetailView
@@ -95,7 +75,6 @@ export default function EmployeeReportsPage() {
                 title="Laporan Saya"
                 reports={reports}
                 loading={loading}
-                // Pass actual role so export buttons can be conditionally shown based on canExportBranchData
                 userRole={displayRole}
                 currentUserId={userSession?.id}
                 currentUserStationId={userSession?.station_id}

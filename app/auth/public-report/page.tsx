@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -17,8 +17,35 @@ import { NoiseTexture } from '@/components/ui/NoiseTexture';
 import { PrismButton } from '@/components/ui/PrismButton';
 import { queueOfflineReport } from '@/lib/pwa/offline-queue';
 
+const QUICK_ACCESS_PASSWORD = 'Gapura123!';
 
-const CATEGORIES = [
+type QuickAccessLink = { label: string; url: string; sublabel?: string };
+type QRLink = { label: string; url: string };
+type QuickAccessCategory = {
+  id: string;
+  title: string;
+  description: string;
+  icon: ComponentType<{ className?: string; style?: CSSProperties }>;
+  color: string;
+  span: string;
+  qrLinks?: QRLink[];
+  links?: QuickAccessLink[];
+  passwordProtected?: boolean;
+};
+
+const CATEGORIES: QuickAccessCategory[] = [
+  {
+    id: 'AIChatbot',
+    title: "I'm in Charge Virtual Assistant",
+    description: 'Tanya asisten AI untuk bantuan operasional.',
+    icon: Bot,
+    color: 'oklch(0.60 0.18 260)',
+    span: 'col-span-1 row-span-1 sm:col-span-2 sm:row-span-2 lg:col-span-2 lg:row-span-2',
+    passwordProtected: true,
+    links: [
+      { label: 'Buka AI Virtual Assistant', sublabel: 'Powered by Gapura RAG', url: 'https://gapura-dev-gapura-rag.hf.space/' }
+    ]
+  },
   {
     id: 'Irregularity',
     title: 'Irregularity Report',
@@ -60,6 +87,31 @@ const CATEGORIES = [
     span: 'col-span-1 row-span-1',
     qrLinks: [
       { label: 'Survey Penumpang', url: 'https://forms.gle/G5T9yx2MBSWdXtJE7' }
+    ]
+  },
+  {
+    id: 'WSN',
+    title: 'WSN Dashboard',
+    description: 'Monitoring WSN & Weekly Service Notice.',
+    icon: Activity,
+    color: 'oklch(0.55 0.18 180)',
+    span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+    passwordProtected: true,
+    qrLinks: [
+      { label: 'Monitoring WSN Dashboard', url: 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_ufv08vzhsd' },
+      { label: 'Weekly Service Notice Dashboard', url: 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_1swzqz7usd' }
+    ]
+  },
+  {
+    id: 'Handbook',
+    title: 'Handbook SLA',
+    description: 'Panduan standar layanan operasional prima.',
+    icon: BookOpen,
+    color: 'oklch(0.45 0.20 160)',
+    span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+    passwordProtected: true,
+    links: [
+      { label: 'Buka Handbook SLA', sublabel: 'SIS Apps Dev', url: 'https://sis.appsdev.my.id/' }
     ]
   }
 ];
@@ -140,7 +192,6 @@ type FormData = {
 };
 
 type CreatedReport = { id?: string } & Record<string, unknown>;
-type QRLink = { label: string; url: string };
 
 export default function PublicReportPage() {
   const router = useRouter();
@@ -154,6 +205,9 @@ export default function PublicReportPage() {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [createdReport, setCreatedReport] = useState<CreatedReport | null>(null);
   const [submissionMode, setSubmissionMode] = useState<'submitted' | 'queued'>('submitted');
+  const [pendingProtectedCategory, setPendingProtectedCategory] = useState<QuickAccessCategory | null>(null);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   const [formData, setFormData] = useState<FormData>({
     incident_date: new Date().toISOString().split('T')[0],
@@ -282,8 +336,48 @@ export default function PublicReportPage() {
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
 
   const selectedCategory = CATEGORIES.find(c => c.id === formData.main_category);
-  const hasQrLinks = (c: (typeof CATEGORIES)[number]): c is (typeof CATEGORIES)[number] & { qrLinks: QRLink[] } => {
-    return 'qrLinks' in c && Array.isArray((c as { qrLinks?: QRLink[] }).qrLinks);
+  const hasQrLinks = (c: QuickAccessCategory): c is QuickAccessCategory & { qrLinks: QRLink[] } => {
+    return Array.isArray(c.qrLinks);
+  };
+  const hasLinks = (c: QuickAccessCategory): c is QuickAccessCategory & { links: QuickAccessLink[] } => {
+    return Array.isArray(c.links);
+  };
+
+  const closeQuickAccess = () => {
+    setFormData(prev => ({ ...prev, main_category: '' }));
+    setStep(1);
+  };
+
+  const closePasswordPrompt = () => {
+    setPendingProtectedCategory(null);
+    setPasswordInput('');
+    setPasswordError('');
+  };
+
+  const openCategory = (category: QuickAccessCategory) => {
+    if (category.passwordProtected) {
+      setPendingProtectedCategory(category);
+      setPasswordInput('');
+      setPasswordError('');
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, main_category: category.id }));
+    setStep(1);
+  };
+
+  const submitPassword = () => {
+    if (!pendingProtectedCategory) return;
+    if (passwordInput !== QUICK_ACCESS_PASSWORD) {
+      setPasswordError('Kata sandi salah.');
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, main_category: pendingProtectedCategory.id }));
+    setPendingProtectedCategory(null);
+    setPasswordInput('');
+    setPasswordError('');
+    setStep(1);
   };
 
   const isStepValid = (): boolean => {
@@ -375,7 +469,7 @@ export default function PublicReportPage() {
 
       const contentType = res.headers.get('content-type') || '';
       if (!contentType.includes('application/json')) {
-        const text = await res.text();
+        await res.text();
         throw new Error('Respons server tidak valid. Mohon coba lagi.');
       }
       const data = await res.json();
@@ -497,11 +591,7 @@ export default function PublicReportPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1, type: 'spring', damping: 20 }}
               className={`${cat.span} group relative cursor-pointer`}
-              onClick={() => {
-                setFormData(prev => ({ ...prev, main_category: cat.id }));
-                setStep(1);
-                // Open modal logic
-              }}
+              onClick={() => openCategory(cat)}
             >
               <GlassCard 
                 variant="frosted"
@@ -546,7 +636,7 @@ export default function PublicReportPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="absolute inset-0 bg-[oklch(0.15_0.02_200_/_0.2)] backdrop-blur-sm"
-              onClick={() => setFormData(prev => ({ ...prev, main_category: '' }))}
+              onClick={closeQuickAccess}
             />
             
             <motion.div
@@ -572,8 +662,7 @@ export default function PublicReportPage() {
                 </div>
                 <button 
                   onClick={() => {
-                    setFormData(prev => ({ ...prev, main_category: '' }));
-                    setStep(1);
+                    closeQuickAccess();
                   }}
                   className="p-3 rounded-full bg-[oklch(0.15_0.02_200_/_0.03)] hover:bg-[oklch(0.15_0.02_200_/_0.08)] transition-colors"
                 >
@@ -628,6 +717,33 @@ export default function PublicReportPage() {
                             </a>
                           </div>
                         </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : selectedCategory && hasLinks(selectedCategory) ? (
+                  <div className="py-12 flex flex-col items-center justify-center space-y-8 animate-in zoom-in-95 duration-500">
+                    <div className="text-center space-y-3 max-w-2xl">
+                      <h3 className="text-4xl font-display font-black tracking-tight text-[oklch(0.15_0.05_200)]">
+                        {selectedCategory.title}
+                      </h3>
+                      <p className="text-[oklch(0.40_0.02_200)] text-lg font-medium">{selectedCategory.description}</p>
+                    </div>
+                    <div className="w-full max-w-2xl space-y-4">
+                      {selectedCategory.links.map((link, idx) => (
+                        <a
+                          key={idx}
+                          href={link.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group flex items-center gap-4 p-5 rounded-2xl bg-white border border-[oklch(0.15_0.02_200_/_0.08)] hover:border-emerald-500/40 transition"
+                        >
+                          <selectedCategory.icon className="w-6 h-6 text-emerald-600" />
+                          <div className="flex-1">
+                            <div className="text-base font-extrabold text-[oklch(0.15_0.05_200)]">{link.label}</div>
+                            {link.sublabel ? <div className="text-xs text-[oklch(0.40_0.02_200)] font-bold">{link.sublabel}</div> : null}
+                          </div>
+                          <ExternalLink className="w-5 h-5 text-[oklch(0.15_0.02_200_/_0.25)] group-hover:text-emerald-600" />
+                        </a>
                       ))}
                     </div>
                   </div>
@@ -984,6 +1100,73 @@ export default function PublicReportPage() {
                   )}
                 </div>
               )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {pendingProtectedCategory && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-[oklch(0.15_0.02_200_/_0.35)] backdrop-blur-sm"
+              onClick={closePasswordPrompt}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.98 }}
+              className="relative w-full max-w-md rounded-[28px] bg-white p-6 md:p-7 shadow-spatial-lg border border-[oklch(0.15_0.02_200_/_0.08)]"
+            >
+              <div className="space-y-2 mb-5">
+                <h3 className="text-2xl font-display font-black tracking-tight text-[oklch(0.15_0.05_200)]">Kata Sandi Diperlukan</h3>
+                <p className="text-sm text-[oklch(0.40_0.02_200)] font-medium">
+                  Masukkan kata sandi untuk membuka {pendingProtectedCategory.title}.
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => {
+                    setPasswordInput(e.target.value);
+                    if (passwordError) setPasswordError('');
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      submitPassword();
+                    }
+                  }}
+                  autoFocus
+                  placeholder="Masukkan kata sandi"
+                  className="w-full rounded-2xl border border-[oklch(0.15_0.02_200_/_0.12)] px-4 py-3 outline-none focus:border-emerald-500"
+                />
+                {passwordError ? (
+                  <p className="text-sm font-semibold text-red-600">{passwordError}</p>
+                ) : null}
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closePasswordPrompt}
+                  className="px-4 py-2.5 rounded-xl border border-[oklch(0.15_0.02_200_/_0.12)] font-bold text-[oklch(0.15_0.05_200)]"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={submitPassword}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold"
+                >
+                  Buka Akses
+                </button>
+              </div>
             </motion.div>
           </div>
         )}

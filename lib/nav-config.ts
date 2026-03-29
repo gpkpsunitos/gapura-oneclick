@@ -13,7 +13,8 @@ import {
     Calendar,
     Layers,
     BookOpen,
-    GraduationCap
+    GraduationCap,
+    ExternalLink
 } from 'lucide-react';
 
 export interface NavItemConfig {
@@ -28,6 +29,9 @@ export interface NavGroupConfig {
     title: string;
     items: NavItemConfig[];
 }
+
+const LOOKER_JOUMPA = 'https://lookerstudio.google.com/reporting/6a7aba44-6bd1-439f-a5d2-8bed4af56448';
+const LOOKER_SLA    = 'https://lookerstudio.google.com/reporting/6a7aba44-6bd1-439f-a5d2-8bed4af56448';
 
 export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     'ADMIN': [
@@ -84,12 +88,16 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             ]
         }
     ],
+
+    // OS / OCS / Unit Service
     'OS': [
         {
             title: 'Monitoring',
             items: [
                 { href: '/dashboard/os', label: 'Dashboard', icon: LayoutDashboard },
-                { href: '/dashboard/os/dispatched', label: 'Laporan Divisi', icon: Inbox },
+                // Joumpa & SLA redirect to Looker until internal dashboards are stable
+                { href: LOOKER_JOUMPA, label: 'Dashboard Joumpa', icon: ExternalLink, external: true },
+                { href: LOOKER_SLA, label: 'Dashboard SLA', icon: ExternalLink, external: true },
             ]
         },
         {
@@ -106,6 +114,8 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             ]
         }
     ],
+
+    // OT – Divisi Teknik (standalone; also included in DIVISI_PELAPORAN)
     'OT': [
         {
             title: 'Divisi Teknik',
@@ -121,6 +131,8 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             ]
         }
     ],
+
+    // OP – Divisi Operasi (standalone; also included in DIVISI_PELAPORAN)
     'OP': [
         {
             title: 'Divisi Operasi',
@@ -136,6 +148,8 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             ]
         }
     ],
+
+    // UQ – Divisi Quality (standalone; also included in DIVISI_PELAPORAN)
     'UQ': [
         {
             title: 'Divisi Quality',
@@ -151,6 +165,8 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             ]
         }
     ],
+
+    // HC – Human Capital
     'HC': [
         {
             title: 'Human Capital',
@@ -161,6 +177,8 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             ]
         }
     ],
+
+    // HT – Human Training (standalone; also included in DIVISI_PELAPORAN)
     'HT': [
         {
             title: 'Human Training',
@@ -171,6 +189,44 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             ]
         }
     ],
+
+    // ─── DIVISI PELAPORAN (UQ + OP + O/OT + HT merged sidebar) ────────────────
+    'DIVISI_PELAPORAN': [
+        {
+            title: 'Laporan UQ',
+            items: [
+                { href: '/dashboard/uq', label: 'UQ Dashboard', icon: LayoutDashboard },
+                { href: '/dashboard/uq/dispatched', label: 'Laporan Masuk UQ', icon: Inbox },
+                { href: '/dashboard/uq/ai-reports', label: 'AI Reports UQ', icon: Brain },
+            ]
+        },
+        {
+            title: 'Laporan OP',
+            items: [
+                { href: '/dashboard/op', label: 'OP Dashboard', icon: LayoutDashboard },
+                { href: '/dashboard/op/dispatched', label: 'Laporan Masuk OP', icon: Inbox },
+                { href: '/dashboard/op/ai-reports', label: 'AI Reports OP', icon: Brain },
+            ]
+        },
+        {
+            title: 'Laporan OT',
+            items: [
+                { href: '/dashboard/ot', label: 'OT Dashboard', icon: LayoutDashboard },
+                { href: '/dashboard/ot/dispatched', label: 'Laporan Masuk OT', icon: Inbox },
+                { href: '/dashboard/ot/ai-reports', label: 'AI Reports OT', icon: Brain },
+            ]
+        },
+        {
+            title: 'Laporan HT',
+            items: [
+                { href: '/dashboard/ht', label: 'HT Dashboard', icon: LayoutDashboard },
+                { href: '/dashboard/ht/dispatched', label: 'Laporan Masuk HT', icon: Inbox },
+                { href: '/dashboard/ht/training-hub', label: 'Training Hub HT', icon: GraduationCap },
+            ]
+        }
+    ],
+
+    // ─── ESKALASI ──────────────────────────────────────────────────────────────
     'DIVISI_ESKALASI': [
         {
             title: 'Pusat Eskalasi',
@@ -190,6 +246,8 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             ]
         }
     ],
+
+    // ─── SUPER ADMIN / ANALYST (merged) ───────────────────────────────────────
     'ANALYST': [
         {
             title: 'Command Center',
@@ -213,11 +271,16 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     ]
 };
 
+// ─── Role → Config Key mapping ────────────────────────────────────────────────
+// Complexity: Time O(1) | Space O(1) — constant lookup via string matching
 export const GET_LINKS_KEY = (role: string, pathname?: string): string => {
     const r = (role || '').toUpperCase();
-    if (r.includes('SUPER') || r === 'ADMIN') return 'ADMIN';
+
+    if (r.includes('SUPER') || r === 'ADMIN') return 'ANALYST';  // merged with Analyst
     if (r === 'ANALYST') return 'ANALYST';
     if (r === 'MANAGER_CABANG') return 'MANAGER';
+
+    // Eskalasi retains context-switching behaviour
     if (r === 'DIVISI_ESKALASI') {
         if (pathname?.startsWith('/dashboard/op')) return 'OP';
         if (pathname?.startsWith('/dashboard/os')) return 'OS';
@@ -227,11 +290,15 @@ export const GET_LINKS_KEY = (role: string, pathname?: string): string => {
         if (pathname?.startsWith('/dashboard/ht')) return 'HT';
         return 'DIVISI_ESKALASI';
     }
+
     if (r === 'DIVISI_OS' || r === 'PARTNER_OS') return 'OS';
-    if (r === 'DIVISI_OT' || r === 'PARTNER_OT') return 'OT';
-    if (r === 'DIVISI_OP' || r === 'PARTNER_OP') return 'OP';
-    if (r === 'DIVISI_UQ' || r === 'PARTNER_UQ') return 'UQ';
     if (r === 'DIVISI_HC' || r === 'PARTNER_HC') return 'HC';
-    if (r === 'DIVISI_HT' || r === 'PARTNER_HT') return 'HT';
+
+    // UQ / OP / OT / HT → all use shared DIVISI_PELAPORAN sidebar
+    if (r === 'DIVISI_UQ' || r === 'PARTNER_UQ') return 'DIVISI_PELAPORAN';
+    if (r === 'DIVISI_OP' || r === 'PARTNER_OP') return 'DIVISI_PELAPORAN';
+    if (r === 'DIVISI_OT' || r === 'PARTNER_OT') return 'DIVISI_PELAPORAN';
+    if (r === 'DIVISI_HT' || r === 'PARTNER_HT') return 'DIVISI_PELAPORAN';
+
     return 'EMPLOYEE';
 };

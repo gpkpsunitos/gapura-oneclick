@@ -5,6 +5,7 @@ import { notifyNewRecordEmail } from '@/lib/notifications';
 import { buildReportFingerprint } from '@/lib/report-fingerprint';
 import { buildReportsSyncRow } from '@/lib/report-persistence';
 import type { Report } from '@/types';
+import { acquireSyncLock, completeSyncState, getSyncState } from '@/lib/sync-state';
 
 export interface SyncResult {
   success: boolean;
@@ -91,8 +92,25 @@ export class SyncService {
     let updated = 0;
     let deleted = 0;
     let errors = 0;
+    let lockAcquired = false;
 
     try {
+      const lock = await acquireSyncLock('reports', 300);
+      lockAcquired = lock.acquired;
+      if (!lockAcquired) {
+        console.log(`[SyncService] Sync lock busy, skipping duplicate trigger (${triggerSource})`);
+        return {
+          success: true,
+          totalProcessed: 0,
+          inserted: 0,
+          updated: 0,
+          deleted: 0,
+          errors: 0,
+          duration: Date.now() - startTime,
+          joined: true,
+        };
+      }
+
       console.log(`[SyncService] Starting sync from Google Sheets (trigger: ${triggerSource})...`);
 
       const reports = await reportsService['fetchGoogleSheetsReports']();
@@ -162,6 +180,12 @@ export class SyncService {
       }
 
       const duration = Date.now() - startTime;
+      await completeSyncState({
+        source: 'reports',
+        success: true,
+        rowCount: reports.length,
+        bumpVersion: true,
+      });
       console.log(
         `[SyncService] Sync completed in ${duration}ms (trigger: ${triggerSource}): ${inserted} inserted, ${updated} updated, ${deleted} deleted, ${errors} errors`
       );
@@ -184,6 +208,19 @@ export class SyncService {
     } catch (error) {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      if (lockAcquired) {
+        try {
+          await completeSyncState({
+            source: 'reports',
+            success: false,
+            rowCount: null,
+            error: errorMessage,
+            bumpVersion: false,
+          });
+        } catch (stateError) {
+          console.error('[SyncService] Failed to persist sync failure state:', stateError);
+        }
+      }
       console.error(`[SyncService] Sync failed (trigger: ${triggerSource}):`, errorMessage);
 
       return {
@@ -578,21 +615,15 @@ export class SyncService {
 
   static async getSyncStatus(): Promise<SyncStatus> {
     try {
-      const { data, error } = await supabaseAdmin
-        .from('reports_sync')
-        .select('synced_at, sync_version')
-        .order('synced_at', { ascending: false })
-        .limit(1)
-        .single();
-
+      const syncState = await getSyncState('reports');
       const { count } = await supabaseAdmin
         .from('reports_sync')
         .select('*', { count: 'exact', head: true });
 
       return {
-        lastSyncAt: data?.synced_at || null,
+        lastSyncAt: syncState.last_sync_at || null,
         totalReports: count || 0,
-        syncVersion: data?.sync_version || 0,
+        syncVersion: syncState.sync_version || 0,
       };
     } catch (error) {
       console.error('[SyncService] Failed to get sync status:', error);
@@ -618,6 +649,16 @@ export class SyncService {
       }
 
       const deleted = data?.length || 0;
+      try {
+        await completeSyncState({
+          source: 'reports',
+          success: true,
+          rowCount: 0,
+          bumpVersion: true,
+        });
+      } catch (stateError) {
+        console.warn('[SyncService] Failed to bump sync state after clear:', stateError);
+      }
       console.log(`[SyncService] Cleared ${deleted} synced reports`);
       return { success: true, deleted };
     } catch (error) {

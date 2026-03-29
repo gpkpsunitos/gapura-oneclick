@@ -39,10 +39,9 @@ export default function OPRootCauseDominant() {
         setStatsLoading(true);
         setStatsError(null);
         const esklasiRegex = 'OP';
-        const res = await fetch(`https://gapura-dev-gapura-ai.hf.space/api/ai/root-cause/stats?esklasi_regex=${encodeURIComponent(esklasiRegex)}`, {
+        const res = await fetch(`/api/ai/root-cause/stats?esklasi_regex=${encodeURIComponent(esklasiRegex)}`, {
           method: 'GET',
           headers: { 'Accept': 'application/json' },
-          cache: 'no-store',
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = await res.json();

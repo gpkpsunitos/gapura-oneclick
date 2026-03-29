@@ -80,9 +80,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             }
         }
 
-        const isPic = normalizeRole(user.role) === 'MANAGER_CABANG';
         const isStationMatch = existing.station_id === user.station_id;
-        const canReview = isHCManager || (isPic && isStationMatch);
+        const canReview = isBranchManager(user.role) && isStationMatch && existing.submission_status === 'PENDING';
 
         if (canReview && 'submission_status' in body) {
             const nextSubmissionStatus = String(body.submission_status || '').trim().toUpperCase() as HCLeaveSubmissionStatus;

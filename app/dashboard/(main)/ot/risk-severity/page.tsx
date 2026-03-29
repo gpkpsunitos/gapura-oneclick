@@ -86,20 +86,18 @@ export default function OTRiskSeverity() {
         setError(null);
         const esklasiRegex = 'OT';
         const [rootCauseRes, calculateRes] = await Promise.allSettled([
-          fetch(`https://gapura-dev-gapura-ai.hf.space/api/ai/root-cause/stats?esklasi_regex=${encodeURIComponent(esklasiRegex)}`, {
+          fetch(`/api/ai/root-cause/stats?esklasi_regex=${encodeURIComponent(esklasiRegex)}`, {
             method: 'GET',
             headers: { Accept: 'application/json' },
-            cache: 'no-store',
           }).then(async (r) => {
             const ct = r.headers.get('content-type') || '';
             if (!r.ok || !ct.includes('application/json')) throw new Error(String(r.status));
             return (await r.json()) as unknown;
           }),
-          fetch(`https://gapura-dev-gapura-ai.hf.space/api/ai/risk/calculate?esklasi_regex=${encodeURIComponent(esklasiRegex)}`, {
+          fetch(`/api/ai/risk/calculate?esklasi_regex=${encodeURIComponent(esklasiRegex)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
             body: JSON.stringify({}),
-            cache: 'no-store',
           }).then(async (r) => {
             const ct = r.headers.get('content-type') || '';
             if (!r.ok || !ct.includes('application/json')) throw new Error(String(r.status));

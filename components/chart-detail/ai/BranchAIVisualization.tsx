@@ -8,8 +8,6 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-const GAPURA_AI_BASE_URL = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000';
-
 interface BranchSummary {
   category_type: string;
   total_branches: number;
@@ -52,7 +50,7 @@ export function BranchAIVisualization({ branchName, filters = [] }: BranchVisual
       setError(null);
       try {
         const esklasiRegex = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('esklasi_regex') || '' : '';
-        const response = await fetch(`${GAPURA_AI_BASE_URL}/api/ai/branch/summary?esklasi_regex=${encodeURIComponent(esklasiRegex)}`);
+        const response = await fetch(`/api/ai/branch/summary?esklasi_regex=${encodeURIComponent(esklasiRegex)}`);
         if (!response.ok) {
           throw new Error('Failed to fetch branch summary');
         }

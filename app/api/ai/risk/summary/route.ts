@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifySession } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { getHfClient } from '@/lib/hf-client';
+import { resolveCachedAI } from '@/lib/ai-route-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,20 +27,36 @@ export async function GET(req: NextRequest) {
     const esklasiRegex = searchParams.get('esklasi_regex') || '';
 
     try {
-      const hfClient = getHfClient();
-      const aiResponse = await hfClient.fetch(
-        `/api/ai/risk/summary?esklasi_regex=${encodeURIComponent(esklasiRegex)}`,
-        { method: 'GET', headers: { 'Content-Type': 'application/json' } },
-        { ttl: 300000 }
-      );
+      const result = await resolveCachedAI({
+        feature: 'risk-summary',
+        scope: { esklasiRegex },
+        resolver: async () => {
+          const hfClient = getHfClient();
+          const aiResponse = await hfClient.fetch(
+            `/api/ai/risk/summary?esklasi_regex=${encodeURIComponent(esklasiRegex)}`,
+            { method: 'GET', headers: { 'Content-Type': 'application/json' } },
+            { ttl: 300000 }
+          );
 
-      if (!aiResponse.ok) {
-        throw new Error(`AI service error: ${aiResponse.status}`);
-      }
+          if (!aiResponse.ok) {
+            throw new Error(`AI service error: ${aiResponse.status}`);
+          }
 
-      const aiResult = await aiResponse.json();
+          return aiResponse.json();
+        },
+      });
 
-      return NextResponse.json(aiResult);
+      return NextResponse.json({
+        ...result.payload,
+        cached: result.cached,
+        generatedAt: result.generatedAt,
+        sourceSyncAt: result.sourceSyncAt,
+        stale: result.stale,
+      }, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+        },
+      });
     } catch (aiError) {
       console.error('AI Service Error:', aiError);
       

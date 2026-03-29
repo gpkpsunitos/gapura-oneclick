@@ -20,8 +20,7 @@ export interface RiskSummaryResponse {
 
 // Complexity: Time O(1) | Space O(1) — single fetch
 export async function fetchRiskSummary(): Promise<RiskSummaryResponse> {
-  const baseUrl = process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'http://localhost:8000';
-  const response = await fetch(`${baseUrl}/api/ai/risk/summary?esklasi_regex=`, {
+  const response = await fetch('/api/ai/risk/summary?esklasi_regex=', {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
