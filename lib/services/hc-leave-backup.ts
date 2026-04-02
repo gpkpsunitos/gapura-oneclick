@@ -5,7 +5,7 @@ import path from 'path';
 import * as ExcelJS from 'exceljs';
 import { getGoogleSheets } from '@/lib/google-sheets';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import type { HCLeaveLetterStatus, HCLeaveRecord, HCLeaveSubmissionStatus } from '@/types';
+import type { HCLeaveRecord, HCLeaveSubmissionStatus } from '@/types';
 
 const HC_LEAVE_BACKUP_PATH = '/tmp/gapura-hc-leave-records.xlsx';
 const HC_LEAVE_SHEET_NAME = 'HC_LEAVE_RECORDS';
@@ -24,7 +24,6 @@ interface HCLeaveRecordRow {
     pic_name?: string | null;
     pic_email?: string | null;
     pic_phone?: string | null;
-    e_letter_status: HCLeaveLetterStatus;
     notes?: string | null;
     created_by: string;
     updated_by?: string | null;
@@ -52,7 +51,6 @@ const HEADERS = [
     'PIC / PH',
     'PIC Email',
     'PIC Phone',
-    'E-Letter Status',
     'Notes',
     'Review Notes',
     'Reviewed By',
@@ -126,7 +124,6 @@ export async function fetchHCLeaveRecordsForBackup(options?: { includeDeleted?: 
             pic_name: row.pic_name,
             pic_email: row.pic_email,
             pic_phone: row.pic_phone,
-            e_letter_status: row.e_letter_status,
             notes: row.notes,
             created_by: row.created_by,
             updated_by: row.updated_by,
@@ -149,7 +146,7 @@ export async function fetchHCLeaveRecordsForBackup(options?: { includeDeleted?: 
     });
 }
 
-function toWorksheetRows(records: HCLeaveRecord[]): any[][] {
+function toWorksheetRows(records: HCLeaveRecord[]): ExcelJS.CellValue[][] {
     return records.map((record) => [
         record.id,
         record.employee_name,
@@ -164,7 +161,6 @@ function toWorksheetRows(records: HCLeaveRecord[]): any[][] {
         record.pic_name || '',
         record.pic_email || '',
         record.pic_phone || '',
-        record.e_letter_status,
         record.notes || '',
         record.review_notes || '',
         record.reviewed_by_name || '',
@@ -203,9 +199,8 @@ export async function buildHCLeaveWorkbook(records: HCLeaveRecord[]): Promise<Bu
     worksheet.columns = [
         { width: 22 }, { width: 24 }, { width: 18 }, { width: 12 }, { width: 12 },
         { width: 18 }, { width: 10 }, { width: 24 }, { width: 18 }, { width: 18 },
-        { width: 18 }, { width: 24 }, { width: 18 }, { width: 16 }, { width: 40 },
-        { width: 36 }, { width: 20 }, { width: 22 }, { width: 20 }, { width: 22 },
-        { width: 22 },
+        { width: 18 }, { width: 24 }, { width: 18 }, { width: 40 }, { width: 36 },
+        { width: 20 }, { width: 22 }, { width: 20 }, { width: 22 }, { width: 22 },
     ];
 
     const buffer = await workbook.xlsx.writeBuffer();
@@ -263,7 +258,7 @@ async function syncHCLeaveRecordsToGoogleSheet(records: HCLeaveRecord[]) {
     const rows = toWorksheetRows(records);
     await sheetInfo.sheets.spreadsheets.values.clear({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${HC_LEAVE_SHEET_NAME}!A:U`,
+        range: HC_LEAVE_SHEET_NAME,
     });
     await sheetInfo.sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,

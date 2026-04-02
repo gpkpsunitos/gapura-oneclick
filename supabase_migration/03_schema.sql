@@ -238,7 +238,6 @@ CREATE TABLE IF NOT EXISTS public.hc_leave_records (
     pic_name text,
     pic_email text,
     pic_phone text,
-    e_letter_status text DEFAULT 'BELUM_ADA'::text CHECK (e_letter_status = ANY (ARRAY['BELUM_ADA'::text, 'PENGAJUAN'::text, 'TERBIT'::text])),
     notes text,
     submission_status text DEFAULT 'PENDING'::text CHECK (submission_status = ANY (ARRAY['PENDING'::text, 'APPROVED'::text, 'REJECTED'::text])),
     created_by uuid REFERENCES public.users(id),

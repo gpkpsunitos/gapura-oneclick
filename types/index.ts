@@ -227,7 +227,6 @@ export interface CreateCalendarEventInput {
     calendar_type?: CalendarType;
 }
 
-export type HCLeaveLetterStatus = 'BELUM_ADA' | 'PENGAJUAN' | 'TERBIT';
 export type HCLeaveSubmissionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface HCLeaveRecord {
@@ -243,7 +242,6 @@ export interface HCLeaveRecord {
     pic_name?: string | null;
     pic_email?: string | null;
     pic_phone?: string | null;
-    e_letter_status: HCLeaveLetterStatus;
     notes?: string | null;
     created_by: string;
     updated_by?: string | null;

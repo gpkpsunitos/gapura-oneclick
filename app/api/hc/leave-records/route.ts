@@ -139,7 +139,6 @@ export async function POST(request: Request) {
             pic_name: picName,
             pic_email: body.pic_email ? String(body.pic_email).trim() : null,
             pic_phone: body.pic_phone ? String(body.pic_phone).trim() : null,
-            e_letter_status: body.e_letter_status || 'BELUM_ADA',
             notes: body.notes ? String(body.notes).trim() : null,
             created_by: user.id,
             updated_by: user.id,

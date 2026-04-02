@@ -69,7 +69,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             'pic_name',
             'pic_email',
             'pic_phone',
-            'e_letter_status',
             'notes',
         ];
 

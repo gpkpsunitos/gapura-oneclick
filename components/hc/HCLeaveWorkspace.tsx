@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -29,7 +29,7 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { cn } from '@/lib/utils';
-import type { HCLeaveLetterStatus, HCLeaveRecord, HCLeaveSubmissionStatus } from '@/types';
+import type { HCLeaveRecord, HCLeaveSubmissionStatus } from '@/types';
 
 type WorkspaceMode = 'hc' | 'branch';
 type LeavePresentation = 'staff' | 'manager' | 'hc';
@@ -51,7 +51,6 @@ interface LeaveFormState {
     pic_name: string;
     pic_email: string;
     pic_phone: string;
-    e_letter_status: HCLeaveLetterStatus;
     notes: string;
 }
 
@@ -115,7 +114,6 @@ interface HCMonitoringTableProps {
     records: HCLeaveRecord[];
     canModifyRecord: (record: HCLeaveRecord) => boolean;
     canReviewRecord: (record: HCLeaveRecord) => boolean;
-    jumpToMissingLetterToken: number;
     onEdit: (record: HCLeaveRecord) => void;
     onRemove: (record: HCLeaveRecord) => void;
     onApprove: (record: HCLeaveRecord) => Promise<void>;
@@ -152,7 +150,7 @@ interface DeleteState {
 type BranchStaffPage = 'form' | 'history';
 
 type LeaveFormErrorMap = Partial<Record<keyof LeaveFormState, string>>;
-type HCMonitoringSortKey = 'employee_name' | 'period' | 'station' | 'pic' | 'submission_status' | 'e_letter_status' | 'created_at';
+type HCMonitoringSortKey = 'employee_name' | 'period' | 'station' | 'pic' | 'submission_status' | 'created_at';
 type SortDirection = 'asc' | 'desc';
 
 const BRANCH_FORM_PATH = '/dashboard/employee/hc-leave';
@@ -160,12 +158,6 @@ const BRANCH_HISTORY_HREF = `${BRANCH_FORM_PATH}?view=history`;
 const BRANCH_FORM_HREF = `${BRANCH_FORM_PATH}?view=form`;
 
 const BRANCH_LEAVE_TYPE_OPTIONS = ['Cuti Tahunan', 'Izin Sakit', 'Cuti Melahirkan', 'Lainnya'] as const;
-
-const LETTER_STATUS_OPTIONS: Array<{ value: HCLeaveLetterStatus; label: string }> = [
-    { value: 'BELUM_ADA', label: 'Belum Ada' },
-    { value: 'PENGAJUAN', label: 'Pengajuan' },
-    { value: 'TERBIT', label: 'Terbit' },
-];
 
 const SUBMISSION_STATUS_OPTIONS: Array<{ value: HCLeaveSubmissionStatus; label: string }> = [
     { value: 'PENDING', label: 'Menunggu Approval GM/EGM' },
@@ -185,13 +177,8 @@ function emptyForm(stationId?: string | null): LeaveFormState {
         pic_name: '',
         pic_email: '',
         pic_phone: '',
-        e_letter_status: 'BELUM_ADA',
         notes: '',
     };
-}
-
-function getStatusLabel(status: HCLeaveLetterStatus) {
-    return LETTER_STATUS_OPTIONS.find((option) => option.value === status)?.label || status;
 }
 
 function getSubmissionStatusLabel(status: HCLeaveSubmissionStatus | string | null | undefined) {
@@ -303,26 +290,6 @@ function SubmissionStatusChip({
             ) : null}
         </div>
     );
-}
-
-function getELetterLabel(status: HCLeaveLetterStatus) {
-    switch (status) {
-        case 'TERBIT':
-            return 'Sudah Ada';
-        default:
-            return getStatusLabel(status);
-    }
-}
-
-function getELetterPillClass(status: HCLeaveLetterStatus) {
-    switch (status) {
-        case 'TERBIT':
-            return 'border-transparent bg-[#10B981] text-white';
-        case 'PENGAJUAN':
-            return 'border-transparent bg-[#0EA5E9] text-white';
-        default:
-            return 'border-transparent bg-[#6B7280] text-white';
-    }
 }
 
 function countActiveToday(records: HCLeaveRecord[]) {
@@ -463,12 +430,6 @@ function compareLeaveRecords(
             return direction === 'asc'
                 ? order[left.submission_status] - order[right.submission_status]
                 : order[right.submission_status] - order[left.submission_status];
-        }
-        case 'e_letter_status': {
-            const order = { BELUM_ADA: 0, PENGAJUAN: 1, TERBIT: 2 } satisfies Record<HCLeaveLetterStatus, number>;
-            return direction === 'asc'
-                ? order[left.e_letter_status] - order[right.e_letter_status]
-                : order[right.e_letter_status] - order[left.e_letter_status];
         }
         default:
             return compareDate(left.created_at || left.start_date, right.created_at || right.start_date, direction);
@@ -655,7 +616,6 @@ function HCSubmissionQuickFilters({
 }
 
 function HCLeaveReviewModal({
-    open,
     busy,
     record,
     nextStatus,
@@ -664,7 +624,6 @@ function HCLeaveReviewModal({
     onNotesChange,
     onSubmit,
 }: {
-    open: boolean;
     busy: boolean;
     record: HCLeaveRecord | null;
     nextStatus: HCLeaveSubmissionStatus;
@@ -724,7 +683,7 @@ function HCLeaveReviewModal({
                 </div>
 
                 <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 pt-5 md:px-6">
-                    <div className="grid gap-4 md:grid-cols-3">
+                    <div className="grid gap-4 md:grid-cols-2">
                         <div className="rounded-2xl border border-[var(--surface-4)] bg-white/80 p-4">
                             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">Cabang</p>
                             <p className="mt-2 text-sm font-semibold text-[var(--text-primary)]">
@@ -734,10 +693,6 @@ function HCLeaveReviewModal({
                         <div className="rounded-2xl border border-[var(--surface-4)] bg-white/80 p-4">
                             <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">Pejabat Harian (PH)</p>
                             <p className="mt-2 text-sm font-semibold text-[var(--text-primary)]">{record.pic_name || '-'}</p>
-                        </div>
-                        <div className="rounded-2xl border border-[var(--surface-4)] bg-white/80 p-4">
-                            <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">E-Letter</p>
-                            <p className="mt-2 text-sm font-semibold text-[var(--text-primary)]">{getStatusLabel(record.e_letter_status)}</p>
                         </div>
                     </div>
 
@@ -899,13 +854,11 @@ function HCLeaveSuccessModal({
 }
 
 function HCDeleteConfirmModal({
-    open,
     busy,
     record,
     onClose,
     onConfirm,
 }: {
-    open: boolean;
     busy: boolean;
     record: HCLeaveRecord | null;
     onClose: () => void;
@@ -1036,18 +989,9 @@ function LeaveFormCard({
     onReset,
 }: LeaveFormCardProps) {
     const [touched, setTouched] = useState<Partial<Record<keyof LeaveFormState, boolean>>>({});
-    const [supportingOpen, setSupportingOpen] = useState(false);
     const errors = useMemo(() => getLeaveFormErrors(form), [form]);
     const duration = useMemo(() => calculateLeaveDuration(form.start_date, form.end_date), [form.end_date, form.start_date]);
     const selectedStationLabel = useMemo(() => getStationLabelById(stations, form.station_id), [form.station_id, stations]);
-    const hasSupportingValues = Boolean(
-        form.division_name.trim() ||
-            form.unit_name.trim() ||
-            form.pic_email.trim() ||
-            form.pic_phone.trim() ||
-            form.notes.trim() ||
-            form.e_letter_status !== 'BELUM_ADA'
-    );
     const statusLabel = editing ? getSubmissionStatusLabel(editing.submission_status) : 'Draft';
     const canSubmit =
         form.employee_name.trim() &&
@@ -1090,8 +1034,6 @@ function LeaveFormCard({
         ...(showStationSelect ? [{ label: 'Cabang', value: selectedStationLabel }] : []),
         { label: 'PH / Pengganti', value: form.pic_name.trim() || '-' },
     ];
-    const canToggleSupporting = !editing && !hasSupportingValues;
-    const supportingVisible = supportingOpen || editing !== null || hasSupportingValues;
 
     return (
         <div className="rounded-[32px] border border-[var(--surface-4)] bg-white shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
@@ -1271,48 +1213,17 @@ function LeaveFormCard({
                 <StaffFormSection
                     icon={FileText}
                     tone="amber"
-                    title="Catatan & status"
-                    description="Tambahkan hanya jika memang diperlukan."
+                    title="Catatan tambahan"
+                    description="Tambahkan bila ada informasi tambahan."
                 >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                        <p className="text-sm text-[var(--text-secondary)]">Status e-letter dan catatan tambahan.</p>
-                        <button
-                            type="button"
-                            disabled={!canToggleSupporting}
-                            onClick={() => setSupportingOpen((current) => !current)}
-                            className="inline-flex items-center gap-2 rounded-full border border-[var(--surface-4)] px-3 py-1.5 text-xs font-semibold text-[var(--text-secondary)] transition hover:text-[var(--text-primary)] disabled:cursor-default disabled:opacity-70"
-                        >
-                            {canToggleSupporting ? (supportingVisible ? 'Sembunyikan detail' : 'Tampilkan detail') : 'Detail aktif'}
-                        </button>
-                    </div>
-                    {supportingVisible ? (
-                        <div className="mt-4 grid gap-4 md:grid-cols-2">
-                            <div>
-                                <FieldLabel label="Status e-letter" />
-                                <select
-                                    value={form.e_letter_status}
-                                    onChange={(event) => onChange('e_letter_status', event.target.value)}
-                                    className={formFieldClass}
-                                >
-                                    {LETTER_STATUS_OPTIONS.map((option) => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                            <div className="md:col-span-2">
-                                <FieldLabel label="Catatan" hint="Opsional" />
-                                <textarea
-                                    value={form.notes}
-                                    onChange={(event) => onChange('notes', event.target.value)}
-                                    placeholder="Informasi tambahan bila perlu"
-                                    rows={4}
-                                    className={formFieldClass}
-                                />
-                            </div>
-                        </div>
-                    ) : null}
+                    <FieldLabel label="Catatan" hint="Opsional" />
+                    <textarea
+                        value={form.notes}
+                        onChange={(event) => onChange('notes', event.target.value)}
+                        placeholder="Informasi tambahan bila perlu"
+                        rows={4}
+                        className={formFieldClass}
+                    />
                 </StaffFormSection>
                 </div>
 
@@ -1521,7 +1432,6 @@ function HCMonitoringTable({
     records,
     canModifyRecord,
     canReviewRecord,
-    jumpToMissingLetterToken,
     onEdit,
     onRemove,
     onApprove,
@@ -1534,8 +1444,6 @@ function HCMonitoringTable({
     const [rowsPerPage, setRowsPerPage] = useState(20);
     const [approveConfirmId, setApproveConfirmId] = useState<string | null>(null);
     const [rejectState, setRejectState] = useState<{ id: string | null; reason: string }>({ id: null, reason: '' });
-    const [highlightedId, setHighlightedId] = useState<string | null>(null);
-    const rowRefs = useRef<Record<string, HTMLTableRowElement | null>>({});
 
     const sortedRecords = useMemo(() => {
         return [...records].sort((left, right) => compareLeaveRecords(left, right, sortKey, sortDirection));
@@ -1545,32 +1453,6 @@ function HCMonitoringTable({
     const currentPage = Math.min(page, totalPages);
     const pageStart = (currentPage - 1) * rowsPerPage;
     const paginatedRecords = sortedRecords.slice(pageStart, pageStart + rowsPerPage);
-
-    useEffect(() => {
-        if (!jumpToMissingLetterToken) return;
-        const targetIndex = sortedRecords.findIndex((record) => record.e_letter_status === 'BELUM_ADA');
-        if (targetIndex < 0) return;
-
-        const targetRecord = sortedRecords[targetIndex];
-        const nextPage = Math.floor(targetIndex / rowsPerPage) + 1;
-        const applyTimeout = window.setTimeout(() => {
-            setPage(nextPage);
-            setExpandedId(targetRecord.id);
-            setHighlightedId(targetRecord.id);
-        }, 0);
-        const scrollTimeout = window.setTimeout(() => {
-            rowRefs.current[targetRecord.id]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 80);
-        const clearTimeoutId = window.setTimeout(() => {
-            setHighlightedId((current) => (current === targetRecord.id ? null : current));
-        }, 2200);
-
-        return () => {
-            window.clearTimeout(applyTimeout);
-            window.clearTimeout(scrollTimeout);
-            window.clearTimeout(clearTimeoutId);
-        };
-    }, [jumpToMissingLetterToken, rowsPerPage, sortedRecords]);
 
     const visiblePages = useMemo(() => {
         if (totalPages <= 5) {
@@ -1635,7 +1517,6 @@ function HCMonitoringTable({
                                 { key: 'station', label: 'Cabang / unit', className: 'w-[220px]' },
                                 { key: 'pic', label: 'PIC / PH', className: 'w-[220px]' },
                                 { key: 'submission_status', label: 'Status', className: 'w-[180px]' },
-                                { key: 'e_letter_status', label: 'E-LETTER', className: 'w-[140px]' },
                                 { key: 'created_at', label: 'Aksi', className: 'w-[210px]' },
                             ].map((column) => {
                                 const isAction = column.key === 'created_at';
@@ -1682,13 +1563,7 @@ function HCMonitoringTable({
                             return (
                                 <Fragment key={record.id}>
                                     <tr
-                                        ref={(node) => {
-                                            rowRefs.current[record.id] = node;
-                                        }}
-                                        className={cn(
-                                            'cursor-pointer border-t border-[var(--surface-3)] align-top transition-colors hover:bg-[var(--surface-0)]',
-                                            highlightedId === record.id && 'bg-amber-50'
-                                        )}
+                                        className="cursor-pointer border-t border-[var(--surface-3)] align-top transition-colors hover:bg-[var(--surface-0)]"
                                         onClick={() => setExpandedId((current) => (current === record.id ? null : record.id))}
                                     >
                                         <td className="px-5 py-4">
@@ -1711,14 +1586,6 @@ function HCMonitoringTable({
                                         </td>
                                         <td className="px-5 py-4">
                                             <SubmissionStatusChip status={record.submission_status} meta={reviewerMeta} />
-                                        </td>
-                                        <td className="px-5 py-4">
-                                            <span className={cn(
-                                                'inline-flex whitespace-nowrap rounded-lg border px-2 py-1 text-[11px] font-bold tracking-wide transition-all duration-200',
-                                                getELetterPillClass(record.e_letter_status)
-                                            )}>
-                                                {getELetterLabel(record.e_letter_status).toUpperCase()}
-                                            </span>
                                         </td>
                                         <td className="px-5 py-4" onClick={(event) => event.stopPropagation()}>
                                             <div className="relative min-h-9">
@@ -1949,7 +1816,6 @@ function LeaveRecordsTable({
                             <th className="px-4 py-3">Divisi / Unit</th>
                             <th className="px-4 py-3">PIC / PH</th>
                             <th className="px-4 py-3">Status</th>
-                            <th className="px-4 py-3">E-Letter</th>
                             <th className="px-4 py-3">Catatan</th>
                             <th className="px-4 py-3">Aksi</th>
                         </tr>
@@ -1994,14 +1860,6 @@ function LeaveRecordsTable({
                                         {record.review_notes ? (
                                             <p className="mt-2 max-w-[164px] text-xs text-[var(--text-secondary)]">{record.review_notes}</p>
                                         ) : null}
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <span className={cn(
-                                            'inline-flex whitespace-nowrap rounded-lg border px-2.5 py-1 text-[11px] font-bold tracking-wide transition-all duration-200', 
-                                            getELetterPillClass(record.e_letter_status)
-                                        )}>
-                                            {getStatusLabel(record.e_letter_status).toUpperCase()}
-                                        </span>
                                     </td>
                                     <td className="px-4 py-4 text-[var(--text-secondary)]">{record.notes || '-'}</td>
                                     <td className="px-4 py-4">
@@ -2055,23 +1913,15 @@ function LeaveRecordsTable({
                                     <p className="text-lg font-black text-[var(--text-primary)]">{record.employee_name}</p>
                                     <p className="mt-1 text-sm text-[var(--text-secondary)]">{record.leave_type}</p>
                                 </div>
-                                <div className="flex flex-col items-end gap-2">
-                                    <SubmissionStatusChip
-                                        status={record.submission_status}
-                                        meta={
-                                            record.reviewed_by_name || record.reviewed_at
-                                                ? `${record.reviewed_by_name ? `Oleh ${record.reviewed_by_name}` : 'Sudah direview'}${record.reviewed_at ? ` · ${formatLeaveDate(record.reviewed_at.slice(0, 10))}` : ''}`
-                                                : undefined
-                                        }
-                                        compact
-                                    />
-                                    <span className={cn(
-                                        'inline-flex whitespace-nowrap rounded-lg border px-2 py-1 text-[10px] font-bold tracking-wide transition-all duration-200', 
-                                        getELetterPillClass(record.e_letter_status)
-                                    )}>
-                                        {getStatusLabel(record.e_letter_status).toUpperCase()}
-                                    </span>
-                                </div>
+                                <SubmissionStatusChip
+                                    status={record.submission_status}
+                                    meta={
+                                        record.reviewed_by_name || record.reviewed_at
+                                            ? `${record.reviewed_by_name ? `Oleh ${record.reviewed_by_name}` : 'Sudah direview'}${record.reviewed_at ? ` · ${formatLeaveDate(record.reviewed_at.slice(0, 10))}` : ''}`
+                                            : undefined
+                                    }
+                                    compact
+                                />
                             </div>
                             <div className="mt-4 space-y-2 text-sm text-[var(--text-secondary)]">
                                 <p><strong>Periode:</strong> {formatLeavePeriod(record.start_date, record.end_date)}</p>
@@ -2382,10 +2232,6 @@ function BranchManagerLeaveMonitoringView({
         () => records.filter((record) => record.submission_status === 'PENDING').length,
         [records]
     );
-    const noLetterCount = useMemo(
-        () => records.filter((record) => record.e_letter_status === 'BELUM_ADA').length,
-        [records]
-    );
 
     if (formOpen) {
         return (
@@ -2456,7 +2302,7 @@ function BranchManagerLeaveMonitoringView({
                 <StatCard
                     label="Pending"
                     value={pendingCount}
-                    description="Menunggu keputusan HC."
+                    description="Menunggu keputusan GM/EGM."
                     toneClass="border-[var(--surface-4)] bg-white text-amber-600"
                     icon={Clock3}
                 />
@@ -2488,9 +2334,6 @@ function BranchManagerLeaveMonitoringView({
                 emptyTitle="Belum ada pengajuan cuti dari cabang ini"
                 emptyDescription="Data cabang akan tampil di sini."
             />
-            {noLetterCount > 0 ? (
-                <p className="text-sm text-[var(--text-secondary)]">{noLetterCount} pengajuan masih belum memiliki e-letter.</p>
-            ) : null}
         </div>
     );
 }
@@ -2506,8 +2349,6 @@ function HCLeaveMonitoringView({
     leaveTypes,
     activeFilterCount,
     statusCounts,
-    missingLetterCount,
-    jumpToMissingLetterToken,
     onFormChange,
     onFilterChange,
     onResetFilters,
@@ -2516,7 +2357,6 @@ function HCLeaveMonitoringView({
     onRefresh,
     onCreate,
     onExport,
-    onJumpToMissingLetter,
     canModifyRecord,
     canReviewRecord,
     onEdit,
@@ -2534,8 +2374,6 @@ function HCLeaveMonitoringView({
     leaveTypes: string[];
     activeFilterCount: number;
     statusCounts: Record<HCLeaveSubmissionStatus, number>;
-    missingLetterCount: number;
-    jumpToMissingLetterToken: number;
     onFormChange: (field: keyof LeaveFormState, value: string) => void;
     onFilterChange: (field: keyof LeaveFilters, value: string) => void;
     onResetFilters: () => void;
@@ -2544,7 +2382,6 @@ function HCLeaveMonitoringView({
     onRefresh: () => void;
     onCreate: () => void;
     onExport: () => void;
-    onJumpToMissingLetter: () => void;
     canModifyRecord: (record: HCLeaveRecord) => boolean;
     canReviewRecord: (record: HCLeaveRecord) => boolean;
     onEdit: (record: HCLeaveRecord) => void;
@@ -2616,16 +2453,6 @@ function HCLeaveMonitoringView({
                         Export Excel
                     </button>
 
-                    {missingLetterCount > 0 ? (
-                        <button
-                            type="button"
-                            onClick={onJumpToMissingLetter}
-                            className="inline-flex h-11 items-center rounded-full border border-amber-200 bg-amber-50 px-4 text-sm font-medium text-amber-700 transition hover:bg-amber-100"
-                        >
-                            {missingLetterCount} belum e-letter
-                        </button>
-                    ) : null}
-
                     <button
                         type="button"
                         onClick={onCreate}
@@ -2648,7 +2475,7 @@ function HCLeaveMonitoringView({
                 <StatCard
                     label="Pending"
                     value={statusCounts.PENDING}
-                    description="Perlu review HC."
+                    description="Menunggu keputusan GM/EGM."
                     toneClass="border-[var(--surface-4)] bg-white text-amber-600"
                     icon={Clock3}
                 />
@@ -2658,13 +2485,6 @@ function HCLeaveMonitoringView({
                     description="Sudah diputuskan."
                     toneClass="border-[var(--surface-4)] bg-white text-emerald-600"
                     icon={CheckCircle2}
-                />
-                <StatCard
-                    label="Missing e-letter"
-                    value={missingLetterCount}
-                    description="Perlu tindak lanjut."
-                    toneClass="border-[var(--surface-4)] bg-white text-sky-600"
-                    icon={FileText}
                 />
             </div>
 
@@ -2697,7 +2517,6 @@ function HCLeaveMonitoringView({
                 records={records}
                 canModifyRecord={canModifyRecord}
                 canReviewRecord={canReviewRecord}
-                jumpToMissingLetterToken={jumpToMissingLetterToken}
                 onEdit={onEdit}
                 onRemove={onRemove}
                 onApprove={onApprove}
@@ -2729,7 +2548,6 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
     });
     const [feedbackItems, setFeedbackItems] = useState<HCFeedbackItem[]>([]);
     const [branchSuccessVisible, setBranchSuccessVisible] = useState(false);
-    const [jumpToMissingLetterToken, setJumpToMissingLetterToken] = useState(0);
     const [filters, setFilters] = useState<LeaveFilters>({
         month: '',
         station_id: '',
@@ -2888,7 +2706,6 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
             pic_name: record.pic_name || '',
             pic_email: record.pic_email || '',
             pic_phone: record.pic_phone || '',
-            e_letter_status: record.e_letter_status,
             notes: record.notes || '',
         });
         setFormOpen(true);
@@ -2931,10 +2748,9 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
     const handleFormChange = useCallback((field: keyof LeaveFormState, value: string) => {
         setBranchSuccessVisible(false);
         setForm((current) => {
-            const nextValue = field === 'e_letter_status' ? (value as HCLeaveLetterStatus) : value;
             const nextState = {
                 ...current,
-                [field]: nextValue,
+                [field]: value,
             };
 
             if (field === 'start_date' && nextState.end_date && nextState.end_date < value) {
@@ -3232,8 +3048,6 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
                         leaveTypes={leaveTypes}
                         activeFilterCount={activeFilterCount}
                         statusCounts={hcStatusCounts}
-                        missingLetterCount={filteredRecords.filter((record) => record.e_letter_status === 'BELUM_ADA').length}
-                        jumpToMissingLetterToken={jumpToMissingLetterToken}
                         onFormChange={handleFormChange}
                         onFilterChange={handleFilterChange}
                         onResetFilters={resetFilters}
@@ -3242,7 +3056,6 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
                         onRefresh={load}
                         onCreate={startCreate}
                         onExport={exportExcel}
-                        onJumpToMissingLetter={() => setJumpToMissingLetterToken((current) => current + 1)}
                         canModifyRecord={canModifyRecord}
                         canReviewRecord={canReviewRecord}
                         onEdit={startEdit}
@@ -3256,7 +3069,6 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
             <AnimatePresence>
                 {reviewState.open && reviewState.record && (
                     <HCLeaveReviewModal
-                        open={reviewState.open}
                         busy={busy}
                         record={reviewState.record}
                         nextStatus={reviewState.nextStatus}
@@ -3271,7 +3083,6 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
             <AnimatePresence>
                 {deleteState.open && deleteState.record && (
                     <HCDeleteConfirmModal
-                        open={deleteState.open}
                         busy={busy}
                         record={deleteState.record}
                         onClose={closeDeleteModal}
