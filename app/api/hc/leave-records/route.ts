@@ -119,8 +119,8 @@ export async function POST(request: Request) {
             ? user.station_id
             : (body.station_id || null);
         const requestedSubmissionStatus = String(body.submission_status || '').trim().toUpperCase() as HCLeaveSubmissionStatus;
-        const submissionStatus = canManageHCWorkspace(role)
-            ? (SUBMISSION_STATUS_VALUES.includes(requestedSubmissionStatus) ? requestedSubmissionStatus : 'APPROVED')
+        const submissionStatus = role === 'MANAGER_CABANG' && SUBMISSION_STATUS_VALUES.includes(requestedSubmissionStatus)
+            ? requestedSubmissionStatus
             : 'PENDING';
 
         if (role === 'STAFF_CABANG' && !stationId) {

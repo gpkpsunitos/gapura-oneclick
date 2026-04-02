@@ -6,11 +6,6 @@ import { AlertTriangle, ExternalLink, FileText } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import type { DivisionDocument, HCLeaveRecord } from '@/types';
 
-interface LeaveActionState {
-    id: string | null;
-    action: 'approve' | 'reject' | null;
-}
-
 function getCurrentDateKey() {
     const today = new Date();
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -91,15 +86,9 @@ function getMaterialAudienceLabel(document: DivisionDocument) {
     return 'Audience terarah';
 }
 
-function upsertLeaveRecord(records: HCLeaveRecord[], nextRecord: HCLeaveRecord | null) {
-    if (!nextRecord) return records;
-    return records.map((record) => (record.id === nextRecord.id ? nextRecord : record));
-}
-
 export function HCWorkspaceDashboard() {
     const [leaveRecords, setLeaveRecords] = useState<HCLeaveRecord[]>([]);
     const [documents, setDocuments] = useState<DivisionDocument[]>([]);
-    const [leaveActionState, setLeaveActionState] = useState<LeaveActionState>({ id: null, action: null });
     const [selectedMaterial, setSelectedMaterial] = useState<DivisionDocument | null>(null);
 
     const load = useCallback(async () => {
@@ -123,7 +112,11 @@ export function HCWorkspaceDashboard() {
     }, []);
 
     useEffect(() => {
-        load();
+        const timeoutId = window.setTimeout(() => {
+            void load();
+        }, 0);
+
+        return () => window.clearTimeout(timeoutId);
     }, [load]);
 
     useEffect(() => {
@@ -169,39 +162,6 @@ export function HCWorkspaceDashboard() {
     const selectedMaterialHref = selectedMaterial ? getDocumentHref(selectedMaterial) : null;
     const selectedMaterialCanPreview = selectedMaterial ? canPreviewDocument(selectedMaterial) : false;
 
-    const handleReview = useCallback(
-        async (record: HCLeaveRecord, nextStatus: 'APPROVED' | 'REJECTED', reviewNotes?: string | null) => {
-            setLeaveActionState({
-                id: record.id,
-                action: nextStatus === 'APPROVED' ? 'approve' : 'reject',
-            });
-
-            try {
-                const response = await fetch(`/api/hc/leave-records/${record.id}`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        submission_status: nextStatus,
-                        review_notes: reviewNotes || null,
-                    }),
-                });
-
-                if (!response.ok) {
-                    const error = await response.json().catch(() => ({}));
-                    throw new Error(error.error || 'Gagal memperbarui pengajuan cuti');
-                }
-
-                const updatedRecord = await response.json().catch(() => null);
-                setLeaveRecords((current) => upsertLeaveRecord(current, updatedRecord));
-            } catch (error) {
-                window.alert(error instanceof Error ? error.message : 'Gagal memperbarui pengajuan cuti');
-            } finally {
-                setLeaveActionState({ id: null, action: null });
-            }
-        },
-        []
-    );
-
     return (
         <Sheet open={Boolean(selectedMaterial)} onOpenChange={(open) => !open && setSelectedMaterial(null)}>
             <div className="min-h-screen bg-white px-6 py-6 text-[14px]" style={{ fontFamily: 'Inter, var(--font-body), sans-serif' }}>
@@ -217,7 +177,7 @@ export function HCWorkspaceDashboard() {
                         >
                             <AlertTriangle className="h-4 w-4 shrink-0 text-[#F59E0B]" />
                             <p className="text-[14px] text-[#92400E]">
-                                {pendingApprovals.length} pengajuan cuti menunggu persetujuan HC{' '}
+                                {pendingApprovals.length} pengajuan cuti menunggu keputusan GM/EGM{' '}
                                 <Link href="/dashboard/hc/leave?submission_status=PENDING" className="font-medium text-[#009688] hover:underline">
                                     → Lihat sekarang
                                 </Link>
@@ -233,7 +193,7 @@ export function HCWorkspaceDashboard() {
                             <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#6B7280]">Cuti Aktif Bulan Ini</p>
                             <p className="mt-3 text-[32px] font-bold leading-none text-[#111111]">{thisMonthCount}</p>
                             <p className={`mt-3 text-[12px] ${pendingApprovals.length > 0 ? 'text-[#F59E0B]' : 'text-[#6B7280]'}`}>
-                                {pendingApprovals.length} menunggu approval
+                                {pendingApprovals.length} menunggu keputusan GM/EGM
                             </p>
                         </Link>
 
@@ -261,7 +221,7 @@ export function HCWorkspaceDashboard() {
                     </div>
 
                     <section className="space-y-3">
-                        <h2 className="text-[16px] font-semibold text-[#111111]">Perlu Disetujui</h2>
+                        <h2 className="text-[16px] font-semibold text-[#111111]">Menunggu Keputusan GM/EGM</h2>
                         <div className="overflow-hidden rounded-xl border border-[#E5E7EB] bg-white">
                             {pendingApprovals.length > 0 ? (
                                 <div className="overflow-x-auto">
@@ -272,13 +232,11 @@ export function HCWorkspaceDashboard() {
                                                 <th className="w-[220px] px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B7280]">Periode</th>
                                                 <th className="w-[220px] px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B7280]">Cabang</th>
                                                 <th className="w-[220px] px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B7280]">PIC / PH</th>
-                                                <th className="w-[200px] px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B7280]">Aksi</th>
+                                                <th className="w-[220px] px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6B7280]">Status</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {pendingApprovals.map((record) => {
-                                                const isProcessing = leaveActionState.id === record.id;
-
                                                 return (
                                                     <tr key={record.id} className="border-t border-[#E5E7EB]">
                                                         <td className="px-5 py-4 align-top">
@@ -295,31 +253,9 @@ export function HCWorkspaceDashboard() {
                                                             {record.pic_name?.trim() || 'Belum tercatat'}
                                                         </td>
                                                         <td className="px-5 py-4 align-top">
-                                                            <div className="flex flex-wrap gap-2">
-                                                                <button
-                                                                    type="button"
-                                                                    disabled={isProcessing}
-                                                                    onClick={() => {
-                                                                        if (!window.confirm(`Setujui pengajuan cuti ${record.employee_name}?`)) return;
-                                                                        void handleReview(record, 'APPROVED');
-                                                                    }}
-                                                                    className="inline-flex h-8 items-center rounded-md bg-[#009688] px-3 text-[12px] font-medium text-white transition hover:bg-[#00796B] disabled:opacity-60"
-                                                                >
-                                                                    {isProcessing && leaveActionState.action === 'approve' ? 'Memproses...' : 'Setujui'}
-                                                                </button>
-                                                                <button
-                                                                    type="button"
-                                                                    disabled={isProcessing}
-                                                                    onClick={() => {
-                                                                        const reviewNotes = window.prompt('Catatan penolakan (opsional):', '');
-                                                                        if (reviewNotes === null) return;
-                                                                        void handleReview(record, 'REJECTED', reviewNotes);
-                                                                    }}
-                                                                    className="inline-flex h-8 items-center rounded-md border border-[#FECACA] bg-white px-3 text-[12px] font-medium text-[#DC2626] transition hover:bg-[#FEF2F2] disabled:opacity-60"
-                                                                >
-                                                                    {isProcessing && leaveActionState.action === 'reject' ? 'Memproses...' : 'Tolak'}
-                                                                </button>
-                                                            </div>
+                                                            <span className="inline-flex h-8 items-center rounded-md border border-[#FDE68A] bg-[#FFFBEB] px-3 text-[12px] font-medium text-[#B45309]">
+                                                                Menunggu keputusan GM/EGM
+                                                            </span>
                                                         </td>
                                                     </tr>
                                                 );
@@ -329,7 +265,7 @@ export function HCWorkspaceDashboard() {
                                 </div>
                             ) : (
                                 <div className="px-6 py-10 text-center text-[14px] text-[#6B7280]">
-                                    ✓ Tidak ada pengajuan yang menunggu persetujuan.
+                                    ✓ Tidak ada pengajuan yang menunggu keputusan GM/EGM.
                                 </div>
                             )}
                         </div>
