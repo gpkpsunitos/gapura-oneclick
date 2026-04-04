@@ -1,6 +1,15 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi fungsi utilitas untuk menghitung data analitik termasuk statistik stasiun, divisi, dan tren
+ */
 
 import type { Report } from '@/types';
 
+/**
+ * Statistik untuk setiap stasiun
+ */
 export interface StationStats {
     station: string;
     total: number;
@@ -12,6 +21,9 @@ export interface StationStats {
     low: number;
 }
 
+/**
+ * Statistik untuk setiap divisi
+ */
 export interface DivisionStats {
     division: string;
     total: number;
@@ -20,6 +32,9 @@ export interface DivisionStats {
     high: number;
 }
 
+/**
+ * Data analitik lengkap
+ */
 export interface AnalyticsData {
     stationStats: StationStats[];
     divisionStats: DivisionStats[];
@@ -32,6 +47,21 @@ export interface AnalyticsData {
     };
 }
 
+/**
+ * Menghitung data analitik dari array laporan
+ * @param {Report[]} reports - Array laporan
+ * @param {{ from: Date; to: Date }} [dateRange] - Rentang tanggal filter (opsional)
+ * @returns {AnalyticsData} Objek data analitik lengkap
+ * @example
+ * ```ts
+ * const analytics = computeAnalytics(reports, {
+ *   from: new Date('2024-01-01'),
+ *   to: new Date('2024-01-31')
+ * });
+ * console.log(analytics.summary);
+ * console.log(analytics.stationStats);
+ * ```
+ */
 export function computeAnalytics(reports: Report[], dateRange?: { from: Date; to: Date }): AnalyticsData {
     let filteredReports = reports;
 

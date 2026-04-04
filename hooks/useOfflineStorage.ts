@@ -1,12 +1,41 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi hook React untuk manajemen data offline menggunakan IndexedDB
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 
+/**
+ * Data offline untuk disimpan di IndexedDB
+ * @interface OfflineData
+ */
 interface OfflineData {
+  /** ID unik item */
   id: string;
+  /** Tipe data offline */
   type: 'report' | 'upload' | 'update';
+  /** Data yang disimpan */
   data: any;
+  /** Timestamp pembuatan */
   timestamp: number;
 }
 
+/**
+ * Hook untuk manajemen penyimpanan offline menggunakan IndexedDB
+ * @returns Object dengan status online, item pending, dan fungsi-fungsi operasi
+ * @example
+ * ```tsx
+ * const { isOnline, pendingCount, saveForLater, syncNow } = useOfflineStorage();
+ * 
+ * if (!isOnline) {
+ *   await saveForLater('report', reportData);
+ * } else {
+ *   await syncNow();
+ * }
+ * ```
+ */
 export function useOfflineStorage() {
   const [isOnline, setIsOnline] = useState(true);
   const [pendingItems, setPendingItems] = useState<OfflineData[]>([]);

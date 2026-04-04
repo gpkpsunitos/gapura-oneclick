@@ -173,7 +173,8 @@ export async function GET(request: Request) {
             divisionData,
             statusData,
             trendData,
-            // categoryData could be added similarly
+        }, {
+            headers: { 'Cache-Control': 'private, no-cache' },
         });
 
     } catch (error) {

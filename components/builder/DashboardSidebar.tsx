@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen sidebar untuk navigasi dashboard dengan fitur collapse
+ */
+
 'use client';
 
 import { useState } from 'react';
@@ -5,14 +12,34 @@ import Image from 'next/image';
 import { Menu, ChevronLeft, LayoutDashboard, FileText, BarChart3 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/**
+ * Props untuk komponen DashboardSidebar
+ * @interface DashboardSidebarProps
+ */
 interface DashboardSidebarProps {
+  /** Index halaman yang aktif */
   activePage: number;
+  /** Fungsi handler saat halaman berubah */
   onPageChange: (index: number) => void;
+  /** Range tahun untuk ditampilkan */
   yearRange?: string;
 }
 
 const GAPURA_GREEN = '#6b8e3d';
 
+/**
+ * Komponen sidebar untuk navigasi dashboard
+ * @param props - Props untuk dashboard sidebar
+ * @returns JSX element sidebar dengan navigasi
+ * @example
+ * ```tsx
+ * <DashboardSidebar
+ *   activePage={0}
+ *   onPageChange={handlePageChange}
+ *   yearRange="2024"
+ * />
+ * ```
+ */
 export function DashboardSidebar({ activePage, onPageChange, yearRange = '' }: DashboardSidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
 
@@ -38,7 +65,7 @@ export function DashboardSidebar({ activePage, onPageChange, yearRange = '' }: D
               alt="Gapura" 
               height={24} 
               width={100} 
-              style={{ objectFit: 'contain' }} 
+              style={{ objectFit: 'contain', width: 'auto', height: 'auto' }} 
             />
           </div>
         )}

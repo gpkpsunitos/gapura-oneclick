@@ -1,37 +1,92 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen pie/donut chart responsif yang menggunakan Recharts
+ * untuk visualisasi data proporsional dengan dukungan labels dan legenda.
+ */
+
 'use client';
 
 import { useMemo } from 'react';
-import { Pie, Doughnut } from 'react-chartjs-2';
 import { PieChart, Pie as RechartsPie, Cell, Tooltip, Legend, ResponsiveContainer as RechartsContainer } from 'recharts';
-import { useViewport } from '@/hooks/useViewport';
-import { adaptToPieChartData } from '@/lib/utils/chartAdapters';
-import { defaultMobileChartOptions, chartColors } from './chartConfig';
 import { cn } from '@/lib/utils';
+
+/** Warna fixed untuk rank donut chart */
 const FIXED_DONUT_RANK_COLORS = ['#81c784', '#13b5cb', '#cddc39'];
+/** Warna fallback untuk donut chart */
 const DONUT_FALLBACK_COLORS = ['#66bb6a', '#9ccc65', '#aed581', '#4db6ac', '#80cbc4'];
+
+/** Palet warna untuk chart */
+const chartColors = {
+  primary: [
+    '#059669',
+    '#0284c7',
+    '#d97706',
+    '#e11d48',
+    '#7c3aed',
+    '#db2777',
+    '#0d9488',
+    '#ea580c',
+  ],
+};
+
+/**
+ * Payload untuk label pie chart
+ * @type PieLabelPayload
+ */
 type PieLabelPayload = {
+  /** Koordinat X center */
   cx?: number;
+  /** Koordinat Y center */
   cy?: number;
+  /** Sudut tengah */
   midAngle?: number;
+  /** Radius luar */
   outerRadius?: number;
+  /** Nilai data */
   value?: number | string;
 };
 
+/**
+ * Props untuk komponen ResponsivePieChart
+ * @interface ResponsivePieChartProps
+ */
 interface ResponsivePieChartProps {
+  /** Data chart */
   data: { name: string; value: number }[];
+  /** Judul chart */
   title?: string;
+  /** Class CSS tambahan */
   className?: string;
+  /** Tinggi chart */
   height?: string;
+  /** Tampilkan sebagai donut */
   donut?: boolean;
+  /** Tampilkan legenda */
   showLegend?: boolean;
+  /** Radius dalam untuk donut */
   innerRadius?: number;
+  /** Tampilkan label sebagai persentase */
   percentageLabels?: boolean;
+  /** Tampilkan label data */
   showDataLabels?: boolean;
 }
 
 /**
- * Responsive Pie/Donut Chart
- * Uses Chart.js on mobile/tablet, Recharts on desktop
+ * Komponen pie/donut chart responsif
+ * Menampilkan pie chart atau donut chart dengan dukungan labels dan legenda
+ * @param ResponsivePieChartProps - Props komponen
+ * @returns JSX element pie chart atau placeholder jika tidak ada data
+ * @example
+ * ```tsx
+ * <ResponsivePieChart
+ *   data={pieData}
+ *   donut={true}
+ *   showLegend={true}
+ *   percentageLabels={true}
+ * />
+ * ```
  */
 export function ResponsivePieChart({
   data,
@@ -44,55 +99,11 @@ export function ResponsivePieChart({
   percentageLabels = false,
   showDataLabels = true,
 }: ResponsivePieChartProps) {
-  const { isMobile, isTablet } = useViewport();
-  const useMobileCharts = donut ? false : (isMobile || isTablet);
   const displayData = useMemo(() => {
     if (!donut) return data;
     return [...data].sort((a, b) => b.value - a.value);
   }, [data, donut]);
   const total = useMemo(() => displayData.reduce((s, v) => s + (v?.value || 0), 0), [displayData]);
-
-  // Prepare Chart.js data
-  const chartJSData = useMemo(() => {
-    const base = adaptToPieChartData(displayData);
-    if (!donut || !base.datasets?.[0]) return base;
-    const rankedColors = displayData.map((_, index) => {
-      if (index < FIXED_DONUT_RANK_COLORS.length) return FIXED_DONUT_RANK_COLORS[index];
-      return DONUT_FALLBACK_COLORS[(index - FIXED_DONUT_RANK_COLORS.length) % DONUT_FALLBACK_COLORS.length];
-    });
-    return {
-      ...base,
-      datasets: [
-        {
-          ...base.datasets[0],
-          backgroundColor: rankedColors,
-          borderColor: rankedColors,
-        },
-      ],
-    };
-  }, [displayData, donut]);
-
-  // Chart.js options
-  const chartJSOptions = useMemo(() => {
-    const baseOptions = { ...defaultMobileChartOptions };
-    return {
-      ...baseOptions,
-      plugins: {
-        ...baseOptions.plugins,
-        legend: {
-          ...baseOptions.plugins?.legend,
-          display: showLegend,
-          position: 'bottom',
-        },
-        title: title ? {
-          display: true,
-          text: title,
-          font: { size: 12 },
-          padding: { bottom: 10 },
-        } : undefined,
-      },
-    };
-  }, [showLegend, title]);
 
   if (!displayData || displayData.length === 0 || total === 0) {
     return (
@@ -102,19 +113,6 @@ export function ResponsivePieChart({
     );
   }
 
-  if (useMobileCharts) {
-    return (
-      <div className={cn('w-full', height, className)}>
-        {donut ? (
-          <Doughnut data={chartJSData as unknown} options={chartJSOptions as unknown} />
-        ) : (
-          <Pie data={chartJSData as unknown} options={chartJSOptions as unknown} />
-        )}
-      </div>
-    );
-  }
-
-  // Desktop: Use Recharts
   return (
     <div className={cn('w-full', className)}>
       {title ? <div className="text-[10px] font-bold text-gray-600 mb-2">{title}</div> : null}

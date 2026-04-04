@@ -1,5 +1,13 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi export semua komponen UI dari direktori ini
+ * Menyediakan akses terpusat ke semua komponen UI untuk import yang mudah
+ */
+
 // Prism Protocol UI Components
-// Premium design system with spring physics and glassmorphism
+// Premium design system dengan spring physics dan glassmorphism
 
 export { PrismButton } from './PrismButton';
 export type { PrismButtonProps, ButtonVariant, ButtonSize } from './PrismButton';

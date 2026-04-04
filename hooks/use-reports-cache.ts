@@ -1,4 +1,12 @@
 
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi hook React untuk manajemen cache laporan dengan dukungan offline
+ * menggunakan SWR dan LocalStorage untuk performa optimal
+ */
+
 import useSWR, { SWRConfiguration } from 'swr';
 import { Report } from '@/types';
 import { useEffect, useState } from 'react';
@@ -6,11 +14,27 @@ import { buildPwaScopedStorageKey } from '@/lib/pwa/client-state';
 
 const STORAGE_KEY = 'reports-cache-v3';
 
+/**
+ * Struktur data cache untuk menyimpan laporan dan timestamp
+ * @interface CacheData
+ */
 interface CacheData {
+  /** Array laporan yang di-cache */
   data: Report[];
+  /** Timestamp pembuatan cache */
   timestamp: number;
 }
 
+/**
+ * Fetcher untuk mengambil data laporan dari API
+ * @param url - URL endpoint API
+ * @returns Promise yang berisi array laporan
+ * @throws Error jika fetch gagal
+ * @example
+ * ```ts
+ * const reports = await fetcher('/api/reports');
+ * ```
+ */
 const fetcher = async (url: string) => {
   const res = await fetch(url);
   if (!res.ok) throw new Error('Failed to fetch reports');
@@ -24,6 +48,19 @@ const fetcher = async (url: string) => {
   return [];
 };
 
+/**
+ * Hook untuk mengambil dan meng-cache data laporan dengan dukungan offline
+ * @param url - URL endpoint API untuk mengambil laporan
+ * @param options - Konfigurasi tambahan untuk SWR
+ * @returns Object berisi data laporan, status loading, error, dan fungsi refresh
+ * @example
+ * ```tsx
+ * const { reports, isLoading, isError, refresh } = useReportsData('/api/reports');
+ * if (isLoading) return <Loading />;
+ * if (isError) return <Error />;
+ * return <ReportList reports={reports} />;
+ * ```
+ */
 export function useReportsData(url: string = '/api/reports', options?: SWRConfiguration) {
   const STORAGE_KEY_WITH_URL =
     typeof window !== 'undefined'
@@ -70,8 +107,6 @@ export function useReportsData(url: string = '/api/reports', options?: SWRConfig
         } catch(e) {}
       }
   }, [url]); // Re-run when url changes
-
-  useEffect(() => {}, []);
 
   // Sync offline status
   useEffect(() => {

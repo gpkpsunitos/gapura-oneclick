@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman AI Chatbot untuk Quick Access dengan antarmuka obrolan interaktif
+ * yang menyediakan bantuan cepat untuk pengguna publik
+ */
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -5,6 +12,9 @@ import GuestNav from '@/components/GuestNav';
 import { Bot, Sparkles, Send, Paperclip, Mic } from 'lucide-react';
 import Link from 'next/link';
 
+/**
+ * Tipe data untuk pesan chat
+ */
 type ChatMessage = {
   id: string;
   role: 'user' | 'assistant';
@@ -12,6 +22,9 @@ type ChatMessage = {
   ts: number;
 };
 
+/**
+ * Daftar saran pertanyaan untuk pengguna
+ */
 const SUGGESTIONS = [
   'Cara buat laporan irregularity',
   'Cek status laporan terakhir',
@@ -20,6 +33,10 @@ const SUGGESTIONS = [
   'Langkah upload bukti foto'
 ];
 
+/**
+ * Halaman AI Chatbot untuk Quick Access
+ * @returns Komponen React
+ */
 export default function AIChatbotPage() {
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
@@ -37,12 +54,18 @@ export default function AIChatbotPage() {
   const [sending, setSending] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
 
+  /**
+   * Menentukan apakah pesan dapat dikirim
+   */
   const canSend = input.trim().length > 0 && !sending;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length, sending]);
 
+  /**
+   * Tema tampilan untuk chatbot
+   */
   const theme = useMemo(
     () => ({
       bg:
@@ -54,6 +77,10 @@ export default function AIChatbotPage() {
     []
   );
 
+  /**
+   * Menangani pengiriman pesan chat
+   * @param text - Teks pesan (opsional, default menggunakan input)
+   */
   const handleSend = async (text?: string) => {
     const content = (text ?? input).trim();
     if (!content || sending) return;
@@ -74,7 +101,7 @@ export default function AIChatbotPage() {
             ? 'Kontak cabang terdekat dapat ditemukan berdasarkan kode station. Jika Anda tahu kodenya (misal CGK, DPS, SUB), sebutkan dan saya bantu arahkan. Untuk panduan umum, gunakan form Quick Access lalu pilih station yang sesuai.'
             : content.toLowerCase().includes('kategori') || content.toLowerCase().includes('apron') || content.toLowerCase().includes('terminal') || content.toLowerCase().includes('cargo')
             ? 'Kategori ringkas: Terminal untuk area terminal penumpang, Apron untuk kegiatan ramp dan GSE, Cargo untuk proses acceptance hingga delivery. Jika ragu, pilih General lalu jelaskan pada deskripsi.'
-            : 'Saya akan membantu menjawab pertanyaan Anda dengan panduan praktis Quick Access. Coba ketik: “Cara buat laporan irregularity”.',
+            : 'Saya akan membantu menjawab pertanyaan Anda dengan panduan praktis Quick Access. Coba ketik: "Cara buat laporan irregularity".',
         ts: Date.now()
       };
       await new Promise((r) => setTimeout(r, 500));

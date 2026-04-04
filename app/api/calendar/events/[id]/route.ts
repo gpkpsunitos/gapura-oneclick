@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengelola event kalender per ID
+ */
+
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
@@ -7,8 +14,17 @@ import { isValidUrl } from '@/lib/utils/calendar-utils';
 
 /**
  * GET /api/calendar/events/[id]
- * Fetch a single calendar event by ID
- * Auth: ANALYST or DIVISI_OS roles only
+ * 
+ * Mengambil satu event kalender berdasarkan ID
+ * Hanya role ANALYST dan DIVISI_OS yang dapat mengakses
+ * 
+ * @param request - Objek request HTTP
+ * @param params - Parameter route berisi ID event
+ * @returns Promise<NextResponse> - Response JSON berisi data event atau error
+ * @throws Mengembalikan 401 jika tidak terautentikasi
+ * @throws Mengembalikan 403 jika role tidak memiliki izin
+ * @throws Mengembalikan 404 jika event tidak ditemukan
+ * @throws Mengembalikan 500 jika terjadi error server
  */
 export async function GET(
   request: Request,
@@ -80,7 +96,9 @@ export async function GET(
     };
 
     console.log(`[CALENDAR_API] Fetched event: ${id}`);
-    return NextResponse.json(event);
+    return NextResponse.json(event, {
+        headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+    });
   } catch (error) {
     console.error('[CALENDAR_API] Error in GET /api/calendar/events/[id]:', error);
     return NextResponse.json(
@@ -92,18 +110,24 @@ export async function GET(
 
 /**
  * PATCH /api/calendar/events/[id]
- * Update a calendar event (single or all recurring)
- * Auth: ANALYST or DIVISI_OS roles only
- *
- * Request body:
- * {
- *   title?: string (max 200 chars)
- *   event_date?: string (ISO date YYYY-MM-DD)
- *   event_time?: string (HH:MM format)
- *   notes?: string (max 2000 chars)
- *   meeting_minutes_link?: string (valid HTTP(S) URL)
- *   edit_scope?: 'single' | 'all' (for recurring events)
- * }
+ * 
+ * Memperbarui event kalender (single atau semua recurring)
+ * Hanya role ANALYST yang dapat memperbarui event
+ * 
+ * @param request - Objek request HTTP dengan body berisi data update:
+ *   - title: Judul event (max 200 karakter)
+ *   - event_date: Tanggal event (ISO date YYYY-MM-DD)
+ *   - event_time: Waktu event (HH:MM format)
+ *   - notes: Catatan (max 2000 karakter)
+ *   - meeting_minutes_link: Link notulen rapat (valid HTTP(S) URL)
+ *   - edit_scope: 'single' | 'all' untuk event recurring
+ * @param params - Parameter route berisi ID event
+ * @returns Promise<NextResponse> - Response JSON berisi event yang diperbarui atau error
+ * @throws Mengembalikan 401 jika tidak terautentikasi
+ * @throws Mengembalikan 403 jika role bukan ANALYST
+ * @throws Mengembalikan 400 jika data tidak valid
+ * @throws Mengembalikan 404 jika event tidak ditemukan
+ * @throws Mengembalikan 500 jika terjadi error server
  */
 export async function PATCH(
   request: Request,
@@ -320,11 +344,18 @@ export async function PATCH(
 
 /**
  * DELETE /api/calendar/events/[id]
- * Soft delete a calendar event (single or all recurring)
- * Auth: ANALYST or DIVISI_OS roles only
- *
- * Query params:
- * - scope: 'single' | 'all' (default: 'single')
+ * 
+ * Melakukan soft delete pada event kalender (single atau semua recurring)
+ * Hanya role ANALYST yang dapat menghapus event
+ * 
+ * @param request - Objek request HTTP dengan query parameters:
+ *   - scope: 'single' | 'all' (default: 'single')
+ * @param params - Parameter route berisi ID event
+ * @returns Promise<NextResponse> - Response JSON berisi status penghapusan atau error
+ * @throws Mengembalikan 401 jika tidak terautentikasi
+ * @throws Mengembalikan 403 jika role bukan ANALYST
+ * @throws Mengembalikan 404 jika event tidak ditemukan
+ * @throws Mengembalikan 500 jika terjadi error server
  */
 export async function DELETE(
   request: Request,

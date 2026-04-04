@@ -1,14 +1,36 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi katalog chart yang tersedia di sistem, termasuk
+ * metadata dan fungsi untuk mencari chart berdasarkan slug atau kategori
+ */
+
+/**
+ * Interface untuk entri katalog chart
+ */
 export interface ChartCatalogEntry {
+  /** Slug unik untuk identifikasi chart */
   slug: string;
+  /** Judul chart */
   title: string;
+  /** Deskripsi singkat chart */
   description?: string;
+  /** Path URL untuk halaman detail chart */
   detailPath: string;
+  /** Kategori chart */
   category: string;
+  /** Sumber data (Google Sheets atau Database) */
   dataSource: 'google-sheets' | 'database';
+  /** ID sheet Google Sheets (jika menggunakan Google Sheets) */
   sheetId?: string;
+  /** Range data pada Google Sheets */
   sheetRange?: string;
 }
 
+/**
+ * Daftar katalog chart yang tersedia
+ */
 export const chartCatalog: ChartCatalogEntry[] = [
   {
     slug: 'report-by-case-category',
@@ -92,10 +114,22 @@ export const chartCatalog: ChartCatalogEntry[] = [
   },
 ];
 
+/**
+ * Mencari chart berdasarkan slug
+ * 
+ * @param slug - Slug chart yang dicari
+ * @returns Object chart atau undefined jika tidak ditemukan
+ */
 export function getChartBySlug(slug: string): ChartCatalogEntry | undefined {
   return chartCatalog.find(chart => chart.slug === slug);
 }
 
+/**
+ * Mengambil daftar chart berdasarkan kategori
+ * 
+ * @param category - Kategori chart
+ * @returns Array chart dalam kategori tersebut
+ */
 export function getChartsByCategory(category: string): ChartCatalogEntry[] {
   return chartCatalog.filter(chart => chart.category === category);
 }

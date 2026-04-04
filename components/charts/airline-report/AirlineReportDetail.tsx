@@ -36,20 +36,7 @@ import {
   ResponsiveContainer, 
   Bar as RechartsBar 
 } from 'recharts';
-import { barLabelsPlugin } from '../chartConfig';
-import { Bar, Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
+import { LineChart, Line as RechartsLine } from 'recharts';
 import { 
   ArrowUp, 
   ArrowDown, 
@@ -67,19 +54,9 @@ import { AiRootCauseInvestigation } from '../ai-root-cause/AiRootCauseInvestigat
 import { AirlineAIVisualization } from '@/components/chart-detail/ai/AirlineAIVisualization';
 import { motion } from 'framer-motion';
 import type { QueryResult } from '@/types/builder';
+import { sanitizeTableCell } from '@/lib/security/sanitize';
 
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
 
 interface FilterParams {
   hub?: string;
@@ -234,56 +211,29 @@ function AirlineRankTable({ data }: { data: AirlineSummary[] }) {
 }
 
 function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
-  const chartData = {
-    labels: data.map(d => d.month),
-    datasets: [
-      {
-        label: 'Total',
-        data: data.map(d => d.total),
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: 'Irregularity',
-        data: data.map(d => d.Irregularity),
-        borderColor: '#ef4444',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: 'Complaint',
-        data: data.map(d => d.Complaint),
-        borderColor: '#f97316',
-        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-    ],
-  };
+  const rechartsData = data.map(d => ({
+    name: d.month,
+    Total: d.total,
+    Irregularity: d.Irregularity,
+    Complaint: d.Complaint,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { usePointStyle: true, padding: 20, font: { size: 11 } },
-      },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-      y: { 
-        grid: { color: 'rgba(0,0,0,0.05)' }, 
-        ticks: { font: { size: 10 } },
-        suggestedMax: data.length > 0 ? Math.max(...data.map(d => Math.max(d.total, d.Irregularity, d.Complaint, d.Compliment))) * 1.2 : undefined
-      },
-    },
-  };
-
-  return <div className="h-[250px]"><Line data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[250px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsLegend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+          <RechartsLine type="monotone" dataKey="Total" stroke="#3b82f6" strokeWidth={2} dot={false} />
+          <RechartsLine type="monotone" dataKey="Irregularity" stroke="#ef4444" strokeWidth={2} dot={false} />
+          <RechartsLine type="monotone" dataKey="Complaint" stroke="#f97316" strokeWidth={2} dot={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 
@@ -296,127 +246,102 @@ function BranchDistributionChart({ data }: { data: BranchByAirlineData[] }) {
     }, new Map<string, number>())
   ).sort((a, b) => b[1] - a[1]).slice(0, 12);
 
-  const chartData = {
-    labels: topBranches.map(([branch]) => branch.split(' ')),
-    datasets: [{
-      label: 'Reports',
-      data: topBranches.map(([, count]) => count),
-      backgroundColor: '#3b82f6',
-      borderRadius: 4,
-    }],
-  };
+  const rechartsData = topBranches.map(([branch, count]) => ({
+    name: branch,
+    Reports: count,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { 
-        grid: { color: 'rgba(0,0,0,0.05)' }, 
-        ticks: { font: { size: 10 } },
-        suggestedMax: topBranches.length > 0 ? Math.max(...topBranches.map(d => d[1])) * 1.15 : undefined 
-      },
-    },
-  };
-
-  return <div className="h-[300px]"><Bar data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsBar dataKey="Reports" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 // ─── Category Stacked Bar: Irregularity/Complaint/Compliment per Airline ───
 function CategoryStackedBar({ data }: { data: AirlineCategoryData[] }) {
-  const chartData = {
-    labels: data.slice(0, 10).map(d => d.airline.split(' ')),
-    datasets: [
-      { label: 'Irregularity', data: data.slice(0, 10).map(d => d.Irregularity), backgroundColor: '#ef4444', borderRadius: 4 },
-      { label: 'Complaint', data: data.slice(0, 10).map(d => d.Complaint), backgroundColor: '#f97316', borderRadius: 4 },
-      { label: 'Compliment', data: data.slice(0, 10).map(d => d.Compliment), backgroundColor: '#22c55e', borderRadius: 4 },
-    ],
-  };
+  const rechartsData = data.slice(0, 10).map(d => ({
+    name: d.airline,
+    Irregularity: d.Irregularity,
+    Complaint: d.Complaint,
+    Compliment: d.Compliment,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: {
-      legend: { position: 'bottom' as const, labels: { usePointStyle: true, padding: 15, font: { size: 10 } } },
-    },
-    scales: {
-      x: { stacked: false, grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: {
-        stacked: false,
-        grid: { color: 'rgba(0,0,0,0.05)' },
-        ticks: { font: { size: 10 } },
-        suggestedMax: data.length > 0 ? Math.max(...data.slice(0, 10).map(d => Math.max(d.Irregularity, d.Complaint, d.Compliment))) * 1.15 : undefined
-      },
-    },
-  };
-
-  return <div className="h-[300px]"><Bar data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsLegend wrapperStyle={{ fontSize: 10, paddingTop: 5 }} />
+          <RechartsBar dataKey="Irregularity" fill="#ef4444" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Complaint" fill="#f97316" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Compliment" fill="#22c55e" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 // ─── Top 10 Airlines Category Breakdown (Vertical Grouped Bar) ───
 function Top10AirlinesCategoryChart({ data }: { data: AirlineCategoryBreakdown[] }) {
-  const chartData = {
-    labels: data.map(d => d.airline.split(' ')),
-    datasets: [
-      { label: 'Irregularity', data: data.map(d => d.irregularity), backgroundColor: '#ef4444', borderRadius: 4 },
-      { label: 'Complaint', data: data.map(d => d.complaint), backgroundColor: '#f97316', borderRadius: 4 },
-      { label: 'Compliment', data: data.map(d => d.compliment), backgroundColor: '#22c55e', borderRadius: 4 },
-    ],
-  };
+  const rechartsData = data.map(d => ({
+    name: d.airline,
+    Irregularity: d.irregularity,
+    Complaint: d.complaint,
+    Compliment: d.compliment,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: {
-      legend: { position: 'bottom' as const, labels: { usePointStyle: true, padding: 15, font: { size: 10 } } },
-    },
-    scales: {
-      x: {
-        stacked: false,
-        grid: { display: false },
-        ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 }
-      },
-      y: {
-        stacked: false,
-        grid: { color: 'rgba(0,0,0,0.05)' },
-        ticks: { font: { size: 10 } }
-      },
-    },
-  };
-
-  return <div className="h-[400px]"><Bar data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[400px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsLegend wrapperStyle={{ fontSize: 10, paddingTop: 5 }} />
+          <RechartsBar dataKey="Irregularity" fill="#ef4444" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Complaint" fill="#f97316" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Compliment" fill="#22c55e" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 // ─── Pareto Root Cause: vertical bar counts ───
 
 // ─── Area Breakdown Chart ───
 function AreaBreakdownChart({ data }: { data: AreaByAirlineData[] }) {
-  const chartData = {
-    labels: data.map(d => d.area.split(' ')),
-    datasets: [{
-      label: 'Reports',
-      data: data.map(d => d.count),
-      backgroundColor: ['#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899', '#10b981', '#6366f1'],
-      borderRadius: 4,
-    }],
-  };
+  const rechartsData = data.map(d => ({
+    name: d.area,
+    Reports: d.count,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } },
-           suggestedMax: data.length > 0 ? Math.max(...data.map(d => d.count)) * 1.15 : undefined },
-    },
-  };
-
-  return <div className="h-[200px]"><Bar data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[200px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsBar dataKey="Reports" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 function DataTable({ data }: { data: AirlineReportRecord[] }) {
@@ -526,7 +451,7 @@ function DataTable({ data }: { data: AirlineReportRecord[] }) {
               <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
                 {columns.map(col => (
                   col === 'Evidence' ? (
-                    <td key={col} className="px-4 py-2.5 text-gray-700" dangerouslySetInnerHTML={{ __html: row[col] as string || '-' }} />
+                    <td key={col} className="px-4 py-2.5 text-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeTableCell(row[col]) }} />
                   ) : (
                     <td key={col} className="px-4 py-2.5 text-gray-700">{row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'}</td>
                   )
@@ -609,21 +534,23 @@ function ManagementSummary({ data }: { data: AirlineSummary[] }) {
 export default function AirlineReportDetail({ filters = {} }: { filters?: FilterParams }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [airlineData, setAirlineData] = useState<AirlineSummary[]>([]);
-  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
-  const [branchData, setBranchData] = useState<BranchByAirlineData[]>([]);
-  const [rootCauseData, setRootCauseData] = useState<RootCauseByAirlineData[]>([]);
-  const [tableData, setTableData] = useState<AirlineReportRecord[]>([]);
-  const [categoryData, setCategoryData] = useState<AirlineCategoryData[]>([]);
-  const [areaData, setAreaData] = useState<AreaByAirlineData[]>([]);
-  const [paretoData, setParetoData] = useState<RootCauseParetoData[]>([]);
-  const [categoryBreakdown, setCategoryBreakdown] = useState<AirlineCategoryBreakdown[]>([]);
+  const [tableLoading, setTableLoading] = useState(false);
+  const [chartData, setChartData] = useState({
+    airlineData: [] as AirlineSummary[],
+    trendData: [] as TrendDataPoint[],
+    branchData: [] as BranchByAirlineData[],
+    rootCauseData: [] as RootCauseByAirlineData[],
+    tableData: [] as AirlineReportRecord[],
+    categoryData: [] as AirlineCategoryData[],
+    areaData: [] as AreaByAirlineData[],
+    paretoData: [] as RootCauseParetoData[],
+    categoryBreakdown: [] as AirlineCategoryBreakdown[],
+    aiRiskHeatmap: [] as any[],
+  });
   const [kpis, setKpis] = useState<AirlineKPIs | null>(null);
   const [aiRiskSummary, setAiRiskSummary] = useState<AiRiskSummary | null>(null);
-  const [aiRiskHeatmap, setAiRiskHeatmap] = useState<any[]>([]);
-  const [tableLoading, setTableLoading] = useState(false);
   const investigativeData: QueryResult = useMemo(() => {
-    const rows = tableData as unknown as Record<string, unknown>[];
+    const rows = chartData.tableData as unknown as Record<string, unknown>[];
     const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
     return {
@@ -632,9 +559,9 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
       rowCount: rows.length,
       executionTimeMs: 0,
     };
-  }, [tableData]);
+  }, [chartData.tableData]);
   const fullTableData: QueryResult = useMemo(() => {
-    const rows = airlineData.map(item => ({ ...item })) as unknown as Record<string, unknown>[];
+    const rows = chartData.airlineData.map(item => ({ ...item })) as unknown as Record<string, unknown>[];
     const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
     return {
@@ -643,7 +570,7 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
       rowCount: rows.length,
       executionTimeMs: 0,
     };
-  }, [airlineData]);
+  }, [chartData.airlineData]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -656,10 +583,13 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
         const aggregated = await fetchAggregatedAirlineReport(filters as any);
         
         if (aggregated && aggregated.airlineData) {
-          setAirlineData(aggregated.airlineData);
-          setTrendData(aggregated.trendData || []);
-          setCategoryBreakdown(aggregated.categoryBreakdown || []);
-          setCategoryData(aggregated.categoryData || []);
+          setChartData(prev => ({
+            ...prev,
+            airlineData: aggregated.airlineData,
+            trendData: aggregated.trendData || [],
+            categoryBreakdown: aggregated.categoryBreakdown || [],
+            categoryData: aggregated.categoryData || [],
+          }));
           setKpis(aggregated.kpis);
         } else {
           throw new Error('Invalid aggregated airline data');
@@ -678,7 +608,7 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
                   count: count
                 }))
               );
-              setAiRiskHeatmap(heatmapData);
+              setChartData(prev => ({ ...prev, aiRiskHeatmap: heatmapData }));
             }
           }
         }).catch(err => {
@@ -715,11 +645,14 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
           fetchAreaByAirline(filters as any),
           fetchRootCausePareto(filters as any),
         ]);
-        setBranchData(branch);
-        setRootCauseData(rootCause);
-        setTableData(table);
-        setAreaData(area);
-        setParetoData(pareto);
+        setChartData(prev => ({
+          ...prev,
+          branchData: branch,
+          rootCauseData: rootCause,
+          tableData: table,
+          areaData: area,
+          paretoData: pareto,
+        }));
       } catch (err) {
         console.error('Failed to load deferred airline data:', err);
       } finally {
@@ -749,22 +682,22 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
     );
   }
 
-  const totalReports = airlineData.reduce((sum: number, a: any) => sum + a.total, 0);
-  const totalIrreg = airlineData.reduce((sum: number, a: any) => sum + a.irregularity, 0);
-  const totalComplaint = airlineData.reduce((sum: number, a: any) => sum + a.complaint, 0);
-  const totalCompliment = airlineData.reduce((sum: number, a: any) => sum + a.compliment, 0);
+  const totalReports = chartData.airlineData.reduce((sum: number, a: any) => sum + a.total, 0);
+  const totalIrreg = chartData.airlineData.reduce((sum: number, a: any) => sum + a.irregularity, 0);
+  const totalComplaint = chartData.airlineData.reduce((sum: number, a: any) => sum + a.complaint, 0);
+  const totalCompliment = chartData.airlineData.reduce((sum: number, a: any) => sum + a.compliment, 0);
 
   const overallIrregRate = totalReports > 0 ? (totalIrreg / totalReports) * 100 : 0;
   const overallNetSentiment = (totalCompliment + totalComplaint) > 0 
     ? ((totalCompliment - totalComplaint) / (totalCompliment + totalComplaint)) * 100 
     : 0;
 
-  const avgRiskIndex = airlineData.length > 0 ? airlineData.reduce((sum: number, a: any) => sum + a.riskIndex, 0) / airlineData.length : 0;
+  const avgRiskIndex = chartData.airlineData.length > 0 ? chartData.airlineData.reduce((sum: number, a: any) => sum + a.riskIndex, 0) / chartData.airlineData.length : 0;
 
   return (
     <div className="space-y-8">
       {/* Auto-Insight Block */}
-      <AutoInsight data={airlineData} />
+      <AutoInsight data={chartData.airlineData} />
 
       {/* Task 3: New Custom KPIs */}
       {kpis && kpis.totalAirlines > 0 && (
@@ -790,11 +723,11 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
       )}
 
       {/* Task 3: Top 10 Airlines Category Breakdown Chart */}
-      {categoryBreakdown && (
+      {chartData.categoryBreakdown && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-1">Top 10 Airlines - Category Breakdown</h2>
           <p className="text-xs text-gray-500 mb-4">Stacked distribution of Irregularity, Complaint, and Compliment</p>
-          <Top10AirlinesCategoryChart data={categoryBreakdown} />
+          <Top10AirlinesCategoryChart data={chartData.categoryBreakdown} />
         </section>
       )}
 
@@ -812,22 +745,22 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
         />
         <KPICard
           title="Top Airline"
-          value={airlineData[0]?.airline || '-'}
-          subtitle={`#1 with ${airlineData[0]?.total || 0} reports`}
+          value={chartData.airlineData[0]?.airline || '-'}
+          subtitle={`#1 with ${chartData.airlineData[0]?.total || 0} reports`}
         />
       </div>
 
       {/* Airline Ranking Table */}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Airline Performance Ranking</h2>
-        <AirlineRankTable data={airlineData} />
+        <AirlineRankTable data={chartData.airlineData} />
       </section>
 
 
       {/* Monthly Trend */}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Monthly Trend (Stability Check)</h2>
-        <MonthlyTrendChart data={trendData} />
+        <MonthlyTrendChart data={chartData.trendData} />
       </section>
 
       {/* Split View: Category Composition & Branch Distribution */}
@@ -835,17 +768,17 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-1">Category Composition by Airline</h2>
           <p className="text-xs text-gray-500 mb-4">Stacked Irregularity / Complaint / Compliment per airline</p>
-          <CategoryStackedBar data={categoryData} />
+          <CategoryStackedBar data={chartData.categoryData} />
         </section>
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-1">Branch Distribution</h2>
           <p className="text-xs text-gray-500 mb-4">Are issues systemic or specific to one location?</p>
-          <BranchDistributionChart data={branchData} />
+          <BranchDistributionChart data={chartData.branchData} />
         </section>
       </div>
 
             {/* AI Risk Heatmap */}
-      {aiRiskHeatmap.length > 0 && (
+      {chartData.aiRiskHeatmap.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <div className="flex items-center gap-2 mb-1">
             <Brain className="w-5 h-5 text-emerald-600" />
@@ -854,7 +787,7 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
           <p className="text-xs text-gray-500 mb-4">Proactive risk analysis by severity across airlines</p>
           <div className="h-[400px]">
             <HeatmapChart 
-              data={aiRiskHeatmap}
+              data={chartData.aiRiskHeatmap}
               xAxis="severity"
               yAxis="airline"
               metric="count"
@@ -888,13 +821,13 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Area Breakdown</h2>
-          <AreaBreakdownChart data={areaData} />
+          <AreaBreakdownChart data={chartData.areaData} />
         </section>
         <div /> {/* Spacer for layout symmetry */}
       </div>
 
       {/* Management Summary */}
-      <ManagementSummary data={airlineData} />
+      <ManagementSummary data={chartData.airlineData} />
 
       {/* Investigative Table */}
       <InvestigativeTable

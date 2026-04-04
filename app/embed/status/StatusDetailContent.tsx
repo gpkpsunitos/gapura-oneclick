@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen untuk menampilkan status laporan dan analisis SLA
+ */
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -7,6 +14,9 @@ import { DateRangeFilter } from '@/components/embed/DateRangeFilter';
 import { EmbedCard } from '@/components/embed/EmbedCard';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
+/**
+ * Interface untuk data laporan
+ */
 interface Report {
   id: string;
   title: string;
@@ -18,19 +28,32 @@ interface Report {
   sla_deadline: string | null;
 }
 
+/**
+ * Interface untuk response API laporan
+ */
 interface ReportsResponse {
   summary: { total: number; byStatus: Record<string, number>; bySeverity: Record<string, number> };
   reports: Report[];
 }
 
+/** Konfigurasi status dengan label, warna, dan class CSS */
 const STATUS_CONFIG: Record<string, { label: string; color: string; class: string }> = {
   'OPEN': { label: 'Open', color: '#fbbf24', class: 'pending' },
   'ON PROGRESS': { label: 'Dalam Proses', color: '#60a5fa', class: 'verified' },
   'CLOSED': { label: 'Selesai', color: '#22c55e', class: 'completed' }
 };
+
+/** Warna donut chart tetap untuk ranking */
 const FIXED_DONUT_RANK_COLORS = ['#81c784', '#13b5cb', '#cddc39'];
+
+/** Warna fallback donut chart */
 const DONUT_FALLBACK_COLORS = ['#66bb6a', '#9ccc65', '#aed581', '#4db6ac', '#80cbc4'];
 
+/**
+ * Komponen untuk menampilkan status laporan dan analisis SLA
+ * Menampilkan pipeline, SLA compliance, distribusi status, dan daftar laporan
+ * @returns JSX element berisi analisis status
+ */
 export function StatusDetailContent() {
   const searchParams = useSearchParams();
   const range = searchParams.get('range') || '7d';
@@ -39,23 +62,36 @@ export function StatusDetailContent() {
   const [data, setData] = useState<ReportsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   
-  const fetchData = useCallback(async () => {
+  /**
+   * Mengambil data laporan dari API
+   * @param signal - AbortSignal untuk membatalkan request
+   */
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
       const url = statusFilter 
         ? `/api/embed/reports?range=${range}&status=${encodeURIComponent(statusFilter)}`
         : `/api/embed/reports?range=${range}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { signal });
       setData(await res.json());
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
     } finally {
       setLoading(false);
     }
   }, [range, statusFilter]);
   
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    fetchData(signal);
+    const interval = setInterval(() => fetchData(signal), 30000);
+
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, [fetchData]);
   
   if (loading && !data) {

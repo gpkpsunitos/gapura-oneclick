@@ -7,20 +7,7 @@ import {
   SeasonalityForecastResponse,
   SeasonalityCategoryForecast
 } from '@/lib/services/gapura-ai';
-import {
-  Line
-} from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   Activity, 
   Brain, 
@@ -29,17 +16,6 @@ import {
   AlertCircle 
 } from 'lucide-react';
 import type { ComponentType } from 'react';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
 
 // Fallback data
 const FALLBACK_DATA: SeasonalityForecastResponse = {
@@ -126,68 +102,14 @@ function ForecastCard({ data, icon: Icon, colorClass }: { data: SeasonalityCateg
     );
   }
 
-  const chartData = {
-    labels,
-    datasets: [
-      {
-        label: 'Upper Bound',
-        data: upper,
-        borderColor: 'transparent',
-        backgroundColor: 'rgba(0,0,0,0)',
-        pointRadius: 0,
-        fill: '+1', // Fill to next dataset (Lower Bound) - actually tricky in Chart.js without specific plugin sometimes, but let's try standard stacking or just fill to 'origin' if simple. 
-        // Better approach for confidence interval:
-        // Dataset 1: Upper Bound (transparent line, fill to next)
-        // Dataset 2: Lower Bound (transparent line)
-        // Dataset 3: Predicted (visible line)
-      },
-      {
-        label: 'Confidence Interval',
-        data: lower, // We will use this to fill 'from' upper
-        borderColor: 'transparent',
-        backgroundColor: colorClass === 'blue' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-        fill: '-1', // Fill to previous dataset
-        pointRadius: 0,
-      },
-      {
-        label: 'Predicted',
-        data: predicted,
-        borderColor: colorClass === 'blue' ? '#3b82f6' : '#10b981',
-        backgroundColor: colorClass === 'blue' ? '#3b82f6' : '#10b981',
-        borderWidth: 2,
-        tension: 0.4,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      }
-    ]
-  };
+  const rechartsData = labels.map((label, i) => ({
+    name: label,
+    predicted: predicted[i],
+    upper: upper[i],
+    lower: lower[i],
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        mode: 'index' as const,
-        intersect: false,
-        callbacks: {
-          label: (context: any) => {
-            if (context.dataset.label === 'Confidence Interval' || context.dataset.label === 'Upper Bound') return '';
-            return `Predicted: ${context.parsed.y}`;
-          }
-        }
-      }
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, beginAtZero: true, ticks: { font: { size: 10 } } }
-    },
-    interaction: {
-      mode: 'nearest' as const,
-      axis: 'x' as const,
-      intersect: false
-    }
-  };
+  const strokeColor = colorClass === 'blue' ? '#3b82f6' : '#10b981';
 
   return (
     <div className={`rounded-xl border p-5 ${colorClass === 'blue' ? 'bg-blue-50/50 border-blue-100' : 'bg-emerald-50/50 border-emerald-100'}`}>
@@ -218,7 +140,17 @@ function ForecastCard({ data, icon: Icon, colorClass }: { data: SeasonalityCateg
 
       <div className="h-[180px] w-full mb-4">
         {forecasts.length > 0 ? (
-          <Line data={chartData} options={options} />
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={rechartsData} margin={{ top: 5, right: 5, left: -10, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+              <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip />
+              <Line type="monotone" dataKey="upper" stroke={strokeColor} strokeOpacity={0.2} strokeWidth={1} strokeDasharray="4 4" dot={false} />
+              <Line type="monotone" dataKey="lower" stroke={strokeColor} strokeOpacity={0.2} strokeWidth={1} strokeDasharray="4 4" dot={false} />
+              <Line type="monotone" dataKey="predicted" stroke={strokeColor} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
         ) : (
           <div className="h-full w-full flex items-center justify-center text-xs text-gray-500 border border-dashed border-gray-200 rounded-lg">
             Data forecast tidak tersedia

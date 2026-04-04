@@ -21,6 +21,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import type { QueryResult } from '@/types/builder';
 import { formatDisplayValue } from '@/lib/chart-utils';
+import { sanitizeTableCell } from '@/lib/security/sanitize';
 
 
 interface InvestigativeTableProps {
@@ -245,6 +246,7 @@ export function InvestigativeTable({
     a.href = url;
     a.download = `${title.replace(/\s+/g, '_')}_export.csv`;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   return (
@@ -488,7 +490,7 @@ export function InvestigativeTable({
                           
                           return (
                             <td key={col} className={`px-6 py-4 text-[11px] font-medium text-[var(--text-secondary)] border-b border-transparent ${isWide ? 'min-w-[300px]' : ''}`}>
-                              <span dangerouslySetInnerHTML={{ __html: formatDisplayValue(row[col], col) }} />
+                              <span dangerouslySetInnerHTML={{ __html: sanitizeTableCell(formatDisplayValue(row[col], col)) }} />
                             </td>
                           );
                         })}

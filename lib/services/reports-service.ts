@@ -4,9 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import type { Report, ReportStatus, UserRole, Station, Unit, Position, IncidentType } from '@/types';
 import { calculateSlaDeadline } from '@/lib/constants/report-status';
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
-import { promises as fs } from 'fs';
-import path from 'path';
-import crypto from 'crypto';
+
 import { buildReportFingerprint, resolveReportCategory } from '@/lib/report-fingerprint';
 
 // Deterministic Namespace for Google Sheets ID Mapping (Fixed UUID)
@@ -54,34 +52,7 @@ export function getCacheStats() {
   };
 }
 
-const FS_CACHE_DIR = '/tmp/gapura-irrs-cache';
-function fsCachePath(key: string) {
-  const hash = crypto.createHash('sha1').update(key).digest('hex');
-  return path.join(FS_CACHE_DIR, `${hash}.json`);
-}
 
-async function readFsCache<T>(key: string, ttlMs: number): Promise<T | null> {
-  try {
-    const p = fsCachePath(key);
-    const stat = await fs.stat(p).catch(() => null as any);
-    if (!stat) return null;
-    if (Date.now() - stat.mtimeMs > ttlMs) return null;
-    const text = await fs.readFile(p, 'utf-8');
-    return JSON.parse(text) as T;
-  } catch {
-    return null;
-  }
-}
-
-async function writeFsCache(key: string, data: unknown): Promise<void> {
-  try {
-    await fs.mkdir(FS_CACHE_DIR, { recursive: true });
-    const p = fsCachePath(key);
-    await fs.writeFile(p, JSON.stringify(data));
-  } catch {
-    // ignore
-  }
-}
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID || '1TFPZOAWAKubPl7iaUk8BXt2BabY1N-AcLgi-_zBQGzk';
 const REPORT_SHEETS = ['NON CARGO', 'CGO'];
@@ -722,22 +693,10 @@ export class ReportsService {
   }
 
   public invalidateCache() {
-    // Clear memory cache
     const keys = Array.from(ttlCache.keys());
     keys.forEach((k) => {
       if (k.startsWith(CACHE_KEY_ALL_REPORTS)) ttlCache.delete(k);
     });
-    
-    // Clear file system cache
-    try {
-        const fs = require('fs');
-        if (fs.existsSync(FS_CACHE_DIR)) {
-            fs.rmSync(FS_CACHE_DIR, { recursive: true, force: true });
-        }
-    } catch (err) {
-        console.warn('[ReportsService] Failed to clear FS cache:', err);
-    }
-    
     console.log('[ReportsService] All caches invalidated');
   }
 
@@ -774,7 +733,7 @@ export class ReportsService {
         selectedReports = [];
       }
     } else {
-      selectedReports = await this.fetchReportsFromSync();
+      selectedReports = await this.fetchReportsFromSync(filters);
       console.log(`[ReportsService] Using ${selectedReports.length} reports from reports_sync (${source})`);
     }
 
@@ -878,20 +837,38 @@ export class ReportsService {
   }
 
   // Fetch from reports_sync table (fast path - synced from Google Sheets)
-  private async fetchReportsFromSync(): Promise<Report[]> {
+  private async fetchReportsFromSync(filters?: {
+    dateFrom?: string;
+    dateTo?: string;
+    hub?: string;
+    branch?: string;
+    area?: string;
+    airlines?: string;
+    sourceSheet?: string;
+  }): Promise<Report[]> {
     try {
-      // Fetch all records using pagination (Supabase has 1000 row limit by default)
+      const buildQuery = () => {
+        let q = supabaseAdmin
+          .from('reports_sync')
+          .select('*')
+          .order('date_of_event', { ascending: false });
+        if (filters?.hub && filters.hub !== 'all') q = q.eq('hub', filters.hub);
+        if (filters?.branch && filters.branch !== 'all') q = q.eq('branch', filters.branch);
+        if (filters?.area && filters.area !== 'all') q = q.eq('area', filters.area);
+        if (filters?.airlines && filters.airlines !== 'all') q = q.eq('airlines', filters.airlines);
+        if (filters?.dateFrom) q = q.gte('date_of_event', filters.dateFrom);
+        if (filters?.dateTo) q = q.lte('date_of_event', filters.dateTo);
+        if (filters?.sourceSheet) q = q.eq('source_sheet', filters.sourceSheet);
+        return q;
+      };
+
       const allReports: any[] = [];
       const batchSize = 1000;
       let offset = 0;
       let hasMore = true;
 
       while (hasMore) {
-        const { data, error } = await supabaseAdmin
-          .from('reports_sync')
-          .select('*')
-          .order('date_of_event', { ascending: false })
-          .range(offset, offset + batchSize - 1);
+        const { data, error } = await buildQuery().range(offset, offset + batchSize - 1);
 
         if (error) {
           console.warn('[ReportsService] reports_sync fetch error:', error);
@@ -1097,8 +1074,26 @@ export class ReportsService {
   }
 
   async getReportById(id: string): Promise<Report | null> {
-    const reports = await this.getReports();
-    return reports.find(r => r.id === id || r.original_id === id) || null;
+    const { data, error } = await supabaseAdmin
+      .from('reports_sync')
+      .select('*')
+      .or(`id.eq.${id},original_id.eq.${id}`)
+      .limit(1);
+    if (error || !data || data.length === 0) return null;
+    const row = data[0];
+    return {
+      ...row,
+      id: row.id,
+      sheet_id: row.sheet_id,
+      source_fingerprint: row.source_fingerprint || buildReportFingerprint(row),
+      evidence_urls: row.evidence_urls || (row.evidence_url ? [row.evidence_url] : []),
+      status: row.status || 'OPEN',
+      severity: row.severity || 'low',
+      priority: row.priority || 'low',
+      date_of_event: row.date_of_event || row.incident_date || row.created_at,
+      created_at: row.created_at || new Date().toISOString(),
+      stations: row.station_id ? { code: row.station_id, name: row.station_id } : undefined,
+    } as Report;
   }
 
   private parseId(id: string): { sheetName: string, rowIndex: number } | null {
@@ -1161,40 +1156,31 @@ export class ReportsService {
         return col;
     };
 
-    // Update individual cells based on headers mapping
+    if (['evidence_urls', 'evidence_url', 'video_urls', 'video_url'].some(k => k in updates)) {
+        const currentReport = await this.getReportById(id);
+        if (currentReport) {
+            const existingUrls = [
+                ...(Array.isArray(currentReport.evidence_urls) ? currentReport.evidence_urls : []),
+                ...(currentReport.evidence_url && !Array.isArray(currentReport.evidence_urls) ? [currentReport.evidence_url] : []),
+                ...(Array.isArray(currentReport.video_urls) ? currentReport.video_urls : []),
+                ...(currentReport.video_url && !Array.isArray(currentReport.video_urls) ? [currentReport.video_url] : [])
+            ];
+            const newUrls = [
+                ...(Array.isArray(updates.evidence_urls) ? updates.evidence_urls : []),
+                ...(updates.evidence_url ? [updates.evidence_url] : []),
+                ...(Array.isArray(updates.video_urls) ? updates.video_urls : []),
+                ...(updates.video_url ? [updates.video_url] : [])
+            ];
+            updates.evidence_urls = [...new Set([...existingUrls, ...newUrls])].filter(Boolean);
+        }
+    }
+
+    const batchData: { range: string; values: string[][] }[] = [];
+
     for (const [key, value] of Object.entries(updates)) {
         if (value === undefined) continue;
+        if (key === 'evidence_url' || key === 'video_url' || key === 'video_urls') continue;
 
-        let currentUpdateValue = value;
-
-        // Special handling for evidence_urls and video_urls - merge with existing
-        if (key === 'evidence_urls' || key === 'evidence_url' || key === 'video_urls' || key === 'video_url') {
-            const currentReport = await this.getReportById(id);
-            if (currentReport) {
-                const existingUrls = [
-                    ...(Array.isArray(currentReport.evidence_urls) ? currentReport.evidence_urls : []),
-                    ...(currentReport.evidence_url && !Array.isArray(currentReport.evidence_urls) ? [currentReport.evidence_url] : []),
-                    ...(Array.isArray(currentReport.video_urls) ? currentReport.video_urls : []),
-                    ...(currentReport.video_url && !Array.isArray(currentReport.video_urls) ? [currentReport.video_url] : [])
-                ];
-                
-                const newUrls = [
-                    ...(Array.isArray(updates.evidence_urls) ? updates.evidence_urls : []),
-                    ...(updates.evidence_url ? [updates.evidence_url] : []),
-                    ...(Array.isArray(updates.video_urls) ? updates.video_urls : []),
-                    ...(updates.video_url ? [updates.video_url] : [])
-                ];
-                
-                // Merge and deduplicate
-                const allUrls = [...new Set([...existingUrls, ...newUrls])].filter(Boolean);
-                
-                // Update both evidence_urls and video_urls to ensure all URLs are saved
-                updates.evidence_urls = allUrls;
-                currentUpdateValue = allUrls;
-            }
-        }
-
-        // Find column index for this property
         let colIndex = -1;
         const propHeaders = PROP_TO_HEADER[key as keyof Report];
         
@@ -1216,17 +1202,22 @@ export class ReportsService {
         const colLetter = getColLetter(colIndex);
         const cellRange = `${sheetName}!${colLetter}${rowIndex}`;
         
-        let stringValue: any = currentUpdateValue;
-        if (currentUpdateValue === null || currentUpdateValue === undefined) stringValue = '';
-        else if (Array.isArray(currentUpdateValue)) stringValue = currentUpdateValue.join('\n');
-        else if (typeof currentUpdateValue === 'object') stringValue = JSON.stringify(currentUpdateValue);
-        else stringValue = String(currentUpdateValue);
+        let stringValue: any = value;
+        if (value === null || value === undefined) stringValue = '';
+        else if (Array.isArray(value)) stringValue = value.join('\n');
+        else if (typeof value === 'object') stringValue = JSON.stringify(value);
+        else stringValue = String(value);
 
-        await sheets.spreadsheets.values.update({
+        batchData.push({ range: cellRange, values: [[stringValue]] });
+    }
+
+    if (batchData.length > 0) {
+        await sheets.spreadsheets.values.batchUpdate({
             spreadsheetId: SPREADSHEET_ID,
-            range: cellRange,
-            valueInputOption: 'USER_ENTERED',
-            requestBody: { values: [[stringValue]] }
+            requestBody: {
+                data: batchData,
+                valueInputOption: 'USER_ENTERED',
+            },
         });
     }
 
@@ -1333,37 +1324,10 @@ export class ReportsService {
     dateFrom?: string;
     dateTo?: string;
   } = {}): Promise<{ severity: string; count: number }[]> {
-    const all = await this.getReports();
-    // Apply runtime filtering consistent with existing filter logic
-    const filtered = all.filter(r => {
-      const sheet = (filters as any).source_sheet || r.source_sheet || 'NON CARGO';
-      if (r.source_sheet && r.source_sheet !== sheet) return false;
-      if (filters.hub && filters.hub !== 'all' && (r.hub ?? '') !== filters.hub) return false;
-      if (filters.branch && filters.branch !== 'all' && (r.branch ?? r.stations?.code ?? '') !== filters.branch) return false;
-      if (filters.airlines && filters.airlines !== 'all' && (r.airlines ?? r.airline ?? '') !== filters.airlines) return false;
-      if (filters.area && filters.area !== 'all' && (r.area ?? '') !== filters.area) return false;
-      const fqFrom = filters.dateFrom;
-      const fqTo = filters.dateTo;
-      if (fqFrom || fqTo) {
-        const dt = r.date_of_event ?? r.created_at;
-        if (dt) {
-          const d = new Date(dt as string);
-          if (fqFrom) {
-            const from = new Date(fqFrom);
-            if (d < from) return false;
-          }
-          if (fqTo) {
-            const to = new Date(fqTo);
-            to.setHours(23, 59, 59, 999);
-            if (d > to) return false;
-          }
-        }
-      }
-      return true;
-    });
+    const all = await this.getReports({ filters });
 
     const map = new Map<string, number>();
-    filtered.forEach((r) => {
+    all.forEach((r) => {
       const sev = (r.severity || 'low').toString();
       map.set(sev, (map.get(sev) ?? 0) + 1);
     });

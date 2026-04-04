@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import {
   PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
@@ -330,7 +331,7 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
             <span className="text-sm font-medium">Back</span>
           </button>
           <div className="flex items-center gap-3 flex-1">
-            <img src="/gapura-logo.png" alt="Gapura" className="h-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+            <Image src="/gapura-logo.png" alt="Gapura" width={120} height={40} className="h-10 object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
             <div
               className="px-6 py-2 rounded-lg text-white font-bold text-sm md:text-base"
               style={{ backgroundColor: HEADER_BG }}

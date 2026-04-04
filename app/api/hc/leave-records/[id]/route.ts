@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengelola rekaman cuti (leave records) HC per ID
+ */
+
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { fetchHCLeaveRecordsForBackup, syncHCLeaveBackup } from '@/lib/services/hc-leave-backup';
@@ -11,6 +18,13 @@ import type { HCLeaveRecord, HCLeaveSubmissionStatus } from '@/types';
 
 const SUBMISSION_STATUS_VALUES: HCLeaveSubmissionStatus[] = ['PENDING', 'APPROVED', 'REJECTED'];
 
+/**
+ * Mengambil rekaman cuti berdasarkan ID
+ * 
+ * @param id - ID rekaman cuti yang akan diambil
+ * @returns Promise<HCLeaveRecord> - Data rekaman cuti
+ * @throws Error jika rekaman tidak ditemukan atau terjadi error database
+ */
 async function getRecord(id: string) {
     const { data, error } = await supabaseAdmin
         .from('hc_leave_records')
@@ -22,6 +36,13 @@ async function getRecord(id: string) {
     return data as HCLeaveRecord;
 }
 
+/**
+ * Mengecek apakah pengguna dapat memodifikasi rekaman cuti
+ * 
+ * @param user - Data pengguna
+ * @param record - Rekaman cuti yang akan dicek
+ * @returns boolean - true jika pengguna dapat memodifikasi rekaman
+ */
 function canModifyRecord(user: NonNullable<Awaited<ReturnType<typeof getWorkspaceUser>>>, record: HCLeaveRecord) {
     if (record.is_deleted) return false;
     if (canManageHCWorkspace(user.role)) return true;
@@ -36,6 +57,23 @@ function canModifyRecord(user: NonNullable<Awaited<ReturnType<typeof getWorkspac
     return false;
 }
 
+/**
+ * PATCH /api/hc/leave-records/[id]
+ * 
+ * Memperbarui rekaman cuti yang ada
+ * HC Manager dapat memperbarui semua field termasuk station_id
+ * Manager Cabang dapat memperbarui dan menyetujui/menolak rekaman PENDING di cabangnya
+ * Staff Cabang hanya dapat memperbarui rekaman PENDING miliknya
+ * 
+ * @param request - Objek request HTTP dengan body berisi data update
+ * @param context - Context berisi parameter route dengan ID rekaman
+ * @returns Promise<NextResponse> - Response JSON berisi rekaman yang diperbarui atau error
+ * @throws Mengembalikan 401 jika tidak terautentikasi
+ * @throws Mengembalikan 403 jika tidak memiliki izin atau rekaman sudah diarsipkan
+ * @throws Mengembalikan 404 jika rekaman sudah diarsipkan
+ * @throws Mengembalikan 400 jika data tidak valid
+ * @throws Mengembalikan 500 jika terjadi error server
+ */
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const user = await getWorkspaceUser();
@@ -154,6 +192,22 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
 }
 
+/**
+ * DELETE /api/hc/leave-records/[id]
+ * 
+ * Mengarsipkan (soft delete) rekaman cuti
+ * HC Manager dapat mengarsipkan semua rekaman
+ * Manager Cabang dapat mengarsipkan rekaman di cabangnya
+ * Staff Cabang hanya dapat mengarsipkan rekaman PENDING miliknya
+ * 
+ * @param request - Objek request HTTP
+ * @param context - Context berisi parameter route dengan ID rekaman
+ * @returns Promise<NextResponse> - Response JSON berisi status pengarsipan atau error
+ * @throws Mengembalikan 401 jika tidak terautentikasi
+ * @throws Mengembalikan 403 jika tidak memiliki izin atau rekaman sudah diarsipkan
+ * @throws Mengembalikan 404 jika rekaman sudah diarsipkan
+ * @throws Mengembalikan 500 jika terjadi error server
+ */
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const user = await getWorkspaceUser();

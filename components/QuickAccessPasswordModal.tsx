@@ -1,23 +1,50 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen modal password untuk akses cepat (quick access)
+ * yang memerlukan verifikasi password sebelum mengakses link tertentu.
+ */
+
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
 import { Lock, X, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+/**
+ * Props untuk komponen QuickAccessPasswordModal
+ * @interface QuickAccessPasswordModalProps
+ */
 interface QuickAccessPasswordModalProps {
+    /** Apakah modal terbuka */
     isOpen: boolean;
+    /** Callback saat modal ditutup */
     onClose: () => void;
-    /** Title shown in modal header */
+    /** Judul yang ditampilkan di header modal */
     label: string;
-    /** Destination URL opened on success */
+    /** URL tujuan setelah sukses */
     href: string;
-    /** Whether destination is external (target=_blank) */
+    /** Apakah tujuan adalah eksternal (target=_blank) */
     external?: boolean;
 }
 
-// Password stored in env — falls back to a placeholder that always fails in prod
-const CORRECT_PASSWORD = process.env.NEXT_PUBLIC_QUICK_ACCESS_PASSWORD ?? '__unset__';
-
+/**
+ * Komponen modal password untuk akses cepat
+ * Memerlukan password verification sebelum membuka link tujuan
+ * @param QuickAccessPasswordModalProps - Props komponen
+ * @returns JSX element modal atau null jika tidak terbuka
+ * @example
+ * ```tsx
+ * <QuickAccessPasswordModal
+ *   isOpen={showModal}
+ *   onClose={() => setShowModal(false)}
+ *   label="Handbook SLA"
+ *   href="https://example.com"
+ *   external={true}
+ * />
+ * ```
+ */
 export function QuickAccessPasswordModal({
     isOpen,
     onClose,
@@ -29,9 +56,10 @@ export function QuickAccessPasswordModal({
     const [showPw, setShowPw] = useState(false);
     const [error, setError] = useState(false);
     const [shake, setShake] = useState(false);
+    const [loading, setLoading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Reset state whenever the modal opens
+    // Reset state whenever modal opens
     useEffect(() => {
         if (isOpen) {
             setValue('');
@@ -40,21 +68,40 @@ export function QuickAccessPasswordModal({
         }
     }, [isOpen]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    /**
+     * Handle submit form password
+     * @param e - Form event
+     */
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (value === CORRECT_PASSWORD) {
-            onClose();
-            if (external) {
-                window.open(href, '_blank', 'noopener,noreferrer');
-            } else {
-                window.location.href = href;
+        setLoading(true);
+        try {
+            const res = await fetch('/api/auth/verify-quick-access', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: value }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.valid) {
+                    onClose();
+                    if (external) {
+                        window.open(href, '_blank', 'noopener,noreferrer');
+                    } else {
+                        window.location.href = href;
+                    }
+                    return;
+                }
             }
-        } else {
-            setError(true);
-            setShake(true);
-            setValue('');
-            setTimeout(() => setShake(false), 500);
+        } catch {
+            // Fall through to error state
+        } finally {
+            setLoading(false);
         }
+        setError(true);
+        setShake(true);
+        setValue('');
+        setTimeout(() => setShake(false), 500);
     };
 
     return (
@@ -65,7 +112,7 @@ export function QuickAccessPasswordModal({
                     <motion.div
                         key="backdrop"
                         initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
+                        animate={{ opacity:1 }}
                         exit={{ opacity: 0 }}
                         className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[9998]"
                         onClick={onClose}
@@ -76,7 +123,7 @@ export function QuickAccessPasswordModal({
                     <motion.div
                         key="modal"
                         initial={{ opacity: 0, scale: 0.92, y: 16 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        animate={{ opacity:1, scale:1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.92, y: 16 }}
                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                         className="fixed inset-0 z-[9999] flex items-center justify-center p-4 pointer-events-none"
@@ -161,11 +208,11 @@ export function QuickAccessPasswordModal({
 
                                 <button
                                     type="submit"
-                                    disabled={value.length === 0}
+                                    disabled={value.length === 0 || loading}
                                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-700 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                                 >
                                     <ExternalLink size={14} />
-                                    Buka Akses
+                                    {loading ? 'Memverifikasi...' : 'Buka Akses'}
                                 </button>
                             </form>
                         </motion.div>

@@ -72,16 +72,19 @@ export default function SecurityDashboardPage() {
     };
 
     useEffect(() => {
-        // 1. Initial Data Fetch
+        const controller = new AbortController();
+        const { signal } = controller;
+
         async function fetchInitialMetrics() {
             setLoading(true);
             try {
-                const res = await fetch('/api/security/dashboard-data');
+                const res = await fetch('/api/security/dashboard-data', { signal });
                 if (res.ok) {
                     const json = await res.json();
                     setData(json);
                 }
             } catch (err) {
+                if (err instanceof DOMException && err.name === 'AbortError') return;
                 console.error('Initial fetch failed', err);
             } finally {
                 setLoading(false);
@@ -137,6 +140,7 @@ export default function SecurityDashboardPage() {
             .subscribe();
 
         return () => {
+            controller.abort();
             supabase.removeChannel(channel);
         };
     }, []);

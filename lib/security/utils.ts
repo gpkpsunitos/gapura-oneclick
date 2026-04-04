@@ -1,6 +1,20 @@
 /**
- * Resolve the client's IP address from a Next.js Request object.
- * Handles proxies, local environments, and comma-separated header lists.
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi fungsi utilitas untuk menangani alamat IP dari request HTTP
+ */
+
+/**
+ * Mengambil alamat IP klien dari objek Request Next.js
+ * Menangani proxy, environment lokal, dan daftar header yang dipisahkan koma
+ * @param {Request} request - Objek request HTTP
+ * @returns {string} Alamat IP klien atau placeholder default
+ * @example
+ * ```ts
+ * const ip = getClientIp(request);
+ * console.log('Client IP:', ip);
+ * ```
  */
 export function getClientIp(request: Request): string {
     const forwardedFor = request.headers.get('x-forwarded-for');
@@ -16,4 +30,4 @@ export function getClientIp(request: Request): string {
     return '127.0.0.1';
 }
 
-// Complexity: Time O(1) | Space O(1)
+// Kompleksitas: Waktu O(1) | Ruang O(1)

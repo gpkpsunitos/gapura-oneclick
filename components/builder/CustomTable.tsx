@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen tabel kustom dengan fitur paginasi dan format tampilan
+ */
+
 'use client';
 
 import { useState } from 'react';
@@ -5,15 +12,35 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { QueryResult } from '@/types/builder';
 import { formatDisplayValue } from '@/lib/chart-utils';
 
+/**
+ * Props untuk komponen CustomTable
+ * @interface CustomTableProps
+ * @property {QueryResult} result - Hasil query yang akan ditampilkan
+ * @property {string} [title] - Judul tabel
+ */
 interface CustomTableProps {
   result: QueryResult;
   title?: string;
 }
 
+/**
+ * Memformat nilai untuk ditampilkan di tabel
+ * @function formatValue
+ * @param {unknown} val - Nilai yang akan diformat
+ * @param {string} colName - Nama kolom
+ * @returns {string} Nilai yang sudah diformat
+ */
 function formatValue(val: unknown, colName: string): string {
   return formatDisplayValue(val, colName);
 }
 
+/**
+ * Memeriksa apakah kolom bersifat numerik
+ * @function isNumericColumn
+ * @param {Record<string, unknown>[]} rows - Array baris data
+ * @param {string} col - Nama kolom
+ * @returns {boolean} True jika kolom numerik
+ */
 function isNumericColumn(rows: Record<string, unknown>[], col: string): boolean {
   let numericCount = 0;
   let totalCount = 0;
@@ -31,6 +58,24 @@ function isNumericColumn(rows: Record<string, unknown>[], col: string): boolean 
   return totalCount > 0 && numericCount / totalCount > 0.8;
 }
 
+/**
+ * Komponen tabel kustom dengan fitur paginasi
+ * Menampilkan data dalam format tabel dengan navigasi halaman dan format tampilan yang dioptimalkan
+ * 
+ * @param {CustomTableProps} props - Props untuk konfigurasi tabel kustom
+ * @returns {JSX.Element} Element React yang berisi tabel kustom
+ * 
+ * @example
+ * ```tsx
+ * <CustomTable
+ *   result={{
+ *     columns: ['name', 'value'],
+ *     rows: [{ name: 'Test', value: 100 }]
+ *   }}
+ *   title="Laporan Data"
+ * />
+ * ```
+ */
 export function CustomTable({ result, title }: CustomTableProps) {
   const columns = result.columns;
   const allRows = result.rows as Record<string, unknown>[];
@@ -163,5 +208,3 @@ export function CustomTable({ result, title }: CustomTableProps) {
     </div>
   );
 }
-
-

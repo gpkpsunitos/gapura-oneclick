@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen tabel perbandingan (comparison table) untuk menampilkan
+ * metrik dengan delta MoM (Month-over-Month) dan YoY (Year-over-Year).
+ */
+
 'use client';
 
 import React from 'react';
@@ -6,17 +14,34 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { ComparisonMetric } from '@/types';
 import { cn } from '@/lib/utils';
 
+/**
+ * Props untuk komponen ComparisonTable
+ * @interface ComparisonTableProps
+ */
 interface ComparisonTableProps {
+    /** Array metrik perbandingan */
     metrics: ComparisonMetric[];
+    /** Judul tabel */
     title?: string;
+    /** Class CSS tambahan */
     className?: string;
 }
 
+/**
+ * Komponen badge delta
+ * Menampilkan badge dengan indikator naik/turun dan persentase
+ * @param value - Nilai persentase delta
+ * @param diff - Perbedaan absolut
+ * @param label - Label badge (MoM/YoY)
+ * @param isNA - Apakah nilai N/A
+ * @param metricName - Nama metrik untuk penentuan warna
+ * @returns JSX element badge delta
+ */
 const DeltaBadge = ({ value, diff, label, isNA, metricName }: { value: number; diff: number; label: string; isNA?: boolean, metricName?: string }) => {
     const isPositive = value > 0;
     const isZero = value === 0;
     const isCompliment = metricName?.toLowerCase().includes('compliment');
-    
+
     // For compliments, positive is good (Emerald). For others (complaints, irregularities, total), negative is good (Emerald).
     const isGood = isCompliment ? isPositive : (!isPositive && !isZero);
 
@@ -36,13 +61,26 @@ const DeltaBadge = ({ value, diff, label, isNA, metricName }: { value: number; d
     );
 };
 
+/**
+ * Komponen tabel perbandingan
+ * Menampilkan metrik perbandingan dengan delta MoM dan YoY dalam format tabel
+ * @param ComparisonTableProps - Props komponen
+ * @returns JSX element tabel perbandingan atau null jika tidak ada data
+ * @example
+ * ```tsx
+ * <ComparisonTable
+ *   metrics={comparisonMetrics}
+ *   title="Ringkasan Bulanan"
+ * />
+ * ```
+ */
 export const ComparisonTable: React.FC<ComparisonTableProps> = ({ metrics, title, className }) => {
     if (!metrics || metrics.length === 0) return null;
 
     return (
-        <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+        <motion.div
+            initial={{ opacity:0, y: 10 }}
+            animate={{ opacity:1, y: 0 }}
             className={cn("bg-[var(--surface-1)] rounded-2xl border border-[var(--surface-3)] overflow-hidden shadow-sm", className)}
         >
             {title && (

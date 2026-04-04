@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen sidebar untuk pemilihan field dari berbagai tabel database
+ */
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -9,6 +16,15 @@ import { TABLES, getJoinsForSource } from '@/lib/builder/schema';
 import type { FieldDef } from '@/types/builder';
 import { cn } from '@/lib/utils';
 
+/**
+ * Props untuk komponen FieldSidebar
+ * @interface FieldSidebarProps
+ * @property {string} source - Nama tabel utama yang dipilih sebagai sumber data
+ * @property {string[]} activeJoins - Array join yang sedang aktif
+ * @property {Function} onFieldClick - Fungsi yang dipanggil saat field diklik
+ * @property {Function} onToggleJoin - Fungsi untuk mengaktifkan/menonaktifkan join tabel
+ * @property {Function} onSetSource - Fungsi untuk mengubah tabel sumber
+ */
 interface FieldSidebarProps {
   source: string;
   activeJoins: string[];
@@ -17,6 +33,10 @@ interface FieldSidebarProps {
   onSetSource: (source: string) => void;
 }
 
+/**
+ * Peta tipe field ke komponen ikon yang sesuai
+ * @constant {Record<string, typeof Type>} FIELD_TYPE_ICONS
+ */
 const FIELD_TYPE_ICONS: Record<string, typeof Type> = {
   string: Type,
   number: Hash,
@@ -26,6 +46,10 @@ const FIELD_TYPE_ICONS: Record<string, typeof Type> = {
   uuid: Key,
 };
 
+/**
+ * Peta tipe field ke kelas warna CSS
+ * @constant {Record<string, string>} FIELD_TYPE_COLORS
+ */
 const FIELD_TYPE_COLORS: Record<string, string> = {
   string: 'text-blue-500',
   number: 'text-emerald-500',
@@ -35,6 +59,10 @@ const FIELD_TYPE_COLORS: Record<string, string> = {
   uuid: 'text-gray-400',
 };
 
+/**
+ * Peta tipe field ke label dalam Bahasa Indonesia
+ * @constant {Record<string, string>} FIELD_TYPE_LABELS
+ */
 const FIELD_TYPE_LABELS: Record<string, string> = {
   string: 'Teks',
   number: 'Angka',
@@ -44,6 +72,24 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
   uuid: 'ID',
 };
 
+/**
+ * Komponen sidebar untuk pemilihan field dari database
+ * Menampilkan daftar tabel dan field yang tersedia dengan fitur pencarian dan join tabel
+ * 
+ * @param {FieldSidebarProps} props - Props untuk konfigurasi sidebar field
+ * @returns {JSX.Element} Element React yang berisi sidebar field
+ * 
+ * @example
+ * ```tsx
+ * <FieldSidebar
+ *   source="reports"
+ *   activeJoins={['reports.airline']}
+ *   onFieldClick={(table, field) => addToQuery(table, field)}
+ *   onToggleJoin={(joinKey) => toggleJoin(joinKey)}
+ *   onSetSource={(source) => setSource(source)}
+ * />
+ * ```
+ */
 export function FieldSidebar({
   source,
   activeJoins,
@@ -54,8 +100,16 @@ export function FieldSidebar({
   const [search, setSearch] = useState('');
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set([source]));
 
+  /**
+   * Mendapatkan daftar join yang tersedia untuk tabel sumber
+   * @constant {Array} availableJoins
+   */
   const availableJoins = useMemo(() => getJoinsForSource(source), [source]);
 
+  /**
+   * Menghitung daftar tabel yang terlihat berdasarkan join aktif
+   * @constant {Array} visibleTables
+   */
   const visibleTables = useMemo(() => {
     const tables = [TABLES.find(t => t.name === source)!];
     for (const joinKey of activeJoins) {
@@ -68,6 +122,12 @@ export function FieldSidebar({
     return tables.filter(Boolean);
   }, [source, activeJoins, availableJoins]);
 
+  /**
+   * Mengubah status ekspansi tabel
+   * @function toggleTable
+   * @param {string} name - Nama tabel yang akan diubah status ekspansinya
+   * @returns {void}
+   */
   const toggleTable = (name: string) => {
     setExpandedTables(prev => {
       const next = new Set(prev);
@@ -77,12 +137,22 @@ export function FieldSidebar({
     });
   };
 
+  /**
+   * Memfilter field berdasarkan kata kunci pencarian
+   * @function filterFields
+   * @param {FieldDef[]} fields - Daftar field yang akan difilter
+   * @returns {FieldDef[]} Daftar field yang sesuai dengan kriteria pencarian
+   */
   const filterFields = (fields: FieldDef[]) => {
     if (!search) return fields;
     const q = search.toLowerCase();
     return fields.filter(f => f.label.toLowerCase().includes(q) || f.name.toLowerCase().includes(q));
   };
 
+  /**
+   * Menghitung total field yang terlihat
+   * @constant {number} totalFields
+   */
   const totalFields = visibleTables.reduce((sum, t) => sum + filterFields(t.fields).length, 0);
 
   return (

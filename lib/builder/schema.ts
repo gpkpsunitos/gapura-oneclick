@@ -1,7 +1,19 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi definisi schema database untuk builder laporan, termasuk definisi tabel, fields, dan relationships
+ */
+
 import type { TableDef, JoinDef, FieldDef } from '@/types/builder';
 
 // ===== Table Definitions =====
 
+/**
+ * Array konfigurasi tabel database
+ * Berisi semua tabel yang tersedia di sistem laporan
+ * @constant TABLES
+ */
 export const TABLES: TableDef[] = [
   {
     name: 'reports',
@@ -164,6 +176,11 @@ export const TABLES: TableDef[] = [
 
 // ===== Join Definitions =====
 
+/**
+ * Array konfigurasi relasi/join antar tabel
+ * Mendefinisikan bagaimana tabel saling berhubungan
+ * @constant JOINS
+ */
 export const JOINS: JoinDef[] = [
   {
     key: 'reports_users',
@@ -236,42 +253,73 @@ export const JOINS: JoinDef[] = [
 const tableMap = new Map(TABLES.map(t => [t.name, t]));
 const joinMap = new Map(JOINS.map(j => [j.key, j]));
 
+/**
+ * Mendapatkan definisi tabel berdasarkan nama
+ * @param name - Nama tabel yang dicari
+ * @returns Definisi tabel atau undefined jika tidak ditemukan
+ */
 export function getTable(name: string): TableDef | undefined {
   return tableMap.get(name);
 }
 
+/**
+ * Mendapatkan semua field dari suatu tabel
+ * @param tableName - Nama tabel
+ * @returns Array field definisi dari tabel tersebut
+ */
 export function getFieldsForTable(tableName: string): FieldDef[] {
   return tableMap.get(tableName)?.fields ?? [];
 }
 
+/**
+ * Mendapatkan definisi field spesifik dari suatu tabel
+ * @param tableName - Nama tabel
+ * @param fieldName - Nama field
+ * @returns Definisi field atau undefined jika tidak ditemukan
+ */
 export function getFieldDef(tableName: string, fieldName: string): FieldDef | undefined {
   return tableMap.get(tableName)?.fields.find(f => f.name === fieldName);
 }
 
+/**
+ * Mendapatkan semua join yang tersedia untuk tabel sumber tertentu
+ * @param source - Nama tabel sumber
+ * @returns Array definisi join dari tabel tersebut
+ */
 export function getJoinsForSource(source: string): JoinDef[] {
   return JOINS.filter(j => j.from === source);
 }
 
+/**
+ * Mendapatkan definisi join berdasarkan key
+ * @param key - Key join
+ * @returns Definisi join atau undefined jika tidak ditemukan
+ */
 export function getJoinDef(key: string): JoinDef | undefined {
   return joinMap.get(key);
 }
 
-/** Validate a table.field exists in the schema */
+/** Validasi bahwa kombinasi table.field ada dalam schema */
 export function isValidField(table: string, field: string): boolean {
   if (table === 'reports' && field === 'month') return true;
   const t = TABLES.find(t => t.name === table);
   return !!t?.fields.some(f => f.name === field);
 }
 
-/** Validate a table exists */
+/** Validasi bahwa tabel ada dalam schema */
 export function isValidTable(table: string): boolean {
   return tableMap.has(table);
 }
 
-/** Get all table names */
+/** Mendapatkan semua nama tabel yang tersedia */
 export function getAllTableNames(): string[] {
   return TABLES.map(t => t.name);
 }
+
+/**
+ * Membuat konteks schema untuk AI
+ * @returns String yang berisi deskripsi lengkap database schema
+ */
 export function buildSchemaContextForAI(): string {
   const tableDescriptions = TABLES.map(t => {
     const fields = t.fields.map(f => {

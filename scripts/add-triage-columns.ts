@@ -1,3 +1,9 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi skrip untuk menambahkan kolom triage ke Google Sheets
+ */
 
 import { google } from 'googleapis';
 import * as dotenv from 'dotenv';
@@ -9,9 +15,16 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const SHEET_ID = process.env.GOOGLE_SHEET_ID || '1TFPZOAWAKubPl7iaUk8BXt2BabY1N-AcLgi-_zBQGzk';
 const REPORT_SHEETS = ['NON CARGO', 'CGO'];
 
-// Columns to ensure exist
+/**
+ * Kolom-kolom yang harus ada di Google Sheets
+ */
 const TRIAGE_COLUMNS = ['Primary Tag', 'Sub Category Note', 'ESKLASI DIVISI'];
 
+/**
+ * Mendapatkan autentikasi Google Service Account
+ * @returns {any} Objek autentikasi JWT Google
+ * @throws {Error} Jika kredensial Google Service Account tidak ditemukan
+ */
 function getGoogleAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
@@ -19,6 +32,11 @@ function getGoogleAuth() {
   return new google.auth.JWT({ email, key: privateKey, scopes: SCOPES });
 }
 
+/**
+ * Fungsi utama untuk menambahkan kolom triage ke Google Sheets
+ * @async
+ * @returns {Promise<void>}
+ */
 async function main() {
   const auth = getGoogleAuth();
   const sheets = google.sheets({ version: 'v4', auth });
@@ -76,6 +94,12 @@ async function main() {
 
     // 4. Update Header Values
     const startColIndex = currentHeaders.length;
+    
+    /**
+     * Mengkonversi indeks kolom numerik ke huruf kolom Excel (A, B, C, ..., AA, AB, ...)
+     * @param {number} index - Indeks kolom (0-based)
+     * @returns {string} Huruf kolom
+     */
     function getColLetter(index: number) {
         let temp, letter = '';
         while (index >= 0) {

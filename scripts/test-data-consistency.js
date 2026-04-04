@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-/**
- * Data Consistency Test Script
- * Verifies that data from Google Sheets is correctly mapped and displayed
- * 
- * Run: node test-data-consistency.js
- */
 
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi skrip pengujian konsistensi data untuk memverifikasi pemetaan data
+ */
 const fs = require('fs');
 const path = require('path');
 

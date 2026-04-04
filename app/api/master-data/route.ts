@@ -1,9 +1,30 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengambil data master (reference data)
+ * Menyediakan data referensi seperti stasiun, unit, posisi, tipe insiden, dan lokasi
+ */
+
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { reportsService } from '@/lib/services/reports-service';
 import { Report } from '@/types';
 
-// GET master data
+/**
+ * Menangani request GET untuk mengambil data master
+ * Menerima query parameter 'type' untuk menentukan jenis data yang diambil
+ * Mendukung caching dan memiliki fallback data
+ * @param request - Request object dengan query parameter type
+ * @returns Response JSON berisi data master yang diminta
+ * @throws {Error} Jika terjadi kesalahan saat mengambil data
+ * @example
+ * GET /api/master-data?type=stations
+ * GET /api/master-data?type=units
+ * GET /api/master-data?type=positions
+ * GET /api/master-data?type=incident_types
+ * GET /api/master-data?type=locations&station_id=xxx
+ */
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
@@ -34,7 +55,7 @@ export async function GET(request: Request) {
                     if (Array.isArray(fromDb) && fromDb.length > 0) {
                         data = fromDb;
                     } else {
-                        // Final fallback: minimal units for registration UX
+                        // Final fallback: minimal units untuk registrasi UX
                         data = [
                             { id: '00000000-0000-0000-0000-000000000101', name: 'Ramp' },
                             { id: '00000000-0000-0000-0000-000000000102', name: 'Passenger Service' },

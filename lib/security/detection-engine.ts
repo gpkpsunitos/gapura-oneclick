@@ -1,10 +1,17 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi mesin deteksi keamanan real-time dengan analisis perilaku dan heuristik berbasis aturan
+ */
+
 import { SecurityEvent, SecurityAlert } from '@/types/security';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
 /**
- * Real-Time Security Detection Engine
- * Implements ML-lite behavioral analysis and rule-based heuristics.
- * Complexity: Analysis O(1) per event | Persistence O(1)
+ * Mesin Deteksi Keamanan Real-Time
+ * Mengimplementasikan analisis perilaku ML-lite dan heuristik berbasis aturan
+ * Kompleksitas: Analisis O(1) per event | Persistensi O(1)
  */
 export class DetectionEngine {
     private static INSTANCE: DetectionEngine;
@@ -16,6 +23,14 @@ export class DetectionEngine {
     // Per-IP failure windows for O(K) brute force (K = failures in 30s)
     private ipFailures = new Map<string, number[]>();
 
+    /**
+     * Mendapatkan instance singleton DetectionEngine
+     * @returns {DetectionEngine} Instance DetectionEngine
+     * @example
+     * ```ts
+     * const engine = DetectionEngine.getInstance();
+     * ```
+     */
     public static getInstance(): DetectionEngine {
         if (!DetectionEngine.INSTANCE) {
             DetectionEngine.INSTANCE = new DetectionEngine();
@@ -24,8 +39,14 @@ export class DetectionEngine {
     }
 
     /**
-     * Process an incoming stream of events and detect threats.
-     * Complexity: Time O(1) [with K-bounded failure windows] | Space O(W)
+     * Memproses stream event masuk dan mendeteksi ancaman
+     * Kompleksitas: Waktu O(1) [dengan K-bounded failure windows] | Ruang O(W)
+     * @param {SecurityEvent[]} events - Array event keamanan
+     * @returns {Promise<void>}
+     * @example
+     * ```ts
+     * await DetectionEngine.getInstance().analyze(events);
+     * ```
      */
     public async analyze(events: SecurityEvent[]): Promise<void> {
         for (const event of events) {
@@ -34,6 +55,11 @@ export class DetectionEngine {
         }
     }
 
+    /**
+     * Menambahkan event ke window dan menghapus event lama jika diperlukan
+     * @private
+     * @param {SecurityEvent} event - Event yang akan ditambahkan
+     */
     private pushToWindow(event: SecurityEvent) {
         // 1. Handle Removal (Inc. Trimming)
         if (this.eventWindow.length >= this.WINDOW_SIZE) {
@@ -46,6 +72,12 @@ export class DetectionEngine {
         this.updateStats(event, 'ADD');
     }
 
+    /**
+     * Mengupdate statistik berdasarkan mode (tambah atau hapus)
+     * @private
+     * @param {SecurityEvent} event - Event yang akan diproses
+     * @param {'ADD' | 'REMOVE'} mode - Mode operasi
+     */
     private updateStats(event: SecurityEvent, mode: 'ADD' | 'REMOVE') {
         const sign = mode === 'ADD' ? 1 : -1;
 
@@ -69,6 +101,13 @@ export class DetectionEngine {
         }
     }
 
+    /**
+     * Menjalankan aturan deteksi ancaman
+     * @private
+     * @async
+     * @param {SecurityEvent} event - Event yang akan diperiksa
+     * @returns {Promise<void>}
+     */
     private async runRules(event: SecurityEvent) {
         const now = Date.now();
 
@@ -133,6 +172,13 @@ export class DetectionEngine {
         }
     }
 
+    /**
+     * Membuat alert keamanan dan menyimpannya ke database
+     * @private
+     * @async
+     * @param {Partial<SecurityAlert>} alert - Data alert yang akan dibuat
+     * @returns {Promise<void>}
+     */
     private async createAlert(alert: Partial<SecurityAlert>) {
         try {
             const { error } = await supabaseAdmin

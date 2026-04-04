@@ -197,6 +197,7 @@ export function ReportAnalysisTable({
     a.href = url;
     a.download = `ai_reports_export.csv`;
     a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   return (

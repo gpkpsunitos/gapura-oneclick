@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman menu pengisian report SLA untuk Landside dan Airside
+ * yang mengarahkan ke formulir Google Forms
+ */
 'use client';
 
 import GuestNav from '@/components/GuestNav';
@@ -6,6 +13,10 @@ import { ClipboardList, ExternalLink } from 'lucide-react';
 const LANDSIDE_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdMQgVrgWaPagVy7WEB94iVfC5rJmrxw5-J1Tn6jAJ77cD9Uw/closedform';
 const AIRSIDE_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeTpTECPvbI_mPquwTq2egIbiJ2_pQ3LEowH-1pv2Mo3SVWEA/viewform';
 
+/**
+ * Halaman menu pengisian report SLA
+ * @returns Komponen React
+ */
 export default function PublicSLAMenuPage() {
   return (
     <div className="min-h-[100dvh] bg-gray-50">
@@ -60,4 +71,3 @@ export default function PublicSLAMenuPage() {
     </div>
   );
 }
-

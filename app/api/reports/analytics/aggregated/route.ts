@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengambil data laporan yang telah diagregasi untuk berbagai view dashboard
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { reportsService } from '@/lib/services/reports-service';
 import { AnalyticsProcessor } from '@/lib/services/analytics-processor';
@@ -5,8 +12,17 @@ import { AnalyticsProcessor } from '@/lib/services/analytics-processor';
 /**
  * GET /api/reports/analytics/aggregated
  * 
- * Performance-optimized endpoint for Intelligence Dashboards.
- * Performs server-side aggregation to minimize network transfer (KB vs MB).
+ * Endpoint yang dioptimalkan untuk Intelligence Dashboards
+ * Melakukan agregasi di sisi server untuk meminimalkan transfer data jaringan (KB vs MB)
+ * Mendukung berbagai view: case-category, monthly, area-report, airline-report, branch-report, hub-report
+ * 
+ * @param request - Objek request HTTP dengan query parameters:
+ *   - view (required): Tipe agregasi yang diinginkan
+ *   - refresh: Force refresh dari sumber data
+ *   - dateFrom, dateTo, hub, branch, area, airlines, sourceSheet: Filter data
+ * @returns Promise<NextResponse> - Response JSON berisi data yang diagregasi atau error
+ * @throws Mengembalikan 400 jika parameter view tidak valid atau tidak disediakan
+ * @throws Mengembalikan 500 jika terjadi error server
  */
 export async function GET(request: NextRequest) {
   try {

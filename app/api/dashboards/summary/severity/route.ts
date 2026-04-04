@@ -1,8 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { verifySession } from '@/lib/auth-utils';
 import { reportsService } from '@/lib/services/reports-service';
 
 export async function GET(request: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('session')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const payload = await verifySession(token);
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const url = new URL(request.url);
     const dateFrom = url.searchParams.get('dateFrom') || undefined;
     const dateTo = url.searchParams.get('dateTo') || undefined;
@@ -20,7 +32,9 @@ export async function GET(request: NextRequest) {
       area,
     });
 
-    return NextResponse.json({ distribution });
+    return NextResponse.json({ distribution }, {
+      headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120' },
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal error';
     return NextResponse.json({ error: message }, { status: 500 });

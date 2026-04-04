@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
     const authBundle = cookieStore.get('auth_bundle')?.value;
@@ -18,21 +18,37 @@ export async function GET(request: NextRequest) {
     try {
         const payload = await verifySession(token);
         if (payload) {
+            // Only allow SUPER_ADMIN and ANALYST to inspect sessions
+            const role = String(payload.role).trim().toUpperCase();
+            if (role !== 'SUPER_ADMIN' && role !== 'ANALYST') {
+                return NextResponse.json({ 
+                    success: true, 
+                    payload: { 
+                        id: payload.id, 
+                        role: payload.role,
+                        email: payload.email 
+                    } 
+                }, {
+                    headers: { 'Cache-Control': 'no-store, max-age=0' },
+                });
+            }
             return NextResponse.json({ 
                 success: true, 
                 payload 
+            }, {
+                headers: { 'Cache-Control': 'no-store, max-age=0' },
             });
         } else {
             return NextResponse.json({ 
                 success: false, 
-                error: 'verifySession returned null. Check server logs for details (JWT mismatch, expired, or revoked/missing in DB).' 
+                error: 'Session invalid or expired.' 
             });
         }
-    } catch (err: any) {
+    } catch {
+        // Never expose stack traces or internal error details
         return NextResponse.json({ 
             success: false, 
-            error: err.message,
-            stack: err.stack
+            error: 'Session verification failed.' 
         }, { status: 500 });
     }
 }

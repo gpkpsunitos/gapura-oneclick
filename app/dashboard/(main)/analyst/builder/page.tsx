@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman dashboard builder untuk analyst,
+ * menyediakan fitur untuk membuat, menyimpan, dan mengelola dashboard kustom.
+ */
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -5,6 +13,16 @@ import { BuilderLayout, type SaveTile, type SaveConfig } from '@/components/buil
 import { Trash2, ExternalLink, Clock, ChevronDown, ChevronUp, BarChart3, Pencil, FolderInput, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/**
+ * Antarmuka dashboard yang tersimpan
+ * @interface SavedDashboard
+ * @property {string} id - ID unik dashboard
+ * @property {string} name - Nama dashboard
+ * @property {string | null} description - Deskripsi dashboard
+ * @property {string} slug - Slug URL untuk dashboard
+ * @property {string | null} folder - Nama folder penyimpanan
+ * @property {string} created_at - Tanggal pembuatan dashboard
+ */
 interface SavedDashboard {
   id: string;
   name: string;
@@ -14,6 +32,12 @@ interface SavedDashboard {
   created_at: string;
 }
 
+/**
+ * Komponen halaman Dashboard Builder untuk analyst
+ * Menyediakan UI untuk membuat, menyimpan, dan mengelola dashboard kustom
+ * Termasuk fitur folder management dan list dashboard tersimpan
+ * @returns {JSX.Element} Tampilan halaman Dashboard Builder
+ */
 export default function DashboardBuilderPage() {
   const [savedDashboards, setSavedDashboards] = useState<SavedDashboard[]>([]);
   const [savedExpanded, setSavedExpanded] = useState(true);
@@ -28,6 +52,9 @@ export default function DashboardBuilderPage() {
     fetchDashboards();
   }, []);
 
+  /**
+   * Mengambil daftar dashboard tersimpan dari API
+   */
   const fetchDashboards = async () => {
     try {
       const res = await fetch('/api/dashboards');
@@ -47,6 +74,15 @@ export default function DashboardBuilderPage() {
     } catch { /* ignore */ }
   };
 
+  /**
+   * Handler untuk menyimpan dashboard baru
+   * @param {string} name - Nama dashboard
+   * @param {string} description - Deskripsi dashboard
+   * @param {SaveTile[]} tiles - Array tile/chart yang ada di dashboard
+   * @param {SaveConfig} [config] - Konfigurasi dashboard opsional
+   * @param {string | null} [folder] - Folder penyimpanan opsional
+   * @returns {Promise<{ embedUrl: string } | null>} URL embed dashboard atau null jika gagal
+   */
   const handleSave = async (name: string, description: string, tiles: SaveTile[], config?: SaveConfig, folder?: string | null) => {
     try {
       const response = await fetch('/api/dashboards', {
@@ -85,6 +121,10 @@ export default function DashboardBuilderPage() {
     }
   };
 
+  /**
+   * Handler untuk menghapus dashboard
+   * @param {string} id - ID dashboard yang akan dihapus
+   */
   const handleDelete = async (id: string) => {
     try {
       const res = await fetch(`/api/dashboards?id=${id}`, { method: 'DELETE' });
@@ -94,6 +134,11 @@ export default function DashboardBuilderPage() {
     } catch { /* ignore */ }
   };
 
+  /**
+   * Handler untuk mengubah nama folder
+   * @param {string} oldFolder - Nama folder lama
+   * @param {string} newFolder - Nama folder baru
+   */
   const handleRenameFolder = async (oldFolder: string, newFolder: string) => {
     const trimmed = newFolder.trim();
     if (!trimmed || trimmed === oldFolder) {
@@ -118,6 +163,11 @@ export default function DashboardBuilderPage() {
     });
   };
 
+  /**
+   * Handler untuk menghapus folder
+   * Semua dashboard di dalam folder akan dipindahkan ke 'Lainnya' (null)
+   * @param {string} folder - Nama folder yang akan dihapus
+   */
   const handleDeleteFolder = async (folder: string) => {
     // Optimistic update — dissolve folder, move all to 'Lainnya' (null)
     setSavedDashboards(prev =>
@@ -136,6 +186,11 @@ export default function DashboardBuilderPage() {
     });
   };
 
+  /**
+   * Handler untuk memindahkan dashboard ke folder lain
+   * @param {string} id - ID dashboard yang akan dipindahkan
+   * @param {string} folder - Nama folder tujuan (kosong untuk tanpa folder)
+   */
   const handleMoveDashboard = async (id: string, folder: string) => {
     const trimmed = folder.trim();
     const finalFolder = trimmed === '' ? null : trimmed;

@@ -29,36 +29,13 @@ import {
   RootCauseData,
   AirlineIntelReportRecord,
 } from './data';
-import { Bar, Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { saveAs } from 'file-saver';
 import { InvestigativeTable } from '@/components/chart-detail/InvestigativeTable';
 import { DataTableWithPagination } from '@/components/chart-detail/DataTableWithPagination';
 import { AiRootCauseInvestigation } from '../ai-root-cause/AiRootCauseInvestigation';
 import type { QueryResult } from '@/types/builder';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+import { sanitizeTableCell } from '@/lib/security/sanitize';
 
 interface FilterParams {
   hub?: string;
@@ -211,20 +188,26 @@ function CategoryCompositionChart({ data }: { data: CategoryCompositionData[] })
     ],
   };
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: {
-      legend: { position: 'bottom' as const, labels: { usePointStyle: true, padding: 15, font: { size: 10 } } },
-    },
-    scales: {
-      x: { stacked: false, grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { stacked: false, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
+  const rechartsData = chartData.labels.map((label, i) => {
+    const obj: Record<string, any> = { name: Array.isArray(label) ? (label as string[]).join(' ') : label };
+    chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
+    return obj;
+  });
 
-  return <div className="h-[400px]"><Bar data={chartData} options={options} /></div>;
+  return (
+    <ResponsiveContainer width="100%" height={400}>
+      <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+        <YAxis tick={{ fontSize: 11 }} />
+        <Tooltip />
+        <Legend />
+        {chartData.datasets.map((ds: any, i: number) => (
+          <Bar key={i} dataKey={ds.label} fill={Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : ds.backgroundColor || '#3b82f6'} radius={[4,4,0,0]} />
+        ))}
+      </BarChart>
+    </ResponsiveContainer>
+  );
 }
 
 // ─── Branch Distribution: Vertical bar ───
@@ -247,23 +230,30 @@ function BranchDistributionChart({ data }: { data: BranchDistributionData[] }) {
     }],
   };
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
+  const rechartsData = chartData.labels.map((label, i) => {
+    const obj: Record<string, any> = { name: Array.isArray(label) ? (label as string[]).join(' ') : label };
+    chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
+    return obj;
+  });
 
-  return <div className="h-[300px]"><Bar data={chartData} options={options} /></div>;
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+        <YAxis tick={{ fontSize: 11 }} />
+        <Tooltip />
+        <Legend />
+        {chartData.datasets.map((ds: any, i: number) => (
+          <Bar key={i} dataKey={ds.label} fill={Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : ds.backgroundColor || '#3b82f6'} radius={[4,4,0,0]} />
+        ))}
+      </BarChart>
+    </ResponsiveContainer>
+  );
 }
 
 // ─── Area Breakdown: Vertical grouped bar ───
 function AreaBreakdownChart({ data }: { data: AreaBreakdownData[] }) {
-  // Group by airline, stack by area
   const airlineSet = new Set<string>();
   const areaSet = new Set<string>();
   data.forEach(d => { airlineSet.add(d.airline); areaSet.add(d.area); });
@@ -293,19 +283,26 @@ function AreaBreakdownChart({ data }: { data: AreaBreakdownData[] }) {
     })),
   };
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'bottom' as const, labels: { usePointStyle: true, padding: 15, font: { size: 10 } } },
-    },
-    scales: {
-      x: { stacked: false, grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { stacked: false, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
+  const rechartsData = chartData.labels.map((label, i) => {
+    const obj: Record<string, any> = { name: Array.isArray(label) ? (label as string[]).join(' ') : label };
+    chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
+    return obj;
+  });
 
-  return <div className="h-[300px]"><Bar data={chartData} options={options} /></div>;
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+        <YAxis tick={{ fontSize: 11 }} />
+        <Tooltip />
+        <Legend />
+        {chartData.datasets.map((ds: any, i: number) => (
+          <Bar key={i} dataKey={ds.label} fill={Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : ds.backgroundColor || '#3b82f6'} radius={[4,4,0,0]} />
+        ))}
+      </BarChart>
+    </ResponsiveContainer>
+  );
 }
 
 // ─── Monthly Trend: Line chart ───
@@ -340,22 +337,26 @@ function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
     ],
   };
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { usePointStyle: true, padding: 20, font: { size: 11 } },
-      },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
+  const rechartsData = chartData.labels.map((label, i) => {
+    const obj: Record<string, any> = { name: label };
+    chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
+    return obj;
+  });
 
-  return <div className="h-[250px]"><Line data={chartData} options={options} /></div>;
+  return (
+    <ResponsiveContainer width="100%" height={250}>
+      <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+        <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+        <YAxis tick={{ fontSize: 11 }} />
+        <Tooltip />
+        <Legend />
+        {chartData.datasets.map((ds: any, i: number) => (
+          <Line key={i} type="monotone" dataKey={ds.label} stroke={ds.borderColor || '#3b82f6'} strokeWidth={2} dot={{ r: 3 }} />
+        ))}
+      </LineChart>
+    </ResponsiveContainer>
+  );
 }
 
 
@@ -652,7 +653,7 @@ function DataTable({ data }: { data: AirlineIntelReportRecord[] }) {
                       `}
                     >
                       {col === 'Evidence' || col === 'Link' ? (
-                        <div dangerouslySetInnerHTML={{ __html: row[col] as string || '-' }} className="max-w-[300px] line-clamp-2" />
+                        <div dangerouslySetInnerHTML={{ __html: sanitizeTableCell(row[col]) }} className="max-w-[300px] line-clamp-2" />
                       ) : (
                         row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'
                       )}

@@ -1,5 +1,16 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi konfigurasi PWA manifest untuk aplikasi OneClick
+ */
+
 import type { MetadataRoute } from "next";
 
+/**
+ * Mengenerate manifest PWA untuk aplikasi OneClick
+ * @returns Object manifest dengan konfigurasi PWA
+ */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",

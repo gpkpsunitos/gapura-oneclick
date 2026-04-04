@@ -1,6 +1,14 @@
 /**
- * Security Performance & Accuracy Simulation
- * Run with: ts-node scripts/simulate-threat.ts
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi skrip simulasi ancaman keamanan untuk pengujian sistem deteksi
+ */
+
+/**
+ * Simulasi ancaman keamanan waktu nyata untuk menguji deteksi dan performa
+ * @async
+ * @returns {Promise<void>}
  */
 async function simulateThreat() {
     console.log('--- Starting Real-Time Threat Simulation ---');

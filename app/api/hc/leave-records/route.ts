@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengelola rekam cuti (leave records) HC
+ */
+
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { fetchHCLeaveRecordsForBackup, syncHCLeaveBackup } from '@/lib/services/hc-leave-backup';
@@ -10,6 +17,13 @@ import type { HCLeaveRecord, HCLeaveSubmissionStatus } from '@/types';
 
 const SUBMISSION_STATUS_VALUES: HCLeaveSubmissionStatus[] = ['PENDING', 'APPROVED', 'REJECTED'];
 
+/**
+ * Mengecek apakah rekaman cuti cocok dengan bulan yang ditentukan
+ * 
+ * @param record - Rekaman cuti yang akan dicek
+ * @param month - Bulan dalam format YYYY-MM atau null untuk semua bulan
+ * @returns boolean - true jika rekaman cocok dengan bulan
+ */
 function matchesMonth(record: HCLeaveRecord, month: string | null) {
     if (!month) return true;
     const monthStart = new Date(`${month}-01T00:00:00Z`);
@@ -20,10 +34,24 @@ function matchesMonth(record: HCLeaveRecord, month: string | null) {
     return recordStart <= monthEnd && recordEnd >= monthStart;
 }
 
+/**
+ * Mengecek apakah rekaman cuti aktif pada tanggal tertentu
+ * 
+ * @param record - Rekaman cuti yang akan dicek
+ * @param currentDate - Tanggal dalam format YYYY-MM-DD
+ * @returns boolean - true jika rekaman aktif pada tanggal tersebut
+ */
 function isRecordActiveOnDate(record: HCLeaveRecord, currentDate: string) {
     return record.start_date <= currentDate && record.end_date >= currentDate;
 }
 
+/**
+ * Mengecek apakah pengguna dapat membaca rekaman cuti
+ * 
+ * @param user - Data pengguna
+ * @param record - Rekaman cuti yang akan dicek
+ * @returns boolean - true jika pengguna dapat membaca rekaman
+ */
 function canReadRecord(user: NonNullable<Awaited<ReturnType<typeof getWorkspaceUser>>>, record: HCLeaveRecord) {
     if (canManageHCWorkspace(user.role)) return true;
     const role = normalizeRole(user.role);
@@ -32,6 +60,13 @@ function canReadRecord(user: NonNullable<Awaited<ReturnType<typeof getWorkspaceU
     return false;
 }
 
+/**
+ * Menerapkan filter pada daftar rekaman cuti berdasarkan parameter query
+ * 
+ * @param records - Daftar rekaman cuti yang akan difilter
+ * @param searchParams - Parameter query dari URL request
+ * @returns HCLeaveRecord[] - Daftar rekaman yang telah difilter
+ */
 function applyFilters(records: HCLeaveRecord[], searchParams: URLSearchParams) {
     const month = searchParams.get('month');
     const stationId = searchParams.get('station_id');
@@ -67,6 +102,17 @@ function applyFilters(records: HCLeaveRecord[], searchParams: URLSearchParams) {
     });
 }
 
+/**
+ * GET /api/hc/leave-records
+ * 
+ * Mengambil semua rekaman cuti yang dapat diakses oleh pengguna
+ * Mendukung filter berbagai parameter termasuk arsip, bulan, cabang, tipe cuti, dll.
+ * 
+ * @param request - Objek request HTTP dengan query parameters
+ * @returns Promise<NextResponse> - Response JSON berisi daftar rekaman cuti yang difilter atau error
+ * @throws Mengembalikan 401 jika tidak terautentikasi
+ * @throws Mengembalikan 500 jika terjadi error server
+ */
 export async function GET(request: Request) {
     try {
         const user = await getWorkspaceUser();
@@ -79,13 +125,29 @@ export async function GET(request: Request) {
         const records = await fetchHCLeaveRecordsForBackup({ includeDeleted: archiveScope === 'archived' });
         const visibleRecords = records.filter((record) => canReadRecord(user, record));
 
-        return NextResponse.json(applyFilters(visibleRecords, url.searchParams));
+        return NextResponse.json(applyFilters(visibleRecords, url.searchParams), {
+            headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+        });
     } catch (error) {
         console.error('[HC Leave API] Failed to fetch records:', error);
         return NextResponse.json({ error: 'Failed to fetch HC leave records' }, { status: 500 });
     }
 }
 
+/**
+ * POST /api/hc/leave-records
+ * 
+ * Membuat rekaman cuti baru
+ * HC Manager dan Staff Cabang dapat membuat rekaman
+ * Manager Cabang tidak dapat membuat rekaman
+ * 
+ * @param request - Objek request HTTP dengan body berisi data rekaman cuti
+ * @returns Promise<NextResponse> - Response JSON berisi rekaman yang dibuat atau error
+ * @throws Mengembalikan 401 jika tidak terautentikasi
+ * @throws Mengembalikan 403 jika role tidak memiliki izin
+ * @throws Mengembalikan 400 jika data tidak valid
+ * @throws Mengembalikan 500 jika terjadi error server
+ */
 export async function POST(request: Request) {
     try {
         const user = await getWorkspaceUser();

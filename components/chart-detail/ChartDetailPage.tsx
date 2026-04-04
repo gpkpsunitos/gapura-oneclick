@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, X, Loader2 } from 'lucide-react';
-import { toPng } from 'html-to-image';
 import { saveAs } from 'file-saver';
 import { Download, FileText, Link as LinkIcon, Check, Share2 } from 'lucide-react';
 import type { DashboardTile, QueryResult, QueryFilter } from '@/types/builder';
@@ -289,6 +288,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
   const handleDownloadImage = async () => {
     if (chartRef.current) {
       try {
+        const { toPng } = await import('html-to-image');
         const dataUrl = await toPng(chartRef.current, { cacheBust: true, backgroundColor: '#ffffff' });
         saveAs(dataUrl, `${data?.tile.visualization.title || 'chart'}.png`);
       } catch (err) {

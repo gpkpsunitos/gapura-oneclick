@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman detail laporan untuk employee dengan tampilan lengkap
+ * termasuk status progress, detail informasi, timeline, dan komentar
+ */
+
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -11,6 +19,9 @@ import { STATUS_CONFIG, canPerformAction, type ReportStatus } from '@/lib/consta
 
 import { supabase } from '@/lib/supabase';
 
+/**
+ * Interface untuk data laporan
+ */
 interface Report {
     id: string;
     title: string;
@@ -45,6 +56,9 @@ interface Report {
     comments: Comment[];
 }
 
+/**
+ * Interface untuk data komentar
+ */
 interface Comment {
     id: string;
     content: string;
@@ -54,12 +68,20 @@ interface Comment {
     users: { id: string; full_name: string; role: string } | null;
 }
 
+/**
+ * Interface untuk data session user
+ */
 interface UserSession {
     id: string;
     role: string;
     division?: string;
 }
 
+/**
+ * Komponen halaman detail laporan untuk employee
+ * Menampilkan status progress, detail informasi, timeline, dan fitur komentar
+ * @returns JSX element halaman detail laporan employee
+ */
 export default function EmployeeReportDetailPage() {
     const params = useParams();
     const router = useRouter();
@@ -75,38 +97,57 @@ export default function EmployeeReportDetailPage() {
     const [sendingComment, setSendingComment] = useState(false);
     const commentsEndRef = useRef<HTMLDivElement>(null);
 
+    /**
+     * Auto-scroll ke bagian komentar terbaru
+     */
     useEffect(() => {
         commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [report?.comments]);
 
-    const fetchUser = useCallback(async () => {
+    /**
+     * Mengambil data user saat ini dari session
+     * @param signal - AbortSignal untuk membatalkan request
+     */
+    const fetchUser = useCallback(async (signal?: AbortSignal) => {
         try {
-            const res = await fetch('/api/auth/me');
+            const res = await fetch('/api/auth/me', { signal });
             if (res.ok) {
                 const data = await res.json();
                 setUser({ id: data.id, role: data.role, division: data.division });
             }
         } catch (err) {
+            if (err instanceof DOMException && err.name === 'AbortError') return;
             console.error('Failed to fetch user:', err);
         }
     }, []);
 
-    const fetchReport = useCallback(async () => {
+    /**
+     * Mengambil data laporan berdasarkan ID
+     * @param signal - AbortSignal untuk membatalkan request
+     */
+    const fetchReport = useCallback(async (signal?: AbortSignal) => {
         try {
-            const res = await fetch(`/api/reports/${reportId}`);
+            const res = await fetch(`/api/reports/${reportId}`, { signal });
             if (!res.ok) throw new Error('Failed to fetch report');
             const data = await res.json();
             setReport(data);
-        } catch {
+        } catch (err) {
+            if (err instanceof DOMException && err.name === 'AbortError') return;
             setError('Gagal memuat laporan');
         } finally {
             setLoading(false);
         }
     }, [reportId]);
 
+    /**
+     * Setup real-time subscription dan inisialisasi data
+     */
     useEffect(() => {
-        fetchReport();
-        fetchUser();
+        const controller = new AbortController();
+        const { signal } = controller;
+
+        fetchReport(signal);
+        fetchUser(signal);
 
         const channel = supabase
             .channel(`report-comments-${reportId}`)
@@ -119,16 +160,20 @@ export default function EmployeeReportDetailPage() {
                     filter: `report_id=eq.${reportId}`,
                 },
                 () => {
-                     fetchReport();
+                     fetchReport(signal);
                 }
             )
             .subscribe();
 
         return () => {
+            controller.abort();
             supabase.removeChannel(channel);
         };
     }, [reportId, fetchReport, fetchUser]);
 
+    /**
+     * Mengirim komentar baru ke laporan
+     */
     const sendComment = async () => {
         if (!newComment.trim()) return;
 

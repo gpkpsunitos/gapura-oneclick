@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen tampilan pivot executive dengan fitur ranking dan visualisasi
+ */
+
 'use client';
 
 import { useMemo } from 'react';
@@ -6,6 +13,15 @@ import { motion } from 'framer-motion';
 import { ArrowRight, TrendingUp, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 import { ViewMode, Normalization } from '@/components/chart-detail/GlobalControlBar';
 
+/**
+ * Props untuk komponen ExecutivePivotView
+ * @interface ExecutivePivotViewProps
+ * @property {QueryResult} result - Hasil query
+ * @property {string} [title] - Judul tabel
+ * @property {ViewMode} [viewMode='values'] - Mode tampilan
+ * @property {Normalization} [normalization='none'] - Mode normalisasi
+ * @property {boolean} [isTile=false] - Apakah ditampilkan sebagai tile
+ */
 interface ExecutivePivotViewProps {
   result: QueryResult;
   title?: string;
@@ -15,6 +31,10 @@ interface ExecutivePivotViewProps {
 }
 
 // Executive Color Palette - Softer, Professional
+/**
+ * Palet warna untuk tampilan executive
+ * @constant {Object} EXEC_COLORS
+ */
 const EXEC_COLORS = {
   bar: '#10b981',        // emerald-500
   barBg: '#ecfdf5',      // emerald-50
@@ -24,6 +44,25 @@ const EXEC_COLORS = {
   progress: '#34d399',   // emerald-400
 };
 
+/**
+ * Komponen tampilan pivot executive
+ * Menampilkan data dalam format pivot dengan ranking top contributors dan visualisasi
+ * Dioptimalkan untuk tampilan eksekutif dengan desain yang elegan
+ * 
+ * @param {ExecutivePivotViewProps} props - Props untuk konfigurasi tampilan pivot
+ * @returns {JSX.Element | null} Element React yang berisi tampilan pivot atau null
+ * 
+ * @example
+ * ```tsx
+ * <ExecutivePivotView
+ *   result={queryResult}
+ *   title="Laporan Executive"
+ *   viewMode="values"
+ *   normalization="none"
+ *   isTile={false}
+ * />
+ * ```
+ */
 export function ExecutivePivotView({
   result,
   title,
@@ -114,6 +153,13 @@ export function ExecutivePivotView({
 
   const top5 = rows.slice(0, 5);
 
+  /**
+   * Memformat nilai untuk ditampilkan
+   * @function formatValue
+   * @param {number} val - Nilai yang akan diformat
+   * @param {number} total - Total untuk perhitungan persentase
+   * @returns {string} Nilai yang sudah diformat
+   */
   const formatValue = (val: number, total: number) => {
     if (viewMode === 'percentage') return `${((val / total) * 100).toFixed(1)}%`;
     return val.toLocaleString('id-ID');
@@ -202,23 +248,23 @@ export function ExecutivePivotView({
                      return (
                        <td key={c} className="px-2 py-2 text-right min-w-[80px]">
                          <div className="relative h-8 w-full flex items-center justify-end">
-                            {/* Soft Bar Background */}
-                            {val > 0 && (
-                              <div 
-                                className={`absolute right-0 h-full rounded-md opacity-20 transition-all group-hover:opacity-30 ${isMax ? 'bg-emerald-400' : 'bg-gray-200'}`}
-                                style={{ width: `${intensity}%` }}
-                              />
-                            )}
-                            
-                            <span 
-                              className={`
-                                relative z-10 px-2 text-xs font-medium transition-colors
-                                ${isMax ? 'text-emerald-700 font-bold' : (val === 0 ? 'text-gray-300' : 'text-gray-600')}
-                              `}
-                            >
-                              {val === 0 ? '-' : val.toLocaleString('id-ID')}
-                            </span>
-                         </div>
+                             {/* Soft Bar Background */}
+                             {val > 0 && (
+                               <div 
+                                 className={`absolute right-0 h-full rounded-md opacity-20 transition-all group-hover:opacity-30 ${isMax ? 'bg-emerald-400' : 'bg-gray-200'}`}
+                                 style={{ width: `${intensity}%` }}
+                               />
+                             )}
+                             
+                             <span 
+                               className={`
+                                 relative z-10 px-2 text-xs font-medium transition-colors
+                                 ${isMax ? 'text-emerald-700 font-bold' : (val === 0 ? 'text-gray-300' : 'text-gray-600')}
+                               `}
+                             >
+                               {val === 0 ? '-' : val.toLocaleString('id-ID')}
+                             </span>
+                          </div>
                        </td>
                      );
                    })}
@@ -231,7 +277,7 @@ export function ExecutivePivotView({
                    </td>
                  </tr>
                );
-            })}
+             })}
           </tbody>
         </table>
       </div>
@@ -243,8 +289,8 @@ export function ExecutivePivotView({
            <div>Rows: <span className="font-bold text-gray-900">{rows.length}</span></div>
          </div>
          <div className="flex items-center gap-2">
-            <span>Market Share Leader:</span>
-            <span className="font-bold text-emerald-700">{topAirline} ({topAirlineShare}%)</span>
+             <span>Market Share Leader:</span>
+             <span className="font-bold text-emerald-700">{topAirline} ({topAirlineShare}%)</span>
          </div>
       </div>
 

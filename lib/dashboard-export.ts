@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi utilitas untuk mengekspor dashboard ke format Excel dan PowerPoint
+ */
+
 'use client';
 
 import type { QueryResult } from '@/types/builder';
@@ -15,49 +22,101 @@ const SLIDE = {
     FOOTER_Y: 7.0 
 };
 
+/**
+ * Data halaman dashboard
+ * @interface PageData
+ */
 interface PageData {
+  /** Nama halaman */
   name: string;
+  /** Daftar tile di halaman */
   tiles: TileData[];
 }
 
+/**
+ * Data tile dashboard
+ * @interface TileData
+ */
 interface TileData {
+  /** ID tile */
   id: string;
+  /** Judul tile */
   title: string;
+  /** Tipe chart */
   chartType: string;
+  /** Sumbu Y untuk data numerik (opsional) */
   yAxis?: string[];
 }
 
 
+/**
+ * Payload untuk ekspor dashboard
+ * @interface ExportPayload
+ */
 interface ExportPayload {
+  /** Nama dashboard */
   dashboardName: string;
+  /** Subtitle (opsional) */
   subtitle?: string;
+  /** ID dashboard (opsional) */
   dashboardId?: string;
+  /** Base URL untuk link detail (opsional) */
   baseUrl?: string;
+  /** Tanggal mulai (opsional) */
   dateFrom?: string;
+  /** Tanggal akhir (opsional) */
   dateTo?: string;
+  /** Halaman sumber (opsional) */
   sourcePage?: string;
+  /** Daftar halaman dashboard */
   pages: PageData[];
+  /** Data chart untuk setiap tile */
   chartsData: Map<string, { queryResult?: QueryResult; stats?: { distribution: { name: string; count: number; percentage: number }[]; totalCount: number } }>;
 }
 
+/**
+ * Insight untuk tile tertentu
+ * @interface TileInsight
+ */
 interface TileInsight {
+  /** ID tile */
   tileId: string;
+  /** Temuan kunci */
   keyFindings: string[];
+  /** Narasi insight (opsional) */
   narrative?: string;
 }
 
+/**
+ * Insight lengkap dashboard
+ * @interface DashboardInsights
+ */
 interface DashboardInsights {
+  /** Ringkasan eksekutif */
   executiveSummary: string[];
+  /** Rekomendasi */
   recommendations: string[];
+  /** Pernyataan penutup (opsional) */
   closingStatement?: string;
+  /** Insight per tile */
   tileInsights: TileInsight[];
 }
 
 // ─── column label formatter ────────────────────────────────────────────────
+/**
+ * Memformat nama kolom menjadi format yang lebih mudah dibaca
+ * @param col - Nama kolom
+ * @returns String kolom yang sudah diformat
+ */
 function formatCol(col: string): string {
   return col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
+/**
+ * Mendapatkan slug chart berdasarkan judul
+ * @param chartTitle - Judul chart
+ * @returns String slug untuk URL
+ */
 function getChartSlug(chartTitle: string): string {
   const title = chartTitle.toLowerCase();
   if (title.includes('report by case category')) return 'report-by-case-category';
@@ -75,6 +134,12 @@ function getChartSlug(chartTitle: string): string {
   return 'pivot-report';
 }
 
+/**
+ * Membangun URL detail untuk tile
+ * @param payload - Payload ekspor dashboard
+ * @param tile - Data tile
+ * @returns String URL lengkap untuk halaman detail
+ */
 function buildDetailUrl(payload: ExportPayload, tile: TileData): string {
   if (!payload.baseUrl) return '';
   const slug = getChartSlug(tile.title);
@@ -88,6 +153,19 @@ function buildDetailUrl(payload: ExportPayload, tile: TileData): string {
 }
 
 // ─── XLSX EXPORT ───────────────────────────────────────────────────────────
+/**
+ * Mengekspor dashboard ke file Excel
+ * @param payload - Payload ekspor dashboard
+ * @returns Promise yang resolve setelah file Excel didownload
+ * @example
+ * ```ts
+ * await exportToXlsx({
+ *   dashboardName: 'IRRS Dashboard',
+ *   pages: dashboardPages,
+ *   chartsData: resultsMap
+ * });
+ * ```
+ */
 // Complexity: Time O(pages * tiles * rows) | Space O(total_cells)
 export async function exportToXlsx(payload: ExportPayload): Promise<void> {
   const exceljs = await import('exceljs');
@@ -209,6 +287,18 @@ export async function exportToXlsx(payload: ExportPayload): Promise<void> {
 }
 
 // ─── Fetch AI insights ─────────────────────────────────────────────────────
+/**
+ * Mengambil insight AI untuk dashboard
+ * @param payload - Payload ekspor dashboard
+ * @returns Promise yang berisi insight dashboard atau null
+ * @example
+ * ```ts
+ * const insights = await fetchInsights(payload);
+ * if (insights) {
+ *   console.log(insights.executiveSummary);
+ * }
+ * ```
+ */
 // Complexity: Time O(pages * tiles) | Space O(tiles * sample_rows)
 async function fetchInsights(payload: ExportPayload): Promise<DashboardInsights | null> {
   try {
@@ -275,6 +365,19 @@ async function fetchInsights(payload: ExportPayload): Promise<DashboardInsights 
 }
 
 // ─── PPTX EXPORT — Dashboard-Style Analyst Presentation ────────────────────
+/**
+ * Mengekspor dashboard ke file PowerPoint
+ * @param payload - Payload ekspor dashboard
+ * @returns Promise yang resolve setelah file PowerPoint didownload
+ * @example
+ * ```ts
+ * await exportToPptx({
+ *   dashboardName: 'IRRS Dashboard',
+ *   pages: dashboardPages,
+ *   chartsData: resultsMap
+ * });
+ * ```
+ */
 // Complexity: Time O(pages * tiles * rows + 1 AI call) | Space O(total_cells)
 export async function exportToPptx(payload: ExportPayload): Promise<void> {
   const [PptxGenJS, insights] = await Promise.all([
@@ -939,6 +1042,15 @@ export async function exportToPptx(payload: ExportPayload): Promise<void> {
 }
 
 // ─── Download helper ───────────────────────────────────────────────────────
+/**
+ * Mengunduh blob sebagai file
+ * @param blob - Blob yang akan diunduh
+ * @param filename - Nama file untuk unduhan
+ * @example
+ * ```ts
+ * downloadBlob(new Blob([buffer], { type: 'application/pdf' }), 'report.pdf');
+ * ```
+ */
 // Complexity: Time O(1) | Space O(blob_size)
 function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);

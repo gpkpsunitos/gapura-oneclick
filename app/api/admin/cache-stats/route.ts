@@ -21,5 +21,7 @@ export async function GET() {
   return NextResponse.json({
     stats,
     timestamp: Date.now()
+  }, {
+    headers: { 'Cache-Control': 'no-store, max-age=0' },
   });
 }

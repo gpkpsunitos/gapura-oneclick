@@ -23,16 +23,8 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
         }
 
-        // Get current user data
-        const { data: currentUser, error: currentUserError } = await supabase
-            .from('users')
-            .select('role, station_id')
-            .eq('id', session.id)
-            .single();
-
-        if (currentUserError || !currentUser) {
-            return NextResponse.json({ error: 'User not found' }, { status: 404 });
-        }
+        const currentUserRole = session.role;
+        const currentUserStationId = session.station_id || null;
 
         // Get staff user data
         const { data: staffUser, error: staffUserError } = await supabase
@@ -61,7 +53,7 @@ export async function POST(request: Request) {
         }
 
         // Check permission
-        if (!canApproveStaff(currentUser.role as any, currentUser.station_id, staffUser.station_id)) {
+        if (!canApproveStaff(currentUserRole as any, currentUserStationId, staffUser.station_id)) {
             return NextResponse.json(
                 { error: 'You can only approve staff from your station' },
                 { status: 403 }

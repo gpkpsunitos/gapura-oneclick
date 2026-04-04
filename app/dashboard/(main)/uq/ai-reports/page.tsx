@@ -1,6 +1,11 @@
 'use client';
 
-import DivisionAIReportsDashboard from '@/components/dashboard/ai-reports/DivisionAIReportsDashboard';
+import dynamic from 'next/dynamic';
+
+const DivisionAIReportsDashboard = dynamic(
+  () => import('@/components/dashboard/ai-reports/DivisionAIReportsDashboard'),
+  { loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-xl" /> }
+);
 
 export default function UQAIReportsPage() {
   return <DivisionAIReportsDashboard division="UQ" />;

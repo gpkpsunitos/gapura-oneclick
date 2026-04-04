@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen utama untuk composer dashboard dengan tile visualization
+ */
+
 'use client';
 
 import { useState } from 'react';
@@ -10,27 +17,62 @@ import { cn } from '@/lib/utils';
 import { DynamicFilterHeader } from './DynamicFilterHeader';
 import type { FilterData } from './DynamicFilterHeader';
 
+/**
+ * Props untuk komponen DashboardComposer
+ * @interface DashboardComposerProps
+ */
 interface DashboardComposerProps {
+  /** Daftar tile dashboard */
   tiles: DashboardTile[];
+  /** Handler saat tile diedit */
   onEditTile: (id: string) => void;
+  /** Handler saat tile dihapus */
   onRemoveTile: (id: string) => void;
+  /** Handler saat tile diresize */
   onResizeTile: (id: string, w: number, h: number) => void;
+  /** Handler saat preset layout diterapkan */
   onApplyPreset: (preset: LayoutPreset) => void;
+  /** Hasil query untuk setiap tile */
   tileResults: Map<string, QueryResult>;
+  /** Error untuk setiap tile (opsional) */
   tileErrors?: Map<string, string>;
+  /** Handler saat tile ditambahkan */
   onAddTile: (query: QueryDefinition, viz: ChartVisualization) => void;
+  /** Nama dashboard (opsional) */
   dashboardName?: string;
+  /** Deskripsi dashboard (opsional) */
   dashboardDescription?: string;
+  /** Daftar halaman dashboard (opsional) */
   pages?: DashboardPage[];
+  /** Range tahun untuk ditampilkan (opsional) */
   yearRange?: string;
+  /** Handler saat dashboard di-reset (opsional) */
   onReset?: () => void;
+  /** Handler saat filter berubah (opsional) */
   onFilterChange?: (filters: FilterData) => void;
+  /** Filter yang sedang aktif (opsional) */
   currentFilters?: FilterData;
 }
 
 const GAPURA_GREEN = '#6b8e3d';
 const GAPURA_BANNER = '#5a7a3a';
 
+/**
+ * Komponen utama dashboard composer untuk menampilkan dan mengelola tile
+ * @param props - Props untuk dashboard composer
+ * @returns JSX element dashboard composer dengan tile grid
+ * @example
+ * ```tsx
+ * <DashboardComposer
+ *   tiles={tiles}
+ *   tileResults={results}
+ *   onAddTile={handleAddTile}
+ *   onEditTile={handleEditTile}
+ *   onRemoveTile={handleRemoveTile}
+ *   dashboardName="IRRS Dashboard"
+ * />
+ * ```
+ */
 export function DashboardComposer({
   tiles,
   tileResults,
@@ -127,7 +169,7 @@ export function DashboardComposer({
               {/* Logo + Title Row */}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                  <Image src="/logo.png" alt="Gapura" width={120} height={40} style={{ objectFit: 'contain' }} />
+                  <Image src="/logo.png" alt="Gapura" width={120} height={40} style={{ objectFit: 'contain', width: 'auto', height: 'auto' }} />
                   <h1 className="text-lg font-bold text-[#333]">
                     {displayTitle}
                   </h1>

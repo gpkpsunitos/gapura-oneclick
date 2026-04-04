@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman akses cepat (Quick Access) untuk karyawan,
+ * menyediakan akses cepat ke berbagai tool, formulir, dan link operasional.
+ */
+
 'use client';
 
 import { useState } from 'react';
@@ -8,13 +16,29 @@ import {
   Bot, AlertTriangle, QrCode, ClipboardCheck, BookOpen, ArrowRight, X, ExternalLink, ChevronRight
 } from 'lucide-react';
 
+/**
+ * Tipe data untuk link QR Code
+ * @interface QRLink
+ * @property {string} label - Label untuk link QR Code
+ * @property {string} url - URL tujuan dari link
+ */
 type QRLink = { label: string; url: string };
 
+/**
+ * Tipe data union untuk kategori akses cepat
+ * Bisa berisi QR links, regular links, atau kategori tanpa link khusus
+ */
 type Category =
   | { id: string; title: string; description?: string; icon: any; color: string; span: string; qrLinks: QRLink[] }
   | { id: string; title: string; description?: string; icon: any; color: string; span: string; links: { label: string; sublabel?: string; url: string }[] }
   | { id: string; title: string; description?: string; icon: any; color: string; span: string };
 
+/**
+ * Daftar kategori akses cepat yang tersedia
+ * Berisi berbagai tool operasional seperti AI Chatbot, Irregularity Report, JOUMPA, dll.
+ * @constant
+ * @type {Category[]}
+ */
 const CATEGORIES: Category[] = [
   {
     id: 'AIChatbot',
@@ -95,6 +119,14 @@ const CATEGORIES: Category[] = [
   }
 ];
 
+/**
+ * Komponen modal akses cepat
+ * Menampilkan detail kategori yang dipilih, termasuk QR Code atau link eksternal
+ * @param {Object} props - Properti komponen
+ * @param {Category | null} props.category - Kategori yang sedang ditampilkan
+ * @param {() => void} props.onClose - Fungsi yang dipanggil saat modal ditutup
+ * @returns {JSX.Element | null} Tampilan modal akses cepat atau null jika tidak ada kategori
+ */
 function QuickAccessModal({
   category,
   onClose
@@ -194,6 +226,11 @@ function QuickAccessModal({
   );
 }
 
+/**
+ * Komponen halaman akses cepat (Quick Access) untuk karyawan
+ * Menampilkan grid kategori akses cepat dan modal detail kategori
+ * @returns {JSX.Element} Tampilan halaman akses cepat
+ */
 export default function QuickAccessPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const activeCategory = CATEGORIES.find(c => c.id === activeId) || null;

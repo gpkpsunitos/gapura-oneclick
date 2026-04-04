@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen indikator status koneksi dan offline queue
+ */
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -6,14 +13,33 @@ import { WifiOff, Wifi, CloudOff, RefreshCw } from 'lucide-react';
 import { PWA_QUEUE_EVENT } from '@/lib/pwa/constants';
 import { refreshOfflineQueueSummary } from '@/lib/pwa/offline-queue';
 
+/**
+ * Summary offline queue
+ * @type QueueSummary
+ */
 type QueueSummary = {
+  /** Jumlah item dalam queue */
   queued: number;
+  /** Jumlah item sedang sinkronisasi */
   syncing: number;
+  /** Jumlah item gagal sinkronisasi */
   failed: number;
+  /** Jumlah item berhasil sinkronisasi */
   synced: number;
+  /** Total semua item */
   total: number;
 };
 
+/**
+ * Komponen indikator status offline/online
+ * Menampilkan banner notifikasi dan floating badge untuk status koneksi
+ * @returns JSX element indikator status
+ * @example
+ * ```tsx
+ * // Letakkan di layout root
+ * <OfflineIndicator />
+ * ```
+ */
 export default function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
   const [showReconnected, setShowReconnected] = useState(false);

@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengambil (GET) dan membuat (POST) laporan
+ * Mendukung pagination, filtering berdasarkan role user, dan pembuatan laporan baru
+ */
+
 import { after, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
@@ -9,6 +17,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { bumpSyncVersion } from '@/lib/sync-state';
 import { purgeDashboardSnapshots, purgeExpiredDashboardSnapshots } from '@/lib/dashboard-cache';
 
+/** Field default untuk summary laporan */
 const DEFAULT_REPORT_SUMMARY_FIELDS = [
     'id',
     'sheet_id',
@@ -39,16 +48,28 @@ const DEFAULT_REPORT_SUMMARY_FIELDS = [
     'evidence_urls',
 ] as const;
 
+/** Tipe data untuk row summary laporan */
 type ReportSummaryRow = {
     id: string | number | null;
     created_at: string | null;
     [key: string]: unknown;
 };
 
+/**
+ * Mengencode cursor pagination ke format base64url
+ * @param createdAt - Timestamp pembuatan
+ * @param id - ID laporan
+ * @returns String cursor yang sudah diencode
+ */
 function encodeCursor(createdAt: string, id: string): string {
     return Buffer.from(JSON.stringify({ createdAt, id }), 'utf8').toString('base64url');
 }
 
+/**
+ * Mendekode cursor pagination dari format base64url
+ * @param cursor - String cursor yang akan didecode
+ * @returns Object berisi createdAt dan id atau null jika invalid
+ */
 function decodeCursor(cursor: string | null): { createdAt: string; id: string } | null {
     if (!cursor) return null;
     try {
@@ -63,6 +84,12 @@ function decodeCursor(cursor: string | null): { createdAt: string; id: string } 
     }
 }
 
+/**
+ * Mengambil field tertentu dari object laporan
+ * @param report - Object laporan
+ * @param fields - Array nama field yang akan diambil
+ * @returns Object baru berisi field yang diminta
+ */
 function pickReportFields(report: any, fields: readonly string[]) {
     const picked: Record<string, unknown> = {};
     for (const field of fields) {
@@ -73,7 +100,18 @@ function pickReportFields(report: any, fields: readonly string[]) {
     return picked;
 }
 
-// GET reports for an employee
+/**
+ * Menangani request GET untuk mengambil daftar laporan
+ * Mendukung pagination dengan cursor, filtering berdasarkan role user,
+ * dan pengambilan field spesifik
+ * @param request - Request object berisi query parameters
+ * @returns Response JSON berisi daftar laporan dan informasi pagination
+ * @throws {Error} Jika terjadi kesalahan saat mengambil laporan
+ * @example
+ * ```http
+ * GET /api/reports?limit=50&cursor=...&fields=id,title,status
+ * ```
+ */
 export async function GET(request: Request) {
     try {
         const cookieStore = await cookies();
@@ -102,13 +140,7 @@ export async function GET(request: Request) {
             : [...DEFAULT_REPORT_SUMMARY_FIELDS];
 
         // Get user's station_id from database for role-based filtering
-        const { data: userData } = await supabaseAdmin
-            .from('users')
-            .select('station_id')
-            .eq('id', payload.id)
-            .single();
-
-        const userStationId = userData?.station_id;
+        const userStationId = payload.station_id;
 
         const isDivisionOrPartner = role.startsWith('DIVISI_') || role.startsWith('PARTNER_');
         const adminBypass = role === 'SUPER_ADMIN' || role === 'ANALYST';
@@ -187,7 +219,24 @@ export async function GET(request: Request) {
     }
 }
 
-// POST create a new report
+/**
+ * Menangani request POST untuk membuat laporan baru
+ * Menerima data laporan, menyimpan ke database, mengirim notifikasi email,
+ * dan memperbarui cache dashboard
+ * @param request - Request object berisi data laporan di body JSON
+ * @returns Response JSON dengan status sukses dan data laporan yang dibuat
+ * @throws {Error} Jika terjadi kesalahan saat membuat laporan
+ * @example
+ * ```json
+ * {
+ *   "title": "Judul Laporan",
+ *   "description": "Deskripsi kejadian",
+ *   "severity": "high",
+ *   "station_id": "JKT-001",
+ *   "area": "TERMINAL"
+ * }
+ * ```
+ */
 export async function POST(request: Request) {
     try {
         const cookieStore = await cookies();
@@ -262,7 +311,7 @@ export async function POST(request: Request) {
         // Get user's station and unit from their profile (Supabase)
         const { data: userData } = await supabaseAdmin
             .from('users')
-            .select('station_id, unit_id')
+            .select('unit_id')
             .eq('id', payload.id)
             .single();
 
@@ -273,7 +322,7 @@ export async function POST(request: Request) {
             title,
             description,
             location: location || null,
-            station_id: station_id || userData?.station_id || null,
+            station_id: station_id || payload.station_id || null,
             unit_id: userData?.unit_id || null,
             location_id: location_id || null,
             incident_type_id: incident_type_id || null,
@@ -337,13 +386,14 @@ export async function POST(request: Request) {
         } catch {}
         const newReport = await reportsService.createReport(reportData);
 
-        await persistReportMetadata(newReport, { userId: payload.id }).catch((persistError) => {
-            console.warn('[REPORTS_API] Metadata persistence failed (non-blocking):', persistError);
-        });
-
-        await notifyNewRecordEmail(newReport, 'internal').catch((notificationError) => {
-            console.warn('[REPORTS_API] New-record notification failed:', notificationError);
-        });
+        await Promise.all([
+            persistReportMetadata(newReport, { userId: payload.id }).catch((persistError) => {
+                console.warn('[REPORTS_API] Metadata persistence failed (non-blocking):', persistError);
+            }),
+            notifyNewRecordEmail(newReport, 'internal').catch((notificationError) => {
+                console.warn('[REPORTS_API] New-record notification failed:', notificationError);
+            }),
+        ]);
 
         after(async () => {
             try {

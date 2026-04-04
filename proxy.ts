@@ -1,28 +1,72 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi middleware Next.js untuk autentikasi dan routing
+ * Middleware ini memproses semua request, memverifikasi session, dan mengontrol akses
+ * ke berbagai route berdasarkan role pengguna
+ */
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifySession } from '@/lib/auth-utils';
 
+/**
+ * Mapping role ke dashboard path yang sesuai
+ * Setiap role memiliki dashboard yang ditentukan untuk redirect otomatis
+ */
 const ROLE_DASHBOARDS: Record<string, string> = {
+    /** Dashboard untuk Super Admin */
     SUPER_ADMIN: '/dashboard/admin',
+    /** Dashboard untuk Divisi Eskalasi */
     DIVISI_ESKALASI: '/dashboard/eskalasi/select',
+    /** Dashboard untuk Divisi OS (Operational Support) */
     DIVISI_OS: '/dashboard/os',
+    /** Dashboard untuk Partner OS */
     PARTNER_OS: '/dashboard/os',
+    /** Dashboard untuk Divisi OT (Operational Technical) */
     DIVISI_OT: '/dashboard/ot',
+    /** Dashboard untuk Partner OT */
     PARTNER_OT: '/dashboard/ot',
+    /** Dashboard untuk Divisi OP (Operations) */
     DIVISI_OP: '/dashboard/op',
+    /** Dashboard untuk Partner OP */
     PARTNER_OP: '/dashboard/op',
+    /** Dashboard untuk Divisi UQ (Quality) */
     DIVISI_UQ: '/dashboard/uq',
+    /** Dashboard untuk Partner UQ */
     PARTNER_UQ: '/dashboard/uq',
+    /** Dashboard untuk Divisi HC (Human Capital) */
     DIVISI_HC: '/dashboard/hc',
+    /** Dashboard untuk Partner HC */
     PARTNER_HC: '/dashboard/hc',
+    /** Dashboard untuk Divisi HT (Human Training) */
     DIVISI_HT: '/dashboard/ht',
+    /** Dashboard untuk Partner HT */
     PARTNER_HT: '/dashboard/ht',
+    /** Dashboard untuk Analyst */
     ANALYST: '/dashboard/analyst',
+    /** Dashboard untuk Manager Cabang */
     MANAGER_CABANG: '/dashboard/employee',
+    /** Dashboard untuk Staff Cabang */
     STAFF_CABANG: '/dashboard/employee',
+    /** Dashboard untuk Cabang */
     CABANG: '/dashboard/employee',
 };
 
+/**
+ * Middleware utama untuk autentikasi dan routing
+ * Fungsi ini dipanggil untuk setiap request yang cocok dengan pattern matcher
+ * 
+ * @param request - Objek NextRequest yang berisi informasi request
+ * @returns NextResponse untuk redirect ke halaman yang sesuai atau lanjutkan request
+ * 
+ * @example
+ * ```typescript
+ * // Request yang sudah terautentikasi dengan role DIVISI_OS
+ * // akan di-redirect ke /dashboard/os
+ * ```
+ */
 export default async function proxy(request: NextRequest) {
     const path = request.nextUrl.pathname;
     const authHeader = request.headers.get('authorization');
@@ -95,7 +139,7 @@ export default async function proxy(request: NextRequest) {
         const role = String(payload.role).trim().toUpperCase();
 
         // 2. If logged in and trying to access AUTH pages (login/register), redirect to dashboard
-        // CRITICAL BUGFIX: We must NOT redirect if the path is the logout endpoint!
+        // CRITICAL BUGFIX: We must NOT redirect if path is logout endpoint!
         if (isAuthPagePath && path !== '/api/auth/logout') {
             const dashboardUrl = ROLE_DASHBOARDS[role] || '/dashboard/employee';
             return NextResponse.redirect(new URL(dashboardUrl, request.url));
@@ -173,6 +217,19 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
 }
 
+/**
+ * Konfigurasi matcher untuk middleware
+ * Menentukan route mana yang akan diproses oleh middleware ini
+ * 
+ * @example
+ * ```typescript
+ * // Route yang akan diproses:
+ * // - /dashboard/*
+ * // - /auth/*
+ * // - /embed/*
+ * // - /api/*
+ * ```
+ */
 export const config = {
     matcher: [
         '/dashboard/:path*',

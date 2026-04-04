@@ -1,8 +1,19 @@
 /**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi konstanta untuk desain responsif, termasuk breakpoint,
+ * sistem spasi, ukuran target sentuh, tinggi chart, dan tipografi
+ */
+
+/**
  * Breakpoint constants for responsive design
  * Following mobile-first approach
  */
 
+/**
+ * Konstanta breakpoint untuk desain responsif
+ */
 export const BREAKPOINTS = {
   /** Extra small devices (phones, 375px and up) */
   XS: 375,

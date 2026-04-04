@@ -1,16 +1,38 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi engine pemrosesan query yang berjalan di-memory
+ * untuk eksekusi query filter, aggregasi, grouping, sorting, dan limit
+ */
 
 import type { QueryDefinition } from '@/types/builder';
 import type { Report } from '@/types';
 
+/**
+ * Interface hasil query
+ */
 interface QueryResult {
+  /** Daftar nama kolom */
   columns: string[];
+  /** Daftar baris data */
   rows: Record<string, unknown>[];
+  /** Jumlah baris */
   rowCount: number;
+  /** Waktu eksekusi dalam milidetik */
   executionTimeMs: number;
+  /** Pesan error jika ada */
   error?: string;
 }
 
 // Helper to safely get values
+/**
+ * Helper untuk mendapatkan nilai dari row dengan handling alias
+ * 
+ * @param row - Object row data
+ * @param field - Field yang ingin diambil
+ * @returns Nilai field atau undefined
+ */
 const getVal = (row: any, field: string) => {
   // Handle known category aliases
   if (field === 'category' || field === 'main_category') {
@@ -51,6 +73,13 @@ const getVal = (row: any, field: string) => {
 };
 
 // Helper for date granularity
+/**
+ * Helper untuk mendapatkan kunci tanggal berdasarkan granularitas
+ * 
+ * @param dateStr - String tanggal
+ * @param granularity - Granularitas waktu ('month', 'year', 'day', 'quarter')
+ * @returns Kunci tanggal yang diformat
+ */
 const getDateKey = (dateStr: string, granularity?: string) => {
   if (!dateStr) return 'Unknown';
   try {
@@ -76,6 +105,10 @@ const getDateKey = (dateStr: string, granularity?: string) => {
 /**
  * Executes a query against an in-memory array of data.
  * This function is pure and can run on both client and server.
+ * 
+ * @param query - Definisi query yang akan dieksekusi
+ * @param data - Array data yang akan diproses
+ * @returns Hasil query berisi columns, rows, rowCount, dan executionTimeMs
  */
 export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
   const startTime = Date.now();
@@ -208,11 +241,11 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
 
          if (m.function === 'COUNT') result[alias]++;
          if (m.function === 'SUM') {
-            let num = Number(val);
-            if (isNaN(num) && typeof val === 'string') {
-                num = Number(val.replace(/[^0-9.-]+/g, ''));
-            }
-            result[alias] += (isNaN(num) ? 0 : num);
+             let num = Number(val);
+             if (isNaN(num) && typeof val === 'string') {
+                 num = Number(val.replace(/[^0-9.-]+/g, ''));
+             }
+             result[alias] += (isNaN(num) ? 0 : num);
          }
          if (m.function === 'COUNT_DISTINCT') {
              if (val !== undefined && val !== null) {
@@ -224,10 +257,10 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
      
      // Post process
      Object.keys(result).forEach(k => {
-        if (k.startsWith('_set_')) {
-            const alias = k.replace('_set_', '');
-            result[alias] = result[k].size;
-            delete result[k];
+         if (k.startsWith('_set_')) {
+             const alias = k.replace('_set_', '');
+             result[alias] = result[k].size;
+             delete result[k];
         }
     });
      

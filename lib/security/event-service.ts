@@ -1,19 +1,44 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi layanan untuk mencatat event keamanan dari dalam logika sistem
+ */
+
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { SecurityEvent, SecuritySeverity } from '@/types/security';
 import { DetectionEngine } from './detection-engine';
 
 /**
- * Log a security event from within the system logic.
- * Decouples logic from persistence/analysis.
+ * Parameter untuk log event keamanan
  */
-export async function logSecurityEvent(params: {
+interface SecurityEventParams {
     source: string;
     event_type: 'login' | 'traffic' | 'access' | 'anomaly';
     severity: SecuritySeverity;
     payload: Record<string, unknown>;
     ip_address?: string;
     actor_id?: string;
-}) {
+}
+
+/**
+ * Mencatat event keamanan dari dalam logika sistem
+ * Mendekoupling logika dari persistensi/analisis
+ * @param {SecurityEventParams} params - Parameter event keamanan
+ * @returns {Promise<void>}
+ * @example
+ * ```ts
+ * await logSecurityEvent({
+ *   source: 'auth-service',
+ *   event_type: 'login',
+ *   severity: 'MEDIUM',
+ *   payload: { success: true },
+ *   ip_address: '192.168.1.1',
+ *   actor_id: 'user-123'
+ * });
+ * ```
+ */
+export async function logSecurityEvent(params: SecurityEventParams) {
     try {
         const { error } = await supabaseAdmin
             .from('security_events')

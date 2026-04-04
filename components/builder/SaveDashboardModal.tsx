@@ -1,9 +1,29 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen modal untuk menyimpan dashboard dengan QR code
+ */
+
 'use client';
 
 import { useState, useId } from 'react';
 import { X, Save, Link2, Check, Loader2, LayoutGrid, FileText } from 'lucide-react';
 import { QRCodeWithLogo } from '@/components/ui/QRCodeWithLogo';
 
+/**
+ * Props untuk komponen SaveDashboardModal
+ * @interface SaveDashboardModalProps
+ * @property {boolean} isOpen - Apakah modal terbuka
+ * @property {Function} onClose - Fungsi untuk menutup modal
+ * @property {string} initialName - Nama awal dashboard
+ * @property {string} initialDescription - Deskripsi awal dashboard
+ * @property {string} [initialFolder=''] - Folder awal
+ * @property {string[]} [existingFolders=[]] - Daftar folder yang sudah ada
+ * @property {Function} onSave - Fungsi untuk menyimpan dashboard
+ * @property {number} [tileCount=0] - Jumlah tile
+ * @property {number} [pageCount=0] - Jumlah halaman
+ */
 interface SaveDashboardModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -16,6 +36,28 @@ interface SaveDashboardModalProps {
   pageCount?: number;
 }
 
+/**
+ * Komponen modal untuk menyimpan dashboard
+ * Menampilkan form untuk memasukkan nama dan deskripsi dashboard
+ * Menampilkan QR code dan embed URL setelah berhasil disimpan
+ * 
+ * @param {SaveDashboardModalProps} props - Props untuk konfigurasi modal
+ * @returns {JSX.Element | null} Element React yang berisi modal atau null
+ * 
+ * @example
+ * ```tsx
+ * <SaveDashboardModal
+ *   isOpen={isModalOpen}
+ *   onClose={() => setModalOpen(false)}
+ *   initialName="Laporan Bulanan"
+ *   initialDescription="Laporan kinerja bulanan"
+ *   existingFolders={['Laporan', 'KPI']}
+ *   onSave={handleSave}
+ *   tileCount={5}
+ *   pageCount={2}
+ * />
+ * ```
+ */
 export function SaveDashboardModal({
   isOpen,
   onClose,
@@ -37,6 +79,11 @@ export function SaveDashboardModal({
 
   if (!isOpen) return null;
 
+  /**
+   * Menangani penyimpanan dashboard
+   * @async function handleSave
+   * @returns {Promise<void>}
+   */
   const handleSave = async () => {
     if (!name.trim()) return;
     setSaving(true);
@@ -47,6 +94,11 @@ export function SaveDashboardModal({
     }
   };
 
+  /**
+   * Menangani penyalinan URL embed
+   * @function handleCopy
+   * @returns {void}
+   */
   const handleCopy = () => {
     if (!savedUrl) return;
     const fullUrl = `${window.location.origin}${savedUrl}`;

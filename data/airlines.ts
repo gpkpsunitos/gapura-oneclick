@@ -1,3 +1,14 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi data master airlines domestik dan internasional
+ */
+
+/**
+ * Daftar airlines dengan kode, nama, dan tipe
+ * @constant AIRLINES
+ */
 export const AIRLINES = [
     // --- Domestic (Major) ---
     { code: 'GA', name: 'Garuda Indonesia', type: 'Full Service', logo: '' },

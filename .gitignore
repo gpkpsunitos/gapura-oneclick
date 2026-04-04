@@ -12,6 +12,9 @@
 # next.js
 /.next/
 /out/
+
+# turbopack
+.turbo/
 public/sw*
 
 # production
@@ -42,3 +45,11 @@ yarn-error.log*
 next-env.d.ts
 
 certificates
+
+# Supabase export data (contains sensitive production data)
+supabase/export/data/
+supabase/export/schema/schema_definition.json
+
+# Debug artifacts
+*.original.tsx
+*.original.ts

@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengambil (GET) dan mengupdate (PATCH) laporan berdasarkan ID
+ * Mendukung otorisasi berdasarkan role user dan komentar sistem
+ */
+
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabase-admin';
@@ -7,9 +15,16 @@ import { reportsService } from '@/lib/services/reports-service';
 import { persistReportMetadata } from '@/lib/report-persistence';
 
 /**
- * GET /api/reports/[id]
- * Fetch a single report by ID with all related data
- * Complexity: Time O(1) | Space O(1)
+ * Menangani request GET untuk mengambil laporan berdasarkan ID
+ * Fetch laporan lengkap dengan semua data terkait termasuk user dan komentar
+ * @param request - Request object
+ * @param params - Route parameters berisi ID laporan
+ * @returns Response JSON berisi data laporan yang diperkaya dengan user dan komentar
+ * @throws {Error} Jika laporan tidak ditemukan atau user tidak memiliki akses
+ * @example
+ * ```http
+ * GET /api/reports/uuid-here
+ * ```
  */
 export async function GET(
     request: Request,
@@ -43,43 +58,36 @@ export async function GET(
                 return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
             }
         } else if (payload.role === 'MANAGER_CABANG') {
-            // MANAGER_CABANG can only access reports from their station
-            const { data: userData } = await supabase
-                .from('users')
-                .select('station_id')
-                .eq('id', payload.id)
-                .single();
-
-            if (report.station_id !== userData?.station_id) {
+            if (report.station_id !== payload.station_id) {
                 return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
             }
         }
         // Other roles (ANALYST, OS, ADMIN, etc.) have full access
 
-        // Fetch user from Supabase if user_id is present
-        let user: any = null;
-        if (report.user_id && !report.user_id.includes('!')) {
-            const { data: u } = await supabase.from('users').select('id, full_name, email').eq('id', report.user_id).single();
-            user = u;
-        }
-
-        // Fetch comments from Supabase Admin (Bypass RLS for detail view)
-        // Search by both the current ID (UUID) and the original Sheets ID for transition compatibility
         const commentIds = [id, report.original_id].filter((val): val is string => !!val);
-        const { data: comments } = await supabaseAdmin
-            .from('report_comments')
-            .select(`
-                id,
-                content,
-                created_at,
-                is_system_message,
-                sheet_id,
-                users:user_id (
-                    full_name
-                )
-            `)
-            .in('report_id', commentIds)
-            .order('created_at', { ascending: true });
+
+        const [userResult, commentsResult] = await Promise.all([
+            report.user_id && !report.user_id.includes('!')
+                ? supabase.from('users').select('id, full_name, email').eq('id', report.user_id).single()
+                : Promise.resolve({ data: null }),
+            supabaseAdmin
+                .from('report_comments')
+                .select(`
+                    id,
+                    content,
+                    created_at,
+                    is_system_message,
+                    sheet_id,
+                    users:user_id (
+                        full_name
+                    )
+                `)
+                .in('report_id', commentIds)
+                .order('created_at', { ascending: true }),
+        ]);
+
+        const user = userResult?.data;
+        const comments = commentsResult?.data;
 
         // Enrich report using data from Sheets and User profile
         const enrichedReport = {
@@ -98,6 +106,23 @@ export async function GET(
     }
 }
 
+/**
+ * Menangani request PATCH untuk mengupdate laporan berdasarkan ID
+ * Mendukung update field-field tertentu dan pembuatan komentar sistem otomatis
+ * untuk dispatch dan perubahan status
+ * @param request - Request object berisi data update di body JSON
+ * @param params - Route parameters berisi ID laporan
+ * @returns Response JSON dengan status sukses dan data laporan yang diupdate
+ * @throws {Error} Jika terjadi kesalahan saat mengupdate laporan
+ * @example
+ * ```json
+ * {
+ *   "status": "ON PROGRESS",
+ *   "priority": "high",
+ *   "action_taken": "Laporan sedang dalam proses investigasi"
+ * }
+ * ```
+ */
 export async function PATCH(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -240,6 +265,17 @@ export async function PATCH(
         }).catch((syncErr) => {
             console.warn('[Supabase] PATCH sync error:', syncErr);
         });
+
+        try {
+            const { bumpSyncVersion } = await import('@/lib/sync-state');
+            const { purgeDashboardSnapshots, purgeExpiredDashboardSnapshots } = await import('@/lib/dashboard-cache');
+            const state = await bumpSyncVersion('reports');
+            await purgeDashboardSnapshots({ maxSyncVersion: Number(state.sync_version) });
+            await purgeExpiredDashboardSnapshots();
+        } catch (cacheErr) {
+            console.warn('[REPORTS_PATCH] Cache invalidation failed:', cacheErr);
+        }
+
         return NextResponse.json({ success: true, data: updatedReport });
     } catch (error) {
         console.error('Error updating report:', error);

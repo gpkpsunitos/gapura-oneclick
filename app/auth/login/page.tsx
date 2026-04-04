@@ -1,16 +1,34 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman login untuk aplikasi OneClick
+ */
+
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Mail, Lock, ArrowRight, Loader2 } from 'lucide-react';
+import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 
+/**
+ * Komponen halaman login OneClick
+ * Menampilkan form login dengan desain responsive
+ * @returns JSX element halaman login
+ * @example
+ * ```tsx
+ * // Route: /auth/login
+ * <LoginPage />
+ * ```
+ */
 export default function LoginPage() {
     const router = useRouter();
     const [formData, setFormData] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -24,10 +42,13 @@ export default function LoginPage() {
                 body: JSON.stringify(formData),
             });
 
-            let data: any = null;
+            let data: { error?: string; role?: string } | null = null;
             const ct = res.headers.get('content-type') || '';
             if (ct.includes('application/json')) {
-                data = await res.json();
+                const parsed = await res.json() as unknown;
+                if (parsed && typeof parsed === 'object') {
+                    data = parsed as { error?: string; role?: string };
+                }
             } else {
                 const text = await res.text();
                 data = { error: text?.slice(0, 200) || 'Kesalahan tak diketahui' };
@@ -92,6 +113,7 @@ export default function LoginPage() {
                         width={240}
                         height={90}
                         className="object-contain brightness-0 invert"
+                        style={{ width: 'auto', height: 'auto' }}
                         priority
                     />
                 </div>
@@ -190,13 +212,23 @@ export default function LoginPage() {
                                 <div className="relative">
                                     <Lock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                                     <input
-                                        type="password"
+                                        type={showPassword ? 'text' : 'password'}
                                         required
-                                        className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 text-sm transition-all focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:bg-white"
+                                        className="w-full pl-10 sm:pl-12 pr-10 sm:pr-12 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 text-sm transition-all focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:bg-white"
                                         placeholder="••••••••"
                                         value={formData.password}
                                         onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                     />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword((current) => !current)}
+                                        className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
+                                        aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                                        aria-pressed={showPassword}
+                                    >
+                                        {showPassword ? <EyeOff size={16} className="sm:hidden" /> : <Eye size={16} className="sm:hidden" />}
+                                        {showPassword ? <EyeOff size={18} className="hidden sm:block" /> : <Eye size={18} className="hidden sm:block" />}
+                                    </button>
                                 </div>
                             </div>
 

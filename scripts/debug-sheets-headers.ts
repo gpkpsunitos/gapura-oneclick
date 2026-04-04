@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi skrip debugging untuk menampilkan header dari semua sheet di Google Sheets
+ */
+
 import { config } from 'dotenv';
 import { resolve } from 'path';
 
@@ -15,6 +22,11 @@ if (PRIVATE_KEY) {
   PRIVATE_KEY = PRIVATE_KEY.replace(/\\n/g, '\n');
 }
 
+/**
+ * Fungsi debugging untuk menampilkan header dari semua sheet
+ * @async
+ * @returns {Promise<void>}
+ */
 async function debugSheets() {
   if (!SPREADSHEET_ID || !CLIENT_EMAIL || !PRIVATE_KEY) {
     console.error('Missing Google Sheets credentials');

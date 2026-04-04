@@ -1,26 +1,3 @@
-declare module 'chart.js' {
-  export const Chart: any;
-  export const CategoryScale: any;
-  export const LinearScale: any;
-  export const BarElement: any;
-  export const LineElement: any;
-  export const PointElement: any;
-  export const Title: any;
-  export const Tooltip: any;
-  export const Legend: any;
-  export const Filler: any;
-  export const ArcElement: any;
-  export const RadialLinearScale: any;
-  export const Scale: any;
-  export const ChartData: any;
-  export const ChartOptions: any;
-}
-
-declare module 'chart.js/auto' {
-  const Chart: any;
-  export default Chart;
-}
-
 declare module 'file-saver' {
   export function saveAs(data: Blob | string, filename?: string): void;
 }

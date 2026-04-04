@@ -1,11 +1,11 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ComponentProps } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import {
-    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer as RechartsResponsiveContainer,
     PieChart as RechartsPie, Pie, Cell, BarChart, Bar, LineChart, Line,
     ComposedChart, LabelList
 } from 'recharts';
@@ -227,6 +227,16 @@ const ENTERPRISE_COLORS = [
     'oklch(0.62 0.11 150)',
     'oklch(0.62 0.11 80)',
 ] as const;
+
+function ResponsiveContainer(props: ComponentProps<typeof RechartsResponsiveContainer>) {
+    return (
+        <RechartsResponsiveContainer
+            {...props}
+            minWidth={props.minWidth ?? 1}
+            minHeight={props.minHeight ?? 1}
+        />
+    );
+}
 
 const WrappedXAxisTick = (props: any) => {
     const { x, y, payload } = props;
@@ -1391,7 +1401,7 @@ export default function AnalystCharts({
                                 exit={{ height: 0, opacity: 0, overflow: 'hidden' }}
                                 transition={{ duration: 0.3, ease: 'easeInOut' }}
                             >
-                                <div className="bg-white/60 backdrop-blur-xl border border-slate-200/60 rounded-xl p-4 shadow-sm mb-6 relative before:absolute before:inset-0 before:bg-[url('/noise.png')] before:opacity-[0.02] before:pointer-events-none">
+                                <div className="bg-white/60 backdrop-blur-xl border border-slate-200/60 rounded-xl p-4 shadow-sm mb-6 relative before:absolute before:inset-0 before:bg-[url('/noise.svg')] before:opacity-[0.02] before:pointer-events-none">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 items-end relative z-10">
                                         <div className="flex flex-col gap-2 lg:col-span-6">
                                             <label className="text-[10px] font-black uppercase tracking-widest text-[#64748b]">Custom Range</label>

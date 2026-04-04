@@ -81,7 +81,7 @@ export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ 
             <div className="flex-1 min-w-[340px] flex flex-col items-center">
                 <div className="text-center font-black text-[#1f2937] mb-5 text-[15px] tracking-[0.15em]">{year}</div>
                 {/* PRISM V3: Glass/Noise container */}
-                <div className="w-full relative rounded-2xl overflow-hidden bg-white/70 backdrop-blur-2xl border border-white/40 shadow-xl shadow-slate-200/50 before:absolute before:inset-0 before:bg-[url('/noise.png')] before:opacity-[0.03] before:pointer-events-none">
+                <div className="w-full relative rounded-2xl overflow-hidden bg-white/70 backdrop-blur-2xl border border-white/40 shadow-xl shadow-slate-200/50 before:absolute before:inset-0 before:bg-[url('/noise.svg')] before:opacity-[0.03] before:pointer-events-none">
                     <table className="w-full text-xs text-center border-collapse relative z-10">
                         {/* PRISM V3: Vibrant, deep headers */}
                         <thead className="bg-[#1f2937] text-slate-100">
@@ -160,7 +160,7 @@ export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ 
 
                 {/* Summary Table: PRISM UI */}
                 <div className="w-full lg:w-3/4 2xl:w-[30%] mt-4 lg:mt-11 mx-auto 2xl:mx-0">
-                    <div className="rounded-2xl overflow-hidden bg-white/60 backdrop-blur-xl border border-white/40 shadow-2xl shadow-[#1e3a8a]/10 relative before:absolute before:inset-0 before:bg-[url('/noise.png')] before:opacity-[0.03] before:pointer-events-none">
+                    <div className="rounded-2xl overflow-hidden bg-white/60 backdrop-blur-xl border border-white/40 shadow-2xl shadow-[#1e3a8a]/10 relative before:absolute before:inset-0 before:bg-[url('/noise.svg')] before:opacity-[0.03] before:pointer-events-none">
                         <table className="w-full text-sm border-collapse relative z-10">
                             {/* Royal / Deep Header */}
                             <thead className="bg-[#1e3a8a] text-white">
@@ -246,4 +246,3 @@ export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ 
         </motion.div>
     );
 };
-

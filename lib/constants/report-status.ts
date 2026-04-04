@@ -1,4 +1,12 @@
 /**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi konstanta status laporan dan fungsi terkait untuk
+ * manajemen lifecycle, SLA, dan transisi status laporan
+ */
+
+/**
  * Report Status Constants
  * Simplified 3-status lifecycle system
  */
@@ -13,25 +21,39 @@ import {
     LucideIcon
 } from 'lucide-react';
 
+/**
+ * Konstanta status laporan yang tersedia
+ */
 export const REPORT_STATUS = {
     OPEN: 'OPEN',
     'ON PROGRESS': 'ON PROGRESS',
     CLOSED: 'CLOSED',
 } as const;
 
+/**
+ * Tipe data status laporan
+ */
 export type ReportStatus = typeof REPORT_STATUS[keyof typeof REPORT_STATUS];
 
 /**
- * Status configuration for UI display
+ * Konfigurasi status untuk tampilan UI
  */
 export const STATUS_CONFIG: Record<ReportStatus, {
+    /** Label tampilan status */
     label: string;
+    /** Warna utama */
     color: string;
+    /** Warna background transparan */
     bgColor: string;
+    /** Icon komponen Lucide */
     icon: LucideIcon;
+    /** Deskripsi status */
     description: string;
+    /** Class CSS background untuk Tailwind */
     bgClass?: string;
+    /** Class CSS teks untuk Tailwind */
     textClass?: string;
+    /** Class CSS border untuk Tailwind */
     borderClass?: string;
 }> = {
     OPEN: {
@@ -71,12 +93,21 @@ export const STATUS_CONFIG: Record<ReportStatus, {
  */
 export type ReportPriority = 'low' | 'medium' | 'high' | 'urgent';
 
+/**
+ * Konfigurasi prioritas laporan dengan SLA
+ */
 export const PRIORITY_CONFIG: Record<ReportPriority, {
+    /** Label lengkap dalam Bahasa Indonesia */
     label: string;
+    /** Label pendek dalam Bahasa Inggris */
     labelShort: string;
+    /** Warna prioritas */
     color: string;
+    /** Warna background transparan */
     bgColor: string;
+    /** SLA dalam jam */
     slaHours: number;
+    /** Deskripsi prioritas */
     description: string;
 }> = {
     low: {
@@ -125,6 +156,10 @@ export const SEVERITY_CONFIG = {
 
 /**
  * Calculate SLA deadline from creation time and priority
+ * 
+ * @param createdAt - Tanggal pembuatan laporan (Date object atau string)
+ * @param priority - Prioritas laporan
+ * @returns Tanggal deadline SLA
  */
 export function calculateSlaDeadline(createdAt: Date | string, priority: ReportPriority): Date {
     const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
@@ -134,10 +169,16 @@ export function calculateSlaDeadline(createdAt: Date | string, priority: ReportP
 
 /**
  * Get SLA status (remaining time or breach)
+ * 
+ * @param slaDeadline - Tanggal deadline SLA
+ * @returns Object status SLA dengan isBreached, remainingMs, dan remainingText
  */
 export function getSlaStatus(slaDeadline: Date | string | null): {
+    /** Apakah SLA sudah terlewati */
     isBreached: boolean;
+    /** Sisa waktu dalam milidetik (negatif jika sudah lewat) */
     remainingMs: number;
+    /** Teks sisa waktu yang diformat */
     remainingText: string;
 } {
     if (!slaDeadline) {
@@ -173,6 +214,9 @@ export function getSlaStatus(slaDeadline: Date | string | null): {
 
 /**
  * Normalize system status strings to canonical ReportStatus
+ * 
+ * @param status - String status dalam format apa saja
+ * @returns Status kanonik (OPEN, ON PROGRESS, atau CLOSED)
  */
 export function normalizeStatus(status: any): ReportStatus {
     if (!status) return 'OPEN';
@@ -218,6 +262,10 @@ export function normalizeStatus(status: any): ReportStatus {
 /**
  * Get allowed status transitions based on current status and user role
  * Only ANALYST can change statuses
+ * 
+ * @param currentStatus - Status saat ini
+ * @param userRole - Role pengguna
+ * @returns Array status yang diizinkan untuk transisi
  */
 export function getAllowedTransitions(
     currentStatus: string | ReportStatus,
@@ -247,6 +295,11 @@ export function getAllowedTransitions(
 /**
  * Check if user can perform specific action on report
  * Analyst controls ALL status changes. Other roles can only view and comment.
+ * 
+ * @param action - Tipe aksi yang ingin dilakukan
+ * @param currentStatus - Status saat ini
+ * @param userRole - Role pengguna
+ * @returns Boolean true jika aksi diizinkan, false jika tidak
  */
 export function canPerformAction(
     action: 'update_progress' | 'close' | 'reopen' | 'comment',

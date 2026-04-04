@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman registrasi akun baru dengan formulir pendaftaran lengkap
+ * termasuk validasi NIK, email, telepon, dan pemilihan station/unit/posisi
+ */
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -7,10 +14,24 @@ import Image from 'next/image';
 import { User, Mail, Lock, UserPlus, Loader2, CheckCircle, Phone, Building2, Users, Briefcase, CreditCard, Info, Shield, Eye, EyeOff, Layers } from 'lucide-react';
 import type { DivisionType } from '@/types';
 
+/**
+ * Interface untuk data station
+ */
 interface Station { id: string; code: string; name: string; }
+
+/**
+ * Interface untuk data unit
+ */
 interface Unit { id: string; name: string; }
+
+/**
+ * Interface untuk data posisi
+ */
 interface Position { id: string; name: string; }
 
+/**
+ * Opsi divisi untuk registrasi
+ */
 const DIVISION_OPTIONS: { value: DivisionType; label: string }[] = [
     { value: 'OS', label: 'Operational Services (OS)' },
     { value: 'OT', label: 'Teknik / GSE (OT)' },
@@ -19,6 +40,9 @@ const DIVISION_OPTIONS: { value: DivisionType; label: string }[] = [
     { value: 'GENERAL', label: 'Umum / Lainnya' },
 ];
 
+/**
+ * Data unit default untuk fallback
+ */
 const DEFAULT_UNITS: Unit[] = [
     { id: '00000000-0000-0000-0000-000000000101', name: 'Ramp' },
     { id: '00000000-0000-0000-0000-000000000102', name: 'Passenger Service' },
@@ -28,6 +52,9 @@ const DEFAULT_UNITS: Unit[] = [
     { id: '00000000-0000-0000-0000-000000000106', name: 'Administrasi' },
 ];
 
+/**
+ * Data posisi default untuk fallback
+ */
 const DEFAULT_POSITIONS: Array<Position & { level?: number }> = [
     { id: '00000000-0000-0000-0000-000000000201', name: 'Super Admin', level: 1 },
     { id: '00000000-0000-0000-0000-000000000202', name: 'Analyst', level: 2 },
@@ -43,6 +70,10 @@ const DEFAULT_POSITIONS: Array<Position & { level?: number }> = [
     { id: '00000000-0000-0000-0000-00000000020C', name: 'Manager', level: 7 },
 ];
 
+/**
+ * Halaman registrasi akun baru
+ * @returns Komponen React
+ */
 export default function RegisterPage() {
     const router = useRouter();
     const [formData, setFormData] = useState({
@@ -83,6 +114,11 @@ export default function RegisterPage() {
 
     useEffect(() => {
         const fetchMasterData = async () => {
+            /**
+             * Menyelesaikan JSON response dari promise
+             * @param p - Promise dari fetch
+             * @returns Promise<any[]> Array data
+             */
             const settleJson = async (p: Promise<Response>): Promise<any[]> => {
                 try {
                     const res = await p;
@@ -132,6 +168,12 @@ export default function RegisterPage() {
         return gps ? [gps, ...others] : others;
     }, [stations]);
 
+    /**
+     * Validasi field formulir
+     * @param name - Nama field
+     * @param value - Nilai field
+     * @returns Pesan error atau string kosong jika valid
+     */
     const validateField = (name: string, value: string): string => {
         switch (name) {
             case 'nik':
@@ -163,6 +205,11 @@ export default function RegisterPage() {
         return '';
     };
 
+    /**
+     * Menangani perubahan nilai field formulir
+     * @param name - Nama field
+     * @param value - Nilai baru field
+     */
     const handleChange = (name: string, value: string) => {
         // Transform NIK to uppercase
         if (name === 'nik') value = value.toUpperCase();
@@ -193,6 +240,10 @@ export default function RegisterPage() {
         }
     };
 
+    /**
+     * Menangani submit formulir registrasi
+     * @param e - Event form
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -285,6 +336,7 @@ export default function RegisterPage() {
                         width={180}
                         height={70}
                         className="object-contain brightness-0 invert"
+                        style={{ width: 'auto', height: 'auto' }}
                         priority
                     />
                 </div>

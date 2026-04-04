@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { verifySession } from '@/lib/auth-utils';
-import { createClient } from '@/lib/supabase-admin';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logSecurityAudit } from '@/lib/security/audit-logger';
 import { SecurityStats, SecurityAlert, AuthMetrics, NetworkStatus, ThreatActor } from '@/types/security';
 
@@ -24,12 +24,7 @@ export async function GET(request: Request) {
     }
 
     // Check for Demo Mode from Supabase config
-    const supabase = createClient(
-         process.env.NEXT_PUBLIC_SUPABASE_URL!,
-         process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    
-    const { data: config } = await supabase
+    const { data: config } = await supabaseAdmin
         .from('security_configs')
         .select('value')
         .eq('key', 'demo_access_enabled')
@@ -72,16 +67,16 @@ export async function GET(request: Request) {
         { data: blockedIpsData },
         { count: totalUsers }
     ] = await Promise.all([
-        supabase.from('security_events').select('*', { count: 'exact', head: true }).eq('event_type', 'blocked'),
-        supabase.from('security_events').select('*', { count: 'exact', head: true }).eq('event_type', 'malware'),
-        supabase.from('security_events').select('*', { count: 'exact', head: true }).eq('event_type', 'login').eq('payload->>success', 'false'),
-        supabase.from('security_alerts').select('*').order('created_at', { ascending: false }).limit(10),
-        supabase.from('security_events').select('*', { count: 'exact', head: true }).eq('event_type', 'login').eq('payload->>success', 'false').gt('created_at', new Date(Date.now() - 86400000).toISOString()),
-        supabase.from('security_events').select('*', { count: 'exact', head: true }).eq('event_type', 'login').eq('payload->>success', 'true').gt('created_at', new Date(Date.now() - 86400000).toISOString()),
-        supabase.from('security_events').select('payload').eq('event_type', 'traffic').gt('created_at', new Date(Date.now() - 3600000).toISOString()),
-        supabase.from('security_events').select('ip_address, severity, created_at, event_type').not('ip_address', 'is', null).order('created_at', { ascending: false }).limit(200),
-        supabase.from('blocked_ips').select('ip_address'),
-        supabase.from('users').select('*', { count: 'exact', head: true })
+        supabaseAdmin.from('security_events').select('*', { count: 'exact', head: true }).eq('event_type', 'blocked'),
+        supabaseAdmin.from('security_events').select('*', { count: 'exact', head: true }).eq('event_type', 'malware'),
+        supabaseAdmin.from('security_events').select('*', { count: 'exact', head: true }).eq('event_type', 'login').eq('payload->>success', 'false'),
+        supabaseAdmin.from('security_alerts').select('*').order('created_at', { ascending: false }).limit(10),
+        supabaseAdmin.from('security_events').select('*', { count: 'exact', head: true }).eq('event_type', 'login').eq('payload->>success', 'false').gt('created_at', new Date(Date.now() - 86400000).toISOString()),
+        supabaseAdmin.from('security_events').select('*', { count: 'exact', head: true }).eq('event_type', 'login').eq('payload->>success', 'true').gt('created_at', new Date(Date.now() - 86400000).toISOString()),
+        supabaseAdmin.from('security_events').select('payload').eq('event_type', 'traffic').gt('created_at', new Date(Date.now() - 3600000).toISOString()),
+        supabaseAdmin.from('security_events').select('ip_address, severity, created_at, event_type').not('ip_address', 'is', null).order('created_at', { ascending: false }).limit(200),
+        supabaseAdmin.from('blocked_ips').select('ip_address'),
+        supabaseAdmin.from('users').select('*', { count: 'exact', head: true })
     ]);
 
     const stats: SecurityStats = {
@@ -156,5 +151,7 @@ export async function GET(request: Request) {
         threatActors,
         isDemo,
         timestamp: new Date().toISOString()
+    }, {
+        headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
     });
 }

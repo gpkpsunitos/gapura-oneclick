@@ -1,3 +1,14 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi daftar maskapai domestik dan internasional
+ */
+
+/**
+ * Daftar maskapai domestik dan internasional
+ * @constant AIRLINES
+ */
 export const AIRLINES = [
     { code: 'GA', name: 'Garuda Indonesia' },
     { code: 'QG', name: 'Citilink' },

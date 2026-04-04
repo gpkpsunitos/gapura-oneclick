@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { Search, ChevronLeft, ChevronRight, FileText, LayoutList } from 'lucide-react';
 import type { QueryResult } from '@/types/builder';
 import { formatDisplayValue } from '@/lib/chart-utils';
+import { sanitizeTableCell } from '@/lib/security/sanitize';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface DataTableWithPaginationProps {
@@ -262,7 +263,7 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
                                 return showValue ? formatValue(val, col) : '';
                               }
                               if (typeof val === 'string' && val.includes('<a href')) {
-                                return <span dangerouslySetInnerHTML={{ __html: val }} />;
+                                return <span dangerouslySetInnerHTML={{ __html: sanitizeTableCell(val) }} />;
                               }
                               const looksUrl = (s: string) => /^https?:\/\//i.test(s);
                               let urls: string[] = [];

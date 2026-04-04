@@ -89,7 +89,9 @@ export async function GET(request: Request) {
             } : null,
         };
 
-        return NextResponse.json(response);
+        return NextResponse.json(response, {
+            headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=120' },
+        });
     } catch (error) {
         console.error('Error in /api/auth/me:', error);
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

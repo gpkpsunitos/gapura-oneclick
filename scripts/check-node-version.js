@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi script untuk memvalidasi versi Node.js yang digunakan
+ */
+
 console.log(`Checking Node.js version (current: v${process.versions.node})...`);
 
 const [majorRaw, minorRaw] = process.versions.node.split(".");

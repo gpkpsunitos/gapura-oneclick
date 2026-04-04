@@ -1,24 +1,67 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi utilitas untuk caching snapshot dashboard di database Supabase
+ */
+
 import 'server-only';
 
 import crypto from 'crypto';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
+/**
+ * Entry cache untuk snapshot dashboard
+ * @interface DashboardCacheEntry
+ */
 export interface DashboardCacheEntry<T = unknown> {
+  /** Key unik cache */
   cache_key: string;
+  /** Key scope untuk identifikasi */
   scope_key: string;
+  /** Slug dashboard */
   dashboard_slug: string;
+  /** ID tile (opsional) */
   tile_id: string | null;
+  /** Payload data yang di-cache */
   payload: T;
+  /** Timestamp kedaluwarsa cache */
   expires_at: string;
+  /** Versi sinkronisasi data */
   sync_version: number;
+  /** Timestamp pembuatan cache */
   created_at: string;
 }
 
+/**
+ * Membuat hash dari bagian-bagian cache key
+ * @param parts - Bagian-bagian untuk di-hash
+ * @returns Hash SHA1 dalam bentuk hex string
+ * @example
+ * ```ts
+ * const hash = hashCacheKey({ dashboard: 'irrs', scope: { hub: 'CGK' } });
+ * // returns: "a1b2c3d4e5f6..."
+ * ```
+ */
 export function hashCacheKey(parts: unknown): string {
   return crypto.createHash('sha1').update(JSON.stringify(parts)).digest('hex');
 }
 
+/**
+ * Membaca snapshot dashboard dari cache
+ * @param cacheKey - Cache key untuk dicari
+ * @param expectedSyncVersion - Versi sinkronisasi yang diharapkan
+ * @returns Promise yang berisi cache entry atau null jika tidak ditemukan/kadaluarsa
+ * @throws Error jika terjadi error database
+ * @example
+ * ```ts
+ * const snapshot = await readDashboardSnapshot('cache-key-123', 5);
+ * if (snapshot) {
+ *   console.log(snapshot.payload);
+ * }
+ * ```
+ */
 export async function readDashboardSnapshot<T>(
   cacheKey: string,
   expectedSyncVersion: number,
@@ -38,6 +81,30 @@ export async function readDashboardSnapshot<T>(
   return (data as DashboardCacheEntry<T> | null) || null;
 }
 
+/**
+ * Menulis snapshot dashboard ke cache
+ * @param options - Opsi konfigurasi untuk penulisan cache
+ * @param options.cacheKey - Cache key unik
+ * @param options.scopeKey - Key scope untuk identifikasi
+ * @param options.dashboardSlug - Slug dashboard
+ * @param options.tileId - ID tile (opsional)
+ * @param options.payload - Payload data untuk di-cache
+ * @param options.syncVersion - Versi sinkronisasi data
+ * @param options.ttlSeconds - Time to live dalam detik (default: 300)
+ * @returns Promise yang resolve setelah berhasil menulis cache
+ * @throws Error jika terjadi error database
+ * @example
+ * ```ts
+ * await writeDashboardSnapshot({
+ *   cacheKey: 'snapshot-123',
+ *   scopeKey: 'scope-456',
+ *   dashboardSlug: 'irrs',
+ *   payload: { data: [...] },
+ *   syncVersion: 5,
+ *   ttlSeconds: 600
+ * });
+ * ```
+ */
 export async function writeDashboardSnapshot(options: {
   cacheKey: string;
   scopeKey: string;
@@ -78,6 +145,22 @@ export async function writeDashboardSnapshot(options: {
   }
 }
 
+/**
+ * Menghapus snapshot cache dashboard berdasarkan kriteria
+ * @param options - Opsi filter untuk penghapusan
+ * @param options.dashboardSlug - Slug dashboard untuk dihapus (opsional)
+ * @param options.maxSyncVersion - Hapus cache dengan sync version lebih kecil dari ini (opsional)
+ * @returns Promise yang resolve setelah berhasil menghapus cache
+ * @throws Error jika terjadi error database
+ * @example
+ * ```ts
+ * // Hapus semua cache untuk dashboard tertentu
+ * await purgeDashboardSnapshots({ dashboardSlug: 'irrs' });
+ * 
+ * // Hapus cache dengan sync version lama
+ * await purgeDashboardSnapshots({ maxSyncVersion: 5 });
+ * ```
+ */
 export async function purgeDashboardSnapshots(options?: {
   dashboardSlug?: string;
   maxSyncVersion?: number;
@@ -98,6 +181,16 @@ export async function purgeDashboardSnapshots(options?: {
   }
 }
 
+/**
+ * Menghapus semua snapshot cache dashboard yang sudah kedaluwarsa
+ * @returns Promise yang resolve setelah berhasil menghapus cache kadaluarsa
+ * @throws Error jika terjadi error database
+ * @example
+ * ```ts
+ * await purgeExpiredDashboardSnapshots();
+ * console.log('Expired caches cleaned up');
+ * ```
+ */
 export async function purgeExpiredDashboardSnapshots(): Promise<void> {
   const { error } = await supabaseAdmin
     .from('dashboard_cache_entries')

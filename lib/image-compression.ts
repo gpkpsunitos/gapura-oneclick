@@ -1,26 +1,57 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi fungsi untuk kompresi gambar menggunakan library Sharp,
+ * termasuk kompresi adaptif dan target ukuran file spesifik
+ */
+
 import sharp from 'sharp';
 
+/**
+ * Opsi untuk konfigurasi kompresi gambar
+ */
 export interface CompressionOptions {
+  /** Ukuran file maksimum dalam KB */
   maxSizeKB?: number;
+  /** Kualitas kompresi (0-100) */
   quality?: number;
+  /** Lebar target dalam piksel */
   width?: number;
+  /** Tinggi target dalam piksel */
   height?: number;
+  /** Format output gambar */
   format?: 'jpeg' | 'png' | 'webp';
 }
 
+/**
+ * Hasil kompresi gambar
+ */
 export interface CompressionResult {
+  /** Buffer gambar yang dikompresi */
   buffer: Buffer;
+  /** Ukuran file dalam byte */
   size: number;
+  /** Format output */
   format: string;
+  /** Lebar gambar hasil */
   width: number;
+  /** Tinggi gambar hasil */
   height: number;
+  /** Ukuran file asli dalam byte */
   originalSize: number;
+  /** Persentase rasio kompresi */
   compressionRatio: number;
 }
 
 /**
  * Compress image to target size while maintaining quality
  * Uses iterative compression to hit target file size
+ * 
+ * @param input - Buffer gambar input atau ArrayBuffer
+ * @param options - Opsi konfigurasi kompresi
+ * @returns Promise berisi hasil kompresi
+ * @throws Error jika format gambar tidak valid
  */
 export async function compressImage(
   input: Buffer | ArrayBuffer,
@@ -152,6 +183,11 @@ export async function compressImage(
 /**
  * Compress image to exact target size (aggressive compression)
  * Sacrifices quality to hit exact file size target
+ * 
+ * @param input - Buffer gambar input atau ArrayBuffer
+ * @param targetSizeKB - Ukuran file target dalam KB (default: 5)
+ * @returns Promise berisi hasil kompresi
+ * @throws Error jika format gambar tidak valid
  */
 export async function compressToExactSize(
   input: Buffer | ArrayBuffer,
@@ -219,6 +255,9 @@ export async function compressToExactSize(
 
 /**
  * Get optimal format based on image content
+ * 
+ * @param mimeType - MIME type gambar
+ * @returns Format optimal untuk kompresi (jpeg, png, atau webp)
  */
 export function getOptimalFormat(mimeType: string): 'jpeg' | 'png' | 'webp' {
   if (mimeType.includes('webp')) return 'webp';

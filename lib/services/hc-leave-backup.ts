@@ -2,7 +2,6 @@ import 'server-only';
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import * as ExcelJS from 'exceljs';
 import { getGoogleSheets } from '@/lib/google-sheets';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import type { HCLeaveRecord, HCLeaveSubmissionStatus } from '@/types';
@@ -146,7 +145,7 @@ export async function fetchHCLeaveRecordsForBackup(options?: { includeDeleted?: 
     });
 }
 
-function toWorksheetRows(records: HCLeaveRecord[]): ExcelJS.CellValue[][] {
+function toWorksheetRows(records: HCLeaveRecord[]): unknown[][] {
     return records.map((record) => [
         record.id,
         record.employee_name,
@@ -172,6 +171,7 @@ function toWorksheetRows(records: HCLeaveRecord[]): ExcelJS.CellValue[][] {
 }
 
 export async function buildHCLeaveWorkbook(records: HCLeaveRecord[]): Promise<Buffer> {
+    const ExcelJS = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(HC_LEAVE_SHEET_NAME);
 

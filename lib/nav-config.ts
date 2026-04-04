@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi konfigurasi navigasi untuk dashboard berdasarkan role pengguna
+ * Menentukan menu dan link yang tersedia untuk setiap role dalam aplikasi
+ */
+
 import { 
     LayoutDashboard, 
     FileText, 
@@ -16,21 +24,41 @@ import {
     GraduationCap
 } from 'lucide-react';
 
+/**
+ * Interface untuk konfigurasi item navigasi
+ * Setiap item merepresentasikan satu link dalam menu navigasi
+ */
 export interface NavItemConfig {
+    /** URL path untuk navigasi */
     href: string;
+    /** Label tampilan untuk item menu */
     label: string;
+    /** Icon komponen untuk ditampilkan di sebelah label */
     icon: any;
+    /** Jumlah badge opsional untuk ditampilkan (misalnya jumlah notifikasi) */
     count?: number;
+    /** Flag jika link adalah external (membuka di tab baru) */
     external?: boolean;
 }
 
+/**
+ * Interface untuk konfigurasi grup navigasi
+ * Mengelompokkan item navigasi ke dalam kategori/submenu
+ */
 export interface NavGroupConfig {
+    /** Judul grup navigasi */
     title: string;
+    /** Array item navigasi dalam grup ini */
     items: NavItemConfig[];
 }
 
 
+/**
+ * Konfigurasi lengkap navigasi untuk setiap role
+ * Setiap role memiliki set menu yang disesuaikan dengan tanggung jawabnya
+ */
 export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
+    /** Konfigurasi navigasi untuk role ADMIN */
     'ADMIN': [
         {
             title: 'Overview',
@@ -47,6 +75,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             ]
         }
     ],
+    /** Konfigurasi navigasi untuk role EMPLOYEE (staff biasa) */
     'EMPLOYEE': [
         {
             title: 'Workspace',
@@ -60,6 +89,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             ]
         }
     ],
+    /** Konfigurasi navigasi untuk role MANAGER_CABANG */
     'MANAGER': [
         {
             title: 'Workspace',
@@ -87,6 +117,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     ],
 
     // OS / OCS / Unit Service
+    /** Konfigurasi navigasi untuk role OS (Operational Support) */
     'OS': [
         {
             title: 'Monitoring',
@@ -99,6 +130,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     ],
 
     // OT – Divisi Teknik (standalone; also included in DIVISI_PELAPORAN)
+    /** Konfigurasi navigasi untuk role OT (Operational Technical) */
     'OT': [
         {
             title: 'Divisi Teknik',
@@ -111,6 +143,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     ],
 
     // OP – Divisi Operasi (standalone; also included in DIVISI_PELAPORAN)
+    /** Konfigurasi navigasi untuk role OP (Operations) */
     'OP': [
         {
             title: 'Divisi Operasi',
@@ -123,6 +156,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     ],
 
     // UQ – Divisi Quality (standalone; also included in DIVISI_PELAPORAN)
+    /** Konfigurasi navigasi untuk role UQ (Quality) */
     'UQ': [
         {
             title: 'Divisi Quality',
@@ -135,6 +169,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     ],
 
     // HC – Human Capital
+    /** Konfigurasi navigasi untuk role HC (Human Capital) */
     'HC': [
         {
             title: 'Human Capital',
@@ -147,6 +182,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     ],
 
     // HT – Human Training (standalone; also included in DIVISI_PELAPORAN)
+    /** Konfigurasi navigasi untuk role HT (Human Training) */
     'HT': [
         {
             title: 'Human Training',
@@ -159,6 +195,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     ],
 
     // ─── DIVISI PELAPORAN (UQ + OP + O/OT + HT merged sidebar) ────────────────
+    /** Konfigurasi navigasi untuk role DIVISI_PELAPORAN */
     'DIVISI_PELAPORAN': [
         {
             title: 'Laporan UQ',
@@ -195,6 +232,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     ],
 
     // ─── ESKALASI ──────────────────────────────────────────────────────────────
+    /** Konfigurasi navigasi untuk role DIVISI_ESKALASI */
     'DIVISI_ESKALASI': [
         {
             title: 'Pusat Eskalasi',
@@ -207,6 +245,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     ],
 
     // ─── SUPER ADMIN / ANALYST (merged) ───────────────────────────────────────
+    /** Konfigurasi navigasi untuk role ANALYST (dan SUPER_ADMIN) */
     'ANALYST': [
         {
             title: 'Command Center',
@@ -232,6 +271,21 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
 
 // ─── Role → Config Key mapping ────────────────────────────────────────────────
 // Complexity: Time O(1) | Space O(1) — constant lookup via string matching
+/**
+ * Mengambil kunci konfigurasi navigasi yang sesuai dengan role pengguna
+ * Mapping ini mengonversi role string ke kunci yang digunakan di LINKS_CONFIG
+ * 
+ * @param role - Role pengguna (case insensitive)
+ * @param pathname - Current pathname (optional, untuk penggunaan masa depan)
+ * @returns Kunci konfigurasi navigasi yang sesuai
+ * 
+ * @example
+ * ```typescript
+ * const configKey = GET_LINKS_KEY('DIVISI_OS');
+ * // 'OS'
+ * const links = LINKS_CONFIG[configKey];
+ * ```
+ */
 export const GET_LINKS_KEY = (role: string, pathname?: string): string => {
     const r = (role || '').toUpperCase();
 

@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi skrip untuk mengeksplorasi struktur dan tipe data di Google Sheets
+ */
+
 import { google } from 'googleapis';
 import * as dotenv from 'dotenv';
 import * as path from 'path';
@@ -8,7 +15,11 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const SHEET_ID = process.env.GOOGLE_SHEET_ID || '1TFPZOAWAKubPl7iaUk8BXt2BabY1N-AcLgi-_zBQGzk';
 
-// Define data type detection function
+/**
+ * Mendeteksi tipe data dari nilai yang diberikan
+ * @param {any} value - Nilai yang akan dideteksi tipenya
+ * @returns {string} Tipe data (empty, number, boolean, date, email, url, currency, text)
+ */
 function detectDataType(value: any): string {
   if (value === null || value === undefined || value === '') return 'empty';
   if (typeof value === 'number') return 'number';
@@ -37,7 +48,11 @@ function detectDataType(value: any): string {
   return 'text';
 }
 
-// Get Google Auth
+/**
+ * Mendapatkan autentikasi Google Service Account
+ * @returns {any} Objek autentikasi JWT Google
+ * @throws {Error} Jika kredensial Google Service Account tidak ditemukan
+ */
 function getGoogleAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
@@ -53,11 +68,24 @@ function getGoogleAuth() {
   });
 }
 
+/**
+ * Mendapatkan client Google Sheets yang sudah terautentikasi
+ * @async
+ * @returns {Promise<any>} Client Google Sheets API
+ */
 async function getGoogleSheets() {
   const auth = getGoogleAuth();
   return google.sheets({ version: 'v4', auth });
 }
 
+/**
+ * Mendapatkan metadata spreadsheet Google Sheets
+ * @async
+ * @param {any} sheets - Client Google Sheets API
+ * @param {string} sheetId - ID spreadsheet
+ * @returns {Promise<any>} Data metadata spreadsheet
+ * @throws {Error} Jika gagal mengambil metadata
+ */
 async function getSheetMetadata(sheets: any, sheetId: string) {
   try {
     const response = await sheets.spreadsheets.get({
@@ -70,6 +98,14 @@ async function getSheetMetadata(sheets: any, sheetId: string) {
   }
 }
 
+/**
+ * Mendapatkan data dari range tertentu di Google Sheets
+ * @async
+ * @param {any} sheets - Client Google Sheets API
+ * @param {string} sheetId - ID spreadsheet
+ * @param {string} range - Range sel yang akan diambil
+ * @returns {Promise<any[][]>} Array nilai sel
+ */
 async function getSheetData(sheets: any, sheetId: string, range: string) {
   try {
     const response = await sheets.spreadsheets.values.get({
@@ -83,6 +119,12 @@ async function getSheetData(sheets: any, sheetId: string, range: string) {
   }
 }
 
+/**
+ * Menganalisis tipe data untuk setiap kolom berdasarkan data yang tersedia
+ * @param {any[][]} data - Array data dari Google Sheets
+ * @param {string[]} columnNames - Nama-nama kolom
+ * @returns {Map<string, Set<string>>} Map nama kolom ke set tipe data yang ditemukan
+ */
 function analyzeColumnTypes(data: any[][], columnNames: string[]): Map<string, Set<string>> {
   const columnTypes = new Map<string, Set<string>>();
   
@@ -105,6 +147,11 @@ function analyzeColumnTypes(data: any[][], columnNames: string[]): Map<string, S
   return columnTypes;
 }
 
+/**
+ * Memformat set tipe data menjadi string yang mudah dibaca
+ * @param {Set<string>} types - Set tipe data
+ * @returns {string} String yang diformat
+ */
 function formatDataTypes(types: Set<string>): string {
   const typeArray = Array.from(types);
   if (typeArray.length === 1) {
@@ -116,6 +163,11 @@ function formatDataTypes(types: Set<string>): string {
   return `mixed (${typeArray.join(', ')})`;
 }
 
+/**
+ * Mengeksplorasi Google Sheets dan menampilkan daftar sheet yang tersedia
+ * @async
+ * @returns {Promise<void>}
+ */
 async function exploreSheet() {
     const sheets = await getGoogleSheets();
     const metadata = await getSheetMetadata(sheets, SHEET_ID);

@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen konten dashboard kustom dengan dukungan multi-halaman,
+ * filter dinamis, export ke Excel/PPTX, dan visualisasi chart interaktif
+ */
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
@@ -12,8 +19,14 @@ import { CustomerFeedbackView } from '@/components/dashboard/customer-feedback/C
 import { DASHBOARD_FILTER_FIELDS, type DashboardScopeFilters } from '@/lib/dashboard-query-scope';
 
 // ─── Branding Palette ───────────────────────────────────────────────────────
+/**
+ * Palet warna hijau untuk visualisasi chart
+ */
 const GREEN_PALETTE = ['#7cb342', '#558b2f', '#aed581', '#33691e', '#9ccc65', '#689f38', '#c5e1a5', '#43a047', '#81c784', '#4caf50'];
 
+/**
+ * Field filter yang tersedia untuk dashboard
+ */
 const FILTER_FIELDS = DASHBOARD_FILTER_FIELDS.map((field) => ({
   key: field.key,
   label: field.key === 'hub'
@@ -33,6 +46,9 @@ const FILTER_FIELDS = DASHBOARD_FILTER_FIELDS.map((field) => ({
   field: field.field,
 }));
 
+/**
+ * Interface untuk data chart
+ */
 interface ChartData {
   id: string;
   title: string;
@@ -46,6 +62,9 @@ interface ChartData {
   page_name?: string;
 }
 
+/**
+ * Interface untuk konfigurasi dashboard
+ */
 interface Dashboard {
   id: string;
   name: string;
@@ -64,6 +83,9 @@ interface Dashboard {
   dashboard_charts: ChartData[];
 }
 
+/**
+ * Interface untuk hasil chart
+ */
 interface ChartResult {
   type: 'legacy' | 'query';
   stats?: {
@@ -74,10 +96,19 @@ interface ChartResult {
   queryResult?: QueryResult;
 }
 
+/**
+ * Menerapkan palet warna hijau ke visualisasi chart
+ * @param viz - Konfigurasi visualisasi chart
+ * @returns Konfigurasi visualisasi dengan palet warna hijau
+ */
 function greenify(viz: ChartVisualization): ChartVisualization {
   return { ...viz, colors: GREEN_PALETTE };
 }
 
+/**
+ * Komponen konten dashboard kustom
+ * @returns Komponen React
+ */
 export function CustomDashboardContent() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -430,7 +461,7 @@ export function CustomDashboardContent() {
           <div className="px-8 py-3.5">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-brand-primary/10 rounded-2xl shadow-inner"><Image src="/logo.png" alt="Logo" width={32} height={32} unoptimized style={{ height: 32, objectFit: 'contain' }} /></div>
+                <div className="p-3 bg-brand-primary/10 rounded-2xl shadow-inner"><Image src="/logo.png" alt="Logo" width={32} height={32} unoptimized style={{ height: 32, width: 'auto', objectFit: 'contain' }} /></div>
                 <div className="flex flex-col"><h1 className="text-2xl font-black text-gray-800 tracking-tight uppercase leading-none mb-1">{dashboard.name}</h1><p className="text-[11px] font-bold text-gray-400 tracking-[0.2em] uppercase opacity-80">{dashboard.description || dashboard.config?.subtitle || 'Executive Intelligence Portal'}</p></div>
               </div>
               <div className="flex items-center gap-2.5">
@@ -600,7 +631,7 @@ export function CustomDashboardContent() {
         </section>
 
         <footer className="mt-auto bg-white border-t border-gray-100 px-8 py-6 flex flex-wrap items-center justify-between gap-4 text-[11px] font-bold tracking-widest uppercase">
-          <div className="flex items-center gap-3"><Image src="/logo.png" alt="Gapura" width={24} height={24} unoptimized style={{ height: 24, objectFit: 'contain', opacity: 0.5 }} /><span className="text-gray-400">Integrated Intelligence</span></div>
+          <div className="flex items-center gap-3"><Image src="/logo.png" alt="Gapura" width={24} height={24} unoptimized style={{ height: 24, width: 'auto', objectFit: 'contain', opacity: 0.5 }} /><span className="text-gray-400">Integrated Intelligence</span></div>
           <div className="flex items-center gap-6"><span className="flex items-center gap-2 text-gray-400"><div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" />Live Telemetry</span><span className="text-gray-300">|</span><span className="text-gray-400">© {new Date().getFullYear()} PT Gapura Angkasa</span></div>
         </footer>
       </main>

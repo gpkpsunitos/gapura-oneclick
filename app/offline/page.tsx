@@ -1,14 +1,30 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen halaman offline untuk PWA
+ */
+
 'use client';
 
 import Image from 'next/image';
 import Link from 'next/link';
 
+/**
+ * Komponen halaman offline untuk ditampilkan saat user tidak terhubung ke internet
+ * @returns JSX element halaman offline
+ * @example
+ * ```tsx
+ * // Halaman ini akan otomatis dirender oleh Next.js
+ * // saat navigasi ke /offline
+ * ```
+ */
 export default function OfflinePage() {
   return (
     <div className="min-h-[100dvh] flex items-center justify-center p-8 bg-emerald-50">
       <div className="max-w-md w-full bg-white rounded-2xl border border-emerald-100 shadow-lg p-8 text-center">
         <div className="flex justify-center mb-4">
-          <Image src="/logo.png" alt="Gapura" width={64} height={64} className="object-contain" />
+          <Image src="/logo.png" alt="Gapura" width={64} height={64} className="object-contain" style={{ width: 'auto', height: 'auto' }} />
         </div>
         <h1 className="text-xl font-bold text-emerald-800">Anda sedang offline</h1>
         <p className="text-emerald-700/80 mt-2">

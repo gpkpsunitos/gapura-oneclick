@@ -1,4 +1,10 @@
-
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi fungsi debugging untuk Google Sheets, termasuk
+ * fetching sample data dan analisis distribusi data di kolom tertentu
+ */
 
 import 'server-only';
 import { getGoogleSheets } from '@/lib/google-sheets';
@@ -7,13 +13,18 @@ const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 
 /**
  * Fetch sample data from Google Sheets for debugging
- * This helps understand the actual data structure
+ * This helps understand actual data structure
+ * 
+ * @param sheetName - Nama sheet yang akan diambil datanya
+ * @param rowLimit - Batas jumlah baris yang akan diambil (default: 10)
+ * @returns Promise berisi data sample, header, dan statistik area
+ * @throws Error jika gagal mengambil data dari Google Sheets
  */
 export async function fetchGoogleSheetsSampleData(sheetName: string = 'NON CARGO', rowLimit: number = 10) {
   try {
     const sheets = await getGoogleSheets();
     
-    // First, get the headers
+    // First, get headers
     const headerResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: `${sheetName}!1:1`,
@@ -107,6 +118,11 @@ export async function fetchGoogleSheetsSampleData(sheetName: string = 'NON CARGO
 
 /**
  * Debug function to check specific column data
+ * 
+ * @param sheetName - Nama sheet yang akan dianalisis
+ * @param columnName - Nama kolom yang akan dianalisis
+ * @returns Promise berisi statistik kolom (total rows, null count, unique values, top values)
+ * @throws Error jika kolom tidak ditemukan atau gagal mengambil data
  */
 export async function debugColumnData(sheetName: string = 'NON CARGO', columnName: string = 'Terminal_Area_Category') {
   try {

@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen sidebar field responsif dengan dukungan bottom sheet untuk mobile
+ */
+
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
@@ -5,6 +12,15 @@ import { X, GripVertical, Layers } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FieldDef } from '@/types/builder';
 
+/**
+ * Props untuk komponen ResponsiveFieldSidebar
+ * @interface ResponsiveFieldSidebarProps
+ * @property {React.ReactNode} children - Konten sidebar
+ * @property {boolean} isOpen - Apakah sidebar terbuka
+ * @property {Function} onClose - Fungsi untuk menutup sidebar
+ * @property {Function} [onFieldSelect] - Fungsi saat field dipilih (opsional)
+ * @property {string} [className] - Kelas CSS tambahan
+ */
 interface ResponsiveFieldSidebarProps {
   children: React.ReactNode;
   isOpen: boolean;
@@ -13,6 +29,25 @@ interface ResponsiveFieldSidebarProps {
   className?: string;
 }
 
+/**
+ * Komponen sidebar field responsif
+ * Menampilkan sebagai fixed sidebar di desktop dan bottom sheet di mobile
+ * Mendukung drag gesture untuk mengubah tinggi bottom sheet di mobile
+ * 
+ * @param {ResponsiveFieldSidebarProps} props - Props untuk konfigurasi sidebar responsif
+ * @returns {JSX.Element} Element React yang berisi sidebar field responsif
+ * 
+ * @example
+ * ```tsx
+ * <ResponsiveFieldSidebar
+ *   isOpen={isSidebarOpen}
+ *   onClose={() => setSidebarOpen(false)}
+ *   onFieldSelect={(table, field) => handleFieldSelect(table, field)}
+ * >
+ *   <FieldList />
+ * </ResponsiveFieldSidebar>
+ * ```
+ */
 export function ResponsiveFieldSidebar({
   children,
   isOpen,
@@ -26,6 +61,11 @@ export function ResponsiveFieldSidebar({
   const [sheetHeight, setSheetHeight] = useState(50); // percentage
   const sheetRef = useRef<HTMLDivElement>(null);
 
+  /**
+   * Mendeteksi ukuran layar untuk menentukan mode mobile
+   * @function checkScreenSize
+   * @returns {void}
+   */
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -37,11 +77,24 @@ export function ResponsiveFieldSidebar({
   }, []);
 
   // Touch handlers for mobile bottom sheet
+  
+  /**
+   * Menangani touch start untuk gesture drag
+   * @function handleTouchStart
+   * @param {React.TouchEvent} e - Event touch
+   * @returns {void}
+   */
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true);
     setDragStartY(e.touches[0].clientY);
   };
 
+  /**
+   * Menangani touch move untuk gesture drag
+   * @function handleTouchMove
+   * @param {React.TouchEvent} e - Event touch
+   * @returns {void}
+   */
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
     
@@ -51,6 +104,11 @@ export function ResponsiveFieldSidebar({
     setDragStartY(e.touches[0].clientY);
   };
 
+  /**
+   * Menangani touch end untuk gesture drag
+   * @function handleTouchEnd
+   * @returns {void}
+   */
   const handleTouchEnd = () => {
     setIsDragging(false);
     // Snap to nearest position
@@ -133,6 +191,17 @@ export function ResponsiveFieldSidebar({
 }
 
 // Touch-friendly field item for mobile
+
+/**
+ * Props untuk komponen TouchFieldItem
+ * @interface TouchFieldItemProps
+ * @property {string} table - Nama tabel
+ * @property {FieldDef} field - Definisi field
+ * @property {Function} onSelect - Fungsi saat field dipilih
+ * @property {React.ReactNode} icon - Ikon field
+ * @property {string} colorClass - Kelas warna ikon
+ * @property {string} label - Label field
+ */
 interface TouchFieldItemProps {
   table: string;
   field: FieldDef;
@@ -142,6 +211,25 @@ interface TouchFieldItemProps {
   label: string;
 }
 
+/**
+ * Komponen item field yang ramah sentuhan untuk mobile
+ * Menampilkan field dengan layout yang dioptimalkan untuk sentuhan
+ * 
+ * @param {TouchFieldItemProps} props - Props untuk konfigurasi item field
+ * @returns {JSX.Element} Element React yang berisi item field ramah sentuhan
+ * 
+ * @example
+ * ```tsx
+ * <TouchFieldItem
+ *   table="reports"
+ *   field={fieldDef}
+ *   onSelect={handleFieldSelect}
+ *   icon={<TypeIcon />}
+ *   colorClass="text-blue-500"
+ *   label="Nama Field"
+ * />
+ * ```
+ */
 export function TouchFieldItem({
   table,
   field,
@@ -184,6 +272,17 @@ export function TouchFieldItem({
 }
 
 // Collapsible section for mobile
+
+/**
+ * Props untuk komponen TouchCollapsibleSection
+ * @interface TouchCollapsibleSectionProps
+ * @property {string} title - Judul bagian
+ * @property {number} count - Jumlah item dalam bagian
+ * @property {boolean} isExpanded - Apakah bagian sedang diekspansi
+ * @property {Function} onToggle - Fungsi untuk mengubah status ekspansi
+ * @property {React.ReactNode} children - Konten bagian
+ * @property {React.ReactNode} [icon] - Ikon untuk bagian (opsional)
+ */
 interface TouchCollapsibleSectionProps {
   title: string;
   count: number;
@@ -193,6 +292,26 @@ interface TouchCollapsibleSectionProps {
   icon?: React.ReactNode;
 }
 
+/**
+ * Komponen bagian yang dapat dilipat (collapsible) untuk mobile
+ * Menampilkan bagian dengan kemampuan ekspansi/pengecilan
+ * 
+ * @param {TouchCollapsibleSectionProps} props - Props untuk konfigurasi bagian yang dapat dilipat
+ * @returns {JSX.Element} Element React yang berisi bagian yang dapat dilipat
+ * 
+ * @example
+ * ```tsx
+ * <TouchCollapsibleSection
+ *   title="Laporan"
+ *   count={10}
+ *   isExpanded={isExpanded}
+ *   onToggle={() => setExpanded(!isExpanded)}
+ *   icon={<FileIcon />}
+ * >
+ *   <FieldList />
+ * </TouchCollapsibleSection>
+ * ```
+ */
 export function TouchCollapsibleSection({
   title,
   count,

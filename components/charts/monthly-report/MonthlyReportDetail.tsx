@@ -24,20 +24,6 @@ import {
   MonthlyKPIs,
   MonthlyTrendData,
 } from './data';
-import { barLabelsPlugin } from '../chartConfig';
-import { Bar, Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
 import { BarChart, Bar as RechartsBar, LineChart, Line as RechartsLine, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer } from 'recharts';
 import { ArrowUp, ArrowDown, Minus, Download, Filter, Zap, Brain } from 'lucide-react';
 import { saveAs } from 'file-saver';
@@ -52,18 +38,8 @@ import { AiSeasonalityForecast } from '@/components/ai/AiSeasonalityForecast';
 import { fetchRiskSummaryAi, AiRiskSummary } from '@/lib/services/gapura-ai';
 import { HeatmapChart } from '@/components/charts/HeatmapChart';
 import type { QueryResult } from '@/types/builder';
+import { sanitizeTableCell } from '@/lib/security/sanitize';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
 
 interface FilterParams {
   hub?: string;
@@ -242,107 +218,56 @@ function MonthlyTrendTable({ data }: { data: MonthlySummary[] }) {
 }
 
 function DailyTrendChart({ data }: { data: DailyDataPoint[] }) {
-  const chartData = {
-    labels: data.map(d => d.date),
-    datasets: [
-      {
-        label: 'Total',
-        data: data.map(d => d.total),
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: 'Irregularity',
-        data: data.map(d => d.Irregularity),
-        borderColor: '#ef4444',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: 'Complaint',
-        data: data.map(d => d.Complaint),
-        borderColor: '#f97316',
-        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-    ],
-  };
+  const rechartsData = data.map(d => ({
+    name: d.date,
+    Total: d.total,
+    Irregularity: d.Irregularity,
+    Complaint: d.Complaint,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { usePointStyle: true, padding: 20, font: { size: 11 } },
-      },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 9 }, maxRotation: 45, minRotation: 30 } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
-
-  return <div className="h-[250px]"><Line data={chartData} options={options} /></div>;
+  return (
+    <div className="h-[250px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-35} textAnchor="end" height={50} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsLegend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+          <RechartsLine type="monotone" dataKey="Total" stroke="#3b82f6" strokeWidth={2} dot={false} />
+          <RechartsLine type="monotone" dataKey="Irregularity" stroke="#ef4444" strokeWidth={2} dot={false} />
+          <RechartsLine type="monotone" dataKey="Complaint" stroke="#f97316" strokeWidth={2} dot={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 // ─── Rolling Average Comparison Chart ───
 function RollingAverageChart({ data }: { data: RollingAveragePoint[] }) {
-  const chartData = {
-    labels: data.map(d => d.month),
-    datasets: [
-      {
-        label: 'Actual',
-        data: data.map(d => d.actual),
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.3,
-        borderWidth: 2,
-      },
-      {
-        label: '3-Month Avg',
-        data: data.map(d => parseFloat(d.rollingAvg3.toFixed(1))),
-        borderColor: '#f97316',
-        backgroundColor: 'transparent',
-        borderDash: [5, 5],
-        tension: 0.3,
-        borderWidth: 2,
-        pointRadius: 2,
-      },
-      {
-        label: '6-Month Avg',
-        data: data.map(d => parseFloat(d.rollingAvg6.toFixed(1))),
-        borderColor: '#8b5cf6',
-        backgroundColor: 'transparent',
-        borderDash: [10, 5],
-        tension: 0.3,
-        borderWidth: 2,
-        pointRadius: 2,
-      },
-    ],
-  };
+  const rechartsData = data.map(d => ({
+    name: d.month,
+    Actual: d.actual,
+    '3-Month Avg': parseFloat(d.rollingAvg3.toFixed(1)),
+    '6-Month Avg': parseFloat(d.rollingAvg6.toFixed(1)),
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { usePointStyle: true, padding: 20, font: { size: 11 } },
-      },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
-
-  return <div className="h-[250px]"><Line data={chartData} options={options} /></div>;
+  return (
+    <div className="h-[250px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsLegend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+          <RechartsLine type="monotone" dataKey="Actual" stroke="#3b82f6" strokeWidth={2} dot={false} />
+          <RechartsLine type="monotone" dataKey="3-Month Avg" stroke="#f97316" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+          <RechartsLine type="monotone" dataKey="6-Month Avg" stroke="#8b5cf6" strokeWidth={2} strokeDasharray="10 5" dot={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 function TopBranchesChart({ data }: { data: BranchByMonthData[] }) {
@@ -354,32 +279,24 @@ function TopBranchesChart({ data }: { data: BranchByMonthData[] }) {
     }, new Map<string, number>())
   ).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
-  const chartData = {
-    labels: topBranches.map(([branch]) => branch.split(' ')),
-    datasets: [{
-      label: 'Reports',
-      data: topBranches.map(([, count]) => count),
-      backgroundColor: '#8b5cf6',
-      borderRadius: 4,
-    }],
-  };
+  const rechartsData = topBranches.map(([branch, count]) => ({
+    name: branch,
+    Reports: count,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { stacked: false, grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { 
-        grid: { color: 'rgba(0,0,0,0.05)' }, 
-        ticks: { font: { size: 10 } }, 
-        suggestedMax: topBranches.length > 0 ? Math.max(...topBranches.map(d => d[1])) * 1.15 : undefined 
-      },
-    },
-  };
-
-  return <div className="h-[250px]"><Bar data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[250px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsBar dataKey="Reports" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 function TopAirlinesChart({ data }: { data: AirlineByMonthData[] }) {
@@ -391,32 +308,24 @@ function TopAirlinesChart({ data }: { data: AirlineByMonthData[] }) {
     }, new Map<string, number>())
   ).sort((a, b) => b[1] - a[1]).slice(0, 10);
 
-  const chartData = {
-    labels: topAirlines.map(([airline]) => airline.split(' ')),
-    datasets: [{
-      label: 'Reports',
-      data: topAirlines.map(([, count]) => count),
-      backgroundColor: ['#f97316', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'],
-      borderRadius: 4,
-    }],
-  };
+  const rechartsData = topAirlines.map(([airline, count]) => ({
+    name: airline,
+    Reports: count,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { stacked: false, grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { 
-        grid: { color: 'rgba(0,0,0,0.05)' }, 
-        ticks: { font: { size: 10 } }, 
-        suggestedMax: topAirlines.length > 0 ? Math.max(...topAirlines.map(d => d[1])) * 1.15 : undefined 
-      },
-    },
-  };
-
-  return <div className="h-[250px]"><Bar data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[250px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsBar dataKey="Reports" fill="#f97316" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 
@@ -527,7 +436,7 @@ function DataTable({ data }: { data: MonthlyReportRecord[] }) {
               <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
                 {columns.map(col => (
                   col === 'Evidence' ? (
-                    <td key={col} className="px-4 py-2.5 text-gray-700" dangerouslySetInnerHTML={{ __html: row[col] as string || '-' }} />
+                    <td key={col} className="px-4 py-2.5 text-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeTableCell(row[col]) }} />
                   ) : (
                     <td key={col} className="px-4 py-2.5 text-gray-700">{row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'}</td>
                   )
@@ -614,43 +523,44 @@ function ManagementSummary({ data, dominantBranch, dominantAirline }: {
 export default function MonthlyReportDetail({ filters = {} }: { filters?: FilterParams }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [monthlyData, setMonthlyData] = useState<MonthlySummary[]>([]);
-  const [dailyData, setDailyData] = useState<DailyDataPoint[]>([]);
-  const [branchData, setBranchData] = useState<BranchByMonthData[]>([]);
-  const [airlineData, setAirlineData] = useState<AirlineByMonthData[]>([]);
-  const [tableData, setTableData] = useState<MonthlyReportRecord[]>([]);
-  const [rollingData, setRollingData] = useState<RollingAveragePoint[]>([]);
-  const [peakDay, setPeakDay] = useState<PeakDayInfo>({ date: '-', count: 0, dayOfWeek: '-' });
-  const [dominantBranch, setDominantBranch] = useState<DominantInfo>({ name: '-', count: 0, percent: 0 });
-  const [dominantAirline, setDominantAirline] = useState<DominantInfo>({ name: '-', count: 0, percent: 0 });
-  const [kpis, setKpis] = useState<MonthlyKPIs | null>(null);
-  const [trendData, setTrendData] = useState<MonthlyTrendData[]>([]);
-  const [aiRiskSummary, setAiRiskSummary] = useState<AiRiskSummary | null>(null);
-  const [aiRiskHeatmap, setAiRiskHeatmap] = useState<any[]>([]);
-  const investigativeData: QueryResult = useMemo(() => {
-    const rows = tableData as unknown as Record<string, unknown>[];
-    const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
-
-    return {
-      columns,
-      rows,
-      rowCount: rows.length,
-      executionTimeMs: 0,
-    };
-  }, [tableData]);
-  const fullTableData: QueryResult = useMemo(() => {
-    const rows = monthlyData.map(item => ({ ...item })) as unknown as Record<string, unknown>[];
-    const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
-
-    return {
-      columns,
-      rows,
-      rowCount: rows.length,
-      executionTimeMs: 0,
-    };
-  }, [monthlyData]);
-
   const [tableLoading, setTableLoading] = useState(false);
+  const [chartData, setChartData] = useState({
+    monthlyData: [] as MonthlySummary[],
+    dailyData: [] as DailyDataPoint[],
+    branchData: [] as BranchByMonthData[],
+    airlineData: [] as AirlineByMonthData[],
+    tableData: [] as MonthlyReportRecord[],
+    rollingData: [] as RollingAveragePoint[],
+    peakDay: { date: '-', count: 0, dayOfWeek: '-' } as PeakDayInfo,
+    dominantBranch: { name: '-', count: 0, percent: 0 } as DominantInfo,
+    dominantAirline: { name: '-', count: 0, percent: 0 } as DominantInfo,
+    kpis: null as MonthlyKPIs | null,
+    trendData: [] as MonthlyTrendData[],
+    aiRiskSummary: null as AiRiskSummary | null,
+    aiRiskHeatmap: [] as any[],
+  });
+  const investigativeData: QueryResult = useMemo(() => {
+    const rows = chartData.tableData as unknown as Record<string, unknown>[];
+    const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+
+    return {
+      columns,
+      rows,
+      rowCount: rows.length,
+      executionTimeMs: 0,
+    };
+  }, [chartData.tableData]);
+  const fullTableData: QueryResult = useMemo(() => {
+    const rows = chartData.monthlyData.map(item => ({ ...item })) as unknown as Record<string, unknown>[];
+    const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
+
+    return {
+      columns,
+      rows,
+      rowCount: rows.length,
+      executionTimeMs: 0,
+    };
+  }, [chartData.monthlyData]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -663,14 +573,17 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
         const aggregated = await fetchAggregatedMonthlyReport(filters, controller.signal);
 
         if (aggregated && aggregated.summary) {
-          setMonthlyData(aggregated.summary);
-          setDailyData(aggregated.dailyData || []);
-          setRollingData(aggregated.rollingData || []);
-          setPeakDay(aggregated.peakDay || { date: '-', count: 0, dayOfWeek: '-' });
-          setDominantBranch(aggregated.dominantBranch || { name: '-', count: 0, percent: 0 });
-          setDominantAirline(aggregated.dominantAirline || { name: '-', count: 0, percent: 0 });
-          setKpis(aggregated.kpis);
-          setTrendData((aggregated.trend || []) as any);
+          setChartData(prev => ({
+            ...prev,
+            monthlyData: aggregated.summary,
+            dailyData: aggregated.dailyData || [],
+            rollingData: aggregated.rollingData || [],
+            peakDay: aggregated.peakDay || { date: '-', count: 0, dayOfWeek: '-' },
+            dominantBranch: aggregated.dominantBranch || { name: '-', count: 0, percent: 0 },
+            dominantAirline: aggregated.dominantAirline || { name: '-', count: 0, percent: 0 },
+            kpis: aggregated.kpis,
+            trendData: (aggregated.trend || []) as any,
+          }));
         } else {
           throw new Error('Invalid aggregated monthly data');
         }
@@ -679,17 +592,16 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
         fetchRiskSummaryAi(controller.signal).then(riskSummaryRes => {
           const riskSummaryResult = riskSummaryRes as AiRiskSummary | null;
           if (riskSummaryResult) {
-            setAiRiskSummary(riskSummaryResult);
-            if (riskSummaryResult.branch_details) {
-              const heatmapData = riskSummaryResult.branch_details.flatMap(b => 
+            const heatmapData = riskSummaryResult.branch_details
+              ? riskSummaryResult.branch_details.flatMap(b => 
                 Object.entries(b.severity_distribution).map(([sev, count]) => ({
                   branch: b.name,
                   severity: sev,
                   count: count
                 }))
-              );
-              setAiRiskHeatmap(heatmapData);
-            }
+              )
+              : [];
+            setChartData(prev => ({ ...prev, aiRiskSummary: riskSummaryResult, aiRiskHeatmap: heatmapData }));
           }
         }).catch(err => {
           if (err.name === 'AbortError') return;
@@ -722,9 +634,12 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
           fetchAirlineByMonth(filters),
           fetchAllMonthlyReports(filters),
         ]);
-        setBranchData(branch);
-        setAirlineData(airline);
-        setTableData(table);
+        setChartData(prev => ({
+          ...prev,
+          branchData: branch,
+          airlineData: airline,
+          tableData: table,
+        }));
       } catch (err) {
         console.error('Failed to load deferred monthly data:', err);
       } finally {
@@ -754,21 +669,21 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
     );
   }
 
-  const currentMonth = monthlyData[monthlyData.length - 1];
-  const prevMonth = monthlyData[monthlyData.length - 2];
+  const currentMonth = chartData.monthlyData[chartData.monthlyData.length - 1];
+  const prevMonth = chartData.monthlyData[chartData.monthlyData.length - 2];
   // Overall growth calculation (weighted)
-  const totalCurrentReports = monthlyData.reduce((s: number, m: any) => s + m.total, 0);
-  const totalPrevReports = monthlyData.reduce((s: number, m: any) => s + m.prevMonthTotal, 0);
-  const totalPrevYearReportsSelection = monthlyData.reduce((s: number, m: any) => s + (m.prevYearTotal || 0), 0);
+  const totalCurrentReports = chartData.monthlyData.reduce((s: number, m: any) => s + m.total, 0);
+  const totalPrevReports = chartData.monthlyData.reduce((s: number, m: any) => s + m.prevMonthTotal, 0);
+  const totalPrevYearReportsSelection = chartData.monthlyData.reduce((s: number, m: any) => s + (m.prevYearTotal || 0), 0);
 
   const overallMomGrowth = totalPrevReports > 0 ? ((totalCurrentReports - totalPrevReports) / totalPrevReports) * 100 : 0;
   const overallYoyGrowth = totalPrevYearReportsSelection > 0 ? ((totalCurrentReports - totalPrevYearReportsSelection) / totalPrevYearReportsSelection) * 100 : undefined;
 
   // Overall metrics calculation
-  const totalReportsSum = monthlyData.reduce((sum: number, m: any) => sum + m.total, 0);
-  const totalIrregSum = monthlyData.reduce((sum: number, m: any) => sum + m.irregularity, 0);
-  const totalComplaintSum = monthlyData.reduce((sum: number, m: any) => sum + (m.complaint || 0), 0);
-  const totalComplimentSum = monthlyData.reduce((sum: number, m: any) => sum + (m.compliment || 0), 0);
+  const totalReportsSum = chartData.monthlyData.reduce((sum: number, m: any) => sum + m.total, 0);
+  const totalIrregSum = chartData.monthlyData.reduce((sum: number, m: any) => sum + m.irregularity, 0);
+  const totalComplaintSum = chartData.monthlyData.reduce((sum: number, m: any) => sum + (m.complaint || 0), 0);
+  const totalComplimentSum = chartData.monthlyData.reduce((sum: number, m: any) => sum + (m.compliment || 0), 0);
 
   const overallIrregRate = totalReportsSum > 0 ? (totalIrregSum / totalReportsSum) * 100 : 0;
   const overallNetSentiment = (totalComplimentSum + totalComplaintSum) > 0
@@ -784,7 +699,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
       <AiSeasonalityForecast />
 
       {/* AI Risk Heatmap */}
-      {aiRiskHeatmap.length > 0 && (
+      {chartData.aiRiskHeatmap.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm mt-6">
           <div className="flex items-center gap-2 mb-1">
             <Brain className="w-5 h-5 text-emerald-600" />
@@ -793,7 +708,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
           <p className="text-xs text-gray-500 mb-4">Proactive risk analysis by severity across branches (AI Service Data)</p>
           <div className="h-[400px]">
             <HeatmapChart 
-              data={aiRiskHeatmap}
+              data={chartData.aiRiskHeatmap}
               xAxis="severity"
               yAxis="branch"
               metric="count"
@@ -805,37 +720,37 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
 
       {/* Auto-Insight Block */}
       <AutoInsight
-        monthly={monthlyData}
-        peakDay={peakDay}
-        dominantBranch={dominantBranch}
-        dominantAirline={dominantAirline}
+        monthly={chartData.monthlyData}
+        peakDay={chartData.peakDay}
+        dominantBranch={chartData.dominantBranch}
+        dominantAirline={chartData.dominantAirline}
       />
 
       {/* New KPI Cards - Monthly Overview */}
-      {kpis && (
+      {chartData.kpis && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KPICard
             title="Current Month"
-            value={kpis.currentMonthTotal}
+            value={chartData.kpis.currentMonthTotal}
             color="blue"
             explanation="Total laporan bulan ini (bulan terakhir dalam dataset)."
           />
           <KPICard
             title="Previous Month"
-            value={kpis.previousMonthTotal}
+            value={chartData.kpis.previousMonthTotal}
             color="blue"
             explanation="Total laporan bulan sebelumnya untuk perbandingan."
           />
           <KPICard
             title="MoM Change"
-            value={`${kpis.momChange > 0 ? '+' : ''}${kpis.momChange}%`}
-            color={kpis.momChange > 0 ? 'red' : 'green'}
+            value={`${chartData.kpis.momChange > 0 ? '+' : ''}${chartData.kpis.momChange}%`}
+            color={chartData.kpis.momChange > 0 ? 'red' : 'green'}
             explanation="Perubahan persentase dari bulan lalu ke bulan ini."
           />
           <KPICard
             title="Highest Peak"
-            value={kpis.highestPeakMonth.month}
-            subtitle={`${kpis.highestPeakMonth.count} reports`}
+            value={chartData.kpis.highestPeakMonth.month}
+            subtitle={`${chartData.kpis.highestPeakMonth.count} reports`}
             color="yellow"
             explanation="Bulan dengan jumlah laporan tertinggi dalam periode ini."
           />
@@ -843,12 +758,12 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
       )}
 
       {/* Category Trends Over Time */}
-      {trendData.length > 0 && (
+      {chartData.trendData.length > 0 && (
         <div className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h3 className="text-lg font-bold mb-4">Category Trends Over Time</h3>
           <p className="text-xs text-gray-500 mb-4">Tren kategori laporan per bulan untuk melihat pola perubahan kategori Irregularity, Complaint, dan Compliment</p>
           <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={trendData}>
+            <LineChart data={chartData.trendData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
@@ -887,15 +802,15 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
         )}
         <KPICard
           title="Dominant Branch"
-          value={dominantBranch.name}
-          subtitle={`${dominantBranch.count} reports (${dominantBranch.percent.toFixed(0)}%)`}
+          value={chartData.dominantBranch.name}
+          subtitle={`${chartData.dominantBranch.count} reports (${chartData.dominantBranch.percent.toFixed(0)}%)`}
           color="blue"
           explanation="Cabang dengan laporan terbanyak dalam periode ini."
         />
         <KPICard
           title="Dominant Airline"
-          value={dominantAirline.name}
-          subtitle={`${dominantAirline.count} reports (${dominantAirline.percent.toFixed(0)}%)`}
+          value={chartData.dominantAirline.name}
+          subtitle={`${chartData.dominantAirline.count} reports (${chartData.dominantAirline.percent.toFixed(0)}%)`}
           color="orange"
           explanation="Maskapai dengan laporan terbanyak dalam periode ini."
         />
@@ -928,13 +843,13 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-lg font-bold text-gray-800">Monthly Trend</h2>
-            <p className="text-xs text-gray-500 mt-1">Tren laporan bulanan ({monthlyData.length} bulan) - Januari 2025 sampai terbaru</p>
+            <p className="text-xs text-gray-500 mt-1">Tren laporan bulanan ({chartData.monthlyData.length} bulan) - Januari 2025 sampai terbaru</p>
           </div>
           <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg max-w-xs">
             <strong className="text-gray-700">Penjelasan:</strong> Tabel ini menunjukkan jumlah laporan per bulan dari awal data. Kolom MoM menunjukkan perubahan dari bulan sebelumnya. Warna merah = naik (lebih banyak laporan), hijau = turun (lebih sedikit laporan). Scroll untuk melihat semua bulan.
           </div>
         </div>
-        <MonthlyTrendTable data={monthlyData} />
+        <MonthlyTrendTable data={chartData.monthlyData} />
       </section>
 
       {/* Daily Timeline */}
@@ -948,7 +863,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
             <strong className="text-gray-700">Penjelasan:</strong> Grafik ini menunjukkan jumlah laporan setiap hari. Puncak tinggi = hari dengan banyak insiden. Gunakan ini untuk mengidentifikasi tanggal kejadian.
           </div>
         </div>
-        <DailyTrendChart data={dailyData} />
+        <DailyTrendChart data={chartData.dailyData} />
       </section>
 
       {/* Historical Context: Rolling Average Comparison */}
@@ -962,7 +877,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
             <strong className="text-gray-700">Penjelasan:</strong> Grafik ini membandingkan laporan bulan ini dengan rata-rata 3 dan 6 bulan sebelumnya. Jika garis biru di atas garis lain = lonjakan tidak normal.
           </div>
         </div>
-        <RollingAverageChart data={rollingData} />
+        <RollingAverageChart data={chartData.rollingData} />
       </section>
       
       {/* AI Root Cause Investigation - Full Width */}
@@ -988,7 +903,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
               <strong className="text-gray-700">Penjelasan:</strong> Cabang mana yang paling banyak melaporkan masalah bulan ini. Prioritas perbaikan bisa difokuskan ke cabang ini.
             </div>
           </div>
-          <TopBranchesChart data={branchData} />
+          <TopBranchesChart data={chartData.branchData} />
         </section>
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <div className="flex items-start justify-between mb-4">
@@ -1000,12 +915,12 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
               <strong className="text-gray-700">Penjelasan:</strong> Maskapai mana yang paling banyak dilaporkan. Bisa jadi indikasi masalah operasional maskapai tertentu.
             </div>
           </div>
-          <TopAirlinesChart data={airlineData} />
+          <TopAirlinesChart data={chartData.airlineData} />
         </section>
       </div>
 
       {/* Management Summary */}
-      <ManagementSummary data={monthlyData} dominantBranch={dominantBranch} dominantAirline={dominantAirline} />
+      <ManagementSummary data={chartData.monthlyData} dominantBranch={chartData.dominantBranch} dominantAirline={chartData.dominantAirline} />
 
       {/* Investigative Table */}
       <InvestigativeTable

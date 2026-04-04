@@ -12,16 +12,16 @@ const AI_MODEL = "llama-3.1-8b-instant";
 
 // Rate limiting
 const requestTimestamps = new Map<string, number[]>();
-const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 10; // Max 10 requests per minute per chart
+const RATE_LIMIT_WINDOW = 60 * 1000;
+const MAX_REQUESTS_PER_WINDOW = 10;
+const MAX_RATE_LIMIT_KEYS = 500;
 
-// Memory Cleanup Configuration
-const CLEANUP_INTERVAL = 5 * 60 * 1000; // 5 minutes
+const CLEANUP_INTERVAL = 5 * 60 * 1000;
 let lastCleanup = Date.now();
 
-// In-memory cache for insights (replaces Supabase persistent cache)
 const insightsCache = new Map<string, { data: any; timestamp: number }>();
-const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+const CACHE_TTL = 1000 * 60 * 60;
+const MAX_CACHE_KEYS = 200;
 
 interface InsightRequest {
   chartTitle: string;
@@ -89,6 +89,14 @@ function performCleanup() {
     if (now - entry.timestamp > CACHE_TTL) {
       insightsCache.delete(key);
     }
+  }
+  if (insightsCache.size > MAX_CACHE_KEYS) {
+    const keys = Array.from(insightsCache.keys()).slice(0, insightsCache.size - MAX_CACHE_KEYS);
+    keys.forEach(key => insightsCache.delete(key));
+  }
+  if (requestTimestamps.size > MAX_RATE_LIMIT_KEYS) {
+    const keys = Array.from(requestTimestamps.keys()).slice(0, requestTimestamps.size - MAX_RATE_LIMIT_KEYS);
+    keys.forEach(key => requestTimestamps.delete(key));
   }
 
   // Update last cleanup time

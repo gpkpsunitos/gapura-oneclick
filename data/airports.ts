@@ -1,3 +1,14 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi data master bandara di Indonesia
+ */
+
+/**
+ * Daftar bandara Indonesia dengan kode, nama, dan kota
+ * @constant INDONESIAN_AIRPORTS
+ */
 export const INDONESIAN_AIRPORTS = [
     // Java, Bali, Lombok
     { code: 'CGK', name: 'Soekarno-Hatta International Airport', city: 'Jakarta (Tangerang)' },

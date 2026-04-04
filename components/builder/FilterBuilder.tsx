@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen pembuat filter untuk query builder
+ */
+
 'use client';
 
 import { X, Plus } from 'lucide-react';
@@ -5,6 +12,15 @@ import type { QueryFilter, FilterOperator, FieldDef } from '@/types/builder';
 import { getFieldDef } from '@/lib/builder/schema';
 import { cn } from '@/lib/utils';
 
+/**
+ * Props untuk komponen FilterBuilder
+ * @interface FilterBuilderProps
+ * @property {QueryFilter[]} filters - Daftar filter yang dikonfigurasi
+ * @property {Array<{table: string; field: FieldDef}>} availableFields - Daftar field yang tersedia
+ * @property {Function} onAdd - Fungsi untuk menambah filter
+ * @property {Function} onRemove - Fungsi untuk menghapus filter
+ * @property {Function} onUpdate - Fungsi untuk memperbarui filter
+ */
 interface FilterBuilderProps {
   filters: QueryFilter[];
   availableFields: Array<{ table: string; field: FieldDef }>;
@@ -13,6 +29,10 @@ interface FilterBuilderProps {
   onUpdate: (index: number, updates: Partial<QueryFilter>) => void;
 }
 
+/**
+ * Operator berdasarkan tipe field
+ * @constant {Record<string, {value: FilterOperator; label: string}[]>} OPERATORS_BY_TYPE
+ */
 const OPERATORS_BY_TYPE: Record<string, { value: FilterOperator; label: string }[]> = {
   string: [
     { value: 'eq', label: '=' },
@@ -58,6 +78,13 @@ const OPERATORS_BY_TYPE: Record<string, { value: FilterOperator; label: string }
   ],
 };
 
+/**
+ * Mendapatkan operator yang tersedia untuk field tertentu
+ * @function getOperatorsForField
+ * @param {string} table - Nama tabel
+ * @param {string} field - Nama field
+ * @returns {{value: FilterOperator; label: string}[]} Daftar operator yang tersedia
+ */
 function getOperatorsForField(table: string, field: string): { value: FilterOperator; label: string }[] {
   const def = getFieldDef(table, field);
   if (!def) return OPERATORS_BY_TYPE.string;
@@ -74,7 +101,31 @@ function getOperatorsForField(table: string, field: string): { value: FilterOper
   return OPERATORS_BY_TYPE[def.type] || OPERATORS_BY_TYPE.string;
 }
 
+/**
+ * Komponen pembuat filter untuk query
+ * Menyediakan UI untuk membuat dan mengelola filter query
+ * Mendukung berbagai operator dan tipe field
+ * 
+ * @param {FilterBuilderProps} props - Props untuk konfigurasi pembuat filter
+ * @returns {JSX.Element} Element React yang berisi pembuat filter
+ * 
+ * @example
+ * ```tsx
+ * <FilterBuilder
+ *   filters={query.filters}
+ *   availableFields={availableFields}
+ *   onAdd={handleAddFilter}
+ *   onRemove={handleRemoveFilter}
+ *   onUpdate={handleUpdateFilter}
+ * />
+ * ```
+ */
 export function FilterBuilder({ filters, availableFields, onAdd, onRemove, onUpdate }: FilterBuilderProps) {
+  /**
+   * Menangani penambahan filter baru
+   * @function handleAddFilter
+   * @returns {void}
+   */
   const handleAddFilter = () => {
     if (availableFields.length === 0) return;
     const first = availableFields[0];

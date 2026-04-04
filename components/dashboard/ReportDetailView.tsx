@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import Image from 'next/image';
 import { usePathname } from "next/navigation";
 import {
   AlertCircle,
@@ -326,7 +327,7 @@ export function ReportDetailView({
   const compressImage = (file: File, opts: { maxWidth?: number; maxHeight?: number; quality?: number; mimeType?: string } = {}) => {
     const { maxWidth = 1600, maxHeight = 1600, quality = 0.8, mimeType = 'image/webp' } = opts;
     return new Promise<File>((resolve, reject) => {
-      const img = new Image();
+      const img = document.createElement('img');
       const url = URL.createObjectURL(file);
       img.onload = () => {
         const canvas = document.createElement('canvas');
@@ -796,8 +797,7 @@ export function ReportDetailView({
                         >
                           {isImage ? (
                             <div className="relative aspect-video bg-gray-50 group">
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={url} alt={`evidence-${i}`} className="w-full h-full object-cover transition-transform group-hover:scale-[1.02]" />
+                              <Image src={url} alt={`evidence-${i}`} width={800} height={600} className="w-full h-full object-cover transition-transform group-hover:scale-[1.02]" />
                               
                               {/* Metadata Overlay for Images */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-end">

@@ -37,8 +37,12 @@ class ClientReportsService {
       return this.pendingPromise;
     }
 
-    // 1. Check memory cache
+    // 1. Check memory cache with staleness check
     if (!forceRefresh && this.memoryCache) {
+      const meta = this.loadMeta();
+      if (meta && Date.now() - meta.timestamp > CACHE_DURATION) {
+        this.getReportsInBackground();
+      }
       return this.memoryCache;
     }
 
@@ -83,6 +87,35 @@ class ClientReportsService {
     })();
 
     return this.pendingPromise;
+  }
+
+  private loadMeta(): CacheMeta | null {
+    if (typeof window === 'undefined') return null;
+    try {
+      const scopedMetaKey = buildPwaScopedStorageKey(META_KEY);
+      const metaStr = localStorage.getItem(scopedMetaKey);
+      return metaStr ? JSON.parse(metaStr) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  private getReportsInBackground(): void {
+    if (this.pendingPromise) return;
+    this.pendingPromise = (async () => {
+      try {
+        const response = await fetch('/api/reports/sync');
+        if (!response.ok) return;
+        const data = await response.json();
+        const reports = data.reports as Report[];
+        this.saveToStorage(reports);
+        this.memoryCache = reports;
+      } catch {
+        // Silent background refresh failure
+      } finally {
+        this.pendingPromise = null;
+      }
+    })() as any;
   }
 
   async executeQuery(query: QueryDefinition) {

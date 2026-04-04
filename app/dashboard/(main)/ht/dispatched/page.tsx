@@ -1,8 +1,21 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman laporan yang ditujukan ke Divisi HT (Human Training),
+ * menampilkan semua laporan yang dikirimkan ke divisi HT.
+ */
+
 'use client';
 
 import { Inbox } from 'lucide-react';
 import { DivisionReportsPage } from '@/components/dashboard/DivisionReportsPage';
 
+/**
+ * Komponen halaman laporan yang ditujukan ke Divisi HT (Human Training)
+ * Menampilkan semua laporan yang dikirimkan ke divisi HT
+ * @returns {JSX.Element} Tampilan halaman laporan dispatched ke Divisi HT
+ */
 export default function HTDispatchedPage() {
     return (
         <DivisionReportsPage

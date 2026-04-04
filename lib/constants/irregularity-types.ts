@@ -1,4 +1,12 @@
 /**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi tipe data dan konstanta untuk kategori ketidakteraturan (irregularity)
+ * pada operasi ground handling, termasuk routing otomatis ke divisi yang sesuai
+ */
+
+/**
  * Irregularity Categories for Ground Handling Operations
  * Used for cascading dropdown and auto-routing to divisions
  * 
@@ -9,20 +17,38 @@
  * - OS (Services): Customer complaints, Service quality
  */
 
+/**
+ * Tipe divisi target untuk routing laporan
+ */
 export type TargetDivision = 'OT' | 'OP' | 'UQ' | 'OS' | 'GENERAL';
 
+/**
+ * Interface untuk kategori ketidakteraturan
+ */
 export interface IrregularityCategory {
+    /** ID unik kategori */
     id: string;
+    /** Label dalam Bahasa Indonesia */
     label: string;
+    /** Label dalam Bahasa Inggris */
     labelEn: string;
+    /** Divisi target untuk routing */
     targetDivision: TargetDivision;
+    /** Nama icon (dari lucide-react) */
     icon: string;
+    /** Warna utama (format oklch) */
     color: string;
+    /** Warna background transparan */
     bgColor: string;
+    /** Deskripsi kategori */
     description: string;
+    /** Daftar masalah dalam kategori ini */
     problems: string[];
 }
 
+/**
+ * Daftar kategori ketidakteraturan yang tersedia
+ */
 export const IRREGULARITY_CATEGORIES: IrregularityCategory[] = [
     {
         id: 'GSE_FACILITY',
@@ -146,6 +172,9 @@ export const IRREGULARITY_CATEGORIES: IrregularityCategory[] = [
 
 /**
  * Auto-route report to appropriate division based on category
+ * 
+ * @param categoryId - ID kategori ketidakteraturan
+ * @returns Divisi target untuk routing laporan
  */
 export function routeReportToDivision(categoryId: string): TargetDivision {
     const category = IRREGULARITY_CATEGORIES.find(c => c.id === categoryId);
@@ -154,6 +183,9 @@ export function routeReportToDivision(categoryId: string): TargetDivision {
 
 /**
  * Get category by ID
+ * 
+ * @param categoryId - ID kategori yang dicari
+ * @returns Object kategori atau undefined jika tidak ditemukan
  */
 export function getCategoryById(categoryId: string): IrregularityCategory | undefined {
     return IRREGULARITY_CATEGORIES.find(c => c.id === categoryId);
@@ -161,6 +193,9 @@ export function getCategoryById(categoryId: string): IrregularityCategory | unde
 
 /**
  * Get problems for a category
+ * 
+ * @param categoryId - ID kategori ketidakteraturan
+ * @returns Array daftar masalah dalam kategori tersebut
  */
 export function getProblemsForCategory(categoryId: string): string[] {
     return getCategoryById(categoryId)?.problems || [];
@@ -196,4 +231,7 @@ export const AREA_TYPES = [
     },
 ] as const;
 
+/**
+ * Tipe area yang tersedia untuk seleksi lokasi
+ */
 export type AreaType = typeof AREA_TYPES[number]['id'];

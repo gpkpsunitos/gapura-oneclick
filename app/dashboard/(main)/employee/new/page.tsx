@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman pembuatan laporan baru dengan wizard 5 langkah
+ * Mendukung mode offline dengan antrean pelaporan
+ */
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -10,16 +18,19 @@ import {
 import { WizardStep } from '@/components/ui/WizardStep';
 import { ReportDownloadModal } from '@/components/dashboard/ReportDownloadModal';
 import { queueOfflineReport } from '@/lib/pwa/offline-queue';
+import { useAuthContext } from '@/lib/auth-context';
 
 import { PRIORITY_CONFIG, type ReportPriority } from '@/lib/constants/report-status';
 import { AIRLINES } from '@/lib/constants/airlines';
 
+/** Opsi kategori laporan */
 const REPORT_CATEGORIES = [
     { id: 'Irregularity', label: 'Irregularity' },
     { id: 'Complaint', label: 'Complaint' },
     { id: 'Compliment', label: 'Compliment' },
 ];
 
+/** Opsi area operasional */
 const AREA_OPTIONS = [
     { id: 'TERMINAL', label: 'Terminal Area' },
     { id: 'APRON', label: 'Apron Area' },
@@ -27,6 +38,7 @@ const AREA_OPTIONS = [
     { id: 'GENERAL', label: 'General' },
 ];
 
+/** Kategori area spesifik berdasarkan area */
 const AREA_CATEGORIES: Record<string, string[]> = {
     'TERMINAL': [
         'Passenger, Baggage & Document Profiling',
@@ -66,12 +78,22 @@ const AREA_CATEGORIES: Record<string, string[]> = {
 // Airlines considered local (Indonesian carriers)
 const LOKAL_AIRLINE_CODES = ['GA', 'QG', 'JT', 'ID', 'IW', 'IU', 'QZ', 'SJ', 'IN', 'IP', '8B', 'SI', 'IL'];
 
+/**
+ * Mendapatkan tipe airline (Lokal/MPA)
+ * @param airlineName - Nama airline
+ * @returns Tipe airline ('Lokal' atau 'MPA')
+ */
 function getAirlineType(airlineName: string): 'Lokal' | 'MPA' {
     const airline = AIRLINES.find(a => a.name === airlineName);
     if (!airline) return 'MPA';
     return LOKAL_AIRLINE_CODES.includes(airline.code) ? 'Lokal' : 'MPA';
 }
 
+/**
+ * Mendapatkan hub untuk station tertentu
+ * @param stationCode - Kode station
+ * @returns Kode hub
+ */
 function getHubForStation(stationCode: string): string {
     if (['CGK', 'SUB', 'DPS'].includes(stationCode)) return stationCode;
     if (['UPG', 'MDC', 'BPN'].includes(stationCode)) return 'UPG';
@@ -79,11 +101,17 @@ function getHubForStation(stationCode: string): string {
     return 'CGK';
 }
 
+/**
+ * Mendapatkan minggu dalam bulan
+ * @param date - Tanggal
+ * @returns Nomor minggu (1-5)
+ */
 function getWeekInMonth(date: Date): number {
     const day = date.getDate();
     return Math.ceil(day / 7);
 }
 
+/** Type untuk data form laporan */
 type FormData = {
     // Step 1: Detail Report
     incident_date: string;
@@ -114,8 +142,15 @@ type FormData = {
     evidence_urls: string[];
 };
 
+/**
+ * Komponen wizard pembuatan laporan baru
+ * Menggunakan 5 langkah untuk mengumpulkan data laporan
+ * Mendukung mode offline dengan antrean pelaporan
+ * @returns JSX element wizard pembuatan laporan
+ */
 export default function NewReportWizard() {
     const router = useRouter();
+    const { user } = useAuthContext();
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -150,12 +185,15 @@ export default function NewReportWizard() {
         evidence_urls: [],
     });
 
-    // Fetch user's station and all stations on mount
+    // Fetch stations on mount; user comes from AuthContext
     useEffect(() => {
-        const fetchData = async () => {
+        const controller = new AbortController();
+        const { signal } = controller;
+
+        const fetchStations = async () => {
             try {
-                // Fetch all stations
-                const stationsRes = await fetch('/api/master-data?type=stations');
+                const stationsRes = await fetch('/api/master-data?type=stations', { signal });
+
                 let stationsData: any = [];
                 try {
                     stationsData = await stationsRes.json();
@@ -165,24 +203,24 @@ export default function NewReportWizard() {
                 if (Array.isArray(stationsData)) {
                     setStations(stationsData);
                 }
-
-                // Fetch user's station as default
-                const userRes = await fetch('/api/auth/me');
-                if (userRes.ok) {
-                    try {
-                        const userData = await userRes.json();
-                        if (userData.station?.id) {
-                            setSelectedStationId(userData.station.id);
-                        }
-                    } catch {}
-                }
             } catch (err) {
-                console.error('Failed to fetch data:', err);
+                if (err instanceof DOMException && err.name === 'AbortError') return;
+                console.error('Failed to fetch stations:', err);
             }
         };
-        fetchData();
+        fetchStations();
+
+        return () => controller.abort();
     }, []);
 
+    // Sync selected station from auth context user
+    useEffect(() => {
+        if (user?.station?.id) {
+            setSelectedStationId(user.station.id);
+        }
+    }, [user]);
+
+    // Monitor online status
     useEffect(() => {
         setIsOnline(navigator.onLine);
         const handleOnline = () => setIsOnline(true);
@@ -217,6 +255,12 @@ export default function NewReportWizard() {
         };
     }, []);
 
+    /**
+     * Mengompres gambar untuk pengunggahan
+     * @param file - File gambar yang akan dikompres
+     * @param opts - Opsi kompresi (maxWidth, maxHeight, quality, mimeType)
+     * @returns Promise<File> file yang sudah dikompres
+     */
     const compressImage = (file: File, opts: { maxWidth?: number; maxHeight?: number; quality?: number; mimeType?: string } = {}) => {
         const { maxWidth = 1600, maxHeight = 1600, quality = 0.8, mimeType = 'image/webp' } = opts;
         return new Promise<File>((resolve, reject) => {
@@ -246,6 +290,9 @@ export default function NewReportWizard() {
         });
     };
 
+    /**
+     * Menangani file yang dipilih dan mengunggahnya
+     */
     const handleFilesSelected = async () => {
         if (!selectedFiles.length) return;
         if (!navigator.onLine) {
@@ -263,6 +310,11 @@ export default function NewReportWizard() {
         }
     };
 
+    /**
+     * Mengunggah file bukti ke server
+     * @param files - Array file yang akan diunggah
+     * @returns Promise<string[]> array URL file yang sudah diunggah
+     */
     const uploadEvidenceFiles = async (files: File[]) => {
         const uploadedUrls: string[] = [];
         for (const file of files) {
@@ -281,13 +333,24 @@ export default function NewReportWizard() {
         return uploadedUrls;
     };
 
+    /**
+     * Menghapus URL bukti pada index tertentu
+     * @param index - Index URL yang akan dihapus
+     */
     const removeEvidenceAt = (index: number) => {
         setFormData(prev => ({ ...prev, evidence_urls: prev.evidence_urls.filter((_, i) => i !== index) }));
     };
 
+    /** Pindah ke langkah berikutnya */
     const nextStep = () => setStep(prev => Math.min(prev + 1, 5));
+    
+    /** Pindah ke langkah sebelumnya */
     const prevStep = () => setStep(prev => Math.max(prev - 1, 1));
 
+    /**
+     * Validasi data form pada langkah saat ini
+     * @returns Boolean valid atau tidak
+     */
     const isStepValid = (): boolean => {
         switch (step) {
             case 1:
@@ -305,6 +368,10 @@ export default function NewReportWizard() {
         }
     };
 
+    /**
+     * Menangani submit form laporan
+     * @param e - Event form submit
+     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -396,7 +463,7 @@ export default function NewReportWizard() {
                 throw new Error(message);
             }
 
-            // Set the created report data including the ID generated by backend
+            // Set created report data including ID generated by backend
             setSubmissionMode('submitted');
             setCreatedReport({
                 ...formData,
@@ -405,7 +472,7 @@ export default function NewReportWizard() {
             });
 
             setSuccess(true);
-            // Router push is now handled by the modal onFinished
+            // Router push is now handled by modal onFinished
         } catch (err) {
             const message = err instanceof Error ? (
                 /unauthorized/i.test(err.message) || /401/.test(err.message) 
@@ -638,7 +705,7 @@ export default function NewReportWizard() {
                     <div className="max-w-3xl mx-auto space-y-8">
                         <div className="text-center space-y-2">
                             <h2 className="text-2xl font-bold">Section</h2>
-                            <p style={{ color: 'var(--text-secondary)' }}>Choose the area of the incident</p>
+                            <p style={{ color: 'var(--text-secondary)' }}>Choose area of incident</p>
                         </div>
 
                         <div className="card-solid p-6 md:p-8 space-y-6" style={{ background: 'var(--surface-2)' }}>
@@ -671,7 +738,7 @@ export default function NewReportWizard() {
                     <div className="max-w-3xl mx-auto space-y-8">
                         <div className="text-center space-y-2">
                             <h2 className="text-2xl font-bold">{AREA_OPTIONS.find(a => a.id === formData.area)?.label}</h2>
-                            <p style={{ color: 'var(--text-secondary)' }}>Specify the category for {AREA_OPTIONS.find(a => a.id === formData.area)?.label}</p>
+                            <p style={{ color: 'var(--text-secondary)' }}>Specify category for {AREA_OPTIONS.find(a => a.id === formData.area)?.label}</p>
                         </div>
 
                         <div className="card-solid p-6 md:p-8 space-y-6" style={{ background: 'var(--surface-2)' }}>
@@ -704,7 +771,7 @@ export default function NewReportWizard() {
                     <div className="max-w-3xl mx-auto space-y-8">
                         <div className="text-center space-y-2">
                             <h2 className="text-2xl font-bold">Irregularity / Complaint</h2>
-                            <p style={{ color: 'var(--text-secondary)' }}>Fill in the details</p>
+                            <p style={{ color: 'var(--text-secondary)' }}>Fill in details</p>
                         </div>
 
                         <div className="card-solid p-6 md:p-8 space-y-6" style={{ background: 'var(--surface-2)' }}>

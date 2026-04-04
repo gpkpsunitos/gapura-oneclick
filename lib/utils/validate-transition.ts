@@ -1,9 +1,16 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi fungsi validasi untuk transisi status laporan dan pengguna
+ */
+
 import { REPORT_STATUS, type ReportStatus } from '@/lib/constants/report-status';
 import type { UserRole } from '@/types';
 
 /**
- * Status transition rules per role
- * Only ANALYST and SUPER_ADMIN can change statuses
+ * Aturan transisi status per role
+ * Hanya ANALYST dan SUPER_ADMIN yang dapat mengubah status
  */
 const TRANSITION_RULES: Partial<Record<ReportStatus, Partial<Record<UserRole, ReportStatus[]>>>> = {
     OPEN: {
@@ -21,7 +28,7 @@ const TRANSITION_RULES: Partial<Record<ReportStatus, Partial<Record<UserRole, Re
 };
 
 /**
- * Action to Status mapping
+ * Pemetaan aksi ke status
  */
 export const ACTION_TO_STATUS: Record<string, ReportStatus> = {
     update_progress: 'ON PROGRESS',
@@ -29,6 +36,9 @@ export const ACTION_TO_STATUS: Record<string, ReportStatus> = {
     reopen: 'OPEN',
 };
 
+/**
+ * Hasil validasi transisi status
+ */
 interface ValidationResult {
     valid: boolean;
     error?: string;
@@ -36,7 +46,18 @@ interface ValidationResult {
 }
 
 /**
- * Validate if a status transition is allowed
+ * Memvalidasi apakah transisi status diizinkan
+ * @param {string} currentStatus - Status saat ini
+ * @param {string} action - Aksi yang akan dilakukan
+ * @param {string} userRole - Role pengguna
+ * @returns {ValidationResult} Hasil validasi dengan status baru jika valid
+ * @example
+ * ```ts
+ * const result = validateStatusTransition('OPEN', 'update_progress', 'ANALYST');
+ * if (result.valid) {
+ *   console.log('New status:', result.newStatus); // 'ON PROGRESS'
+ * }
+ * ```
  */
 export function validateStatusTransition(
     currentStatus: string,
@@ -78,7 +99,14 @@ export function validateStatusTransition(
 }
 
 /**
- * Get timestamp field name for a status transition
+ * Mendapatkan nama field timestamp untuk transisi status
+ * @param {ReportStatus} status - Status target
+ * @returns {string | null} Nama field timestamp atau null jika tidak ada
+ * @example
+ * ```ts
+ * getTimestampFieldForStatus('ON PROGRESS'); // 'validated_at'
+ * getTimestampFieldForStatus('CLOSED'); // 'resolved_at'
+ * ```
  */
 export function getTimestampFieldForStatus(status: ReportStatus): string | null {
     const fieldMap: Partial<Record<ReportStatus, string>> = {
@@ -89,7 +117,14 @@ export function getTimestampFieldForStatus(status: ReportStatus): string | null 
 }
 
 /**
- * Get user field name for a status transition
+ * Mendapatkan nama field user untuk transisi status
+ * @param {ReportStatus} status - Status target
+ * @returns {string | null} Nama field user atau null jika tidak ada
+ * @example
+ * ```ts
+ * getUserFieldForStatus('ON PROGRESS'); // 'validated_by'
+ * getUserFieldForStatus('CLOSED'); // 'resolved_by'
+ * ```
  */
 export function getUserFieldForStatus(status: ReportStatus): string | null {
     const fieldMap: Partial<Record<ReportStatus, string>> = {

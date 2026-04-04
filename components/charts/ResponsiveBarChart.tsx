@@ -1,28 +1,57 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen bar chart responsif yang menggunakan Recharts
+ * untuk visualisasi data dalam format horizontal atau vertical.
+ */
+
 'use client';
 
-import { useMemo } from 'react';
-import { Bar } from 'react-chartjs-2';
 import { BarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer as RechartsContainer } from 'recharts';
-import { useViewport } from '@/hooks/useViewport';
-import { adaptToChartJSData } from '@/lib/utils/chartAdapters';
-import { defaultMobileChartOptions, generateChartColors } from './chartConfig';
+import { generateChartColors } from './chartConfig';
 import { cn } from '@/lib/utils';
 
+/**
+ * Props untuk komponen ResponsiveBarChart
+ * @interface ResponsiveBarChartProps
+ */
 interface ResponsiveBarChartProps {
+  /** Data chart */
   data: any[];
+  /** Key untuk axis X */
   xAxisKey?: string;
+  /** Array key untuk series data */
   dataKeys: string[];
+  /** Layout chart: horizontal atau vertical */
   layout?: 'horizontal' | 'vertical';
+  /** Judul chart */
   title?: string;
+  /** Class CSS tambahan */
   className?: string;
+  /** Tinggi chart */
   height?: string;
+  /** Tampilkan legenda */
   showLegend?: boolean;
+  /** Stack bar */
   stacked?: boolean;
 }
 
 /**
- * Responsive Bar Chart
- * Uses Chart.js on mobile/tablet, Recharts on desktop
+ * Komponen bar chart responsif
+ * Menampilkan bar chart horizontal atau vertical dengan dukungan multiple series
+ * @param ResponsiveBarChartProps - Props komponen
+ * @returns JSX element bar chart
+ * @example
+ * ```tsx
+ * <ResponsiveBarChart
+ *   data={chartData}
+ *   xAxisKey="month"
+ *   dataKeys={['value1', 'value2']}
+ *   layout="vertical"
+ *   showLegend={true}
+ * />
+ * ```
  */
 export function ResponsiveBarChart({
   data,
@@ -35,58 +64,8 @@ export function ResponsiveBarChart({
   showLegend = true,
   stacked = false,
 }: ResponsiveBarChartProps) {
-  const { isMobile, isTablet } = useViewport();
-  const useMobileCharts = isMobile || isTablet;
-
-  // Prepare Chart.js data
-  const chartJSData = useMemo(() => {
-    return adaptToChartJSData(data, xAxisKey, dataKeys);
-  }, [data, xAxisKey, dataKeys]);
-
-  // Chart.js options
-  const chartJSOptions = useMemo(() => {
-    const baseOptions = { ...defaultMobileChartOptions };
-    return {
-      ...baseOptions,
-      indexAxis: layout === 'horizontal' ? 'y' : 'x',
-      plugins: {
-        ...baseOptions.plugins,
-        legend: {
-          ...baseOptions.plugins?.legend,
-          display: showLegend,
-        },
-        title: title ? {
-          display: true,
-          text: title,
-          font: { size: 12 },
-          padding: { bottom: 10 },
-        } : undefined,
-      },
-      scales: {
-        ...baseOptions.scales,
-        x: {
-          ...baseOptions.scales?.x,
-          stacked,
-        },
-        y: {
-          ...baseOptions.scales?.y,
-          stacked,
-        },
-      },
-    } as any;
-  }, [layout, showLegend, title, stacked]);
-
-  if (useMobileCharts) {
-    return (
-      <div className={cn('w-full', height, className)}>
-        <Bar data={chartJSData as any} options={chartJSOptions} />
-      </div>
-    );
-  }
-
-  // Desktop: Use Recharts
   const colors = generateChartColors(dataKeys.length);
-  
+
   return (
     <div className={cn('w-full', height, className)}>
       <RechartsContainer width="100%" height="100%">

@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi builder untuk menghasilkan query SQL dari definisi query
+ * Menyediakan validasi, parameterization, dan error handling
+ */
+
 import type {
   QueryDefinition,
   QueryFilter,
@@ -6,12 +14,29 @@ import { isValidField, isValidTable, getJoinDef, getFieldDef } from './schema';
 
 const MAX_LIMIT = 5000;
 
+/**
+ * Hasil build query SQL
+ * @interface BuildResult
+ */
 interface BuildResult {
+  /** String query SQL */
   sql: string;
+  /** Array parameter untuk query */
   params: (string | number | boolean)[];
 }
 
-/** Validate a QueryDefinition and return human-readable errors */
+/**
+ * Validasi QueryDefinition dan mengembalikan error yang human-readable
+ * @param def - Definisi query yang akan divalidasi
+ * @returns Array error validasi
+ * @example
+ * ```ts
+ * const errors = validateQuery(queryDef);
+ * if (errors.length > 0) {
+ *   console.log('Errors:', errors.join(', '));
+ * }
+ * ```
+ */
 export function validateQuery(def: QueryDefinition): string[] {
   const errors: string[] = [];
 
@@ -75,7 +100,16 @@ export function validateQuery(def: QueryDefinition): string[] {
   return errors;
 }
 
-/** Build parameterized SQL from a QueryDefinition */
+/**
+ * Membangun parameterized SQL dari definisi query
+ * @param def - Definisi query
+ * @returns Hasil build query dengan SQL dan params
+ * @throws Error jika terjadi error parsing
+ * @example
+ * ```ts
+ * const { sql, params } = buildQuery(queryDef);
+ * ```
+ */
 export function buildQuery(def: QueryDefinition): BuildResult {
   const params: (string | number | boolean)[] = [];
   let paramIdx = 0;

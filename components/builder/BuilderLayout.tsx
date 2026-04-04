@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen layout utama untuk builder dashboard dengan fitur AI
+ */
+
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -16,8 +23,16 @@ import type { ChartVisualization, QueryResult, FieldDef, AggregateFunction, Char
 import { useAIDashboard } from '@/lib/hooks/useAIDashboard';
 import { cn } from '@/lib/utils';
 
+/**
+ * Mode operasi builder
+ * @type {('explore' | 'dashboard')} Mode
+ */
 type Mode = 'explore' | 'dashboard';
 
+/**
+ * Saran prompt AI untuk membuat dashboard
+ * @constant {{label: string; prompt: string}[]} PROMPT_SUGGESTIONS
+ */
 const PROMPT_SUGGESTIONS = [
   { label: 'Laporan Bulanan', prompt: 'Buatkan dashboard laporan bulanan yang menampilkan trend, distribusi kategori, dan perbandingan antar stasiun' },
   { label: 'Perbandingan Maskapai', prompt: 'Buat dashboard perbandingan jumlah laporan per maskapai dengan breakdown severity dan kategori' },
@@ -25,6 +40,10 @@ const PROMPT_SUGGESTIONS = [
   { label: 'Severity Analysis', prompt: 'Buat dashboard analisis severity laporan dengan heatmap per stasiun dan trend waktu' },
 ];
 
+/**
+ * Langkah-langkah proses AI
+ * @constant {{label: string; delay: number}[]} AI_STEPS
+ */
 const AI_STEPS = [
   { label: 'Menganalisis schema...', delay: 0 },
   { label: 'Merancang query...', delay: 3000 },
@@ -32,6 +51,16 @@ const AI_STEPS = [
   { label: 'Menyelesaikan dashboard...', delay: 15000 },
 ];
 
+/**
+ * Filter global untuk dashboard
+ * @interface GlobalFilters
+ * @property {string} [hub] - Filter hub
+ * @property {string} [branch] - Filter cabang
+ * @property {string} [maskapai] - Filter maskapai
+ * @property {string} [airlines] - Filter airlines
+ * @property {string} [category] - Filter kategori
+ * @property {string} [area] - Filter area
+ */
 interface GlobalFilters {
   hub?: string;
   branch?: string;
@@ -41,11 +70,30 @@ interface GlobalFilters {
   area?: string;
 }
 
+/**
+ * Props untuk komponen BuilderLayout
+ * @interface BuilderLayoutProps
+ * @property {Function} onSaveDashboard - Fungsi untuk menyimpan dashboard
+ * @property {string[]} [existingFolders=[]] - Daftar folder yang sudah ada
+ */
 interface BuilderLayoutProps {
   onSaveDashboard: (name: string, description: string, tiles: SaveTile[], config?: SaveConfig, folder?: string | null) => Promise<{ embedUrl: string } | null>;
   existingFolders?: string[];
 }
 
+/**
+ * Interface untuk tile yang akan disimpan
+ * @interface SaveTile
+ * @property {string} title - Judul tile
+ * @property {ChartType} chartType - Tipe grafik
+ * @property {string} dataField - Field data
+ * @property {('full' | 'half' | 'third')} width - Lebar tile
+ * @property {number} position - Posisi tile
+ * @property {QueryDefinition} query_config - Konfigurasi query
+ * @property {ChartVisualization} visualization_config - Konfigurasi visualisasi
+ * @property {TileLayout} layout - Layout tile
+ * @property {string} page_name - Nama halaman
+ */
 export interface SaveTile {
   title: string;
   chartType: ChartType;
@@ -58,6 +106,15 @@ export interface SaveTile {
   page_name: string;
 }
 
+/**
+ * Interface untuk konfigurasi penyimpanan
+ * @interface SaveConfig
+ * @property {string} dateRange - Rentang tanggal
+ * @property {boolean} autoRefresh - Auto refresh
+ * @property {string[]} pages - Daftar halaman
+ * @property {string} [dateFrom] - Tanggal mulai
+ * @property {string} [dateTo] - Tanggal akhir
+ */
 export interface SaveConfig {
   dateRange: string;
   autoRefresh: boolean;
@@ -66,6 +123,10 @@ export interface SaveConfig {
   dateTo?: string;
 }
 
+/**
+ * Konfigurasi visualisasi default
+ * @constant {ChartVisualization} defaultVisualization
+ */
 const defaultVisualization: ChartVisualization = {
   chartType: 'bar',
   yAxis: [],
@@ -73,6 +134,22 @@ const defaultVisualization: ChartVisualization = {
   showLabels: false,
 };
 
+/**
+ * Komponen layout utama untuk builder dashboard
+ * Menyediakan antarmuka untuk menjelajahi data, membuat query, dan menyusun dashboard
+ * Mendukung pembuatan dashboard otomatis menggunakan AI
+ * 
+ * @param {BuilderLayoutProps} props - Props untuk konfigurasi layout builder
+ * @returns {JSX.Element} Element React yang berisi layout builder
+ * 
+ * @example
+ * ```tsx
+ * <BuilderLayout
+ *   onSaveDashboard={saveDashboard}
+ *   existingFolders={['Laporan Bulanan', 'KPI']}
+ * />
+ * ```
+ */
 export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: BuilderLayoutProps) {
   const [mode, setMode] = useState<Mode>('explore');
   const [visualization, setVisualization] = useState<ChartVisualization>({ ...defaultVisualization });
@@ -129,6 +206,13 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     return () => timers.forEach(clearTimeout);
   }, [ai.loading]);
 
+  /**
+   * Menangani klik field untuk ditambahkan ke query
+   * @function handleFieldClick
+   * @param {string} table - Nama tabel
+   * @param {FieldDef} field - Definisi field
+   * @returns {void}
+   */
   const handleFieldClick = useCallback((table: string, field: FieldDef) => {
     if (field.type === 'number' || field.type === 'uuid') {
       const fn: AggregateFunction = field.type === 'uuid' ? 'COUNT' : 'SUM';
@@ -149,6 +233,11 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     }
   }, [qb]);
 
+  /**
+   * Menjalankan query dan memperbarui visualisasi
+   * @async function handleExecute
+   * @returns {Promise<QueryResult | null>} Hasil query atau null
+   */
   const handleExecute = useCallback(async () => {
     const result = await qe.execute(qb.query);
 
@@ -181,6 +270,11 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     return () => window.removeEventListener('keydown', handler);
   }, [handleExecute]);
 
+  /**
+   * Menjalankan query untuk semua tile dashboard
+   * @async function executeTileQueries
+   * @returns {Promise<void>}
+   */
   const executeTileQueries = useCallback(async () => {
     const results = new Map<string, QueryResult>();
     
@@ -230,6 +324,11 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     }
   }, [mode, executeTileQueries]);
 
+  /**
+   * Menangani pembuatan dashboard dengan AI
+   * @async function handleAIGenerate
+   * @returns {Promise<void>}
+   */
   const handleAIGenerate = useCallback(async () => {
     if (!aiPrompt.trim()) return;
     const def = await ai.generate(aiPrompt.trim());
@@ -239,6 +338,10 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     }
   }, [aiPrompt, ai, aiFolder, dash]);
 
+  /**
+   * Menghitung range tahun untuk template Customer Feedback
+   * @constant {string} yearRange
+   */
   const yearRange = useMemo(() => {
     if (!cfDateFrom || !cfDateTo) return '';
     const fy = new Date(cfDateFrom).getFullYear();
@@ -246,6 +349,11 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     return fy === ty ? `${fy}` : `${fy} - ${ty}`;
   }, [cfDateFrom, cfDateTo]);
 
+  /**
+   * Menangani pembuatan dashboard Customer Feedback
+   * @async function handleCustomerFeedbackGenerate
+   * @returns {Promise<void>}
+   */
   const handleCustomerFeedbackGenerate = useCallback(async () => {
     if (!cfDateFrom || !cfDateTo) return;
     const def = await ai.generateCustomerFeedback(cfDateFrom, cfDateTo);
@@ -255,12 +363,23 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     }
   }, [cfDateFrom, cfDateTo, cfFolder, ai, dash]);
 
+  /**
+   * Menambahkan query saat ini sebagai tile
+   * @function addCurrentAsTile
+   * @returns {void}
+   */
   const addCurrentAsTile = useCallback(() => {
     if (!hasQuery) return;
     dash.addTile(qb.query, visualization);
     setMode('dashboard');
   }, [qb.query, visualization, dash, hasQuery]);
 
+  /**
+   * Menangani edit tile
+   * @function handleEditTile
+   * @param {string} tileId - ID tile yang akan diedit
+   * @returns {void}
+   */
   const handleEditTile = useCallback((tileId: string) => {
     const tile = dash.tiles.find(t => t.id === tileId);
     if (!tile) return;
@@ -270,6 +389,11 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     setMode('explore');
   }, [dash.tiles, qb]);
 
+  /**
+   * Menyimpan perubahan edit tile
+   * @async function handleSaveTileEdit
+   * @returns {Promise<void>}
+   */
   const handleSaveTileEdit = useCallback(async () => {
     if (!editingTileId) return;
     const result = await handleExecute();
@@ -285,6 +409,14 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     setMode('dashboard');
   }, [editingTileId, qb.query, visualization, dash, handleExecute]);
 
+  /**
+   * Menyimpan dashboard
+   * @async function handleSave
+   * @param {string} name - Nama dashboard
+   * @param {string} description - Deskripsi dashboard
+   * @param {string | null} folder - Folder untuk menyimpan
+   * @returns {Promise<{embedUrl: string} | null>} URL embed atau null
+   */
   const handleSave = useCallback(async (name: string, description: string, folder: string | null) => {
     // Build a tile -> page_name lookup from pages
     const tilePageMap = new Map<string, string>();
@@ -319,6 +451,12 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     return onSaveDashboard(name, description, tiles, config, folder);
   }, [dash.tiles, dash.pages, onSaveDashboard, cfDateFrom, cfDateTo]);
 
+  /**
+   * Memperbarui konfigurasi visualisasi
+   * @function updateVisualization
+   * @param {Partial<ChartVisualization>} updates - Update parsial untuk visualisasi
+   * @returns {void}
+   */
   const updateVisualization = useCallback((updates: Partial<ChartVisualization>) => {
     setVisualization(prev => ({ ...prev, ...updates }));
   }, []);

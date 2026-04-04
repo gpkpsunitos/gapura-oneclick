@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen navigasi untuk mode guest yang menampilkan
+ * quick access links dan mobile bottom navigation.
+ */
+
 'use client';
 
 import Link from 'next/link';
@@ -8,15 +16,36 @@ import { QrCode, ClipboardList, BookOpen, ChevronUp, Menu as MenuIcon, Bot, Moni
 import { cn } from '@/lib/utils';
 import { QuickAccessPasswordModal } from '@/components/QuickAccessPasswordModal';
 
+/**
+ * Base tipe item guest navigasi
+ * @type GuestItemBase
+ */
 type GuestItemBase = {
+    /** Label item */
     label: string;
+    /** Icon komponen */
     icon: any;
 };
+
+/**
+ * Tipe item link guest navigasi
+ * @type GuestLinkItem
+ */
 type GuestLinkItem = GuestItemBase & { href: string; action?: never; protected?: boolean; external?: boolean };
+
+/**
+ * Tipe item action guest navigasi
+ * @type GuestActionItem
+ */
 type GuestActionItem = GuestItemBase & { href?: never; action: () => void; protected?: never };
+
+/**
+ * Tipe gabungan item guest navigasi
+ * @type GuestItem
+ */
 type GuestItem = GuestLinkItem | GuestActionItem;
 
-// Items that require password — label must match GuestItem.label exactly
+// Items yang require password — label must match GuestItem.label exactly
 const PROTECTED_LABELS = new Set([
     'Chat Bot I\'m In Charge',
     'Handbook SLA',
@@ -26,6 +55,10 @@ const PROTECTED_LABELS = new Set([
 // Type guard — narrows GuestItem to GuestLinkItem
 const isLinkItem = (item: GuestItem): item is GuestLinkItem => 'href' in item && !!item.href;
 
+/**
+ * Daftar item navigasi guest
+ * @constant items
+ */
 const items: GuestItem[] = [
     {
         label: 'AI Chatbot',
@@ -82,13 +115,28 @@ const items: GuestItem[] = [
     },
 ];
 
+/**
+ * Komponen navigasi guest
+ * Menampilkan sidebar desktop dan bottom navigation mobile dengan quick access links
+ * @param hideSidebar - Sembunyikan sidebar desktop
+ * @param hideMobileNav - Sembunyikan navigasi mobile
+ * @returns JSX element navigasi guest
+ * @example
+ * ```tsx
+ * <GuestNav hideSidebar={false} hideMobileNav={false} />
+ * ```
+ */
 export default function GuestNav({ hideSidebar = false, hideMobileNav = false }: { hideSidebar?: boolean; hideMobileNav?: boolean }) {
     const pathname = usePathname();
     const [expanded, setExpanded] = useState(false);
 
     const [modal, setModal] = useState<{ label: string; href: string; external: boolean } | null>(null);
 
-    // Determine whether to intercept click for password gate
+    /**
+     * Determine whether to intercept click for password gate
+     * @param item - Item navigasi
+     * @param e - Mouse event
+     */
     const handleItemClick = (item: GuestItem, e: React.MouseEvent) => {
         if ('protected' in item && item.protected && item.href) {
             e.preventDefault();
@@ -96,6 +144,11 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
         }
     };
 
+    /**
+     * Render link untuk desktop sidebar
+     * @param item - Item navigasi
+     * @returns JSX element link atau button
+     */
     const renderDesktopLink = (item: GuestItem) => {
         const Icon = item.icon;
         const isProtectedItem = isLinkItem(item) && item.protected;
@@ -129,6 +182,11 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
         );
     };
 
+    /**
+     * Render tile untuk mobile navigation
+     * @param item - Item navigasi
+     * @returns JSX element link atau button
+     */
     const renderMobileTile = (item: GuestItem) => {
         const Icon = item.icon;
         const isProtectedItem = isLinkItem(item) && item.protected;
@@ -213,6 +271,7 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
                                 width={140}
                                 height={48}
                                 className="object-contain"
+                                style={{ width: 'auto', height: 'auto' }}
                                 priority
                             />
                         </div>

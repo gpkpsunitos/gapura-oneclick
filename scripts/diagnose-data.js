@@ -1,13 +1,19 @@
 #!/usr/bin/env node
-/**
- * Data Diagnostic Script
- * Compares data between Google Sheets and what's shown in the UI
- * 
- * Usage: node diagnose-data.js
- */
 
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi skrip diagnostik data untuk membandingkan data antara Google Sheets dan UI
+ */
 const { reportsService } = require('./lib/services/reports-service');
 
+/**
+ * Mendiagnosi ketidaksesuaian data antara Google Sheets dan UI
+ * Menampilkan kelengkapan data, distribusi kategori, status, maskapai, dan cabang
+ * @async
+ * @returns {Promise<void>}
+ */
 async function diagnoseData() {
   console.log('🔍 Starting Data Discrepancy Diagnosis\n');
   console.log('=' .repeat(80));

@@ -1,13 +1,19 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen Sidebar untuk navigasi utama aplikasi dengan dukungan responsive dan mobile
+ */
+
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { LogOut, Menu, Undo2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { logoutWithPwaCleanup } from '@/lib/pwa/logout';
 
 import { LINKS_CONFIG, GET_LINKS_KEY, type NavGroupConfig as NavGroup } from '@/lib/nav-config';
 
@@ -16,15 +22,28 @@ declare global {
         toggleMobileSidebar: () => void;
     }
 }
+/**
+ * Props untuk komponen NavContent
+ * @interface NavContentProps
+ */
 interface NavContentProps {
+    /** Array grup navigasi */
     groups: NavGroup[];
+    /** Current pathname */
     pathname: string;
+    /** Role user saat ini */
     role: string;
+    /** Handler saat logout */
     onLogout: () => void;
+    /** Handler saat kembali ke akun asal */
     onReturnToOrigin: () => void;
+    /** Flag apakah bisa kembali ke akun asal */
     canReturnToOrigin: boolean;
+    /** Status loading logout */
     loading: boolean;
+    /** Status switching origin */
     switchingOrigin: boolean;
+    /** Setter untuk state mobile sidebar open */
     setMobileOpen: (value: boolean) => void;
 }
 
@@ -51,11 +70,27 @@ const ROLE_DISPLAY: Record<string, string> = {
     ANALYST: 'Analyst',
 };
 
+/**
+ * Mendapatkan nama display role yang human-readable
+ * @param role - Role string dari database
+ * @returns Nama role yang sudah diformat
+ * @example
+ * ```tsx
+ * const displayName = resolveRoleDisplayName('DIVISI_OS');
+ * // returns: 'Unit Service'
+ * ```
+ */
 function resolveRoleDisplayName(role: string): string {
     const upper = role.toUpperCase();
     return ROLE_DISPLAY[upper] ?? role.replace(/_/g, ' ');
 }
 
+/**
+ * Komponen konten navigasi untuk sidebar
+ * Menampilkan logo, menu navigasi, dan user info
+ * @param props - Props untuk NavContent
+ * @returns JSX element konten navigasi
+ */
 const NavContent = ({ 
     groups, 
     pathname, 
@@ -74,7 +109,8 @@ const NavContent = ({
                 alt="Gapura Logo"
                 width={180}
                 height={60}
-                className="object-contain w-[120px] md:w-[140px] h-auto"
+                className="object-contain w-[120px] md:w-[140px]"
+                style={{ width: 'auto', height: 'auto' }}
                 priority
             />
         </div>
@@ -204,8 +240,20 @@ const NavContent = ({
     </div>
 );
 
+/**
+ * Komponen Sidebar utama untuk navigasi aplikasi
+ * Mendukung tampilan desktop dan mobile dengan animasi smooth
+ * @param props - Props untuk Sidebar
+ * @param props.role - Role user untuk menentukan menu navigasi
+ * @returns JSX element sidebar responsive
+ * @example
+ * ```tsx
+ * <Sidebar role="DIVISI_OS" />
+ * ```
+ */
 export default function Sidebar({ role }: { role: string }) {
     const pathname = usePathname();
+    const router = useRouter();
     const [loading, setLoading] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [switchingOrigin, setSwitchingOrigin] = useState(false);
@@ -225,30 +273,35 @@ export default function Sidebar({ role }: { role: string }) {
 
     const handleLogout = async () => {
         setLoading(true);
-        await logoutWithPwaCleanup();
+        try {
+            const { purgePwaClientState } = await import('@/lib/pwa/client-state');
+            purgePwaClientState();
+        } catch {
+            // Ignore cleanup errors
+        }
+        document.cookie = 'session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        document.cookie = 'auth_bundle=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+        router.push('/auth/login');
     };
 
     const handleReturnToOrigin = async () => {
-        if (!bundleInfo?.origin) {
-            return;
-        }
+        if (!bundleInfo?.origin) return;
 
         try {
             setSwitchingOrigin(true);
             const res = await fetch('/api/auth/switch', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userId: bundleInfo.origin }),
             });
 
-            const data = await res.json().catch(() => ({}));
             if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
                 throw new Error(data?.error || 'Gagal kembali ke akun eskalasi');
             }
 
-            window.location.assign('/dashboard/eskalasi/select');
+            router.push('/dashboard/eskalasi/select');
+            router.refresh();
         } catch (error) {
             console.error('Failed to switch back to eskalasi:', error);
             setSwitchingOrigin(false);

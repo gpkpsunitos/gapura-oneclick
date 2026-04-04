@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen MonthlyTrendChart untuk visualisasi tren bulanan
+ * Menampilkan bar chart dengan metrics perbandingan bulanan (MoM) dan tahunan (YoY)
+ */
+
 'use client';
 
 import { useMemo } from 'react';
@@ -14,26 +22,49 @@ import {
 } from 'recharts';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
+/**
+ * Metric perbandingan untuk badge
+ * @interface ComparisonMetric
+ */
 interface ComparisonMetric {
+  /** Label metric */
   readonly label: string;
+  /** Nilai saat ini */
   readonly current: number;
+  /** Nilai sebelumnya (untuk MoM) */
   readonly previous: number;
+  /** Delta perbandingan bulanan (MoM) dalam persen */
   readonly momDelta: number;
+  /** Nilai tahunan saat ini (untuk YoY) */
   readonly yoyCurrent?: number;
+  /** Nilai tahunan sebelumnya (untuk YoY) */
   readonly yoyPrevious?: number;
+  /** Delta perbandingan tahunan (YoY) dalam persen */
   readonly yoyDelta?: number;
 }
 
+/**
+ * Props untuk komponen MonthlyTrendChart
+ * @interface MonthlyTrendChartProps
+ */
 interface MonthlyTrendChartProps {
+  /** Judul chart */
   readonly title: string;
+  /** Subtitle chart */
   readonly subtitle?: string;
+  /** Data chart dalam format array object */
   readonly data: ReadonlyArray<Record<string, string | number>>;
+  /** Array key untuk series data */
   readonly dataKeys: readonly string[];
+  /** Warna untuk setiap series */
   readonly colors?: readonly string[];
+  /** Metrics perbandingan untuk badge MoM dan YoY */
   readonly metrics?: readonly ComparisonMetric[];
+  /** Tinggi chart */
   readonly height?: string;
 }
 
+/** Warna default untuk chart */
 const DEFAULT_COLORS = [
   'oklch(0.65 0.18 160)',
   'oklch(0.6 0.14 240)',
@@ -42,12 +73,23 @@ const DEFAULT_COLORS = [
   'oklch(0.75 0.1 190)',
 ] as const;
 
+/**
+ * Props untuk komponen DeltaBadge
+ * @interface DeltaBadgeProps
+ */
+/**
+ * Komponen badge delta untuk menampilkan perubahan (MoM atau YoY)
+ * Menampilkan badge dengan warna hijau untuk perbaikan dan merah untuk penurunan
+ * 
+ * @param {DeltaBadgeProps} props - Props untuk badge delta
+ * @returns {JSX.Element} Element React badge delta
+ */
 function DeltaBadge({ value, label, subLabel, isNA }: { value: number; label: string; subLabel?: string; isNA?: boolean }) {
   const isPositive = value > 0;
   const isZero = value === 0;
   const isCompliment = label.toLowerCase().includes('compliment');
   
-  // Logic: For compliments, positive is good. For others (complaints/irregularities/total), negative is good.
+  // Logic: Untuk compliments, positif adalah baik. Untuk lainnya (complaints/irregularities/total), negatif adalah baik.
   const isGood = isCompliment ? isPositive : (!isPositive && !isZero);
 
   const bgColor = isNA
@@ -86,7 +128,25 @@ function DeltaBadge({ value, label, subLabel, isNA }: { value: number; label: st
   );
 }
 
-// Complexity: Time O(n) per render | Space O(k) where k = data points
+/**
+ * Komponen MonthlyTrendChart
+ * Menampilkan bar chart dengan metrics perbandingan bulanan dan tahunan
+ * Kompleksitas: Waktu O(n) per render | Ruang O(k) dimana k = data points
+ * 
+ * @param {MonthlyTrendChartProps} props - Props komponen
+ * @returns {JSX.Element} Element React chart atau placeholder jika tidak ada data
+ * 
+ * @example
+ * ```tsx
+ * <MonthlyTrendChart
+ *   title="Tren Laporan"
+ *   subtitle="Perbandingan bulanan dan tahunan"
+ *   data={trendData}
+ *   dataKeys={['total', 'complaints', 'compliments']}
+ *   metrics={comparisonMetrics}
+ * />
+ * ```
+ */
 export function MonthlyTrendChart({
   title,
   subtitle,
@@ -124,6 +184,7 @@ export function MonthlyTrendChart({
 
       {metrics.length > 0 && (
         <div className="space-y-6 mb-6">
+          {/* Perbandingan Bulanan (MoM) */}
           <div className="space-y-2.5">
             <div className="flex items-center gap-2 px-1">
               <span className="h-px flex-1 bg-[var(--surface-3)]" />
@@ -145,6 +206,7 @@ export function MonthlyTrendChart({
             </div>
           </div>
 
+          {/* Perbandingan Tahunan (YoY) */}
           <div className="space-y-2.5">
             <div className="flex items-center gap-2 px-1">
               <span className="h-px flex-1 bg-[var(--surface-3)]" />
@@ -173,29 +235,34 @@ export function MonthlyTrendChart({
         </div>
       )}
 
+      {/* Bar Chart */}
       <div className={`w-full min-w-0 overflow-hidden ${height}`}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={chartData}
             margin={{ top: 5, right: 10, left: -10, bottom: 5 }}
           >
+            {/* Grid horizontal */}
             <CartesianGrid
               strokeDasharray="3 3"
               stroke="oklch(0.9 0.01 90 / 0.5)"
               vertical={false}
             />
+            {/* Sumbu X - bulan */}
             <XAxis
               dataKey="month"
               tick={{ fontSize: 10, fontWeight: 600, fill: 'var(--text-muted)' }}
               tickLine={false}
               axisLine={false}
             />
+            {/* Sumbu Y - nilai */}
             <YAxis
               tick={{ fontSize: 10, fontWeight: 600, fill: 'var(--text-muted)' }}
               tickLine={false}
               axisLine={false}
               width={35}
             />
+            {/* Tooltip saat hover */}
             <Tooltip
               contentStyle={{
                 background: 'oklch(1 0 0 / 0.85)',
@@ -207,12 +274,15 @@ export function MonthlyTrendChart({
                 fontWeight: 700,
               }}
             />
+            {/* Legenda */}
             <Legend
               wrapperStyle={{ fontSize: '10px', fontWeight: 700 }}
               iconType="circle"
               iconSize={8}
             />
+            {/* Garis referensi di y=0 */}
             <ReferenceLine y={0} stroke="oklch(0.8 0.01 90)" />
+            {/* Bars untuk setiap series */}
             {dataKeys.map((key, i) => (
               <Bar
                 key={key}

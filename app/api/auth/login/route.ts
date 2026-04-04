@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk login pengguna dan pembuatan session autentikasi
+ */
+
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { supabaseAdmin as supabase } from '@/lib/supabase-admin';
@@ -6,10 +13,29 @@ import { serializeAuthBundle } from '@/lib/auth-bundle';
 import { logSecurityEvent } from '@/lib/security/event-service';
 import { getClientIp } from '@/lib/security/utils';
 
+/**
+ * Menangani request GET dengan redirect ke halaman login
+ * @param request - Request object
+ * @returns Response redirect ke halaman login
+ */
 export async function GET(request: Request) {
     return NextResponse.redirect(new URL('/auth/login', request.url));
 }
 
+/**
+ * Menangani request POST untuk login pengguna
+ * Memvalidasi email dan password, membuat session JWT, dan mengatur cookies
+ * @param request - Request object berisi email dan password di body
+ * @returns Response JSON dengan status login dan role user
+ * @throws {Error} Jika terjadi kesalahan server
+ * @example
+ * ```json
+ * {
+ *   "email": "user@example.com",
+ *   "password": "password123"
+ * }
+ * ```
+ */
 export async function POST(request: Request) {
     try {
         const body = await request.json();
@@ -23,15 +49,9 @@ export async function POST(request: Request) {
             );
         }
 
-        console.log('[AUTH_API] Envs:', {
-            hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-            hasKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-            nodeEnv: process.env.NODE_ENV
-        });
-
         const { data: user, error: fetchError } = await supabase
             .from('users')
-            .select('*')
+            .select('id, email, password, role, status, division, station_id, full_name, phone, nik, positions, units, avatar_url')
             .ilike('email', email)
             .single();
 
@@ -82,8 +102,6 @@ export async function POST(request: Request) {
         const division = (user.division || '').toUpperCase();
         const emailUpper = email.toUpperCase();
         
-        console.log('[LOGIN DEBUG] User:', user.email, 'Role:', user.role, 'Position:', posName, 'Division:', division);
-
         // Logic 1: If role is specifically marked as PARTNER_X, or if it says CABANG/PARTNER but has a division
         if (finalRole === 'CABANG' || finalRole.includes('PARTNER')) {
             if (division === 'OS' || posName.includes('OS') || emailUpper.includes('PARTNER.OS')) finalRole = 'PARTNER_OS';
@@ -94,8 +112,6 @@ export async function POST(request: Request) {
             else if (division === 'HT' || posName.includes('HT') || emailUpper.includes('PARTNER.HT')) finalRole = 'PARTNER_HT';
         }
 
-        console.log('[LOGIN DEBUG] Final Role:', finalRole);
-
         // Create session with unique ID for DB tracking
         const sid = crypto.randomUUID();
         const token = await signSession({ 
@@ -103,6 +119,7 @@ export async function POST(request: Request) {
             email: user.email, 
             role: finalRole, 
             division: user.division,
+            station_id: user.station_id,
             sid 
         });
         const cookieStore = await cookies();
@@ -114,6 +131,7 @@ export async function POST(request: Request) {
         cookieStore.set('session', token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
             maxAge: 60 * 60 * 24, // 1 day
             path: '/',
         });
@@ -128,6 +146,7 @@ export async function POST(request: Request) {
             }), {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
                 maxAge: 60 * 60 * 24,
                 path: '/',
             });
@@ -135,6 +154,7 @@ export async function POST(request: Request) {
             cookieStore.set('auth_bundle', '', {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
                 maxAge: 0,
                 path: '/',
             });
@@ -149,7 +169,7 @@ export async function POST(request: Request) {
             actor_id: user.id
         });
 
-        return NextResponse.json({ success: true, role: finalRole });
+        return NextResponse.json({ success: true, role: finalRole, email: user.email, phone: user.phone || null });
     } catch (err) {
         console.error('Login error:', err);
         return NextResponse.json(

@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi fungsi-fungsi untuk kompresi media (gambar dan video) menggunakan sharp dan ffmpeg
+ */
+
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
 import { promisify } from 'util';
@@ -8,29 +15,57 @@ import os from 'os';
 
 const execAsync = promisify(exec);
 
+/**
+ * Tipe media yang didukung
+ * @type MediaType
+ */
 export type MediaType = 'image' | 'video';
 
+/**
+ * Opsi untuk kompresi media
+ * @interface MediaCompressionOptions
+ */
 export interface MediaCompressionOptions {
+  /** Ukuran maksimum gambar dalam KB (default: 5) */
   maxSizeKB?: number;
+  /** Kualitas gambar 0-100 (default: 70) */
   quality?: number;
+  /** Ukuran maksimum video dalam MB (default: 50) */
   videoMaxSizeMB?: number;
+  /** CRF video untuk encoding (default: 28, lower = better quality) */
   videoCRF?: number;
 }
 
+/**
+ * Hasil kompresi media
+ * @interface MediaCompressionResult
+ */
 export interface MediaCompressionResult {
+  /** Buffer data yang sudah dikompresi */
   buffer: Buffer;
+  /** Ukuran hasil kompresi dalam bytes */
   size: number;
+  /** Tipe media (image atau video) */
   type: MediaType;
+  /** MIME type hasil */
   mimeType: string;
+  /** Lebar media dalam pixels (untuk image/video) */
   width?: number;
+  /** Tinggi media dalam pixels (untuk image/video) */
   height?: number;
+  /** Durasi video dalam seconds (untuk video) */
   duration?: number;
+  /** Ukuran asli dalam bytes */
   originalSize: number;
+  /** Persentase reduksi ukuran */
   compressionRatio: number;
 }
 
 /**
- * Detect media type from mime type
+ * Mendeteksi tipe media dari MIME type
+ * @param mimeType - MIME type dari file
+ * @returns Tipe media (image atau video)
+ * @throws {Error} Jika MIME type tidak didukung
  */
 export function detectMediaType(mimeType: string): MediaType {
   if (mimeType.startsWith('image/')) return 'image';
@@ -39,7 +74,11 @@ export function detectMediaType(mimeType: string): MediaType {
 }
 
 /**
- * Compress image using sharp
+ * Mengompresi gambar menggunakan sharp
+ * @param input - Buffer gambar asli
+ * @param options - Opsi kompresi (opsional)
+ * @returns Hasil kompresi gambar
+ * @throws {Error} Jika gagal mengompresi gambar
  */
 async function compressImage(
   input: Buffer,
@@ -102,8 +141,12 @@ async function compressImage(
 }
 
 /**
- * Compress video using ffmpeg
- * Falls back to validation-only if ffmpeg is not available
+ * Mengompresi video menggunakan ffmpeg
+ * Fallback ke validasi saja jika ffmpeg tidak tersedia
+ * @param input - Buffer video asli
+ * @param options - Opsi kompresi (opsional)
+ * @returns Hasil kompresi video atau data asli jika ffmpeg tidak tersedia
+ * @throws {Error} Jika video terlalu besar dan ffmpeg tidak tersedia
  */
 async function compressVideo(
   input: Buffer,
@@ -211,7 +254,12 @@ async function compressVideo(
 }
 
 /**
- * Compress media (image or video) based on type
+ * Mengompresi media berdasarkan tipe (image atau video)
+ * @param input - Buffer media asli
+ * @param mimeType - MIME type dari media
+ * @param options - Opsi kompresi (opsional)
+ * @returns Hasil kompresi media
+ * @throws {Error} Jika MIME type tidak didukung atau kompresi gagal
  */
 export async function compressMedia(
   input: Buffer,
@@ -228,7 +276,12 @@ export async function compressMedia(
 }
 
 /**
- * Validate media file
+ * Memvalidasi file media
+ * @param file - File yang akan divalidasi
+ * @param options - Opsi validasi (opsional)
+ * @param options.maxImageSizeMB - Ukuran maksimum gambar dalam MB (default: 10)
+ * @param options.maxVideoSizeMB - Ukuran maksimum video dalam MB (default: 100)
+ * @returns Object dengan status valid dan error message jika ada
  */
 export function validateMedia(
   file: File,

@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen layout responsif untuk builder yang beradaptasi dengan ukuran layar
+ */
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -5,6 +12,16 @@ import { cn } from '@/lib/utils';
 import { MobileBuilderTabs, BuilderTab } from './MobileBuilderTabs';
 import { ResponsiveFieldSidebar } from './ResponsiveFieldSidebar';
 
+/**
+ * Props untuk komponen ResponsiveBuilderLayout
+ * @interface ResponsiveBuilderLayoutProps
+ * @property {Object} children - Objek yang berisi panel-panel builder
+ * @property {ReactNode} children.fieldSidebar - Panel sidebar untuk pemilihan field
+ * @property {ReactNode} children.queryPanel - Panel untuk konfigurasi query
+ * @property {ReactNode} children.resultsPanel - Panel untuk menampilkan hasil
+ * @property {ReactNode} children.dashboardComposer - Panel untuk menyusun dashboard
+ * @property {string} [className] - Kelas CSS tambahan untuk styling
+ */
 interface ResponsiveBuilderLayoutProps {
   children: {
     fieldSidebar: React.ReactNode;
@@ -15,6 +32,36 @@ interface ResponsiveBuilderLayoutProps {
   className?: string;
 }
 
+/**
+ * Komponen layout responsif untuk builder
+ * Menampilkan layout yang berbeda berdasarkan ukuran layar:
+ * - Mobile: Layout tab tunggal
+ * - Tablet: Layout panel yang dapat dilipat
+ * - Desktop: Layout 3 kolom penuh
+ * 
+ * @param {ResponsiveBuilderLayoutProps} props - Props untuk konfigurasi layout
+ * @returns {JSX.Element} Element React yang berisi layout responsif
+ * 
+ * @example
+ * ```tsx
+ * <ResponsiveBuilderLayout className="custom-layout">
+ *   <ResponsiveBuilderLayout>
+ *     <ResponsiveBuilderLayout.fieldSidebar>
+ *       <FieldSidebar />
+ *     </ResponsiveBuilderLayout.fieldSidebar>
+ *     <ResponsiveBuilderLayout.queryPanel>
+ *       <QueryPanel />
+ *     </ResponsiveBuilderLayout.queryPanel>
+ *     <ResponsiveBuilderLayout.resultsPanel>
+ *       <ResultsPanel />
+ *     </ResponsiveBuilderLayout.resultsPanel>
+ *     <ResponsiveBuilderLayout.dashboardComposer>
+ *       <DashboardComposer />
+ *     </ResponsiveBuilderLayout.dashboardComposer>
+ *   </ResponsiveBuilderLayout>
+ * </ResponsiveBuilderLayout>
+ * ```
+ */
 export function ResponsiveBuilderLayout({
   children,
   className,
@@ -25,6 +72,13 @@ export function ResponsiveBuilderLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [composerCollapsed, setComposerCollapsed] = useState(false);
 
+  /**
+   * Mendeteksi ukuran layar saat ini
+   * Mengatur state isMobile dan isTablet berdasarkan lebar jendela
+   * 
+   * @function checkScreenSize
+   * @returns {void}
+   */
   useEffect(() => {
     const checkScreenSize = () => {
       const width = window.innerWidth;

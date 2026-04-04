@@ -1,14 +1,31 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen prompt installasi PWA untuk iOS dan Android
+ */
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, X, Smartphone, Share } from 'lucide-react';
 
+/**
+ * Interface untuk event beforeinstallprompt
+ * @interface BeforeInstallPromptEvent
+ */
 interface BeforeInstallPromptEvent extends Event {
+  /** Method untuk menampilkan prompt install */
   prompt: () => Promise<void>;
+  /** Promise yang resolve dengan choice user */
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+/**
+ * Mendapatkan status awal installasi PWA
+ * @returns true jika aplikasi sudah di-install sebagai standalone
+ */
 function getInitialInstalledState() {
   if (typeof window === 'undefined') {
     return false;
@@ -17,6 +34,10 @@ function getInitialInstalledState() {
   return window.matchMedia('(display-mode: standalone)').matches;
 }
 
+/**
+ * Mendeteksi platform device user
+ * @returns Platform device ('ios', 'android', 'desktop', atau null)
+ */
 function getInitialPlatform(): 'ios' | 'android' | 'desktop' | null {
   if (typeof navigator === 'undefined') {
     return null;
@@ -34,6 +55,16 @@ function getInitialPlatform(): 'ios' | 'android' | 'desktop' | null {
   return 'desktop';
 }
 
+/**
+ * Komponen prompt installasi PWA
+ * Menampilkan banner install untuk iOS dan Android dengan instrksi yang sesuai
+ * @returns JSX element prompt install atau null jika sudah terinstall
+ * @example
+ * ```tsx
+ * // Otomatis ditampilkan oleh browser
+ * <PWAInstallPrompt />
+ * ```
+ */
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);

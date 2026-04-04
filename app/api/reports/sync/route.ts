@@ -1,9 +1,28 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk menyinkronkan data laporan berdasarkan hak akses pengguna
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { reportsService } from '@/lib/services/reports-service';
 
+/**
+ * GET /api/reports/sync
+ * 
+ * Mengambil semua laporan yang dapat diakses oleh pengguna berdasarkan role
+ * Super Admin dan HQ users dapat melihat semua laporan
+ * Manager Cabang dan Staff Cabang hanya dapat melihat laporan dari cabang mereka
+ * 
+ * @param request - Objek request HTTP
+ * @returns Promise<NextResponse> - Response JSON berisi daftar laporan yang dapat diakses atau error
+ * @throws Mengembalikan 401 jika tidak terautentikasi
+ * @throws Mengembalikan 500 jika terjadi error server
+ */
 export async function GET(request: NextRequest) {
   try {
     // Auth check

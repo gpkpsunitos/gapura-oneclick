@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen laci filter (drawer) untuk tampilan mobile menggunakan Sheet dari shadcn/ui
+ */
+
 'use client';
 
 import { ReactNode } from 'react';
@@ -6,6 +13,18 @@ import { Button } from '@/components/ui/button';
 import { Filter, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/**
+ * Props untuk komponen MobileFilterDrawer
+ * @interface MobileFilterDrawerProps
+ * @property {ReactNode} children - Konten filter yang akan ditampilkan di dalam drawer
+ * @property {string} [title='Filter'] - Judul untuk drawer filter
+ * @property {number} [activeFilterCount=0] - Jumlah filter yang sedang aktif
+ * @property {Function} [onApply] - Fungsi yang dipanggil saat tombol Terapkan ditekan
+ * @property {Function} [onClear] - Fungsi yang dipanggil saat tombol Reset ditekan
+ * @property {string} [triggerClassName] - Kelas CSS tambahan untuk tombol trigger
+ * @property {boolean} [showApplyButton=true] - Apakah menampilkan tombol Terapkan
+ * @property {boolean} [showClearButton=true] - Apakah menampilkan tombol Reset
+ */
 interface MobileFilterDrawerProps {
   children: ReactNode;
   title?: string;
@@ -18,9 +37,25 @@ interface MobileFilterDrawerProps {
 }
 
 /**
- * Mobile Filter Drawer
- * Bottom sheet for filters on mobile devices
- * Uses shadcn/ui Sheet component
+ * Komponen drawer filter untuk tampilan mobile
+ * Menggunakan komponen Sheet dari shadcn/ui untuk menampilkan filter dari bawah layar
+ * 
+ * @param {MobileFilterDrawerProps} props - Props untuk konfigurasi drawer filter
+ * @returns {JSX.Element} Element React yang berisi drawer filter mobile
+ * 
+ * @example
+ * ```tsx
+ * <MobileFilterDrawer
+ *   title="Filter Laporan"
+ *   activeFilterCount={3}
+ *   onApply={handleApply}
+ *   onClear={handleClear}
+ * >
+ *   <FilterSection title="Tanggal">
+ *     <DateFilter />
+ *   </FilterSection>
+ * </MobileFilterDrawer>
+ * ```
  */
 export function MobileFilterDrawer({
   children,
@@ -106,7 +141,11 @@ export function MobileFilterDrawer({
 }
 
 /**
- * Filter Section within the drawer
+ * Props untuk komponen FilterSection
+ * @interface FilterSectionProps
+ * @property {string} title - Judul bagian filter
+ * @property {ReactNode} children - Konten filter dalam bagian ini
+ * @property {string} [className] - Kelas CSS tambahan untuk styling
  */
 interface FilterSectionProps {
   title: string;
@@ -114,6 +153,21 @@ interface FilterSectionProps {
   className?: string;
 }
 
+/**
+ * Komponen bagian filter (section) di dalam drawer
+ * Menampilkan sekumpulan filter terkait dalam satu bagian dengan judul
+ * 
+ * @param {FilterSectionProps} props - Props untuk konfigurasi bagian filter
+ * @returns {JSX.Element} Element React yang berisi bagian filter
+ * 
+ * @example
+ * ```tsx
+ * <FilterSection title="Status">
+ *   <CheckboxFilter label="Aktif" />
+ *   <CheckboxFilter label="Nonaktif" />
+ * </FilterSection>
+ * ```
+ */
 export function FilterSection({ title, children, className }: FilterSectionProps) {
   return (
     <div className={cn('mb-6 last:mb-0', className)}>
@@ -126,7 +180,11 @@ export function FilterSection({ title, children, className }: FilterSectionProps
 }
 
 /**
- * Filter Chip for selected filters display
+ * Props untuk komponen FilterChip
+ * @interface FilterChipProps
+ * @property {string} label - Label/nama filter
+ * @property {string} value - Nilai filter yang ditampilkan
+ * @property {Function} onRemove - Fungsi yang dipanggil saat filter dihapus
  */
 interface FilterChipProps {
   label: string;
@@ -134,6 +192,22 @@ interface FilterChipProps {
   onRemove: () => void;
 }
 
+/**
+ * Komponen chip untuk menampilkan filter yang dipilih
+ * Menampilkan filter sebagai chip dengan tombol hapus
+ * 
+ * @param {FilterChipProps} props - Props untuk konfigurasi chip filter
+ * @returns {JSX.Element} Element React yang berisi chip filter
+ * 
+ * @example
+ * ```tsx
+ * <FilterChip
+ *   label="Status"
+ *   value="Aktif"
+ *   onRemove={() => removeFilter('status')}
+ * />
+ * ```
+ */
 export function FilterChip({ label, value, onRemove }: FilterChipProps) {
   return (
     <div className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs px-2.5 py-1.5 rounded-full">

@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengelola dashboard custom
+ * Mendukung list, create, update, delete dashboard dengan dukungan public access
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
@@ -6,30 +14,67 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getPublicDashboardPageData } from '@/lib/public-dashboard-data';
 import type { DashboardScopeFilters } from '@/lib/dashboard-query-scope';
 
+/**
+ * Konfigurasi dashboard
+ * @interface DashboardConfig
+ */
 interface DashboardConfig {
+  /** Rentang tanggal default */
   dateRange?: string;
+  /** Auto refresh flag */
   autoRefresh?: boolean;
+  /** Tema dashboard */
   theme?: 'dark' | 'light';
+  /** Tanggal mulai */
   dateFrom?: string;
+  /** Tanggal akhir */
   dateTo?: string;
+  /** Subtitle dashboard */
   subtitle?: string;
+  /** Filter yang tersedia */
   filters?: string[];
-  pages?: string[]; // ordered page names
+  /** Nama halaman yang terurut */
+  pages?: string[];
 }
 
+/**
+ * Konfigurasi chart dalam dashboard
+ * @interface ChartConfig
+ */
 interface ChartConfig {
+  /** Judul chart */
   title: string;
+  /** Tipe chart */
   chartType: string;
+  /** Field data sumber */
   dataField: string;
+  /** Lebar chart */
   width: 'full' | 'half' | 'third';
+  /** Posisi chart */
   position: number;
+  /** Konfigurasi query */
   query_config?: Record<string, unknown>;
+  /** Konfigurasi visualisasi */
   visualization_config?: Record<string, unknown>;
+  /** Layout chart */
   layout?: Record<string, unknown>;
+  /** Nama halaman */
   page_name?: string;
 }
 
-// GET - List all public dashboards or specific dashboard by slug
+/**
+ * Menangani request GET untuk mengambil dashboard atau daftar dashboard
+ * Mendukung fetching dashboard spesifik, tile spesifik, atau daftar semua dashboard public
+ * @param request - Request object dengan query parameters
+ * @returns Response JSON berisi data dashboard atau daftar dashboard
+ * @throws {Error} Jika terjadi kesalahan server
+ * @example
+ * ```http
+ * GET /api/dashboards?slug=irrs&includeData=1
+ * GET /api/dashboards?tileId=123
+ * GET /api/dashboards
+ * ```
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -163,19 +208,19 @@ export async function GET(request: NextRequest) {
             .single();
 
         if (error || !chart) {
-            return NextResponse.json({ error: 'Tile not found' }, { status: 404 });
+          return NextResponse.json({ error: 'Tile not found' }, { status: 404 });
         }
 
         // Security check: only show if dashboard is public
         const isPublic = (chart as { custom_dashboards?: { is_public?: boolean } } | null)?.custom_dashboards?.is_public;
         if (!isPublic) {
-            return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
+          return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
         }
 
         return NextResponse.json(chart, {
-            headers: {
-                'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
-            }
+          headers: {
+            'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',
+          }
         });
     }
 
@@ -204,7 +249,21 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST - Create new dashboard (requires analyst/admin auth in real app)
+/**
+ * Menangani request POST untuk membuat dashboard baru
+ * @param request - Request object berisi data dashboard di body JSON
+ * @returns Response JSON dengan data dashboard yang dibuat
+ * @throws {Error} Jika terjadi kesalahan pembuatan dashboard
+ * @example
+ * ```json
+ * {
+ *   "name": "Dashboard Baru",
+ *   "description": "Deskripsi dashboard",
+ *   "charts": [...],
+ *   "config": { "dateRange": "7d" }
+ * }
+ * ```
+ */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -266,7 +325,7 @@ export async function POST(request: NextRequest) {
       .insert(chartInserts);
 
     if (chartsError) {
-      // Rollback: delete the dashboard
+      // Rollback: delete dashboard
       await supabase.from('custom_dashboards').delete().eq('id', dashboard.id);
       return NextResponse.json({ error: chartsError.message }, { status: 500 });
     }
@@ -289,7 +348,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE - Delete dashboard by ID
+/**
+ * Menangani request DELETE untuk menghapus dashboard berdasarkan ID
+ * @param request - Request object dengan query parameter id
+ * @returns Response JSON dengan status sukses
+ * @throws {Error} Jika terjadi kesalahan penghapusan
+ * @example
+ * ```http
+ * DELETE /api/dashboards?id=123
+ * ```
+ */
 export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -315,7 +383,19 @@ export async function DELETE(request: NextRequest) {
   }
 }
 
-// PATCH - Update dashboard (folder move, folder rename, folder delete)
+/**
+ * Menangani request PATCH untuk update dashboard
+ * Mendukung rename folder, delete folder, atau move dashboard ke folder lain
+ * @param request - Request object berisi data update di body JSON
+ * @returns Response JSON dengan status sukses
+ * @throws {Error} Jika terjadi kesalahan update
+ * @example
+ * ```json
+ * { "action": "rename", "oldFolder": "Lama", "newFolder": "Baru" }
+ * { "action": "delete", "folder": "Hapus" }
+ * { "id": "123", "folder": "Folder Baru" }
+ * ```
+ */
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();

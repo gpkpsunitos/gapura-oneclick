@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen penyusun dashboard responsif dengan dukungan mobile dan desktop
+ */
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -6,6 +13,20 @@ import { cn } from '@/lib/utils';
 import type { DashboardTile, QueryDefinition, ChartVisualization, QueryResult } from '@/types/builder';
 import { TileCard } from './TileCard';
 
+/**
+ * Props untuk komponen ResponsiveDashboardComposer
+ * @interface ResponsiveDashboardComposerProps
+ * @property {DashboardTile[]} tiles - Daftar tile dashboard
+ * @property {Map<string, QueryResult>} tileResults - Hasil query untuk setiap tile
+ * @property {Map<string, string>} [tileErrors] - Pesan error untuk setiap tile
+ * @property {Function} onAddTile - Fungsi untuk menambah tile baru
+ * @property {Function} onEditTile - Fungsi untuk mengedit tile
+ * @property {Function} onRemoveTile - Fungsi untuk menghapus tile
+ * @property {Function} onResizeTile - Fungsi untuk mengubah ukuran tile
+ * @property {Function} [onReorderTiles] - Fungsi untuk mengubah urutan tile
+ * @property {string} [dashboardName] - Nama dashboard
+ * @property {string} [className] - Kelas CSS tambahan
+ */
 interface ResponsiveDashboardComposerProps {
   tiles: DashboardTile[];
   tileResults: Map<string, QueryResult>;
@@ -19,8 +40,34 @@ interface ResponsiveDashboardComposerProps {
   className?: string;
 }
 
+/**
+ * Warna hijau Gapura
+ * @constant {string} GAPURA_GREEN
+ */
 const GAPURA_GREEN = '#6b8e3d';
 
+/**
+ * Komponen penyusun dashboard responsif
+ * Menampilkan dashboard dengan layout yang berbeda untuk mobile dan desktop
+ * Mendukung reorder, resize, edit, dan delete tile
+ * 
+ * @param {ResponsiveDashboardComposerProps} props - Props untuk konfigurasi penyusun dashboard
+ * @returns {JSX.Element} Element React yang berisi penyusun dashboard
+ * 
+ * @example
+ * ```tsx
+ * <ResponsiveDashboardComposer
+ *   tiles={dashboardTiles}
+ *   tileResults={tileResults}
+ *   onAddTile={handleAddTile}
+ *   onEditTile={handleEditTile}
+ *   onRemoveTile={handleRemoveTile}
+ *   onResizeTile={handleResizeTile}
+ *   onReorderTiles={handleReorderTiles}
+ *   dashboardName="Laporan Bulanan"
+ * />
+ * ```
+ */
 export function ResponsiveDashboardComposer({
   tiles,
   tileResults,
@@ -38,6 +85,11 @@ export function ResponsiveDashboardComposer({
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [draggedTileId, setDraggedTileId] = useState<string | null>(null);
 
+  /**
+   * Mendeteksi ukuran layar untuk menentukan mode mobile
+   * @function checkScreenSize
+   * @returns {void}
+   */
   useEffect(() => {
     const checkScreenSize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -48,14 +100,23 @@ export function ResponsiveDashboardComposer({
     return () => window.removeEventListener('resize', checkScreenSize);
   }, []);
 
-  // Handle tile selection for mobile
+  /**
+   * Menangani pemilihan tile untuk mobile
+   * @function handleTileTap
+   * @param {string} tileId - ID tile
+   * @returns {void}
+   */
   const handleTileTap = useCallback((tileId: string) => {
     if (isMobile) {
       setSelectedTileId(selectedTileId === tileId ? null : tileId);
     }
   }, [isMobile, selectedTileId]);
 
-  // Simplified add tile for mobile
+  /**
+   * Menambahkan tile baru untuk mobile
+   * @function handleMobileAddTile
+   * @returns {void}
+   */
   const handleMobileAddTile = useCallback(() => {
     onAddTile(
       { source: '', joins: [], dimensions: [], measures: [], filters: [], sorts: [] },
@@ -63,7 +124,13 @@ export function ResponsiveDashboardComposer({
     );
   }, [onAddTile]);
 
-  // Reorder tiles (mobile-friendly)
+  /**
+   * Mengubah urutan tile
+   * @function handleMoveTile
+   * @param {string} tileId - ID tile
+   * @param {'up' | 'down'} direction - Arah perpindahan
+   * @returns {void}
+   */
   const handleMoveTile = useCallback((tileId: string, direction: 'up' | 'down') => {
     if (!onReorderTiles) return;
 
@@ -185,7 +252,7 @@ export function ResponsiveDashboardComposer({
                             style={{ minHeight: '44px' }}
                           >
                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7-7" />
                             </svg>
                             Move Up
                           </button>

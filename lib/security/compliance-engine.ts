@@ -1,11 +1,30 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi mesin kepatuhan untuk standar keamanan termasuk ISO 27001, NIST, dan GDPR
+ */
+
 import { SecurityStats, SecurityAlert } from '@/types/security';
 
 /**
- * Compliance Engine for Security Standards
- * Provides scoring for ISO 27001, NIST, and GDPR.
+ * Mesin Kepatuhan untuk Standar Keamanan
+ * Menyediakan penilaian untuk ISO 27001, NIST, dan GDPR
  */
 export class ComplianceEngine {
-    // Complexity: Time O(n) | Space O(1)
+    
+    /**
+     * Menghitung skor kepatuhan ISO 27001
+     * Kompleksitas: Waktu O(n) | Ruang O(1)
+     * @param {SecurityStats} stats - Statistik keamanan
+     * @param {SecurityAlert[]} alerts - Array alert keamanan
+     * @returns {number} Skor ISO 27001 (0-100)
+     * @example
+     * ```ts
+     * const score = ComplianceEngine.calculateISO27001Score(stats, alerts);
+     * console.log('ISO 27001 Score:', score);
+     * ```
+     */
     static calculateISO27001Score(stats: SecurityStats, alerts: SecurityAlert[]): number {
         let baseScore = 100;
         
@@ -20,6 +39,17 @@ export class ComplianceEngine {
         return Math.max(0, baseScore);
     }
 
+    /**
+     * Menghitung skor kepatuhan GDPR
+     * @param {SecurityStats} stats - Statistik keamanan
+     * @returns {{ score: number; status: string }} Skor dan status kepatuhan
+     * @example
+     * ```ts
+     * const result = ComplianceEngine.calculateGDPRScore(stats);
+     * console.log('GDPR Score:', result.score);
+     * console.log('Status:', result.status);
+     * ```
+     */
     static calculateGDPRScore(stats: SecurityStats): { score: number; status: string } {
         const score = (stats.patchStatusCount / stats.totalSystems) * 100;
         return {

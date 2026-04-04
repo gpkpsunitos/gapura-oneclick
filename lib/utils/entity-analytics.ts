@@ -1,9 +1,22 @@
-// lib/utils/entity-analytics.ts
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi fungsi utilitas untuk memproses dan menganalisis data entitas seperti maskapai, rute, hub, dan nomor penerbangan
+ */
 
 import { EntityStats, AirlineStats, RouteStats, HubStats, FlightStats, FilterState } from '@/types/entity-analytics';
 
 /**
- * Extract dan aggregate entities dari batch analysis results
+ * Ekstrak dan agregasi entitas dari hasil analisis batch
+ * @param {any[]} results - Array hasil analisis
+ * @returns {EntityStats} Objek statistik entitas lengkap
+ * @example
+ * ```ts
+ * const stats = processEntityData(analysisResults);
+ * console.log(stats.summary);
+ * console.log(stats.airlines);
+ * ```
  */
 export function processEntityData(results: any[]): EntityStats {
   const airlines = new Map<string, AirlineStats>();
@@ -170,7 +183,17 @@ export function processEntityData(results: any[]): EntityStats {
 }
 
 /**
- * Filter entities berdasarkan kombinasi kriteria
+ * Filter entitas berdasarkan kombinasi kriteria
+ * @param {EntityStats} entityStats - Statistik entitas yang ada
+ * @param {FilterState} filters - Kriteria filter
+ * @returns {EntityStats} Statistik entitas yang sudah difilter
+ * @example
+ * ```ts
+ * const filtered = filterEntities(stats, {
+ *   airlines: ['Garuda', 'Lion Air'],
+ *   severities: ['High', 'Critical']
+ * });
+ * ```
  */
 export function filterEntities(
   entityStats: EntityStats,
@@ -220,7 +243,14 @@ export function filterEntities(
 }
 
 /**
- * Get top N entities dari Map
+ * Mendapatkan N entitas teratas dari Map
+ * @param {Map<string, T>} entityMap - Map entitas dengan properti count
+ * @param {number} limit - Batas jumlah entitas yang akan dikembalikan (default: 10)
+ * @returns {T[]} Array N entitas teratas
+ * @example
+ * ```ts
+ * const topAirlines = getTopEntities(airlineMap, 5);
+ * ```
  */
 export function getTopEntities<T extends { count: number }>(
   entityMap: Map<string, T>,
@@ -232,7 +262,14 @@ export function getTopEntities<T extends { count: number }>(
 }
 
 /**
- * Translate severity ke Bahasa Indonesia
+ * Terjemahkan severity ke Bahasa Indonesia
+ * @param {string} severity - Tingkat severity dalam bahasa Inggris
+ * @returns {string} Tingkat severity dalam Bahasa Indonesia
+ * @example
+ * ```ts
+ * translateSeverity('Critical'); // 'Kritis'
+ * translateSeverity('High'); // 'Tinggi'
+ * ```
  */
 export function translateSeverity(severity: string): string {
   const map: Record<string, string> = {
@@ -249,7 +286,14 @@ export function translateSeverity(severity: string): string {
 }
 
 /**
- * Get severity color classes
+ * Mendapatkan kelas warna untuk severity
+ * @param {string} severity - Tingkat severity
+ * @returns {string} Kelas Tailwind CSS untuk warna
+ * @example
+ * ```ts
+ * const colorClass = getSeverityColor('Critical');
+ * // 'bg-red-100 text-red-700 border-red-200'
+ * ```
  */
 export function getSeverityColor(severity: string): string {
   const map: Record<string, string> = {

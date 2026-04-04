@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen untuk menampilkan dashboard overview dengan berbagai statistik dan chart
+ */
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -11,12 +18,18 @@ import {
   Area, AreaChart
 } from 'recharts';
 
+/**
+ * Interface untuk item distribusi statistik
+ */
 interface DistributionItem {
   name: string;
   count: number;
   percentage: number;
 }
 
+/**
+ * Interface untuk data statistik
+ */
 interface StatsData {
   type: string;
   range: string;
@@ -25,18 +38,27 @@ interface StatsData {
   trendData: { date: string; count: number }[];
 }
 
+/** Warna chart untuk berbagai kategori */
 const CHART_COLORS = [
   '#60a5fa', '#a78bfa', '#34d399', '#fbbf24', '#f87171',
   '#2dd4bf', '#f472b6', '#818cf8', '#fb923c', '#4ade80'
 ];
+
+/** Warna donut chart tetap untuk ranking */
 const FIXED_DONUT_RANK_COLORS = ['#81c784', '#13b5cb', '#cddc39'];
 
+/** Mapping status dengan label */
 const STATUS_MAP: Record<string, string> = {
   'OPEN': 'Open',
   'ON PROGRESS': 'Dalam Proses',
   'CLOSED': 'Selesai'
 };
 
+/**
+ * Komponen untuk menampilkan dashboard overview
+ * Menampilkan KPI cards, trend chart, dan distribusi berdasarkan airline, kategori, status, dan severity
+ * @returns JSX element berisi dashboard overview
+ */
 export function OverviewContent() {
   const searchParams = useSearchParams();
   const range = searchParams.get('range') || '7d';
@@ -48,16 +70,20 @@ export function OverviewContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const fetchData = useCallback(async () => {
+  /**
+   * Mengambil data statistik dari API
+   * @param signal - AbortSignal untuk membatalkan request
+   */
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
     
     try {
       const [airline, category, status, severity] = await Promise.all([
-        fetch(`/api/embed/stats?type=airline&range=${range}`).then(r => r.json()),
-        fetch(`/api/embed/stats?type=category&range=${range}`).then(r => r.json()),
-        fetch(`/api/embed/stats?type=status&range=${range}`).then(r => r.json()),
-        fetch(`/api/embed/stats?type=severity&range=${range}`).then(r => r.json())
+        fetch(`/api/embed/stats?type=airline&range=${range}`, { signal }).then(r => r.json()),
+        fetch(`/api/embed/stats?type=category&range=${range}`, { signal }).then(r => r.json()),
+        fetch(`/api/embed/stats?type=status&range=${range}`, { signal }).then(r => r.json()),
+        fetch(`/api/embed/stats?type=severity&range=${range}`, { signal }).then(r => r.json())
       ]);
       
       setAirlineData(airline);
@@ -65,6 +91,7 @@ export function OverviewContent() {
       setStatusData(status);
       setSeverityData(severity);
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : 'Gagal memuat data');
     } finally {
       setLoading(false);
@@ -72,10 +99,16 @@ export function OverviewContent() {
   }, [range]);
   
   useEffect(() => {
-    fetchData();
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    fetchData(signal);
+    const interval = setInterval(() => fetchData(signal), 30000);
+
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, [fetchData]);
   
   if (loading && !airlineData) {
@@ -91,7 +124,7 @@ export function OverviewContent() {
     return (
       <div className="embed-error">
         <p>Error: {error}</p>
-        <button onClick={fetchData} className="date-filter-btn" style={{ marginTop: '1rem' }}>
+        <button onClick={() => fetchData()} className="date-filter-btn" style={{ marginTop: '1rem' }}>
           Coba Lagi
         </button>
       </div>

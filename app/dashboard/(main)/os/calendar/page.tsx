@@ -1,10 +1,11 @@
-import { Metadata } from 'next';
-import { CalendarPage } from '@/components/calendar/CalendarPage';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Event Calendar | OS Dashboard',
-  description: 'Shared calendar for team events and coordination',
-};
+import dynamic from 'next/dynamic';
+
+const CalendarPage = dynamic(
+  () => import('@/components/calendar/CalendarPage').then(m => ({ default: m.CalendarPage })),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-xl" /> }
+);
 
 export default function OSCalendarPage() {
   return (

@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen tabel pivot kustom dengan fitur urutan dan normalisasi
+ */
+
 'use client';
 
 import { useState } from 'react';
@@ -9,6 +16,16 @@ import { PivotGrid } from './pivot/PivotGrid';
 import { cn } from '@/lib/utils';
 import { AlertCircle } from 'lucide-react';
 
+/**
+ * Props untuk komponen CustomPivotTable
+ * @interface CustomPivotTableProps
+ * @property {QueryResult} result - Hasil query
+ * @property {string} [title] - Judul tabel
+ * @property {string} [subtitle] - Subjudul tabel
+ * @property {ViewMode} [viewMode='values'] - Mode tampilan (untuk kompatibilitas)
+ * @property {Normalization} [normalization='none'] - Mode normalisasi data
+ * @property {boolean} [compact=false] - Apakah mode kompak
+ */
 interface CustomPivotTableProps {
   result: QueryResult;
   title?: string;
@@ -18,6 +35,24 @@ interface CustomPivotTableProps {
   compact?: boolean;
 }
 
+/**
+ * Komponen tabel pivot kustom
+ * Menampilkan data dalam format tabel pivot dengan kemampuan pengurutan dan normalisasi
+ * 
+ * @param {CustomPivotTableProps} props - Props untuk konfigurasi tabel pivot
+ * @returns {JSX.Element} Element React yang berisi tabel pivot
+ * 
+ * @example
+ * ```tsx
+ * <CustomPivotTable 
+ *   result={queryResult}
+ *   title="Laporan Pivot"
+ *   viewMode="values"
+ *   normalization="row"
+ *   compact={false}
+ * />
+ * ```
+ */
 export function CustomPivotTable({ 
   result, 
   title, 
@@ -51,6 +86,12 @@ export function CustomPivotTable({
       );
   }
 
+  /**
+   * Menangani pengurutan tabel
+   * @function handleSort
+   * @param {string} col - Nama kolom yang akan diurutkan
+   * @returns {void}
+   */
   const handleSort = (col: string) => {
       if (sortCol === col) {
           setSortDesc(!sortDesc);
@@ -88,4 +129,3 @@ export function CustomPivotTable({
     </div>
   );
 }
-

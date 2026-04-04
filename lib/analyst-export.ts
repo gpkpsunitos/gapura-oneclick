@@ -1,28 +1,74 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi utilitas untuk mengekspor data analitik ke format Excel dan PDF
+ */
+
 import { STATUS_CONFIG } from '@/lib/constants/report-status';
 import { type Report } from '@/types';
 
+/**
+ * Ringkasan analitik laporan
+ * @interface AnalyticsSummary
+ */
 interface AnalyticsSummary {
+  /** Total laporan */
   totalReports: number;
+  /** Laporan terselesaikan */
   resolvedReports: number;
+  /** Laporan pending */
   pendingReports: number;
+  /** Laporan high severity */
   highSeverity: number;
+  /** Rata-rata tingkat resolusi dalam persen */
   avgResolutionRate: number;
+  /** Jumlah pelanggaran SLA (opsional) */
   slaBreachCount?: number;
 }
 
+/**
+ * Payload analitik lengkap
+ * @interface AnalyticsPayload
+ */
 interface AnalyticsPayload {
+  /** Ringkasan analitik */
   summary: AnalyticsSummary;
+  /** Data per stasiun */
   stationData: Array<{ station: string; total: number; resolved: number }>;
+  /** Data per divisi (opsional) */
   divisionData?: Array<{ division: string; count: number }>;
 }
 
+/**
+ * Konteks untuk ekspor laporan
+ * @interface ExportContext
+ */
 interface ExportContext {
+  /** Semua laporan */
   reports: Report[];
+  /** Laporan yang sudah difilter */
   filteredReports: Report[];
+  /** Data analitik */
   analytics: AnalyticsPayload | null;
+  /** Range tanggal */
   dateRange: 'all' | 'week' | 'month' | { from: string; to: string };
 }
 
+/**
+ * Mengekspor data analitik ke file Excel
+ * @param ctx - Konteks ekspor berisi data laporan dan analitik
+ * @returns Promise yang resolve setelah file Excel didownload
+ * @example
+ * ```ts
+ * await exportToExcel({
+ *   reports: allReports,
+ *   filteredReports: filteredReports,
+ *   analytics: summary,
+ *   dateRange: 'month'
+ * });
+ * ```
+ */
 // Complexity: Time O(N) where N = reports.length | Space O(N)
 export async function exportToExcel(ctx: ExportContext): Promise<void> {
   const exceljs = await import('exceljs');
@@ -173,6 +219,20 @@ export async function exportToExcel(ctx: ExportContext): Promise<void> {
   window.URL.revokeObjectURL(url);
 }
 
+/**
+ * Mengekspor data analitik ke file PDF
+ * @param ctx - Konteks ekspor berisi data laporan dan analitik
+ * @returns Promise yang resolve setelah file PDF disimpan
+ * @example
+ * ```ts
+ * await exportToPDF({
+ *   reports: allReports,
+ *   filteredReports: filteredReports,
+ *   analytics: summary,
+ *   dateRange: 'month'
+ * });
+ * ```
+ */
 // Complexity: Time O(N) where N = reports.length | Space O(N)
 export async function exportToPDF(ctx: ExportContext): Promise<void> {
   const { reports, analytics, dateRange } = ctx;

@@ -6,32 +6,8 @@ import {
   fetchSeasonalForecast,
   SeasonalForecastResponse
 } from '@/lib/services/gapura-ai';
-import {
-  Line
-} from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Sparkles, TrendingUp, Calendar, ArrowUp, ArrowDown, Brain } from 'lucide-react';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
 
 export function AiSeasonalForecast() {
   const [data, setData] = useState<SeasonalForecastResponse | null>(null);
@@ -90,63 +66,7 @@ export function AiSeasonalForecast() {
   const months = Object.keys(data.monthly_averages);
   const values = Object.values(data.monthly_averages);
 
-  const chartData = {
-    labels: months,
-    datasets: [
-      {
-        label: 'Forecasted Average',
-        data: values,
-        borderColor: '#8b5cf6', // Violet
-        backgroundColor: (context: any) => {
-          const ctx = context.chart.ctx;
-          const gradient = ctx.createLinearGradient(0, 0, 0, 300);
-          gradient.addColorStop(0, 'rgba(139, 92, 246, 0.5)');
-          gradient.addColorStop(1, 'rgba(139, 92, 246, 0.0)');
-          return gradient;
-        },
-        fill: true,
-        tension: 0.4,
-        pointBackgroundColor: '#ffffff',
-        pointBorderColor: '#8b5cf6',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      },
-    ],
-  };
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-        titleColor: '#1e293b',
-        bodyColor: '#475569',
-        borderColor: '#e2e8f0',
-        borderWidth: 1,
-        padding: 10,
-        displayColors: false,
-        callbacks: {
-          label: (context: any) => `Avg: ${context.parsed.y}`,
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 11 } },
-      },
-      y: {
-        grid: { color: 'rgba(0,0,0,0.05)' },
-        ticks: { font: { size: 10 } },
-        beginAtZero: true,
-      },
-    },
-  };
+  const rechartsData = months.map((month, i) => ({ month, value: values[i] }));
 
   return (
     <motion.div
@@ -170,7 +90,15 @@ export function AiSeasonalForecast() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 relative z-10">
         <div className="lg:col-span-2 h-[300px]">
-          <Line data={chartData} options={options} />
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 10 }} />
+              <Tooltip />
+              <Line type="monotone" dataKey="value" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 4, fill: '#fff', stroke: '#8b5cf6', strokeWidth: 2 }} activeDot={{ r: 6 }} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
 
         <div className="space-y-6">

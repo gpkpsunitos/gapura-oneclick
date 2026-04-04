@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi skrip debugging untuk mengeksplorasi data di Google Sheets
+ */
+
 import { google } from 'googleapis';
 import * as dotenv from 'dotenv';
 import path from 'path';
@@ -7,6 +14,12 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID || '1TFPZOAWAKubPl7iaUk8BXt2BabY1N-AcLgi-_zBQGzk';
 const SHEETS_TO_DEBUG = ['NON CARGO', 'CGO'];
 
+/**
+ * Fungsi debugging untuk mengeksplorasi data di Google Sheets
+ * Menampilkan header, sample data, nilai kategorikal, dan nilai cabang
+ * @async
+ * @returns {Promise<void>}
+ */
 async function debugSheets() {
   console.log('--- Gapura Sheets Debug Tool ---');
   console.log('Spreadsheet ID:', SPREADSHEET_ID);

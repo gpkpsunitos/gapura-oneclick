@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman import data laporan untuk analyst,
+ * menyediakan fungsi untuk import massal data laporan dari Excel atau CSV.
+ */
+
 'use client';
 
 import { useState } from 'react';
@@ -7,10 +15,20 @@ import { Upload, FileUp, AlertCircle, CheckCircle, Loader2, X, Database, Truck, 
 import { motion, AnimatePresence } from 'framer-motion';
 
 // --- Type Definitions ---
+/**
+ * Tipe data untuk tipe import laporan
+ * @typedef {'NON_CARGO' | 'CARGO'} ImportType
+ */
 type ImportType = 'NON_CARGO' | 'CARGO';
 
 // Define strict mapping based on reports-service.ts
 // Key = CSV Header, Value = DB Column
+/**
+ * Pemetaan header CSV ke kolom database
+ * Digunakan untuk mengonversi nama kolom dari file Excel/CSV ke kolom database
+ * @constant
+ * @type {Record<string, string>}
+ */
 const HEADER_MAPPING: Record<string, string> = {
   // Common
   'Date of Event': 'date_of_event',
@@ -66,6 +84,11 @@ const HEADER_MAPPING: Record<string, string> = {
 };
 
 // Convert Excel serial number to JS Date
+/**
+ * Mengkonversi nomor serial Excel ke objek Date JavaScript
+ * @param {string | number} val - Nilai yang akan dikonversi (nomor serial Excel atau string tanggal)
+ * @returns {Date | null} Objek Date JavaScript atau null jika tidak valid
+ */
 const excelSerialToDate = (val: string | number): Date | null => {
   if (!val || val === '#N/A' || val === 'N/A') return null;
   if (typeof val === 'number') {
@@ -77,6 +100,11 @@ const excelSerialToDate = (val: string | number): Date | null => {
 };
 
 // Returns date-only string (YYYY-MM-DD) for DB
+/**
+ * Mengambil string tanggal (YYYY-MM-DD) dari nilai yang diberikan
+ * @param {string | number} val - Nilai yang akan diproses
+ * @returns {string | null} String tanggal dalam format YYYY-MM-DD atau null jika tidak valid
+ */
 const parseDateOnly = (val: string | number): string | null => {
   // If explicitly string DD/MM/YYYY
   if (typeof val === 'string' && val.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)) {
@@ -95,6 +123,11 @@ const parseDateOnly = (val: string | number): string | null => {
 };
 
 // Map CSV Status to DB constraint
+/**
+ * Menormalkan status laporan dari format CSV ke format database
+ * @param {string | undefined | null} raw - Status raw dari file CSV
+ * @returns {string} Status yang dinormalkan (OPEN, CLOSED, atau ON PROGRESS)
+ */
 const normalizeStatus = (raw: string | undefined | null): string => {
   if (!raw) return 'OPEN';
   const upper = raw.toUpperCase().trim();
@@ -104,6 +137,13 @@ const normalizeStatus = (raw: string | undefined | null): string => {
 };
 
 // Main Helper: Map a single CSV row to a Report object
+/**
+ * Mengkonversi satu baris data CSV ke objek Report
+ * Melakukan pemetaan kolom, normalisasi data, dan menambahkan nilai default
+ * @param {any} row - Baris data dari file CSV/Excel
+ * @param {ImportType} importType - Tipe import (NON_CARGO atau CARGO)
+ * @returns {any} Objek report yang sudah dipetakan dan dinormalkan
+ */
 const mapRowToReport = (row: any, importType: ImportType) => {
   const report: any = {};
   
@@ -175,6 +215,11 @@ const mapRowToReport = (row: any, importType: ImportType) => {
   return report;
 };
 
+/**
+ * Komponen halaman import data laporan untuk analyst
+ * Menyediakan UI untuk upload file Excel/CSV dan import massal data laporan
+ * @returns {JSX.Element} Tampilan halaman import data laporan
+ */
 export default function ImportDataPage() {
   const [importType, setImportType] = useState<ImportType>('NON_CARGO');
   const [file, setFile] = useState<File | null>(null);
@@ -186,6 +231,11 @@ export default function ImportDataPage() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successCount, setSuccessCount] = useState(0);
 
+  /**
+   * Handler untuk drop file
+   * Dipanggil saat file di-drop ke area upload
+   * @param {File[]} acceptedFiles - Array file yang di-upload
+   */
   const onDrop = (acceptedFiles: File[]) => {
     const uploadedFile = acceptedFiles[0];
     if (uploadedFile) {
@@ -203,6 +253,11 @@ export default function ImportDataPage() {
     multiple: false
   });
 
+  /**
+   * Mengurai file Excel atau CSV untuk preview
+   * Membaca data dari file dan menyiapkan preview sebelum import
+   * @param {File} file - File yang akan diuraikan
+   */
   const parseFile = async (file: File) => {
     try {
       const ExcelJS = await import('exceljs');
@@ -252,6 +307,10 @@ export default function ImportDataPage() {
     }
   };
 
+  /**
+   * Menangani proses import data ke database
+   * Mengirim data yang sudah dipetakan ke API untuk batch insert
+   */
   const handleImport = async () => {
     if (!previewData.length) return;
 
@@ -289,6 +348,10 @@ export default function ImportDataPage() {
     }
   };
 
+  /**
+   * Mereset state ke kondisi awal
+   * Menghapus file, preview data, dan status upload
+   */
   const reset = () => {
       setFile(null);
       setPreviewData([]);

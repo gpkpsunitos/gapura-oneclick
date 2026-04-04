@@ -1,0 +1,34 @@
+import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
+
+// Server-side password verification for quick access protected items
+// This replaces the insecure client-side NEXT_PUBLIC_QUICK_ACCESS_PASSWORD approach
+const QUICK_ACCESS_PASSWORD = process.env.QUICK_ACCESS_PASSWORD;
+
+export async function POST(request: Request) {
+    try {
+        if (!QUICK_ACCESS_PASSWORD) {
+            console.error('[QUICK_ACCESS] QUICK_ACCESS_PASSWORD env var is not set');
+            return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+        }
+
+        const body = await request.json();
+        const { password } = body;
+
+        if (!password || typeof password !== 'string') {
+            return NextResponse.json({ error: 'Password is required' }, { status: 400 });
+        }
+
+        const a = Buffer.from(password);
+        const b = Buffer.from(QUICK_ACCESS_PASSWORD);
+        const isValid = a.length === b.length && timingSafeEqual(a, b);
+
+        if (!isValid) {
+            return NextResponse.json({ valid: false }, { status: 401 });
+        }
+
+        return NextResponse.json({ valid: true });
+    } catch {
+        return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    }
+}

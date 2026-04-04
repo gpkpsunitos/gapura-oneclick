@@ -1,6 +1,17 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengambil data laporan embed
+ * Mendukung filtering berdasarkan range, airline, category, status, severity, area, dan station
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
+/**
+ * Interface untuk parameter filter query
+ */
 interface FilterParams {
   airline?: string;
   category?: string;
@@ -10,11 +21,22 @@ interface FilterParams {
   station?: string;
 }
 
+/**
+ * Menangani request GET untuk mengambil data laporan embed
+ * Mendukung filtering berdasarkan range, airline, category, status, severity, area, dan station
+ * @param request - Request object berisi query parameters
+ * @returns Response JSON berisi data laporan, summary, dan informasi pagination
+ * @throws {Error} Jika terjadi kesalahan saat mengambil data
+ * @example
+ * ```http
+ * GET /api/embed/reports?range=7d&airline=GA&category=Terminal
+ * ```
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const range = searchParams.get('range') || '7d';
-    const limit = Math.min(parseInt(searchParams.get('limit') || '100', 10), 100);
+    const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 100);
     
     // Parse filters
     const filters: FilterParams = {
@@ -26,6 +48,7 @@ export async function GET(request: NextRequest) {
       station: searchParams.get('station') || undefined
     };
     
+    // Calculate start date based on range
     const rangeDays = range === '30d' ? 30 : 7;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - rangeDays);
@@ -38,7 +61,6 @@ export async function GET(request: NextRequest) {
         title,
         status,
         severity,
-        priority,
         airline,
         airlines,
         main_category,

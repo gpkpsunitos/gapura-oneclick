@@ -1,5 +1,12 @@
 #!/usr/bin/env node
 
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi script untuk memperbaiki missing file pada package math-intrinsics
+ */
+
 const fs = require('fs');
 const path = require('path');
 

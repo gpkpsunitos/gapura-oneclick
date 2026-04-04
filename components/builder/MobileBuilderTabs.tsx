@@ -1,17 +1,43 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen tab builder untuk tampilan mobile dan tablet
+ */
+
 'use client';
 
 import { useState, useEffect } from 'react';
 import { Layers, Search, Table2, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
+/**
+ * Tipe tab builder
+ * @type {('fields' | 'query' | 'preview' | 'dashboard')} BuilderTab
+ */
 export type BuilderTab = 'fields' | 'query' | 'preview' | 'dashboard';
 
+/**
+ * Props untuk komponen MobileBuilderTabs
+ * @interface MobileBuilderTabsProps
+ * @property {BuilderTab} activeTab - Tab yang sedang aktif
+ * @property {Function} onTabChange - Fungsi untuk mengubah tab
+ * @property {string} [className] - Kelas CSS tambahan
+ */
 interface MobileBuilderTabsProps {
   activeTab: BuilderTab;
   onTabChange: (tab: BuilderTab) => void;
   className?: string;
 }
 
+/**
+ * Interface untuk konfigurasi tab
+ * @interface TabConfig
+ * @property {BuilderTab} id - ID tab
+ * @property {string} label - Label tab
+ * @property {typeof Layers} icon - Komponen ikon
+ * @property {number} [badge] - Jumlah badge yang ditampilkan
+ */
 interface TabConfig {
   id: BuilderTab;
   label: string;
@@ -19,6 +45,10 @@ interface TabConfig {
   badge?: number;
 }
 
+/**
+ * Daftar konfigurasi tab
+ * @constant {TabConfig[]} TABS
+ */
 const TABS: TabConfig[] = [
   { id: 'fields', label: 'Fields', icon: Layers },
   { id: 'query', label: 'Query', icon: Search },
@@ -26,6 +56,21 @@ const TABS: TabConfig[] = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
 ];
 
+/**
+ * Komponen tab builder untuk tampilan mobile
+ * Menampilkan navigasi tab di bagian bawah layar dengan fitur auto-hide saat scroll
+ * 
+ * @param {MobileBuilderTabsProps} props - Props untuk konfigurasi tab
+ * @returns {JSX.Element} Element React yang berisi tab builder mobile
+ * 
+ * @example
+ * ```tsx
+ * <MobileBuilderTabs
+ *   activeTab="fields"
+ *   onTabChange={(tab) => setActiveTab(tab)}
+ * />
+ * ```
+ */
 export function MobileBuilderTabs({
   activeTab,
   onTabChange,
@@ -134,12 +179,35 @@ export function MobileBuilderTabs({
 }
 
 // Alternative: Segmented control style for tablet
+
+/**
+ * Props untuk komponen TabletBuilderTabs
+ * @interface TabletBuilderTabsProps
+ * @property {BuilderTab} activeTab - Tab yang sedang aktif
+ * @property {Function} onTabChange - Fungsi untuk mengubah tab
+ * @property {string} [className] - Kelas CSS tambahan
+ */
 interface TabletBuilderTabsProps {
   activeTab: BuilderTab;
   onTabChange: (tab: BuilderTab) => void;
   className?: string;
 }
 
+/**
+ * Komponen tab builder untuk tampilan tablet
+ * Menampilkan navigasi tab dengan gaya segmented control
+ * 
+ * @param {TabletBuilderTabsProps} props - Props untuk konfigurasi tab tablet
+ * @returns {JSX.Element} Element React yang berisi tab builder tablet
+ * 
+ * @example
+ * ```tsx
+ * <TabletBuilderTabs
+ *   activeTab="fields"
+ *   onTabChange={(tab) => setActiveTab(tab)}
+ * />
+ * ```
+ */
 export function TabletBuilderTabs({
   activeTab,
   onTabChange,
@@ -174,12 +242,35 @@ export function TabletBuilderTabs({
 }
 
 // Pill-style floating tabs for dashboard view
+
+/**
+ * Props untuk komponen FloatingDashboardTabs
+ * @interface FloatingDashboardTabsProps
+ * @property {'edit' | 'preview'} activeTab - Tab yang sedang aktif
+ * @property {Function} onTabChange - Fungsi untuk mengubah tab
+ * @property {string} [className] - Kelas CSS tambahan
+ */
 interface FloatingDashboardTabsProps {
   activeTab: 'edit' | 'preview';
   onTabChange: (tab: 'edit' | 'preview') => void;
   className?: string;
 }
 
+/**
+ * Komponen tab melayang untuk tampilan dashboard
+ * Menampilkan navigasi tab dengan gaya floating pill di bagian bawah
+ * 
+ * @param {FloatingDashboardTabsProps} props - Props untuk konfigurasi tab dashboard
+ * @returns {JSX.Element} Element React yang berisi tab dashboard
+ * 
+ * @example
+ * ```tsx
+ * <FloatingDashboardTabs
+ *   activeTab="edit"
+ *   onTabChange={(tab) => setActiveTab(tab)}
+ * />
+ * ```
+ */
 export function FloatingDashboardTabs({
   activeTab,
   onTabChange,

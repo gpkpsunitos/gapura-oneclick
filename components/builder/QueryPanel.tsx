@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen panel konfigurasi query untuk builder dashboard
+ */
+
 'use client';
 
 import { X, ChevronDown, ChevronRight, ArrowUpDown, Layers, BarChart3, Filter, ArrowDownUp, Zap } from 'lucide-react';
@@ -16,6 +23,23 @@ import { FilterBuilder } from './FilterBuilder';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
+/**
+ * Props untuk komponen QueryPanel
+ * @interface QueryPanelProps
+ * @property {QueryDefinition} query - Definisi query yang sedang dikonfigurasi
+ * @property {Array<{table: string; field: FieldDef}>} availableFields - Daftar field yang tersedia
+ * @property {boolean} loading - Status loading eksekusi query
+ * @property {Function} onRemoveDimension - Fungsi untuk menghapus dimensi
+ * @property {Function} onUpdateDimension - Fungsi untuk memperbarui dimensi
+ * @property {Function} onRemoveMeasure - Fungsi untuk menghapus ukuran (measure)
+ * @property {Function} onUpdateMeasure - Fungsi untuk memperbarui ukuran (measure)
+ * @property {Function} onAddFilter - Fungsi untuk menambah filter
+ * @property {Function} onRemoveFilter - Fungsi untuk menghapus filter
+ * @property {Function} onUpdateFilter - Fungsi untuk memperbarui filter
+ * @property {Function} onAddSort - Fungsi untuk menambah urutan
+ * @property {Function} onRemoveSort - Fungsi untuk menghapus urutan
+ * @property {Function} onExecute - Fungsi untuk menjalankan query
+ */
 interface QueryPanelProps {
   query: QueryDefinition;
   availableFields: Array<{ table: string; field: FieldDef }>;
@@ -32,6 +56,10 @@ interface QueryPanelProps {
   onExecute: () => void;
 }
 
+/**
+ * Opsi granularity tanggal
+ * @constant {{value: DateGranularity; label: string}[]} DATE_GRANULARITIES
+ */
 const DATE_GRANULARITIES: { value: DateGranularity; label: string }[] = [
   { value: 'day', label: 'Hari' },
   { value: 'week', label: 'Minggu' },
@@ -40,6 +68,10 @@ const DATE_GRANULARITIES: { value: DateGranularity; label: string }[] = [
   { value: 'year', label: 'Tahun' },
 ];
 
+/**
+ * Opsi fungsi agregasi
+ * @constant {{value: AggregateFunction; label: string}[]} AGG_FUNCTIONS
+ */
 const AGG_FUNCTIONS: { value: AggregateFunction; label: string }[] = [
   { value: 'COUNT', label: 'Jumlah (COUNT)' },
   { value: 'COUNT_DISTINCT', label: 'Jumlah Unik' },
@@ -49,6 +81,32 @@ const AGG_FUNCTIONS: { value: AggregateFunction; label: string }[] = [
   { value: 'MAX', label: 'Maksimum' },
 ];
 
+/**
+ * Komponen panel konfigurasi query untuk builder
+ * Menampilkan dimensi, ukuran, filter, dan urutan yang dikonfigurasi untuk query
+ * 
+ * @param {QueryPanelProps} props - Props untuk konfigurasi panel query
+ * @returns {JSX.Element} Element React yang berisi panel query
+ * 
+ * @example
+ * ```tsx
+ * <QueryPanel
+ *   query={query}
+ *   availableFields={availableFields}
+ *   loading={loading}
+ *   onRemoveDimension={removeDimension}
+ *   onUpdateDimension={updateDimension}
+ *   onRemoveMeasure={removeMeasure}
+ *   onUpdateMeasure={updateMeasure}
+ *   onAddFilter={addFilter}
+ *   onRemoveFilter={removeFilter}
+ *   onUpdateFilter={updateFilter}
+ *   onAddSort={addSort}
+ *   onRemoveSort={removeSort}
+ *   onExecute={executeQuery}
+ * />
+ * ```
+ */
 export function QueryPanel({
   query,
   availableFields,

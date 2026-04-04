@@ -14,37 +14,14 @@ import {
   PivotReportRecord,
 } from './data';
 import { Report } from '@/types';
-import { Bar, Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
 import { ArrowUp, ArrowDown, Minus, Download, Filter } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { InvestigativeTable } from '@/components/chart-detail/InvestigativeTable';
 import { DataTableWithPagination } from '@/components/chart-detail/DataTableWithPagination';
 import type { QueryResult } from '@/types/builder';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+import { sanitizeTableCell } from '@/lib/security/sanitize';
 
 interface FilterParams {
   hub?: string;
@@ -163,79 +140,50 @@ function HeatmapTable({ matrix }: { matrix: PivotMatrix }) {
 }
 
 function DimensionChart({ data, label, color }: { data: DimensionBreakdown[]; label: string; color: string }) {
-  const chartData = {
-    labels: data.slice(0, 12).map(d => d.label),
-    datasets: [
-      {
-        label,
-        data: data.slice(0, 12).map(d => d.count),
-        backgroundColor: color,
-        borderRadius: 4,
-      },
-    ],
-  };
+  const rechartsData = data.slice(0, 12).map(d => ({
+    name: d.label,
+    [label]: d.count,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'y' as const,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-      y: { grid: { display: false }, ticks: { font: { size: 10 } } },
-    },
-  };
-
-  return <div className="h-[280px]"><Bar data={chartData} options={options} /></div>;
+  return (
+    <div className="h-[280px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} layout="vertical" margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis type="number" tick={{ fontSize: 10 }} />
+          <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={120} />
+          <Tooltip />
+          <Bar dataKey={label} fill={color} radius={[0, 4, 4, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
-  const chartData = {
-    labels: data.map(d => d.month),
-    datasets: [
-      {
-        label: 'Total',
-        data: data.map(d => d.total),
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: 'Irregularity',
-        data: data.map(d => d.Irregularity),
-        borderColor: '#ef4444',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: 'Complaint',
-        data: data.map(d => d.Complaint),
-        borderColor: '#f97316',
-        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-    ],
-  };
+  const rechartsData = data.map(d => ({
+    name: d.month,
+    Total: d.total,
+    Irregularity: d.Irregularity,
+    Complaint: d.Complaint,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { usePointStyle: true, padding: 20, font: { size: 11 } },
-      },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
-
-  return <div className="h-[250px]"><Line data={chartData} options={options} /></div>;
+  return (
+    <div className="h-[250px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip />
+          <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+          <Line type="monotone" dataKey="Total" stroke="#3b82f6" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="Irregularity" stroke="#ef4444" strokeWidth={2} dot={false} />
+          <Line type="monotone" dataKey="Complaint" stroke="#f97316" strokeWidth={2} dot={false} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 function DataTable({ data }: { data: PivotReportRecord[] }) {
@@ -345,7 +293,7 @@ function DataTable({ data }: { data: PivotReportRecord[] }) {
               <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
                 {columns.map(col => (
                   col === 'Evidence' ? (
-                    <td key={col} className="px-4 py-2.5 text-gray-700" dangerouslySetInnerHTML={{ __html: row[col] as string || '-' }} />
+                    <td key={col} className="px-4 py-2.5 text-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeTableCell(row[col]) }} />
                   ) : (
                     <td key={col} className="px-4 py-2.5 text-gray-700">{row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'}</td>
                   )

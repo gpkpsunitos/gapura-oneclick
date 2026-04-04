@@ -1,8 +1,36 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk pembuatan laporan publik
+ * Mendukung pembuatan laporan tanpa login dengan email reporter
+ */
+
 import { NextResponse } from 'next/server';
 import { reportsService } from '@/lib/services/reports-service';
 import { notifyNewRecordEmail } from '@/lib/notifications';
 import { persistReportMetadata } from '@/lib/report-persistence';
 
+/**
+ * Menangani request POST untuk membuat laporan publik
+ * Menerima data laporan dengan email reporter, menyimpan ke database,
+ * dan mengirim notifikasi email
+ * @param request - Request object berisi data laporan publik di body JSON
+ * @returns Response JSON dengan status sukses dan data laporan yang dibuat
+ * @throws {Error} Jika terjadi kesalahan saat membuat laporan
+ * @example
+ * ```json
+ * {
+ *   "reporter_email": "user@example.com",
+ *   "reporter_name": "John Doe",
+ *   "title": "Judul Laporan",
+ *   "description": "Deskripsi kejadian",
+ *   "airline": "Garuda",
+ *   "flight_number": "GA-101",
+ *   "station_id": "CGK-001"
+ * }
+ * ```
+ */
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -36,6 +64,11 @@ export async function POST(request: Request) {
       evidence_url,
       evidence_urls,
       severity,
+      airlines,
+      airline,
+      flight_number,
+      date_of_event,
+      incident_date,
     } = body;
 
     const reportData: any = {
@@ -44,9 +77,9 @@ export async function POST(request: Request) {
       title,
       description,
       location: body.location || '',
-      airlines: body.airline || body.airlines || '',
-      flight_number: body.flight_number || '',
-      date_of_event: body.date_of_event || body.incident_date || '',
+      airlines: airlines || airline || '',
+      flight_number: flight_number || '',
+      date_of_event: date_of_event || incident_date || '',
       area: area || '',
       category: body.main_category || 'Irregularity',
       irregularity_complain_category: incident_type_id || body.main_category || 'Irregularity',
@@ -68,8 +101,8 @@ export async function POST(request: Request) {
       apron_area_category: apron_area_category || null,
       general_category: general_category || null,
       week_in_month: week_in_month || null,
-      report: body.report || description,
-      reporting_branch: body.reporting_branch || station_code || station_id || null,
+      report: description,
+      reporting_branch: station_code || station_id || null,
       form_submitted_at: form_submitted_at || new Date().toISOString(),
       form_completed_at: form_completed_at || new Date().toISOString(),
     };

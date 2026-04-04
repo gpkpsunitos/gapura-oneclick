@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen untuk menampilkan detail dan analisis berdasarkan severity laporan
+ */
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -7,6 +14,9 @@ import { DateRangeFilter } from '@/components/embed/DateRangeFilter';
 import { EmbedCard } from '@/components/embed/EmbedCard';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
+/**
+ * Interface untuk data laporan
+ */
 interface Report {
   id: string;
   title: string;
@@ -18,25 +28,39 @@ interface Report {
   created_at: string;
 }
 
+/**
+ * Interface untuk response API laporan
+ */
 interface ReportsResponse {
   summary: { total: number; byStatus: Record<string, number>; bySeverity: Record<string, number> };
   reports: Report[];
 }
 
+/** Konfigurasi severity dengan label dan warna */
 const SEVERITY_CONFIG: Record<string, { label: string; color: string }> = {
   'low': { label: 'Low', color: '#22c55e' },
   'medium': { label: 'Medium', color: '#fbbf24' },
   'high': { label: 'High', color: '#ef4444' }
 };
+
+/** Warna donut chart tetap untuk ranking */
 const FIXED_DONUT_RANK_COLORS = ['#81c784', '#13b5cb', '#cddc39'];
+
+/** Warna fallback donut chart */
 const DONUT_FALLBACK_COLORS = ['#66bb6a', '#9ccc65', '#aed581', '#4db6ac', '#80cbc4'];
 
+/** Mapping status dengan label dan class CSS */
 const STATUS_MAP: Record<string, { label: string; class: string }> = {
   'OPEN': { label: 'Open', class: 'pending' },
   'ON PROGRESS': { label: 'Dalam Proses', class: 'verified' },
   'CLOSED': { label: 'Selesai', class: 'completed' }
 };
 
+/**
+ * Komponen untuk menampilkan detail dan analisis berdasarkan severity laporan
+ * Menampilkan chart distribusi severity, breakdown per kategori, dan daftar laporan
+ * @returns JSX element berisi analisis severity
+ */
 export function SeverityDetailContent() {
   const searchParams = useSearchParams();
   const range = searchParams.get('range') || '7d';
@@ -45,23 +69,36 @@ export function SeverityDetailContent() {
   const [data, setData] = useState<ReportsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   
-  const fetchData = useCallback(async () => {
+  /**
+   * Mengambil data laporan dari API
+   * @param signal - AbortSignal untuk membatalkan request
+   */
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
       const url = levelFilter 
         ? `/api/embed/reports?range=${range}&severity=${encodeURIComponent(levelFilter)}`
         : `/api/embed/reports?range=${range}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { signal });
       setData(await res.json());
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
     } finally {
       setLoading(false);
     }
   }, [range, levelFilter]);
   
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    fetchData(signal);
+    const interval = setInterval(() => fetchData(signal), 30000);
+
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, [fetchData]);
   
   if (loading && !data) {

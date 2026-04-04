@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { 
     Plane, Shield, Wrench, Gauge, GraduationCap, Users,
@@ -61,6 +62,7 @@ const divisionCards = [
 export default function DivisionSelectPage() {
     const [error, setError] = useState<string | null>(null);
     const [switchingCode, setSwitchingCode] = useState<string | null>(null);
+    const router = useRouter();
 
     const handleSelectDivision = async (code: string) => {
         try {
@@ -181,8 +183,15 @@ export default function DivisionSelectPage() {
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: divisionCards.length * 0.1 }}
                             onClick={async () => {
-                                const { logoutWithPwaCleanup } = await import('@/lib/pwa/logout');
-                                await logoutWithPwaCleanup();
+                                try {
+                                    const { purgePwaClientState } = await import('@/lib/pwa/client-state');
+                                    purgePwaClientState();
+                                } catch {
+                                    // Ignore cleanup errors
+                                }
+                                document.cookie = 'session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                                document.cookie = 'auth_bundle=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+                                router.push('/auth/login');
                             }}
                             className={`
                                 relative group overflow-hidden

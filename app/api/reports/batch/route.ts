@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk batch import laporan
+ * Mendukung import banyak laporan sekaligus dari frontend
+ */
+
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
@@ -5,6 +13,22 @@ import { reportsService } from '@/lib/services/reports-service';
 import { notifyNewRecordEmail } from '@/lib/notifications';
 import { persistReportMetadata } from '@/lib/report-persistence';
 
+/**
+ * Menangani request POST untuk batch import laporan
+ * Menerima array laporan, menyimpan ke database, dan mengirim notifikasi email
+ * @param request - Request object berisi array laporan di body JSON
+ * @returns Response JSON dengan status sukses dan informasi jumlah laporan yang berhasil diimport
+ * @throws {Error} Jika terjadi kesalahan saat batch import
+ * @example
+ * ```json
+ * {
+ *   "reports": [
+ *     { "title": "Laporan 1", "description": "Deskripsi 1", ... },
+ *     { "title": "Laporan 2", "description": "Deskripsi 2", ... }
+ *   ]
+ * }
+ * ```
+ */
 export async function POST(request: Request) {
     try {
         const cookieStore = await cookies();

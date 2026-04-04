@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen preview grafik dengan dukungan berbagai tipe visualisasi
+ */
+
 'use client';
 
 import React from 'react';
@@ -21,6 +28,18 @@ import { ViewMode, Normalization } from '@/components/chart-detail/GlobalControl
 
 import { formatDateValue, ISO_DATETIME_RE, processChartData, formatDisplayValue, isDateColumn } from '@/lib/chart-utils';
 
+/**
+ * Props untuk komponen ChartPreview
+ * @interface ChartPreviewProps
+ * @property {ChartVisualization} visualization - Konfigurasi visualisasi grafik
+ * @property {QueryResult} result - Hasil query
+ * @property {boolean} [compact=false] - Apakah mode kompak
+ * @property {DashboardTile} [tile] - Tile dashboard (opsional)
+ * @property {string} [dashboardId] - ID dashboard (opsional)
+ * @property {ViewMode} [viewMode='values'] - Mode tampilan
+ * @property {Normalization} [normalization='none'] - Mode normalisasi
+ * @property {boolean} [isThumbnail=false] - Apakah ditampilkan sebagai thumbnail
+ */
 interface ChartPreviewProps {
   visualization: ChartVisualization;
   result: QueryResult;
@@ -32,6 +51,17 @@ interface ChartPreviewProps {
   isThumbnail?: boolean;
 }
 
+/**
+ * Warna Gapura untuk grafik
+ * @constant {string} GAPURA_GREEN_LIGHT
+ * @constant {string} GAPURA_GREEN_DARK
+ * @constant {string} GAPURA_BLUE
+ * @constant {string} GAPURA_YELLOW
+ * @constant {string} GAPURA_RED
+ * @constant {string} GAPURA_ORANGE
+ * @constant {string} GAPURA_GREY
+ * @constant {string} GAPURA_AMBER
+ */
 const GAPURA_GREEN_LIGHT = '#7cb342';
 const GAPURA_GREEN_DARK = '#558b2f';
 const GAPURA_BLUE = '#42a5f5';
@@ -42,12 +72,20 @@ const GAPURA_GREY = '#bdbdbd';
 const GAPURA_AMBER = '#ffca28';
 
 // Specific Rank Colors requested by user
+/**
+ * Warna untuk ranking top 3
+ * @constant {string[]} RANK_COLORS
+ */
 const RANK_COLOR_1 = '#81c784'; // rgb(129,199,132)
 const RANK_COLOR_2 = '#13b5cb'; // rgb(19,181,203)
 const RANK_COLOR_3 = '#cddc39'; // rgb(205,220,57)
 const RANK_COLORS = [RANK_COLOR_1, RANK_COLOR_2, RANK_COLOR_3];
 
 // Intensity Colors (5-step Green Scale from light to dark)
+/**
+ * Warna intensitas dengan skala hijau 5 tingkat
+ * @constant {string[]} INTENSITY_COLORS
+ */
 const INTENSITY_COLORS = [
     '#e8f5e9', // Level 1 (Lightest)
     '#a5d6a7', // Level 2
@@ -56,12 +94,20 @@ const INTENSITY_COLORS = [
     '#1b5e20'  // Level 5 (Darkest)
 ];
 
+/**
+ * Warna default untuk grafik
+ * @constant {string[]} DEFAULT_COLORS
+ */
 const DEFAULT_COLORS = [
   GAPURA_GREEN_LIGHT, GAPURA_BLUE, GAPURA_YELLOW, GAPURA_GREEN_DARK, '#aed581',
   '#33691e', '#9ccc65', '#689f38', '#c5e1a5', '#43a047', '#81c784', '#4caf50',
 ];
 
 // Semantic Color Mapping
+/**
+ * Pemetaan warna semantik untuk kategori tertentu
+ * @constant {Record<string, string>} SEMANTIC_COLORS
+ */
 const SEMANTIC_COLORS: Record<string, string> = {
   // Categories
   'irregularity': GAPURA_RED,
@@ -84,6 +130,14 @@ const SEMANTIC_COLORS: Record<string, string> = {
   'done': GAPURA_GREEN_LIGHT,
 };
 
+/**
+ * Mendapatkan warna semantik berdasarkan nilai
+ * @function getSemanticColor
+ * @param {string | unknown} value - Nilai untuk dicocokkan
+ * @param {number} index - Indeks untuk fallback
+ * @param {string[]} fallbackPalette - Palet warna fallback
+ * @returns {string} Warna yang sesuai
+ */
 function getSemanticColor(value: string | unknown, index: number, fallbackPalette: string[]): string {
   if (typeof value === 'string') {
     const normalized = value.toLowerCase().trim();
@@ -103,6 +157,10 @@ function getSemanticColor(value: string | unknown, index: number, fallbackPalett
   return fallbackPalette[index % fallbackPalette.length];
 }
 
+/**
+ * Style tooltip untuk grafik
+ * @constant {Object} TOOLTIP_STYLE
+ */
 const TOOLTIP_STYLE = {
   backgroundColor: '#ffffff',
   border: '1px solid #e0e0e0',
@@ -111,6 +169,12 @@ const TOOLTIP_STYLE = {
   boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
 };
 
+/**
+ * Komponen tooltip kustom untuk tanggal
+ * @function DateTooltip
+ * @param {Object} props - Props tooltip
+ * @returns {JSX.Element | null} Element React yang berisi tooltip atau null
+ */
 function DateTooltip({ active, payload, label }: { active?: boolean; payload?: Array<{ color?: string; name?: string; value: unknown; payload?: any }>; label?: string }) {
   if (!active || !payload?.length) return null;
   
@@ -135,6 +199,12 @@ function DateTooltip({ active, payload, label }: { active?: boolean; payload?: A
   );
 }
 
+/**
+ * Komponen sel tabel yang dapat diperluas
+ * @function ExpandableTableCell
+ * @param {{content: string}} props - Props untuk konten sel
+ * @returns {JSX.Element} Element React yang berisi sel yang dapat diperluas
+ */
 function ExpandableTableCell({ content }: { content: string }) {
   const [isExpanded, setIsExpanded] = React.useState(false);
   const isLong = content.length > 60;
@@ -158,7 +228,13 @@ function ExpandableTableCell({ content }: { content: string }) {
     </div>
   );
 }
+
 // Custom hook for mobile detection
+/**
+ * Hook untuk mendeteksi tampilan mobile
+ * @function useIsMobile
+ * @returns {boolean} True jika tampilan mobile
+ */
 function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState(false);
 
@@ -172,6 +248,26 @@ function useIsMobile() {
   return isMobile;
 }
 
+/**
+ * Komponen preview grafik
+ * Menampilkan grafik dalam berbagai tipe (bar, line, pie, table, pivot, heatmap, dll.)
+ * Mendukung responsif, mobile, dan berbagai fitur visualisasi
+ * 
+ * @param {ChartPreviewProps} props - Props untuk konfigurasi preview grafik
+ * @returns {JSX.Element} Element React yang berisi preview grafik
+ * 
+ * @example
+ * ```tsx
+ * <ChartPreview 
+ *   visualization={chartConfig}
+ *   result={queryResult}
+ *   compact={false}
+ *   tile={dashboardTile}
+ *   viewMode="values"
+ *   normalization="none"
+ * />
+ * ```
+ */
 export function ChartPreview({ visualization, result, compact = false, tile, dashboardId, viewMode = 'values', normalization = 'none', isThumbnail = false }: ChartPreviewProps) {
   const { colorField, showLabels, colors } = visualization;
   let { chartType } = visualization;
@@ -285,12 +381,12 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
       else if (normalizedC.startsWith(normalizedX) || normalizedX.startsWith(normalizedC)) score = 80;
       else if (normalizedC.includes(normalizedX) || normalizedX.includes(normalizedC)) score = 50;
       
-      // Bonus for name/label columns if the target suggests a name
+      // Bonus for name/label columns if target suggests a name
       if (normalizedX.includes('name') || normalizedX.includes('label') || normalizedX.includes('kategori')) {
         if (normalizedC.includes('name') || normalizedC.includes('label') || normalizedC.includes('nama')) score += 10;
       }
       
-      // Bonus for date/time columns if the target suggests a trend/time
+      // Bonus for date/time columns if target suggests a trend/time
       if (normalizedX.includes('date') || normalizedX.includes('time') || normalizedX.includes('bulan') || normalizedX.includes('month') || normalizedX.includes('tren') || normalizedX.includes('period')) {
         if (normalizedC.includes('date') || normalizedC.includes('time') || normalizedC.includes('tgl') || normalizedC.includes('tanggal') || normalizedC.includes('month') || normalizedC.includes('bulan') || normalizedC.includes('period')) {
           score += 20;
@@ -380,7 +476,7 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
     });
   }
 
-  // If still no Y-axis, use the last column that isn't the X-axis
+  // If still no Y-axis, use the last column that isn't X-axis
   if (activeYKeys.length === 0 && result.columns.length > 1) {
     const lastCol = result.columns[result.columns.length - 1];
     if (lastCol !== activeXKey) {
@@ -399,7 +495,7 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
   const fullData = processChartData(rawData, activeXKey);
   const displayLimit = visualization.displayLimit;
   
-  // For trend charts (date-based X axis), we want the MOST RECENT N items.
+  // For trend charts (date-based X axis), we want to MOST RECENT N items.
   // Since processChartData sorts everything chronologically (oldest to newest),
   // taking the FIRST N items (slice(0, N)) would take the OLDEST data.
   // Instead, we take the LAST N items (slice(-N)) for date-based visualizations.
@@ -426,7 +522,7 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
     let valueKey = colorField && cols.includes(colorField) ? colorField : '';
     
     if (!valueKey) {
-      // Prioritize numeric columns that are NOT the activeXKey
+      // Prioritize numeric columns that are NOT activeXKey
       const candidateValues = numericCols.filter(c => c !== activeXKey);
       if (candidateValues.length > 0) {
         // Prefer columns with names like 'jumlah', 'total', 'count', 'value', 'score'
@@ -439,7 +535,7 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
       }
     }
     
-    // Dimensions should be the categorical ones, excluding the valueKey
+    // Dimensions should be categorical ones, excluding valueKey
     const availableDims = categCols.filter(c => c !== valueKey);
     const dimKeys = availableDims.length >= 2 
       ? availableDims.slice(0, 2) 
@@ -545,11 +641,6 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
             </React.Fragment>
           ))}
         </div>
-        {compact && (rowLabels.length > 10 || colLabels.length > 8) && (
-          <div className="text-[8px] text-slate-400 mt-1 text-center italic italic">
-            Menampilkan {displayRowLabels.length} dari {rowLabels.length} baris...
-          </div>
-        )}
       </div>
     );
   }
@@ -659,11 +750,11 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
       nameKey = stringCols[0] || result.columns[0];
     }
     
-    // Find the best data column for pie chart values (dataKey)
+    // Find best data column for pie chart values (dataKey)
     // Priority: colorField > activeYKeys[0] > numeric columns > fallback
     let dataKey = visualization.colorField || activeYKeys[0];
     
-    // If current dataKey is actually the same as nameKey, it's a configuration error
+    // If current dataKey is actually same as nameKey, it's a configuration error
     if (dataKey === nameKey) dataKey = '';
 
     // If still no dataKey, search through all columns for the best numeric candidate
@@ -703,8 +794,8 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
       dataKey = result.columns.find(c => c !== nameKey) || result.columns[1];
     }
     
-
     
+
   if (!dataKey) {
 
     return (
@@ -727,7 +818,7 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
 
     // Generate descriptive names for segments by combining all dimensions if there are multiples
     const stringCols = result.columns.filter(c => {
-      // Exclude the data key (measure)
+      // Exclude data key (measure)
       if (c === dataKey) return false;
       const val = rawData[0]?.[c];
       return typeof val === 'string' && isNaN(Number(val));
@@ -756,7 +847,6 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
     if (displayLimit && displayLimit > 0) {
         pieData = pieData.slice(0, displayLimit);
     }
-
 
 
     // For compact mode (supporting charts), use legend at bottom and center pie
@@ -1001,8 +1091,7 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
                     const label = String(payload.value);
                     const words = label.split(/\s+/);
                     const lines: string[] = [];
-                    let currentLine = words[0] || '';
-
+                    let currentLine = words[0] || ''; 
                     // Wrap text logic: max ~15 chars per line
                     for (let i = 1; i < words.length; i++) {
                         if ((currentLine + ' ' + words[i]).length < 15) {
@@ -1018,7 +1107,7 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
                     const displayLines = lines.slice(0, 3);
                     if (lines.length > 3) {
                         displayLines[2] += '...';
-                    }
+                    } 
 
                     return (
                       <g transform={`translate(${x},${y})`}>

@@ -1,21 +1,70 @@
-
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen HeatmapChart untuk visualisasi data dalam format heatmap
+ * Mendukung single atau multiple Y-axis dengan warna hijau berdasarkan intensitas nilai
+ */
 
 import { useState, useMemo } from 'react';
 
+/** Warna hijau untuk sel heatmap */
 const HEATMAP_GREEN = '#6b8e3d';
-const HEATMAP_BANNER = '#5a7a3a'; // Darker green for headers
-const HEATMAP_LIGHT = '#e8f5e9'; // Light green for totals
+/** Warna hijau lebih gelap untuk header tabel */
+const HEATMAP_BANNER = '#5a7a3a';
+/** Warna hijau muda untuk total */
+const HEATMAP_LIGHT = '#e8f5e9';
 
+/**
+ * Props untuk komponen HeatmapChart
+ * @interface HeatmapChartProps
+ */
 interface HeatmapChartProps {
+    /** Judul chart */
     title?: string;
+    /** Data dalam format array object */
     data: Record<string, unknown>[];
+    /** Key untuk sumbu X (kolom) */
     xAxis: string;
+    /** Key untuk sumbu Y (baris), bisa single atau multiple */
     yAxis: string | string[];
+    /** Key untuk metrik yang akan divisualisasikan */
     metric: string;
+    /** Callback saat tombol detail diklik */
     onViewDetail?: () => void;
+    /** Tampilkan judul atau tidak */
     showTitle?: boolean;
 }
 
+/**
+ * Komponen HeatmapChart
+ * Menampilkan data dalam format heatmap dengan dukungan single/multiple Y-axis
+ * Warna sel dihitung berdasarkan nilai metrik relatif terhadap nilai maksimum
+ * Mendukung scrolling untuk menampilkan banyak baris data
+ * 
+ * @param {HeatmapChartProps} props - Props komponen
+ * @returns {JSX.Element} Element React heatmap chart
+ * 
+ * @example
+ * ```tsx
+ * <HeatmapChart
+ *   title="Distribusi Laporan"
+ *   data={reportData}
+ *   xAxis="month"
+ *   yAxis="category"
+ *   metric="count"
+ *   onViewDetail={() => router.push('/detail')}
+ * />
+ * 
+ * <HeatmapChart
+ *   title="Multi-Axis Heatmap"
+ *   data={reportData}
+ *   xAxis="month"
+ *   yAxis={['hub', 'branch']}
+ *   metric="count"
+ * />
+ * ```
+ */
 export function HeatmapChart({ 
     title, 
     data, 
@@ -28,16 +77,16 @@ export function HeatmapChart({
     // Support single or multiple yAxis fields
     const yFields = useMemo(() => Array.isArray(yAxis) ? yAxis : [yAxis], [yAxis]);
     const isMultiY = yFields.length > 1;
-
+    
     // 1. Get unique X values (column headers)
     const xValues = useMemo(() => 
         Array.from(new Set(data.map(d => d[xAxis] as string))).filter(Boolean).sort(),
     [data, xAxis]);
-
+    
     // 2. Build row keys from yAxis field(s)
     const SEPARATOR = '|||';
     const parseRowKey = (key: string) => key.split(SEPARATOR);
-
+    
     // 3. Process Data: Build Pivot Map and Calculate Totals
     const { pivotMap, rowKeys, rowTotals, colTotals, grandTotal } = useMemo(() => {
         const getRowKeyInternal = (row: Record<string, unknown>) => yFields.map(f => String(row[f] ?? '')).join(SEPARATOR);
@@ -49,7 +98,7 @@ export function HeatmapChart({
         
         const seenKeys = new Set<string>();
         const rKeys: string[] = [];
-
+        
         // First pass: aggregate data into pivot map
         data.forEach(row => {
             const rk = getRowKeyInternal(row);
@@ -64,7 +113,7 @@ export function HeatmapChart({
         });
 
         // Second pass: calculate totals
-         rKeys.forEach(rk => {
+        rKeys.forEach(rk => {
             let rTotal = 0;
             xValues.forEach(x => {
                 const val = pMap.get(rk)?.get(x) || 0;
@@ -80,11 +129,16 @@ export function HeatmapChart({
 
         return { pivotMap: pMap, rowKeys: rKeys, rowTotals: rTotals, colTotals: cTotals, grandTotal: gTotal };
     }, [data, xAxis, metric, xValues, yFields]);
-
+    
     // Helper for heatmap cell background
     const allVals = rowKeys.flatMap(rk => xValues.map(x => pivotMap.get(rk)?.get(x) || 0));
     const maxVal = Math.max(...allVals, 1);
     
+    /**
+     * Mendapatkan style untuk sel heatmap berdasarkan nilai
+     * @param val - Nilai metrik untuk sel
+     * @returns Style CSS untuk sel heatmap
+     */
     const getCellStyle = (val: number): React.CSSProperties => {
         if (!val) return { textAlign: 'center', padding: '6px 8px', fontSize: 13, color: '#999' };
         // Simpler opacity scale for cleaner look
@@ -98,8 +152,6 @@ export function HeatmapChart({
             color: alpha > 0.4 ? '#fff' : '#333',
         };
     };
-
-
 
     // --- SCROLLING LOGIC (Replacing Pagination) ---
     // We display all rows but within a scrollable container
@@ -285,7 +337,7 @@ export function HeatmapChart({
                     </tfoot>
                 </table>
             </div>
-
+ 
              {/* Pagination removed in favor of scrolling */}
         </div>
     );

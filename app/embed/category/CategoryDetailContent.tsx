@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen untuk menampilkan detail dan distribusi laporan per kategori
+ */
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -9,6 +16,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie
 } from 'recharts';
 
+/**
+ * Interface untuk data laporan
+ */
 interface Report {
   id: string;
   title: string;
@@ -20,18 +30,29 @@ interface Report {
   created_at: string;
 }
 
+/**
+ * Interface untuk response API laporan
+ */
 interface ReportsResponse {
   summary: { total: number; byStatus: Record<string, number>; bySeverity: Record<string, number> };
   reports: Report[];
 }
 
+/** Warna chart untuk berbagai kategori */
 const CHART_COLORS = ['#60a5fa', '#a78bfa', '#34d399', '#fbbf24', '#f87171'];
+
+/** Mapping status dengan label dan class CSS */
 const STATUS_MAP: Record<string, { label: string; class: string }> = {
   'OPEN': { label: 'Open', class: 'pending' },
   'ON PROGRESS': { label: 'Dalam Proses', class: 'verified' },
   'CLOSED': { label: 'Selesai', class: 'completed' }
 };
 
+/**
+ * Komponen untuk menampilkan detail dan distribusi laporan per kategori
+ * Menampilkan chart per kategori dan per area, serta daftar laporan
+ * @returns JSX element berisi distribusi kategori
+ */
 export function CategoryDetailContent() {
   const searchParams = useSearchParams();
   const range = searchParams.get('range') || '7d';
@@ -40,23 +61,36 @@ export function CategoryDetailContent() {
   const [data, setData] = useState<ReportsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   
-  const fetchData = useCallback(async () => {
+  /**
+   * Mengambil data laporan dari API
+   * @param signal - AbortSignal untuk membatalkan request
+   */
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
       const url = categoryName 
         ? `/api/embed/reports?range=${range}&category=${encodeURIComponent(categoryName)}`
         : `/api/embed/reports?range=${range}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { signal });
       setData(await res.json());
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
     } finally {
       setLoading(false);
     }
   }, [range, categoryName]);
   
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    fetchData(signal);
+    const interval = setInterval(() => fetchData(signal), 30000);
+
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, [fetchData]);
   
   if (loading && !data) {

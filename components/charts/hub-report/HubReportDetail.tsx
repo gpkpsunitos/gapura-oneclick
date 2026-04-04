@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
+import { Zap, Filter, Download, ArrowUp, ArrowDown, Minus } from 'lucide-react';
+import { saveAs } from 'file-saver';
 import {
   fetchHubSummary,
   fetchMonthlyTrendByHub,
@@ -24,48 +27,11 @@ import {
 } from './data';
 import { fetchHubRiskAnalysis, HubRiskSummaryResponse } from '@/lib/services/gapura-ai';
 import { HubAiRiskVisualization } from './HubAiRiskVisualization';
-import { barLabelsPlugin } from '../chartConfig';
-import { Bar, Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
-import { 
-  ArrowUp, 
-  ArrowDown, 
-  Minus, 
-  Download, 
-  Filter, 
-  Zap,
-  Brain,
-} from 'lucide-react';
-import { saveAs } from 'file-saver';
+import { BarChart, Bar as RechartsBar, LineChart, Line as RechartsLine, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer, LabelList } from 'recharts';
 import { InvestigativeTable } from '@/components/chart-detail/InvestigativeTable';
 import { DataTableWithPagination } from '@/components/chart-detail/DataTableWithPagination';
 import { AiRootCauseInvestigation } from '../ai-root-cause/AiRootCauseInvestigation';
-import { motion } from 'framer-motion';
 import type { QueryResult } from '@/types/builder';
-import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer, LabelList } from 'recharts';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
 
 interface FilterParams {
   hub?: string;
@@ -96,14 +62,14 @@ function KPICard({ title, value, subtitle, trend, color = 'blue', explanation }:
   };
 
   return (
-    <motion.div 
+    <motion.div
       whileHover={{ y: -4, scale: 1.01 }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className={`relative overflow-hidden p-5 rounded-prism border ${colorClasses[color]} transition-all duration-300 isolate group`}
     >
       <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }} />
       <div className="absolute -inset-24 bg-gradient-to-br from-white/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl pointer-events-none" />
-      
+
       <div className="relative z-10">
         <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1.5">{title}</div>
         <div className="text-3xl font-display font-black tracking-tighter leading-none mb-1">{value}</div>
@@ -224,87 +190,45 @@ function HubRankTable({ data }: { data: HubSummary[] }) {
 }
 
 function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
-  const chartData = {
-    labels: data.map(d => d.month),
-    datasets: [
-      {
-        label: 'Total',
-        data: data.map(d => d.total),
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: 'Irregularity',
-        data: data.map(d => d.Irregularity),
-        borderColor: '#ef4444',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: 'Complaint',
-        data: data.map(d => d.Complaint),
-        borderColor: '#f97316',
-        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-    ],
-  };
+  const rechartsData = data.map(d => ({ name: d.month, Total: d.total, Irregularity: d.Irregularity, Complaint: d.Complaint }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { usePointStyle: true, padding: 20, font: { size: 11 } },
-      },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-      y: { 
-        grid: { color: 'rgba(0,0,0,0.05)' }, 
-        ticks: { font: { size: 10 } },
-        suggestedMax: data.length > 0 ? Math.max(...data.map(d => Math.max(d.Irregularity, d.Complaint))) * 1.2 : undefined
-      },
-    },
-  };
-
-  return <div className="h-[250px]"><Line data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[250px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 11 }} />
+          <RechartsTooltip />
+          <RechartsLegend />
+          <RechartsLine type="monotone" dataKey="Total" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+          <RechartsLine type="monotone" dataKey="Irregularity" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
+          <RechartsLine type="monotone" dataKey="Complaint" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 function CategoryStackedBar({ data }: { data: HubCategoryData[] }) {
-  const chartData = {
-    labels: data.slice(0, 10).map(d => d.hub.split(' ')),
-    datasets: [
-      { label: 'Irregularity', data: data.slice(0, 10).map(d => d.Irregularity), backgroundColor: '#ef4444', borderRadius: 4 },
-      { label: 'Complaint', data: data.slice(0, 10).map(d => d.Complaint), backgroundColor: '#f97316', borderRadius: 4 },
-      { label: 'Compliment', data: data.slice(0, 10).map(d => d.Compliment), backgroundColor: '#22c55e', borderRadius: 4 },
-    ],
-  };
+  const rechartsData = data.slice(0, 10).map(d => ({ name: d.hub, Irregularity: d.Irregularity, Complaint: d.Complaint, Compliment: d.Compliment }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: {
-      legend: { position: 'bottom' as const, labels: { usePointStyle: true, padding: 15, font: { size: 10 } } },
-    },
-    scales: {
-      x: { stacked: false, grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { 
-        stacked: false, 
-        grid: { color: 'rgba(0,0,0,0.05)' }, 
-        ticks: { font: { size: 10 } },
-        suggestedMax: data.length > 0 ? Math.max(...data.slice(0, 10).map(d => Math.max(d.Irregularity, d.Complaint, d.Compliment))) * 1.15 : undefined 
-      },
-    },
-  };
-
-  return <div className="h-[300px]"><Bar data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
+          <YAxis tick={{ fontSize: 11 }} />
+          <RechartsTooltip />
+          <RechartsLegend />
+          <RechartsBar dataKey="Irregularity" fill="#ef4444" radius={[4,4,0,0]} />
+          <RechartsBar dataKey="Complaint" fill="#f97316" radius={[4,4,0,0]} />
+          <RechartsBar dataKey="Compliment" fill="#22c55e" radius={[4,4,0,0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 
@@ -319,31 +243,21 @@ function AirlineBreakdownChart({ data }: { data: AirlineByHubData[] }) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
 
-  const chartData = {
-    labels: topAirlines.map(([airline]) => airline.split(' ')),
-    datasets: [
-      {
-        label: 'Reports',
-        data: topAirlines.map(([, count]) => count),
-        backgroundColor: '#3b82f6',
-        borderRadius: 4,
-      },
-    ],
-  };
+  const rechartsData = topAirlines.map(([airline, count]) => ({ name: airline, Reports: count }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } },
-           suggestedMax: topAirlines.length > 0 ? Math.max(...topAirlines.map(d => d[1])) * 1.15 : undefined },
-    },
-  };
-
-  return <div className="h-[300px]"><Bar data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
+          <YAxis tick={{ fontSize: 11 }} />
+          <RechartsTooltip />
+          <RechartsBar dataKey="Reports" fill="#3b82f6" radius={[4,4,0,0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 function AreaBreakdownChart({ data }: { data: AreaByHubData[] }) {
@@ -355,28 +269,21 @@ function AreaBreakdownChart({ data }: { data: AreaByHubData[] }) {
     }, new Map<string, number>())
   ).sort((a, b) => b[1] - a[1]);
 
-  const chartData = {
-    labels: areaTotals.map(([area]) => area.split(' ')),
-    datasets: [
-      {
-        label: 'Reports',
-        data: areaTotals.map(([, count]) => count),
-        backgroundColor: ['#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899'].slice(0, areaTotals.length),
-        borderRadius: 4,
-      },
-    ],
-  };
+  const rechartsData = areaTotals.map(([area, count]) => ({ name: area, Reports: count }));
 
-  const options = {
-    indexAxis: 'x' as const,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
-
-  return <div className="h-[300px]"><Bar data={chartData} options={options} /></div>;
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
+          <YAxis tick={{ fontSize: 11 }} />
+          <RechartsTooltip />
+          <RechartsBar dataKey="Reports" fill="#8b5cf6" radius={[4,4,0,0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 function DataTable({ data }: { data: HubReportRecord[] }) {
@@ -573,21 +480,23 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
   const [loading, setLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hubData, setHubData] = useState<HubSummary[]>([]);
-  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
-  const [categoryData, setCategoryData] = useState<HubCategoryData[]>([]);
-  const [rootCauseData, setRootCauseData] = useState<RootCauseByHubData[]>([]);
-  const [airlineData, setAirlineData] = useState<AirlineByHubData[]>([]);
-  const [areaData, setAreaData] = useState<AreaByHubData[]>([]);
-  const [tableData, setTableData] = useState<HubReportRecord[]>([]);
-  const [kpis, setKpis] = useState<HubKPIs | null>(null);
-  const [categoryDistribution, setCategoryDistribution] = useState<HubCategoryDistribution[]>([]);
-  const [hubRiskAnalysis, setHubRiskAnalysis] = useState<HubRiskSummaryResponse | null>(null);
   const [riskLoading, setRiskLoading] = useState(true);
   const [riskError, setRiskError] = useState<string | null>(null);
+  const [chartData, setChartData] = useState({
+    hubData: [] as HubSummary[],
+    trendData: [] as TrendDataPoint[],
+    categoryData: [] as HubCategoryData[],
+    rootCauseData: [] as RootCauseByHubData[],
+    airlineData: [] as AirlineByHubData[],
+    areaData: [] as AreaByHubData[],
+    tableData: [] as HubReportRecord[],
+    kpis: null as HubKPIs | null,
+    categoryDistribution: [] as HubCategoryDistribution[],
+    hubRiskAnalysis: null as HubRiskSummaryResponse | null,
+  });
 
   const investigativeData: QueryResult = useMemo(() => {
-    const rows = tableData as unknown as Record<string, unknown>[];
+    const rows = chartData.tableData as unknown as Record<string, unknown>[];
     const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
     return {
@@ -596,10 +505,10 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
       rowCount: rows.length,
       executionTimeMs: 0,
     };
-  }, [tableData]);
+  }, [chartData.tableData]);
 
   const fullTableData: QueryResult = useMemo(() => {
-    const rows = hubData.map(item => ({ ...item })) as unknown as Record<string, unknown>[];
+    const rows = chartData.hubData.map(item => ({ ...item })) as unknown as Record<string, unknown>[];
     const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
     return {
@@ -608,7 +517,7 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
       rowCount: rows.length,
       executionTimeMs: 0,
     };
-  }, [hubData]);
+  }, [chartData.hubData]);
 
   // Deferred loading for heavy data
   useEffect(() => {
@@ -620,16 +529,19 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
       try {
         const aggregated = await fetchAggregatedHubReport(filters);
         if (aggregated && aggregated.hubData) {
-          setHubData(aggregated.hubData);
-          setTrendData(aggregated.trendData || []);
-          setCategoryData((aggregated.hubData || []).map(h => ({
-            hub: h.hub,
-            Irregularity: h.irregularity,
-            Complaint: h.complaint,
-            Compliment: h.compliment
-          })));
-          setKpis(aggregated.kpis);
-          setCategoryDistribution(aggregated.categoryDistribution || []);
+          setChartData(prev => ({
+            ...prev,
+            hubData: aggregated.hubData,
+            trendData: aggregated.trendData || [],
+            categoryData: (aggregated.hubData || []).map(h => ({
+              hub: h.hub,
+              Irregularity: h.irregularity,
+              Complaint: h.complaint,
+              Compliment: h.compliment
+            })),
+            kpis: aggregated.kpis,
+            categoryDistribution: aggregated.categoryDistribution || [],
+          }));
         } else {
           throw new Error('Invalid aggregated data received');
         }
@@ -655,10 +567,13 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
           fetchAllHubReports(filters),
         ]);
  
-        setRootCauseData(rootCause);
-        setAirlineData(airline);
-        setAreaData(area);
-        setTableData(table);
+         setChartData(prev => ({
+           ...prev,
+           rootCauseData: rootCause,
+           airlineData: airline,
+           areaData: area,
+           tableData: table,
+         }));
       } catch (err) {
         if ((err as any).name === 'AbortError') return;
         console.warn('Deferred data failed to load:', err);
@@ -679,7 +594,7 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
         if (controller.signal.aborted) return;
 
         if (data) {
-          setHubRiskAnalysis(data);
+          setChartData(prev => ({ ...prev, hubRiskAnalysis: data }));
         } else {
           setRiskError('Failed to load risk analysis data');
         }
@@ -722,51 +637,51 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
     );
   }
 
-  const totalReports = hubData.reduce((sum: number, h: any) => sum + h.total, 0);
-  const totalIrreg = hubData.reduce((sum: number, h: any) => sum + h.irregularity, 0);
-  const totalComplaint = hubData.reduce((sum: number, h: any) => sum + h.complaint, 0);
-  const totalCompliment = hubData.reduce((sum: number, h: any) => sum + h.compliment, 0);
+  const totalReports = chartData.hubData.reduce((sum: number, h: any) => sum + h.total, 0);
+  const totalIrreg = chartData.hubData.reduce((sum: number, h: any) => sum + h.irregularity, 0);
+  const totalComplaint = chartData.hubData.reduce((sum: number, h: any) => sum + h.complaint, 0);
+  const totalCompliment = chartData.hubData.reduce((sum: number, h: any) => sum + h.compliment, 0);
 
   return (
     <div className="space-y-8">
       {/* Auto-Insight Block */}
-      <AutoInsight data={hubData} />
+      <AutoInsight data={chartData.hubData} />
 
       {/* AI Hub Risk Visualization */}
       <HubAiRiskVisualization 
-        data={hubRiskAnalysis} 
+        data={chartData.hubRiskAnalysis} 
         isLoading={riskLoading} 
         error={riskError} 
       />
 
       {/* Enhanced KPI Cards - 5 custom KPIs */}
-      {kpis && (
+      {chartData.kpis && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <KPICard title="Total Hubs" value={kpis.totalHubs} color="blue" explanation="Jumlah hub yang dipantau dalam laporan ini." />
+          <KPICard title="Total Hubs" value={chartData.kpis.totalHubs} color="blue" explanation="Jumlah hub yang dipantau dalam laporan ini." />
           <KPICard
             title="Top Performer"
-            value={kpis.topPerformer.name}
-            subtitle={`${kpis.topPerformer.count} reports`}
+            value={chartData.kpis.topPerformer.name}
+            subtitle={`${chartData.kpis.topPerformer.count} reports`}
             color="green"
             explanation="Hub dengan jumlah laporan terendah (Kinerja Terbaik)." 
           />
           <KPICard
             title="Worst Performer"
-            value={kpis.worstPerformer.name}
-            subtitle={`${kpis.worstPerformer.count} reports`}
+            value={chartData.kpis.worstPerformer.name}
+            subtitle={`${chartData.kpis.worstPerformer.count} reports`}
             color="red"
             explanation="Hub dengan jumlah laporan tertinggi (Perlu Perhatian)." 
           />
           <KPICard
             title="Avg Reports/Hub"
-            value={kpis.avgReportsPerHub}
+            value={chartData.kpis.avgReportsPerHub}
             color="yellow"
             explanation="Rata-rata laporan per hub pada periode ini." 
           />
           <KPICard
             title="MoM Change"
-            value={kpis.momChange > 0 ? `+${kpis.momChange}%` : `${kpis.momChange}%`}
-            trend={kpis.momChange}
+            value={chartData.kpis.momChange > 0 ? `+${chartData.kpis.momChange}%` : `${chartData.kpis.momChange}%`}
+            trend={chartData.kpis.momChange}
             color="blue"
             explanation="Perubahan bulan-ke-bulan pada jumlah laporan hub." 
           />
@@ -776,15 +691,15 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
       {/* Hub Ranking Table */}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Hub Performance Ranking</h2>
-        <HubRankTable data={hubData} />
+        <HubRankTable data={chartData.hubData} />
       </section>
 
       {/* Category Distribution Stacked Bar Chart */}
-      {categoryDistribution.length > 0 && (
+      {chartData.categoryDistribution.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Category Distribution per Hub (Top 10)</h2>
           <ResponsiveContainer width="100%" height={400}>
-            <RechartsBarChart data={categoryDistribution.slice(0, 10)} layout="vertical">
+            <BarChart data={chartData.categoryDistribution.slice(0, 10)} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" />
               <YAxis dataKey="hub" type="category" width={100} />
@@ -799,7 +714,7 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
               <RechartsBar dataKey="compliment" fill="#22c55e" name="Compliment">
                 <LabelList dataKey="compliment" position="right" style={{ fill: '#22c55e', fontSize: '10px', fontWeight: 'bold' }} />
               </RechartsBar>
-            </RechartsBarChart>
+            </BarChart>
           </ResponsiveContainer>
         </section>
       )}
@@ -807,13 +722,13 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
       {/* Monthly Trend */}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Monthly Trend Analysis</h2>
-        <MonthlyTrendChart data={trendData} />
+        <MonthlyTrendChart data={chartData.trendData} />
       </section>
 
       {/* Category Composition */}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Category Composition by Hub</h2>
-        <CategoryStackedBar data={categoryData} />
+        <CategoryStackedBar data={chartData.categoryData} />
       </section>
 
       {/* AI Root Cause Investigation - Full Width */}
@@ -844,16 +759,16 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Airline Distribution</h2>
-          <AirlineBreakdownChart data={airlineData} />
+          <AirlineBreakdownChart data={chartData.airlineData} />
         </section>
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Area Breakdown</h2>
-          <AreaBreakdownChart data={areaData} />
+          <AreaBreakdownChart data={chartData.areaData} />
         </section>
       </div>
 
       {/* Management Summary */}
-      <ManagementSummary data={hubData} />
+      <ManagementSummary data={chartData.hubData} />
 
       {/* Investigative Table */}
       <InvestigativeTable

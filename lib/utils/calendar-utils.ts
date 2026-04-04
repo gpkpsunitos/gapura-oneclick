@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi fungsi utilitas untuk penanganan tanggal, perulangan event, dan format calendar
+ */
+
 import { addDays } from 'date-fns/addDays';
 import { addWeeks } from 'date-fns/addWeeks';
 import { addMonths } from 'date-fns/addMonths';
@@ -10,12 +17,17 @@ import { set } from 'date-fns/set';
 import { CalendarEvent, RecurrencePattern } from '@/types';
 
 /**
- * Generate array of ISO date strings for recurring events
- * @param startDate - Start date in ISO format
- * @param endDate - End date in ISO format
- * @param pattern - Recurrence pattern (daily, weekly, monthly)
- * @param maxOccurrences - Maximum number of occurrences (default: 365)
- * @returns Array of date strings in YYYY-MM-DD format
+ * Menghasilkan array string tanggal ISO untuk event yang berulang
+ * @param {string} startDate - Tanggal mulai dalam format ISO
+ * @param {string} endDate - Tanggal akhir dalam format ISO
+ * @param {RecurrencePattern} pattern - Pola perulangan (daily, weekly, monthly)
+ * @param {number} maxOccurrences - Jumlah maksimum kejadian (default: 365)
+ * @returns {string[]} Array tanggal dalam format YYYY-MM-DD
+ * @example
+ * ```ts
+ * const dates = generateRecurringDates('2024-01-01', '2024-01-31', 'weekly');
+ * // ['2024-01-01', '2024-01-08', '2024-01-15', '2024-01-22', '2024-01-29']
+ * ```
  */
 export function generateRecurringDates(
   startDate: string,
@@ -59,11 +71,15 @@ export function generateRecurringDates(
 }
 
 /**
- * Calculate total occurrences for a recurring event
- * @param startDate - Start date in ISO format
- * @param endDate - End date in ISO format
- * @param pattern - Recurrence pattern
- * @returns Total number of occurrences
+ * Menghitung jumlah kejadian total untuk event yang berulang
+ * @param {string} startDate - Tanggal mulai dalam format ISO
+ * @param {string} endDate - Tanggal akhir dalam format ISO
+ * @param {RecurrencePattern} pattern - Pola perulangan
+ * @returns {number} Total jumlah kejadian
+ * @example
+ * ```ts
+ * calculateOccurrences('2024-01-01', '2024-01-31', 'daily'); // 31
+ * ```
  */
 export function calculateOccurrences(
   startDate: string,
@@ -98,9 +114,15 @@ export function calculateOccurrences(
 }
 
 /**
- * Validate URL format
- * @param url - URL string to validate
- * @returns true if valid or empty, false otherwise
+ * Memvalidasi format URL
+ * @param {string} url - String URL yang akan divalidasi
+ * @returns {boolean} true jika valid atau kosong, false jika tidak valid
+ * @example
+ * ```ts
+ * isValidUrl('https://example.com'); // true
+ * isValidUrl('invalid-url'); // false
+ * isValidUrl(''); // true (kosong)
+ * ```
  */
 export function isValidUrl(url: string): boolean {
   // Empty or null URLs are valid (optional field)
@@ -117,9 +139,19 @@ export function isValidUrl(url: string): boolean {
 }
 
 /**
- * Format calendar event for display in calendar component
- * @param event - Calendar event object
- * @returns Formatted event object with Date objects
+ * Memformat event calendar untuk ditampilkan di komponen calendar
+ * @param {CalendarEvent} event - Objek event calendar
+ * @returns {object} Objek event yang diformat dengan objek Date
+ * @example
+ * ```ts
+ * const formatted = formatEventForCalendar({
+ *   id: '1',
+ *   title: 'Meeting',
+ *   event_date: '2024-01-01',
+ *   event_time: '14:00'
+ * });
+ * // { id: '1', title: 'Meeting', start: Date, end: Date, allDay: false, resource: {...} }
+ * ```
  */
 export function formatEventForCalendar(event: CalendarEvent): {
   id: string;
@@ -156,11 +188,19 @@ export function formatEventForCalendar(event: CalendarEvent): {
 }
 
 /**
- * Validate recurring date range
- * @param startDate - Start date in ISO format
- * @param endDate - End date in ISO format
- * @param maxDurationDays - Maximum duration in days (default: 365)
- * @returns Validation result object
+ * Memvalidasi range tanggal perulangan
+ * @param {string} startDate - Tanggal mulai dalam format ISO
+ * @param {string} endDate - Tanggal akhir dalam format ISO
+ * @param {number} maxDurationDays - Durasi maksimum dalam hari (default: 365)
+ * @returns {object} Objek hasil validasi
+ * @example
+ * ```ts
+ * const result = validateRecurringDateRange('2024-01-01', '2024-12-31');
+ * // { valid: true }
+ * 
+ * const result2 = validateRecurringDateRange('2024-12-31', '2024-01-01');
+ * // { valid: false, error: 'End date must be after start date' }
+ * ```
  */
 export function validateRecurringDateRange(
   startDate: string,

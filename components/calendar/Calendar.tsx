@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { Calendar as BigCalendar, dateFnsLocalizer, View } from 'react-big-calendar';
 import { format } from 'date-fns';
 import { parse } from 'date-fns/parse';
@@ -22,6 +22,23 @@ const localizer = dateFnsLocalizer({
   startOfWeek,
   getDay,
   locales,
+});
+
+const EventComponent = React.memo(({ event }: { event: { title: string; resource: CalendarEvent } }) => {
+    const calEvent = event.resource;
+    return (
+      <div className="flex items-center gap-1 overflow-hidden">
+        <span className="truncate flex-1">{event.title}</span>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
+          {calEvent.is_recurring && (
+            <Repeat className="w-3 h-3 text-[oklch(0.90_0.05_280)]" />
+          )}
+          {calEvent.meeting_minutes_link && (
+            <FileText className="w-3 h-3 text-[oklch(0.90_0.05_200)]" />
+          )}
+        </div>
+      </div>
+    );
 });
 
 interface CalendarProps {
@@ -51,32 +68,27 @@ export function Calendar({
     return events.map(formatEventForCalendar);
   }, [events]);
 
-  const EventComponent = ({ event }: { event: { title: string; resource: CalendarEvent } }) => {
-    const calEvent = event.resource;
-
-    return (
-      <div className="flex items-center gap-1 overflow-hidden">
-        <span className="truncate flex-1">{event.title}</span>
-        <div className="flex items-center gap-0.5 flex-shrink-0">
-          {calEvent.is_recurring && (
-            <Repeat className="w-3 h-3 text-[oklch(0.90_0.05_280)]" />
-          )}
-          {calEvent.meeting_minutes_link && (
-            <FileText className="w-3 h-3 text-[oklch(0.90_0.05_200)]" />
-          )}
-        </div>
-      </div>
-    );
-  };
-
   const handleEventDrop = useCallback(async (event: any) => {
     const newDate = format(event.start, 'yyyy-MM-dd');
     await onEventDrop(event.resource.id, newDate);
   }, [onEventDrop]);
 
-  const handleSelectEvent = (event: any) => {
+  const handleSelectEvent = useCallback((event: any) => {
     onSelectEvent(event.resource);
-  };
+  }, [onSelectEvent]);
+
+  const height = useMemo(() => {
+    switch (currentView) {
+      case 'day':
+        return 600;
+      case 'week':
+        return 500;
+      case 'agenda':
+        return 400;
+      default:
+        return 600;
+    }
+  }, [currentView]);
 
   if (loading) {
     return (
@@ -88,19 +100,6 @@ export function Calendar({
       </div>
     );
   }
-
-  const getHeight = () => {
-    switch (currentView) {
-      case 'day':
-        return 600;
-      case 'week':
-        return 500;
-      case 'agenda':
-        return 400;
-      default:
-        return 600;
-    }
-  };
 
   const calendarProps: any = {
     localizer,
@@ -123,7 +122,7 @@ export function Calendar({
     components: {
       event: EventComponent,
     },
-    style: { height: getHeight() },
+    style: { height },
     step: 30,
     timeslots: 2,
     min: new Date(0, 0, 0, 0, 0, 0),

@@ -29,12 +29,7 @@ export async function GET(request: Request) {
         // Fetch manager station when needed
         let stationFilter: string | null = null;
         if (!isSuper && payload.role === 'MANAGER_CABANG') {
-            const { data: mgr } = await client
-                .from('users')
-                .select('station_id')
-                .eq('id', payload.id)
-                .single();
-            stationFilter = mgr?.station_id || null;
+            stationFilter = payload.station_id || null;
             if (!stationFilter) {
                 return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
             }
@@ -45,11 +40,11 @@ export async function GET(request: Request) {
         let query = client
             .from('users')
             .select(`
-        *,
-        stations:station_id (code, name),
-        units:unit_id (name),
-        positions:position_id (name)
-      `)
+            id, email, full_name, nik, phone, role, division, status, station_id, unit_id, position_id, avatar_url, created_at, updated_at,
+            stations:station_id (code, name),
+            units:unit_id (name),
+            positions:position_id (name)
+        `)
             .order('created_at', { ascending: false });
 
         if (status) {
@@ -64,7 +59,9 @@ export async function GET(request: Request) {
 
         if (error) throw error;
 
-        return NextResponse.json(data);
+        return NextResponse.json(data, {
+            headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+        });
     } catch (error) {
         console.error('Error fetching users:', error);
         return NextResponse.json({ error: 'Gagal memuat users' }, { status: 500 });
@@ -126,12 +123,7 @@ export async function POST(request: Request) {
                 return NextResponse.json({ error: 'station_id wajib untuk admin' }, { status: 400 });
             }
         } else if (isManager) {
-            const { data: mgr } = await supabaseAdmin
-                .from('users')
-                .select('station_id')
-                .eq('id', payload.id)
-                .single();
-            targetStationId = mgr?.station_id || null;
+            targetStationId = payload.station_id || null;
             if (!targetStationId) {
                 return NextResponse.json({ error: 'Station manager tidak ditemukan' }, { status: 403 });
             }
@@ -194,10 +186,14 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Gagal membuat user' }, { status: 500 });
         }
 
+        // TODO: Send tempPassword to user via secure channel (email) instead of API response
+        // For now, return success without exposing the password in the response body
+        console.log(`[ADMIN] User created: ${email}. Temporary credentials have been generated.`);
         return NextResponse.json({
             success: true,
             message: activate ? 'User dibuat dan diaktifkan' : 'User dibuat, status pending',
-            temporaryPassword: tempPassword,
+            // temporaryPassword is intentionally not returned in the response
+            // It should be communicated to the user via email or another secure channel
         });
     } catch (error) {
         console.error('Create user error:', error);
@@ -267,20 +263,15 @@ export async function PATCH(request: Request) {
                 return NextResponse.json({ error: 'Not allowed' }, { status: 403 });
             }
             // Verify target user belongs to same station and is STAFF_CABANG
-            const { data: mgr } = await supabaseAdmin
-                .from('users')
-                .select('station_id')
-                .eq('id', payload.id)
-                .single();
             const { data: target } = await supabaseAdmin
                 .from('users')
                 .select('station_id, role')
                 .eq('id', userId)
                 .single();
-            if (!mgr?.station_id || !target) {
+            if (!payload.station_id || !target) {
                 return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
             }
-            if (mgr.station_id !== target.station_id || target.role !== 'STAFF_CABANG') {
+            if (payload.station_id !== target.station_id || target.role !== 'STAFF_CABANG') {
                 return NextResponse.json({ error: 'Can only manage STAFF_CABANG in your station' }, { status: 403 });
             }
             const { error } = await supabaseAdmin

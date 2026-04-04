@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import { RefreshCw, Loader2, Search, Filter, ChevronDown, AlertTriangle, Link as LinkIcon, ExternalLink, Copy, X } from 'lucide-react';
@@ -43,6 +43,46 @@ const AnalystCharts = dynamic(
 interface DivisionAnalystDashboardProps {
   division: DivisionConfig;
   enforceDivisionScope?: boolean;
+}
+
+type DashboardView = 'dashboard' | 'reports';
+
+interface ExecutiveShortcutConfig {
+  label: string;
+  href: string;
+  gradientClass: string;
+  shadowClass: string;
+  icon: ReactNode;
+  sourceBadge?: 'OT' | 'UQ';
+}
+
+function ExecutiveShortcutButton({
+  shortcut,
+  onNavigate,
+}: {
+  shortcut: ExecutiveShortcutConfig;
+  onNavigate: (href: string) => void;
+}) {
+  return (
+    <button
+      onClick={() => onNavigate(shortcut.href)}
+      className={`group flex min-h-[68px] w-full items-center justify-between gap-3 rounded-[22px] px-4 py-3 text-left text-white transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.98] shadow-lg ${shortcut.gradientClass} ${shortcut.shadowClass}`}
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/12">
+          {shortcut.icon}
+        </span>
+        <span className="truncate text-sm font-bold tracking-tight sm:text-[15px]">
+          {shortcut.label}
+        </span>
+      </div>
+      {shortcut.sourceBadge && (
+        <span className="inline-flex shrink-0 items-center rounded-full border border-white/20 bg-white/14 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white/92">
+          {shortcut.sourceBadge}
+        </span>
+      )}
+    </button>
+  );
 }
 
 export function DivisionAnalystDashboard({
@@ -97,9 +137,10 @@ export function DivisionAnalystDashboard({
       else setLoading(true);
 
       try {
-        const [reportsRes, analyticsRes] = await Promise.all([
+        const [reportsRes, analyticsRes, dbRes] = await Promise.all([
           fetch('/api/admin/reports'),
           fetch('/api/admin/analytics'),
+          fetch('/api/dashboards'),
         ]);
 
         if (reportsRes.ok) {
@@ -110,8 +151,6 @@ export function DivisionAnalystDashboard({
           const data = await analyticsRes.json();
           setAnalytics(data);
         }
-
-        const dbRes = await fetch('/api/dashboards');
         if (dbRes.ok) {
           const data = await dbRes.json();
           setSavedDashboards(data.dashboards || []);
@@ -227,12 +266,22 @@ export function DivisionAnalystDashboard({
         (r.flight_number || '').toLowerCase().includes(s);
     });
   }, [reports, listFilter, listSeverity, listSearch, division.code, enforceDivisionScope, view]);
-  const setView = (v: 'dashboard' | 'reports') => {
-    const basePath = `/dashboard/${division.code.toLowerCase()}`;
-    const sp = new URLSearchParams(searchParams.toString());
-    sp.set('view', v);
-    router.replace(`${basePath}?${sp.toString()}`);
-  };
+  const setView = useCallback(
+    (nextView: DashboardView) => {
+      const basePath = `/dashboard/${division.code.toLowerCase()}`;
+      const sp = new URLSearchParams(searchParams.toString());
+
+      if (nextView === 'reports') {
+        sp.set('view', 'reports');
+      } else {
+        sp.delete('view');
+      }
+
+      const query = sp.toString();
+      router.push(query ? `${basePath}?${query}` : basePath);
+    },
+    [division.code, router, searchParams]
+  );
 
   // Reset visible count when filter/search/view changes
   useEffect(() => {
@@ -789,6 +838,167 @@ export function DivisionAnalystDashboard({
     return calculateComparisonData(filteredReports);
   }, [filteredReports]);
 
+  const isOpDivision = division.code === 'OP';
+
+  const handleExecutiveShortcutNavigation = useCallback(
+    (href: string) => {
+      router.push(href);
+    },
+    [router]
+  );
+
+  const executiveShortcuts = useMemo<ExecutiveShortcutConfig[]>(
+    () => [
+      {
+        label: 'Complaint per Category',
+        href: '/dashboard/op/complaint-by-category',
+        gradientClass: 'bg-gradient-to-br from-amber-500 to-orange-600',
+        shadowClass: 'shadow-orange-500/25 hover:shadow-orange-500/35',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M16 2v4" />
+            <path d="M8 2v4" />
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M3 10h18" />
+          </svg>
+        ),
+      },
+      {
+        label: 'Risk & Severity',
+        href: '/dashboard/op/risk-severity',
+        gradientClass: 'bg-gradient-to-br from-rose-500 to-red-600',
+        shadowClass: 'shadow-rose-500/25 hover:shadow-rose-500/35',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+            <path d="m21 18-8-14-8 14Z" />
+          </svg>
+        ),
+      },
+      {
+        label: 'Top Irregularity & Complaint',
+        href: '/dashboard/op/irregularity-complaint-top-cases',
+        gradientClass: 'bg-gradient-to-br from-emerald-500 to-teal-600',
+        shadowClass: 'shadow-emerald-500/25 hover:shadow-emerald-500/35',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18" />
+            <path d="M18 17V9" />
+            <path d="M13 17V5" />
+            <path d="M8 17v-3" />
+          </svg>
+        ),
+      },
+      {
+        label: 'Root Cause Dominan',
+        href: '/dashboard/op/root-cause-dominant',
+        gradientClass: 'bg-gradient-to-br from-violet-500 to-indigo-600',
+        shadowClass: 'shadow-violet-500/25 hover:shadow-violet-500/35',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 6v6l4 2" />
+          </svg>
+        ),
+      },
+      {
+        label: 'Status Case',
+        href: '/dashboard/op/case-status',
+        gradientClass: 'bg-gradient-to-br from-cyan-500 to-sky-600',
+        shadowClass: 'shadow-cyan-500/25 hover:shadow-cyan-500/35',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M12 7v5l3 3" />
+          </svg>
+        ),
+      },
+      {
+        label: 'SLA Compliance',
+        href: '/dashboard/op/sla-compliance',
+        gradientClass: 'bg-gradient-to-br from-fuchsia-500 to-pink-600',
+        shadowClass: 'shadow-fuchsia-500/25 hover:shadow-fuchsia-500/35',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9" />
+            <polyline points="12 7 12 12 15 15" />
+          </svg>
+        ),
+      },
+      {
+        label: 'Logistik Irregularity',
+        href: '/dashboard/op/cargo-irregularity',
+        gradientClass: 'bg-gradient-to-br from-amber-600 to-yellow-600',
+        shadowClass: 'shadow-amber-500/25 hover:shadow-amber-500/35',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="9" rx="1" />
+            <path d="M14 3h7v5h-7z" />
+            <path d="M14 12h7v9h-7z" />
+          </svg>
+        ),
+      },
+      {
+        label: 'Joumpa Handling',
+        href: '/dashboard/op/joumpa',
+        gradientClass: 'bg-gradient-to-br from-blue-500 to-indigo-600',
+        shadowClass: 'shadow-blue-500/25 hover:shadow-blue-500/35',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect width="7" height="9" x="3" y="3" rx="1" />
+            <rect width="7" height="5" x="14" y="3" rx="1" />
+            <rect width="7" height="9" x="14" y="12" rx="1" />
+            <rect width="7" height="5" x="3" y="16" rx="1" />
+          </svg>
+        ),
+      },
+      {
+        label: 'GSE Dashboard',
+        href: '/dashboard/ot/gse',
+        gradientClass: 'bg-gradient-to-br from-emerald-500 to-teal-600',
+        shadowClass: 'shadow-emerald-500/25 hover:shadow-emerald-500/35',
+        sourceBadge: 'OT',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
+          </svg>
+        ),
+      },
+      {
+        label: 'Monitoring Efektivitas',
+        href: '/dashboard/charts/monthly-report/detail?hideFilters=true&sourcePage=uq',
+        gradientClass: 'bg-gradient-to-br from-emerald-500 to-teal-600',
+        shadowClass: 'shadow-emerald-500/25 hover:shadow-emerald-500/35',
+        sourceBadge: 'UQ',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M3 3v18h18" />
+            <path d="M18 17V9" />
+            <path d="M13 17V5" />
+            <path d="M8 17v-3" />
+          </svg>
+        ),
+      },
+      {
+        label: 'Monitoring Kesesuaian Standar',
+        href: '/dashboard/charts/category-by-area/detail?hideFilters=true&sourcePage=uq',
+        gradientClass: 'bg-gradient-to-br from-violet-500 to-indigo-600',
+        shadowClass: 'shadow-violet-500/25 hover:shadow-violet-500/35',
+        sourceBadge: 'UQ',
+        icon: (
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect width="7" height="9" x="3" y="3" rx="1" />
+            <rect width="7" height="5" x="14" y="3" rx="1" />
+            <rect width="7" height="9" x="14" y="12" rx="1" />
+            <rect width="7" height="5" x="3" y="16" rx="1" />
+          </svg>
+        ),
+      },
+    ],
+    []
+  );
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
@@ -837,15 +1047,23 @@ export function DivisionAnalystDashboard({
             divisionDashboardLabel={division.code === 'OP' ? 'Dashboard OP' : undefined}
             onOpenDivisionDashboard={division.code === 'OP' ? () => setShowOPDashboardModal(true) : undefined}
             onSwitchDivision={() => router.push('/dashboard/eskalasi/select')}
+            variant={isOpDivision ? 'op-executive' : 'default'}
+            eyebrow={isOpDivision ? 'Divisi OP' : undefined}
+            title={isOpDivision ? 'Pusat Analytics' : undefined}
+            subtitle={isOpDivision ? 'Ringkasan operasional dan akses cepat Divisi Operasi' : undefined}
+            activeView={isOpDivision ? view : undefined}
+            onViewChange={isOpDivision ? setView : undefined}
           />
-          <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
-            <button
-              onClick={() => setView('reports')}
-              className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold tracking-tight transition-all ${view === 'reports' ? 'bg-[var(--brand-primary)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-            >
-              <span className="truncate max-w-[140px] sm:max-w-none">Semua Laporan</span>
-            </button>
-          </div>
+          {!isOpDivision && (
+            <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
+              <button
+                onClick={() => setView('reports')}
+                className={`inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold tracking-tight transition-all ${view === 'reports' ? 'bg-[var(--brand-primary)] text-white' : 'bg-[var(--surface-2)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+              >
+                <span className="truncate max-w-[140px] sm:max-w-none">Semua Laporan</span>
+              </button>
+            </div>
+          )}
           {view === 'dashboard' && division.code === 'OS' && (
             <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
               <button
@@ -925,63 +1143,16 @@ export function DivisionAnalystDashboard({
             </div>
           )}
           {view === 'dashboard' && division.code === 'OP' && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                onClick={() => router.push('/dashboard/op/complaint-by-category')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-lg shadow-orange-500/20 hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5 active:scale-95 min-w-[160px] h-12 sm:h-auto whitespace-nowrap"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 2v4"/><path d="M8 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>
-                <span className="truncate max-w-[150px] sm:max-w-none">Complaint per Category</span>
-              </button>
-              <button
-                onClick={() => router.push('/dashboard/op/risk-severity')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-rose-500 to-red-600 text-white shadow-lg shadow-rose-500/20 hover:shadow-xl hover:shadow-rose-500/30 hover:-translate-y-0.5 active:scale-95 min-w-[160px] h-12 sm:h-auto whitespace-nowrap"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="m21 18-8-14-8 14Z"/></svg>
-                <span className="truncate max-w-[150px] sm:max-w-none">Risk & Severity</span>
-              </button>
-              <button
-                onClick={() => router.push('/dashboard/op/irregularity-complaint-top-cases')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-0.5 active:scale-95 min-w-[160px] h-12 sm:h-auto whitespace-nowrap"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>
-                <span className="truncate max-w-[150px] sm:max-w-none">Top Irregularity & Complaint</span>
-              </button>
-              <button
-                onClick={() => router.push('/dashboard/op/root-cause-dominant')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-purple-500 to-indigo-600 text-white shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 hover:-translate-y-0.5 active:scale-95 min-w-[160px] h-12 sm:h-auto whitespace-nowrap"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                <span className="truncate max-w-[150px] sm:max-w-none">Root Cause Dominan</span>
-              </button>
-              <button
-                onClick={() => router.push('/dashboard/op/case-status')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-cyan-500 to-sky-600 text-white shadow-lg shadow-cyan-500/20 hover:shadow-xl hover:shadow-cyan-500/30 hover:-translate-y-0.5 active:scale-95 min-w-[160px] h-12 sm:h-auto whitespace-nowrap"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
-                <span className="truncate max-w-[150px] sm:max-w-none">Status Case</span>
-              </button>
-              <button
-                onClick={() => router.push('/dashboard/op/sla-compliance')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white shadow-lg shadow-fuchsia-500/20 hover:shadow-xl hover:shadow-fuchsia-500/30 hover:-translate-y-0.5 active:scale-95 min-w-[160px] h-12 sm:h-auto whitespace-nowrap"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-                <span className="truncate max-w-[150px] sm:max-w-none">SLA Compliance</span>
-              </button>
-              <button
-                onClick={() => router.push('/dashboard/op/cargo-irregularity')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-amber-600 to-yellow-600 text-white shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 hover:-translate-y-0.5 active:scale-95 min-w-[160px] h-12 sm:h-auto whitespace-nowrap"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><path d="M14 3h7v5h-7z"/><path d="M14 12h7v9h-7z"/></svg>
-                <span className="truncate max-w-[150px] sm:max-w-none">Logistik Irregularity</span>
-              </button>
-              <button
-                onClick={() => router.push('/dashboard/op/joumpa')}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-0.5 active:scale-95 min-w-[160px] h-12 sm:h-auto whitespace-nowrap"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
-                <span className="truncate max-w-[150px] sm:max-w-none">Joumpa Handling</span>
-              </button>
+            <div className="mt-4 rounded-[28px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))] p-4 sm:p-5 md:p-6 shadow-[0_24px_70px_rgba(15,23,42,0.05)]">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {executiveShortcuts.map((shortcut) => (
+                  <ExecutiveShortcutButton
+                    key={shortcut.label}
+                    shortcut={shortcut}
+                    onNavigate={handleExecutiveShortcutNavigation}
+                  />
+                ))}
+              </div>
             </div>
           )}
           {division.code === 'UQ' && (

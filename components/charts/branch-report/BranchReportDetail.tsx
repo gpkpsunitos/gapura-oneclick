@@ -24,21 +24,8 @@ import {
 } from './data';
 import { fetchRiskSummaryAi, AiRiskSummary, fetchBranchRiskAnalysisAi, BranchRiskAnalysis } from '@/lib/services/gapura-ai';
 import { HeatmapChart } from '@/components/charts/HeatmapChart';
-import { barLabelsPlugin } from '../chartConfig';
-import { Bar, Line } from 'react-chartjs-2';
+import { LineChart, Line as RechartsLine } from 'recharts';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
 import { 
   ArrowUp, 
   ArrowDown, 
@@ -59,19 +46,9 @@ import { AiRootCauseInvestigation } from '../ai-root-cause/AiRootCauseInvestigat
 import { BranchAIVisualization } from '@/components/chart-detail/ai/BranchAIVisualization';
 import { BranchRiskAnalysisVisualization } from '@/components/chart-detail/ai/BranchRiskVisualization';
 import type { QueryResult } from '@/types/builder';
-import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer, LabelList } from 'recharts';
+import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer, LabelList, Cell } from 'recharts';
+import { sanitizeTableCell } from '@/lib/security/sanitize';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
 
 interface FilterParams {
   hub?: string;
@@ -237,87 +214,55 @@ function BranchRankTable({ data }: { data: BranchSummary[] }) {
 }
 
 function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
-  const chartData = {
-    labels: data.map(d => d.month),
-    datasets: [
-      {
-        label: 'Total',
-        data: data.map(d => d.total),
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: 'Irregularity',
-        data: data.map(d => d.Irregularity),
-        borderColor: '#ef4444',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: 'Complaint',
-        data: data.map(d => d.Complaint),
-        borderColor: '#f97316',
-        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-    ],
-  };
+  const rechartsData = data.map(d => ({
+    name: d.month,
+    Total: d.total,
+    Irregularity: d.Irregularity,
+    Complaint: d.Complaint,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { usePointStyle: true, padding: 20, font: { size: 11 } },
-      },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-      y: { 
-        grid: { color: 'rgba(0,0,0,0.05)' }, 
-        ticks: { font: { size: 10 } },
-        suggestedMax: data.length > 0 ? Math.max(...data.map(d => Math.max(d.Irregularity, d.Complaint))) * 1.2 : undefined
-      },
-    },
-  };
-
-  return <div className="h-[250px]"><Line data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[250px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsLegend wrapperStyle={{ fontSize: 11, padding: 20 }} />
+          <RechartsLine type="monotone" dataKey="Total" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+          <RechartsLine type="monotone" dataKey="Irregularity" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
+          <RechartsLine type="monotone" dataKey="Complaint" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 function CategoryStackedBar({ data }: { data: BranchCategoryData[] }) {
-  const chartData = {
-    labels: data.slice(0, 10).map(d => d.branch.split(' ')),
-    datasets: [
-      { label: 'Irregularity', data: data.slice(0, 10).map(d => d.Irregularity), backgroundColor: '#ef4444', borderRadius: 4 },
-      { label: 'Complaint', data: data.slice(0, 10).map(d => d.Complaint), backgroundColor: '#f97316', borderRadius: 4 },
-      { label: 'Compliment', data: data.slice(0, 10).map(d => d.Compliment), backgroundColor: '#22c55e', borderRadius: 4 },
-    ],
-  };
+  const rechartsData = data.slice(0, 10).map(d => ({
+    name: d.branch.split(' '),
+    Irregularity: d.Irregularity,
+    Complaint: d.Complaint,
+    Compliment: d.Compliment,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: {
-      legend: { position: 'bottom' as const, labels: { usePointStyle: true, padding: 15, font: { size: 10 } } },
-    },
-    scales: {
-      x: { stacked: false, grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { 
-        stacked: false, 
-        grid: { color: 'rgba(0,0,0,0.05)' }, 
-        ticks: { font: { size: 10 } },
-        suggestedMax: data.length > 0 ? Math.max(...data.slice(0, 10).map(d => Math.max(d.Irregularity, d.Complaint, d.Compliment))) * 1.15 : undefined 
-      },
-    },
-  };
-
-  return <div className="h-[300px]"><Bar data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsBarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsLegend wrapperStyle={{ fontSize: 10, padding: 15 }} />
+          <RechartsBar dataKey="Irregularity" fill="#ef4444" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Complaint" fill="#f97316" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Compliment" fill="#22c55e" radius={[4, 4, 0, 0]} />
+        </RechartsBarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 
@@ -332,31 +277,26 @@ function AirlineBreakdownChart({ data }: { data: AirlineByBranchData[] }) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
 
-  const chartData = {
-    labels: topAirlines.map(([airline]) => airline.split(' ')),
-    datasets: [
-      {
-        label: 'Reports',
-        data: topAirlines.map(([, count]) => count),
-        backgroundColor: '#3b82f6',
-        borderRadius: 4,
-      },
-    ],
-  };
+  const rechartsData = topAirlines.map(([airline, count]) => ({
+    name: airline.split(' '),
+    Reports: count,
+  }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } },
-           suggestedMax: topAirlines.length > 0 ? Math.max(...topAirlines.map(d => d[1])) * 1.15 : undefined },
-    },
-  };
-
-  return <div className="h-[300px]"><Bar data={chartData} options={options} plugins={[barLabelsPlugin]} /></div>;
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsBarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsBar dataKey="Reports" fill="#3b82f6" radius={[4, 4, 0, 0]}>
+            <LabelList dataKey="Reports" position="top" style={{ fontSize: 10 }} />
+          </RechartsBar>
+        </RechartsBarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 function AreaBreakdownChart({ data }: { data: AreaByBranchData[] }) {
@@ -368,28 +308,30 @@ function AreaBreakdownChart({ data }: { data: AreaByBranchData[] }) {
     }, new Map<string, number>())
   ).sort((a, b) => b[1] - a[1]);
 
-  const chartData = {
-    labels: areaTotals.map(([area]) => area.split(' ')),
-    datasets: [
-      {
-        label: 'Reports',
-        data: areaTotals.map(([, count]) => count),
-        backgroundColor: ['#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899'].slice(0, areaTotals.length),
-        borderRadius: 4,
-      },
-    ],
-  };
+  const colors = ['#8b5cf6', '#06b6d4', '#f59e0b', '#ec4899'];
+  const rechartsData = areaTotals.map(([area, count], i) => ({
+    name: area.split(' '),
+    Reports: count,
+    fill: colors[i % colors.length],
+  }));
 
-  const options = {
-    indexAxis: 'x' as const,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
-
-  return <div className="h-[300px]"><Bar data={chartData} options={options} /></div>;
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <RechartsBarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <RechartsTooltip />
+          <RechartsBar dataKey="Reports" radius={[4, 4, 0, 0]}>
+            {rechartsData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.fill} />
+            ))}
+          </RechartsBar>
+        </RechartsBarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 function DataTable({ data }: { data: BranchReportRecord[] }) {
@@ -499,7 +441,7 @@ function DataTable({ data }: { data: BranchReportRecord[] }) {
               <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
                 {columns.map(col => (
                   col === 'Evidence' ? (
-                    <td key={col} className="px-4 py-2.5 text-gray-700" dangerouslySetInnerHTML={{ __html: row[col] as string || '-' }} />
+                    <td key={col} className="px-4 py-2.5 text-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeTableCell(row[col]) }} />
                   ) : (
                     <td key={col} className="px-4 py-2.5 text-gray-700">{row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'}</td>
                   )
@@ -586,21 +528,23 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
   const [loading, setLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [branchData, setBranchData] = useState<BranchSummary[]>([]);
-  const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
-  const [categoryData, setCategoryData] = useState<BranchCategoryData[]>([]);
-  const [rootCauseData, setRootCauseData] = useState<RootCauseByBranchData[]>([]);
-  const [airlineData, setAirlineData] = useState<AirlineByBranchData[]>([]);
-  const [areaData, setAreaData] = useState<AreaByBranchData[]>([]);
-  const [tableData, setTableData] = useState<BranchReportRecord[]>([]);
-  const [kpis, setKpis] = useState<BranchKPIs | null>(null);
-  const [categoryDistribution, setCategoryDistribution] = useState<BranchCategoryDistribution[]>([]);
-  const [aiRiskSummary, setAiRiskSummary] = useState<AiRiskSummary | null>(null);
-  const [aiRiskHeatmap, setAiRiskHeatmap] = useState<any[]>([]);
-  const [branchRiskAnalysis, setBranchRiskAnalysis] = useState<Record<string, BranchRiskAnalysis> | null>(null);
+  const [chartData, setChartData] = useState({
+    branchData: [] as BranchSummary[],
+    trendData: [] as TrendDataPoint[],
+    categoryData: [] as BranchCategoryData[],
+    rootCauseData: [] as RootCauseByBranchData[],
+    airlineData: [] as AirlineByBranchData[],
+    areaData: [] as AreaByBranchData[],
+    tableData: [] as BranchReportRecord[],
+    kpis: null as BranchKPIs | null,
+    categoryDistribution: [] as BranchCategoryDistribution[],
+    aiRiskSummary: null as AiRiskSummary | null,
+    aiRiskHeatmap: [] as any[],
+    branchRiskAnalysis: null as Record<string, BranchRiskAnalysis> | null,
+  });
 
   const investigativeData: QueryResult = useMemo(() => {
-    const rows = tableData as unknown as Record<string, unknown>[];
+    const rows = chartData.tableData as unknown as Record<string, unknown>[];
     const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
     return {
@@ -609,10 +553,10 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
       rowCount: rows.length,
       executionTimeMs: 0,
     };
-  }, [tableData]);
+  }, [chartData.tableData]);
 
   const fullTableData: QueryResult = useMemo(() => {
-    const rows = branchData.map(item => ({ ...item })) as unknown as Record<string, unknown>[];
+    const rows = chartData.branchData.map(item => ({ ...item })) as unknown as Record<string, unknown>[];
     const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
 
     return {
@@ -621,7 +565,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
       rowCount: rows.length,
       executionTimeMs: 0,
     };
-  }, [branchData]);
+  }, [chartData.branchData]);
 
   // Deferred loading for heavy data
   useEffect(() => {
@@ -633,16 +577,19 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
       try {
         const aggregated = await fetchAggregatedBranchReport(filters);
         if (aggregated && aggregated.branchData) {
-          setBranchData(aggregated.branchData);
-          setTrendData(aggregated.trendData || []);
-          setCategoryData((aggregated.branchData || []).map(b => ({
-            branch: b.branch,
-            Irregularity: b.irregularity,
-            Complaint: b.complaint,
-            Compliment: b.compliment
-          })));
-          setKpis(aggregated.kpis);
-          setCategoryDistribution(aggregated.categoryDistribution || []);
+          setChartData(prev => ({
+            ...prev,
+            branchData: aggregated.branchData,
+            trendData: aggregated.trendData || [],
+            categoryData: (aggregated.branchData || []).map(b => ({
+              branch: b.branch,
+              Irregularity: b.irregularity,
+              Complaint: b.complaint,
+              Compliment: b.compliment
+            })),
+            kpis: aggregated.kpis,
+            categoryDistribution: aggregated.categoryDistribution || [],
+          }));
         } else {
           throw new Error('Invalid aggregated data received');
         }
@@ -677,28 +624,30 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
           fetchBranchRiskAnalysisAi(controller.signal).catch(() => null),
         ]);
  
-        setRootCauseData(rootCause);
-        setAirlineData(airline);
-        setAreaData(area);
-        setTableData(table);
-        
-        if (branchRiskRes) {
-          setBranchRiskAnalysis(branchRiskRes);
-        }
+         setChartData(prev => ({
+           ...prev,
+           rootCauseData: rootCause,
+           airlineData: airline,
+           areaData: area,
+           tableData: table,
+         }));
+         
+         if (branchRiskRes) {
+           setChartData(prev => ({ ...prev, branchRiskAnalysis: branchRiskRes }));
+         }
 
-        if (riskSummaryRes) {
-          setAiRiskSummary(riskSummaryRes);
-          if (riskSummaryRes.branch_details) {
-            const heatmapData = riskSummaryRes.branch_details.flatMap(b => 
-              Object.entries(b.severity_distribution).map(([sev, count]) => ({
-                branch: b.name,
-                severity: sev,
-                count: count as number
-              }))
-            );
-            setAiRiskHeatmap(heatmapData);
-          }
-        }
+         if (riskSummaryRes) {
+           const heatmapData = riskSummaryRes.branch_details
+             ? riskSummaryRes.branch_details.flatMap(b => 
+               Object.entries(b.severity_distribution).map(([sev, count]) => ({
+                 branch: b.name,
+                 severity: sev,
+                 count: count as number
+               }))
+             )
+             : [];
+           setChartData(prev => ({ ...prev, aiRiskSummary: riskSummaryRes, aiRiskHeatmap: heatmapData }));
+         }
       } catch (err) {
         if ((err as any).name === 'AbortError') return;
         console.warn('Deferred data failed to load:', err);
@@ -736,51 +685,51 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
     );
   }
 
-  const totalReports = branchData.reduce((sum: number, b: any) => sum + b.total, 0);
-  const totalIrreg = branchData.reduce((sum: number, b: any) => sum + b.irregularity, 0);
-  const totalComplaint = branchData.reduce((sum: number, b: any) => sum + b.complaint, 0);
-  const totalCompliment = branchData.reduce((sum: number, b: any) => sum + b.compliment, 0);
+  const totalReports = chartData.branchData.reduce((sum: number, b: any) => sum + b.total, 0);
+  const totalIrreg = chartData.branchData.reduce((sum: number, b: any) => sum + b.irregularity, 0);
+  const totalComplaint = chartData.branchData.reduce((sum: number, b: any) => sum + b.complaint, 0);
+  const totalCompliment = chartData.branchData.reduce((sum: number, b: any) => sum + b.compliment, 0);
 
-  const avgRiskIndex = branchData.length > 0 ? branchData.reduce((sum: number, b: any) => sum + b.riskIndex, 0) / branchData.length : 0;
+  const avgRiskIndex = chartData.branchData.length > 0 ? chartData.branchData.reduce((sum: number, b: any) => sum + b.riskIndex, 0) / chartData.branchData.length : 0;
   const overallIrregRate = totalReports > 0 ? (totalIrreg / totalReports) * 100 : 0;
   const overallNetSentiment = (totalCompliment + totalComplaint) > 0 
     ? ((totalCompliment - totalComplaint) / (totalCompliment + totalComplaint)) * 100 
     : 0;
-  const avgGrowth = branchData.length > 0 ? branchData.reduce((sum: number, b: any) => sum + b.growth, 0) / branchData.length : 0;
+  const avgGrowth = chartData.branchData.length > 0 ? chartData.branchData.reduce((sum: number, b: any) => sum + b.growth, 0) / chartData.branchData.length : 0;
 
   return (
     <div className="space-y-8">
       {/* Auto-Insight Block */}
-      <AutoInsight data={branchData} hideAnalyzeButton={hideAnalyzeButton} />
+      <AutoInsight data={chartData.branchData} hideAnalyzeButton={hideAnalyzeButton} />
 
       {/* Enhanced KPI Cards - 5 custom KPIs */}
-      {kpis && (
+      {chartData.kpis && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <KPICard title="Total Branches" value={kpis.totalBranches} color="blue" explanation="Jumlah cabang yang dipantau dalam laporan ini." />
+          <KPICard title="Total Branches" value={chartData.kpis.totalBranches} color="blue" explanation="Jumlah cabang yang dipantau dalam laporan ini." />
           <KPICard
             title="Top Performer"
-            value={kpis.topPerformer.name}
-            subtitle={`${kpis.topPerformer.count} reports`}
+            value={chartData.kpis.topPerformer.name}
+            subtitle={`${chartData.kpis.topPerformer.count} reports`}
             color="green"
             explanation="Cabang dengan jumlah laporan tertinggi pada periode ini." 
           />
           <KPICard
             title="Worst Performer"
-            value={kpis.worstPerformer.name}
-            subtitle={`${kpis.worstPerformer.count} reports`}
+            value={chartData.kpis.worstPerformer.name}
+            subtitle={`${chartData.kpis.worstPerformer.count} reports`}
             color="red"
             explanation="Cabang dengan performa terendah dalam periode ini." 
           />
           <KPICard
             title="Avg Reports/Branch"
-            value={kpis.avgReportsPerBranch}
+            value={chartData.kpis.avgReportsPerBranch}
             color="yellow"
             explanation="Rata-rata laporan per cabang pada periode ini." 
           />
           <KPICard
             title="MoM Change"
-            value={kpis.momChange > 0 ? `+${kpis.momChange}%` : `${kpis.momChange}%`}
-            trend={kpis.momChange}
+            value={chartData.kpis.momChange > 0 ? `+${chartData.kpis.momChange}%` : `${chartData.kpis.momChange}%`}
+            trend={chartData.kpis.momChange}
             color="blue"
             explanation="Perubahan bulan-ke-bulan pada jumlah laporan cabang." 
           />
@@ -790,15 +739,15 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
       {/* Branch Ranking Table */}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Branch Performance Ranking</h2>
-        <BranchRankTable data={branchData} />
+        <BranchRankTable data={chartData.branchData} />
       </section>
 
       {/* Category Distribution Stacked Bar Chart */}
-      {categoryDistribution.length > 0 && (
+      {chartData.categoryDistribution.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Category Distribution per Branch (Top 10)</h2>
           <ResponsiveContainer width="100%" height={400}>
-            <RechartsBarChart data={categoryDistribution.slice(0, 10)} layout="vertical">
+            <RechartsBarChart data={chartData.categoryDistribution.slice(0, 10)} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis type="number" />
               <YAxis dataKey="branch" type="category" width={100} />
@@ -819,7 +768,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
       )}
 
       {/* AI Risk Heatmap */}
-      {aiRiskHeatmap.length > 0 && (
+      {chartData.aiRiskHeatmap.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <div className="flex items-center gap-2 mb-1">
             <Brain className="w-5 h-5 text-emerald-600" />
@@ -828,7 +777,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
           <p className="text-xs text-gray-500 mb-4">Proactive risk analysis by severity across branches (AI Service Data)</p>
           <div className="h-[400px]">
             <HeatmapChart 
-              data={aiRiskHeatmap}
+              data={chartData.aiRiskHeatmap}
               xAxis="severity"
               yAxis="branch"
               metric="count"
@@ -841,13 +790,13 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
       {/* Monthly Trend */}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Monthly Trend Analysis</h2>
-        <MonthlyTrendChart data={trendData} />
+        <MonthlyTrendChart data={chartData.trendData} />
       </section>
 
       {/* Category Composition */}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Category Composition by Branch</h2>
-        <CategoryStackedBar data={categoryData} />
+        <CategoryStackedBar data={chartData.categoryData} />
       </section>
 
       {/* AI Root Cause Investigation - Full Width */}
@@ -862,10 +811,10 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
       </section>
 
       {/* AI Detailed Risk Analysis */}
-      {branchRiskAnalysis && (
+      {chartData.branchRiskAnalysis && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <BranchRiskAnalysisVisualization 
-            data={branchRiskAnalysis} 
+            data={chartData.branchRiskAnalysis} 
             selectedBranch={filters.branch || 'all'} 
           />
         </section>
@@ -890,16 +839,16 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Airline Distribution</h2>
-          <AirlineBreakdownChart data={airlineData} />
+          <AirlineBreakdownChart data={chartData.airlineData} />
         </section>
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Area Breakdown</h2>
-          <AreaBreakdownChart data={areaData} />
+          <AreaBreakdownChart data={chartData.areaData} />
         </section>
       </div>
 
       {/* Management Summary */}
-      <ManagementSummary data={branchData} />
+      <ManagementSummary data={chartData.branchData} />
 
       {/* Investigative Table */}
       <InvestigativeTable

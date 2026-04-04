@@ -1,29 +1,67 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen ResponsiveLineChart dan ResponsiveAreaChart
+ * Menggunakan Recharts untuk visualisasi data dalam format line chart dengan dukungan area
+ */
+
 'use client';
 
-import { useMemo } from 'react';
-import { Line } from 'react-chartjs-2';
-import type { ChartData } from 'chart.js';
 import { LineChart, Line as RechartsLine, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer as RechartsContainer, Area, AreaChart } from 'recharts';
-import { useViewport } from '@/hooks/useViewport';
-import { adaptToChartJSData } from '@/lib/utils/chartAdapters';
-import { defaultMobileChartOptions, generateChartColors } from './chartConfig';
+import { generateChartColors } from './chartConfig';
 import { cn } from '@/lib/utils';
 
+/**
+ * Props untuk komponen ResponsiveLineChart
+ * @interface ResponsiveLineChartProps
+ */
 interface ResponsiveLineChartProps {
+  /** Data chart dalam format array object */
   data: any[];
+  /** Key untuk sumbu X axis */
   xAxisKey?: string;
+  /** Array key untuk series data yang akan ditampilkan */
   dataKeys: string[];
+  /** Judul chart (opsional) */
   title?: string;
+  /** Class CSS tambahan */
   className?: string;
+  /** Tinggi chart */
   height?: string;
+  /** Tampilkan legenda */
   showLegend?: boolean;
+  /** Tampilkan sebagai area chart */
   showArea?: boolean;
+  /** Gunakan kurva (monotone) atau garis lurus (linear) */
   curved?: boolean;
 }
 
 /**
- * Responsive Line Chart
- * Uses Chart.js on mobile/tablet, Recharts on desktop
+ * Komponen line chart responsif
+ * Menampilkan line chart atau area chart dengan dukungan multiple series
+ * Mendukung animasi dan responsive sizing
+ * 
+ * @param {ResponsiveLineChartProps} props - Props komponen
+ * @returns {JSX.Element} Element React line chart atau area chart
+ * 
+ * @example
+ * ```tsx
+ * <ResponsiveLineChart
+ *   data={chartData}
+ *   xAxisKey="month"
+ *   dataKeys={['revenue', 'profit']}
+ *   showLegend={true}
+ *   showArea={false}
+ *   curved={true}
+ * />
+ * 
+ * <ResponsiveAreaChart
+ *   data={chartData}
+ *   xAxisKey="month"
+ *   dataKeys={['revenue']}
+ * />
+ * ```
  */
 export function ResponsiveLineChart({
   data,
@@ -36,71 +74,6 @@ export function ResponsiveLineChart({
   showArea = false,
   curved = true,
 }: ResponsiveLineChartProps) {
-  const { isMobile, isTablet } = useViewport();
-  const useMobileCharts = isMobile || isTablet;
-
-  // Prepare Chart.js data
-  const chartJSData = useMemo(() => {
-    return adaptToChartJSData(data, xAxisKey, dataKeys);
-  }, [data, xAxisKey, dataKeys]);
-
-  // Chart.js options
-  const chartJSOptions = useMemo(() => {
-    const baseOptions = { ...defaultMobileChartOptions };
-    const colors = generateChartColors(dataKeys.length);
-    
-    return {
-      ...baseOptions,
-      plugins: {
-        ...baseOptions.plugins,
-        legend: {
-          ...baseOptions.plugins?.legend,
-          display: showLegend,
-        },
-        title: title ? {
-          display: true,
-          text: title,
-          font: { size: 12 },
-          padding: { bottom: 10 },
-        } : undefined,
-      },
-      elements: {
-        line: {
-          tension: curved ? 0.4 : 0,
-          borderWidth: 2,
-        },
-        point: {
-          radius: 3,
-          hitRadius: 8,
-          hoverRadius: 5,
-        },
-      },
-    };
-  }, [showLegend, title, curved, dataKeys.length]);
-
-  // Update datasets for line/area styling
-  const styledData = useMemo(() => {
-    const colors = generateChartColors(dataKeys.length);
-    return {
-      ...chartJSData,
-      datasets: chartJSData.datasets.map((dataset: any, index: number) => ({
-        ...dataset,
-        backgroundColor: showArea ? generateChartColors(1, 0.2)[0] : 'transparent',
-        borderColor: colors[index],
-        fill: showArea,
-      })),
-    };
-  }, [chartJSData, showArea, dataKeys.length]);
-
-  if (useMobileCharts) {
-    return (
-      <div className={cn('w-full', height, className)}>
-        <Line data={styledData as any} options={chartJSOptions as any} />
-      </div>
-    );
-  }
-
-  // Desktop: Use Recharts
   const colors = generateChartColors(dataKeys.length);
   const ChartComponent = showArea ? AreaChart : LineChart;
 
@@ -111,11 +84,17 @@ export function ResponsiveLineChart({
           data={data}
           margin={{ top: 10, right: 30, left: 0, bottom: 10 }}
         >
+          {/* Grid lines horizontal */}
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          {/* Sumbu X */}
           <XAxis dataKey={xAxisKey} tick={{ fontSize: 11 }} />
+          {/* Sumbu Y */}
           <YAxis tick={{ fontSize: 11 }} />
+          {/* Tooltip saat hover */}
           <Tooltip />
+          {/* Legenda jika diaktifkan */}
           {showLegend && <Legend />}
+          {/* Series data */}
           {dataKeys.map((key, index) => {
             if (showArea) {
               return (
@@ -149,7 +128,11 @@ export function ResponsiveLineChart({
 }
 
 /**
- * Responsive Area Chart (convenience wrapper)
+ * Komponen area chart responsif (alias untuk ResponsiveLineChart dengan showArea=true)
+ * Menampilkan area chart dengan fill di bawah garis
+ * 
+ * @param {Omit<ResponsiveLineChartProps, 'showArea'>} props - Props komponen tanpa showArea
+ * @returns {JSX.Element} Element React area chart
  */
 export function ResponsiveAreaChart(props: Omit<ResponsiveLineChartProps, 'showArea'>) {
   return <ResponsiveLineChart {...props} showArea={true} />;

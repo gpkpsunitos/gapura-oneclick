@@ -1,8 +1,22 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengekspor rekaman cuti (leave records) HC ke file Excel
+ */
+
 import { NextResponse } from 'next/server';
 import { buildHCLeaveWorkbook, fetchHCLeaveRecordsForBackup } from '@/lib/services/hc-leave-backup';
 import { canManageHCWorkspace, getWorkspaceUser } from '@/lib/server/workspace-auth';
 import type { HCLeaveRecord } from '@/types';
 
+/**
+ * Mengecek apakah rekaman cuti cocok dengan bulan yang ditentukan
+ * 
+ * @param record - Rekaman cuti yang akan dicek
+ * @param month - Bulan dalam format YYYY-MM atau null untuk semua bulan
+ * @returns boolean - true jika rekaman cocok dengan bulan
+ */
 function matchesMonth(record: HCLeaveRecord, month: string | null) {
     if (!month) return true;
     const monthStart = new Date(`${month}-01T00:00:00Z`);
@@ -13,10 +27,35 @@ function matchesMonth(record: HCLeaveRecord, month: string | null) {
     return recordStart <= monthEnd && recordEnd >= monthStart;
 }
 
+/**
+ * Mengecek apakah rekaman cuti aktif pada tanggal tertentu
+ * 
+ * @param record - Rekaman cuti yang akan dicek
+ * @param currentDate - Tanggal dalam format YYYY-MM-DD
+ * @returns boolean - true jika rekaman aktif pada tanggal tersebut
+ */
 function isRecordActiveOnDate(record: HCLeaveRecord, currentDate: string) {
     return record.start_date <= currentDate && record.end_date >= currentDate;
 }
 
+/**
+ * GET /api/hc/leave-records/export
+ * 
+ * Mengekspor rekaman cuti ke file Excel
+ * Hanya HC Manager yang dapat mengekspor data
+ * Mendukung filter berbagai parameter
+ * 
+ * @param request - Objek request HTTP dengan query parameters:
+ *   - month: Filter bulan
+ *   - station_id: Filter cabang
+ *   - leave_type: Filter tipe cuti
+ *   - submission_status: Filter status pengajuan
+ *   - activity_scope: Filter scope aktivitas
+ * @returns Promise<NextResponse> - Response berisi file Excel untuk diunduh atau error
+ * @throws Mengembalikan 401 jika tidak terautentikasi
+ * @throws Mengembalikan 403 jika role bukan HC Manager
+ * @throws Mengembalikan 500 jika terjadi error saat mengekspor
+ */
 export async function GET(request: Request) {
     try {
         const user = await getWorkspaceUser();

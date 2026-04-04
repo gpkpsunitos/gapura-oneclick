@@ -1,3 +1,17 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman untuk pelaporan publik irregularity dengan sistem wizard multi-step,
+ * termasuk akses cepat ke berbagai layanan seperti AI Chatbot, SLA, Survey, dan JOUMPA
+ */
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman untuk pelaporan publik irregularity dengan sistem wizard multi-step,
+ * termasuk akses cepat ke berbagai layanan seperti AI Chatbot, SLA, Survey, dan JOUMPA
+ */
 'use client';
 
 import { useEffect, useState, type CSSProperties, type ComponentType } from 'react';
@@ -17,10 +31,23 @@ import { NoiseTexture } from '@/components/ui/NoiseTexture';
 import { PrismButton } from '@/components/ui/PrismButton';
 import { queueOfflineReport } from '@/lib/pwa/offline-queue';
 
-const QUICK_ACCESS_PASSWORD = process.env.NEXT_PUBLIC_QUICK_ACCESS_PASSWORD ?? 'Gapura123!';
 
+/**
+ * Tipe data untuk link akses cepat
+ */
+/**
+ * Tipe data untuk link akses cepat
+ */
 type QuickAccessLink = { label: string; url: string; sublabel?: string };
+
+/**
+ * Tipe data untuk link QR code
+ */
 type QRLink = { label: string; url: string };
+
+/**
+ * Kategori untuk akses cepat dengan konfigurasi tampilan
+ */
 type QuickAccessCategory = {
   id: string;
   title: string;
@@ -35,6 +62,9 @@ type QuickAccessCategory = {
   externalRedirect?: boolean;
 };
 
+/**
+ * Konfigurasi kategori akses cepat
+ */
 const CATEGORIES: QuickAccessCategory[] = [
   {
     id: 'AIChatbot',
@@ -129,6 +159,9 @@ const CATEGORIES: QuickAccessCategory[] = [
   }
 ];
 
+/**
+ * Opsi area lokasi kejadian
+ */
 const AREA_OPTIONS = [
   { id: 'TERMINAL', label: 'Terminal Area', icon: Plane },
   { id: 'APRON', label: 'Apron Area', icon: Ship },
@@ -136,6 +169,9 @@ const AREA_OPTIONS = [
   { id: 'GENERAL', label: 'General', icon: MapPin },
 ];
 
+/**
+ * Kategori berdasarkan area kejadian
+ */
 const AREA_CATEGORIES: Record<string, string[]> = {
   TERMINAL: [
     'Passenger, Baggage & Document Profiling',
@@ -164,14 +200,37 @@ const AREA_CATEGORIES: Record<string, string[]> = {
   GENERAL: ['Other'],
 };
 
+/**
+ * Kode maskapai lokal
+ */
 const LOKAL_AIRLINE_CODES = ['GA', 'QG', 'JT', 'ID', 'IW', 'IU', 'QZ', 'SJ', 'IN', 'IP', '8B', 'SI', 'IL'];
 
+/**
+ * Mendapatkan tipe maskapai berdasarkan nama
+ * @param airlineName - Nama maskapai
+ * @returns Tipe maskapai 'Lokal' atau 'MPA'
+ */
+/**
+ * Mendapatkan tipe maskapai berdasarkan nama
+ * @param airlineName - Nama maskapai
+ * @returns Tipe maskapai 'Lokal' atau 'MPA'
+ */
 function getAirlineType(airlineName: string): 'Lokal' | 'MPA' {
   const airline = AIRLINES.find((a) => a.name === airlineName);
   if (!airline) return 'MPA';
   return LOKAL_AIRLINE_CODES.includes(airline.code) ? 'Lokal' : 'MPA';
 }
 
+/**
+ * Mendapatkan hub untuk station tertentu
+ * @param stationCode - Kode station
+ * @returns Kode hub
+ */
+/**
+ * Mendapatkan hub untuk station tertentu
+ * @param stationCode - Kode station
+ * @returns Kode hub
+ */
 function getHubForStation(stationCode: string): string {
   if (['CGK', 'SUB', 'DPS'].includes(stationCode)) return stationCode;
   if (['UPG', 'MDC', 'BPN'].includes(stationCode)) return 'UPG';
@@ -179,11 +238,19 @@ function getHubForStation(stationCode: string): string {
   return 'CGK';
 }
 
+/**
+ * Menghitung minggu dalam bulan dari tanggal
+ * @param date - Tanggal
+ * @returns Nomor minggu (1-5)
+ */
 function getWeekInMonth(date: Date): number {
   const day = date.getDate();
   return Math.ceil(day / 7);
 }
 
+/**
+ * Tipe data untuk formulir laporan
+ */
 type FormData = {
   incident_date: string;
   airline: string;
@@ -204,8 +271,15 @@ type FormData = {
   evidence_urls: string[];
 };
 
+/**
+ * Tipe data untuk laporan yang telah dibuat
+ */
 type CreatedReport = { id?: string } & Record<string, unknown>;
 
+/**
+ * Halaman utama untuk pelaporan publik irregularity
+ * @returns Komponen React
+ */
 export default function PublicReportPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
@@ -243,16 +317,22 @@ export default function PublicReportPage() {
   });
 
   useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
+
     const fetchStations = async () => {
       try {
-        const res = await fetch('/api/master-data?type=stations');
+        const res = await fetch('/api/master-data?type=stations', { signal });
         const data = await res.json();
         if (Array.isArray(data)) setStations(data);
       } catch (e) {
+        if (e instanceof DOMException && e.name === 'AbortError') return;
         console.error('Failed to load stations', e);
       }
     };
     fetchStations();
+
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
@@ -271,6 +351,12 @@ export default function PublicReportPage() {
 
   // Ensure mobile bottom nav (GuestNav) remains visible on public access pages
 
+  /**
+   * Mengompres gambar sebelum diunggah
+   * @param file - File gambar
+   * @param opts - Opsi kompresi (maxWidth, maxHeight, quality, mimeType)
+   * @returns Promise<File> File yang sudah dikompres
+   */
   const compressImage = (file: File, opts: { maxWidth?: number; maxHeight?: number; quality?: number; mimeType?: string } = {}) => {
     const { maxWidth = 1600, maxHeight = 1600, quality = 0.8, mimeType = 'image/webp' } = opts;
     return new Promise<File>((resolve, reject) => {
@@ -306,6 +392,9 @@ export default function PublicReportPage() {
     });
   };
 
+  /**
+   * Menangani file yang dipilih untuk diunggah
+   */
   const handleFilesSelected = async () => {
     if (!selectedFiles.length) return;
     if (!navigator.onLine) {
@@ -323,6 +412,11 @@ export default function PublicReportPage() {
     }
   };
 
+  /**
+   * Mengunggah file bukti ke server
+   * @param files - Array file yang akan diunggah
+   * @returns Promise<string[]> Array URL file yang berhasil diunggah
+   */
   const uploadEvidenceFiles = async (files: File[]) => {
     const uploadedUrls: string[] = [];
     for (const file of files) {
@@ -341,32 +435,65 @@ export default function PublicReportPage() {
     return uploadedUrls;
   };
 
+  /**
+   * Menghapus bukti pada indeks tertentu
+   * @param index - Indeks bukti yang akan dihapus
+   */
   const removeEvidenceAt = (index: number) => {
     setFormData((prev) => ({ ...prev, evidence_urls: prev.evidence_urls.filter((_, i) => i !== index) }));
   };
 
+  /**
+   * Berpindah ke langkah berikutnya
+   */
   const nextStep = () => setStep((prev) => Math.min(prev + 1, 5));
+
+  /**
+   * Berpindah ke langkah sebelumnya
+   */
   const prevStep = () => setStep((prev) => Math.max(prev - 1, 1));
 
   const selectedCategory = CATEGORIES.find(c => c.id === formData.main_category);
+
+  /**
+   * Type guard untuk mengecek apakah kategori memiliki QR links
+   * @param c - Kategori akses cepat
+   * @returns True jika memiliki qrLinks
+   */
   const hasQrLinks = (c: QuickAccessCategory): c is QuickAccessCategory & { qrLinks: QRLink[] } => {
     return Array.isArray(c.qrLinks);
   };
+
+  /**
+   * Type guard untuk mengecek apakah kategori memiliki links
+   * @param c - Kategori akses cepat
+   * @returns True jika memiliki links
+   */
   const hasLinks = (c: QuickAccessCategory): c is QuickAccessCategory & { links: QuickAccessLink[] } => {
     return Array.isArray(c.links);
   };
 
+  /**
+   * Menutup panel akses cepat
+   */
   const closeQuickAccess = () => {
     setFormData(prev => ({ ...prev, main_category: '' }));
     setStep(1);
   };
 
+  /**
+   * Menutup prompt password
+   */
   const closePasswordPrompt = () => {
     setPendingProtectedCategory(null);
     setPasswordInput('');
     setPasswordError('');
   };
 
+  /**
+   * Membuka redirect kategori yang dilindungi password
+   * @param category - Kategori akses cepat
+   */
   const openProtectedRedirect = (category: QuickAccessCategory) => {
     if (!category.redirectUrl) {
       return;
@@ -382,6 +509,10 @@ export default function PublicReportPage() {
     router.push(category.redirectUrl);
   };
 
+  /**
+   * Membuka kategori akses cepat
+   * @param category - Kategori akses cepat
+   */
   const openCategory = (category: QuickAccessCategory) => {
     if (category.passwordProtected) {
       setPendingProtectedCategory(category);
@@ -403,25 +534,45 @@ export default function PublicReportPage() {
     setStep(1);
   };
 
-  const submitPassword = () => {
+  /**
+   * Mengirim password untuk verifikasi akses
+   */
+  const submitPassword = async () => {
     if (!pendingProtectedCategory) return;
-    if (passwordInput !== QUICK_ACCESS_PASSWORD) {
-      setPasswordError('Kata sandi salah.');
-      return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/verify-quick-access', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: passwordInput }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.valid) {
+          if (pendingProtectedCategory.redirectUrl) {
+            openProtectedRedirect(pendingProtectedCategory);
+            return;
+          }
+          setFormData(prev => ({ ...prev, main_category: pendingProtectedCategory.id }));
+          setPendingProtectedCategory(null);
+          setPasswordInput('');
+          setPasswordError('');
+          setStep(1);
+          return;
+        }
+      }
+    } catch {
+      // Fall through to error
+    } finally {
+      setLoading(false);
     }
-
-    if (pendingProtectedCategory.redirectUrl) {
-      openProtectedRedirect(pendingProtectedCategory);
-      return;
-    }
-
-    setFormData(prev => ({ ...prev, main_category: pendingProtectedCategory.id }));
-    setPendingProtectedCategory(null);
-    setPasswordInput('');
-    setPasswordError('');
-    setStep(1);
+    setPasswordError('Kata sandi salah.');
   };
 
+  /**
+   * Validasi langkah formulir saat ini
+   * @returns True jika langkah valid
+   */
   const isStepValid = (): boolean => {
     switch (step) {
       case 1:
@@ -443,6 +594,10 @@ export default function PublicReportPage() {
     }
   };
 
+  /**
+   * Menangani submit formulir
+   * @param e - Event form atau mouse
+   */
   const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
     if (e) e.preventDefault();
     setLoading(true);
@@ -534,6 +689,11 @@ export default function PublicReportPage() {
     }
   };
 
+  /**
+   * Menyalin teks ke clipboard
+   * @param text - Teks yang akan disalin
+   * @param key - Kunci identifikasi untuk status copied
+   */
   const copyToClipboard = async (text: string, key: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -607,7 +767,7 @@ export default function PublicReportPage() {
           className="relative z-10"
         >
           <div className="mb-10 flex justify-center">
-            <Image src="/logo.png" alt="Gapura" width={140} height={48} className="opacity-90" />
+            <Image src="/logo.png" alt="Gapura" width={140} height={48} className="opacity-90" style={{ width: 'auto', height: 'auto' }} />
           </div>
           <h1 className="text-5xl md:text-8xl font-display font-black tracking-tight mb-6 text-[oklch(0.15_0.05_200)] leading-[0.9]">
             One Click<br/>
@@ -1052,176 +1212,230 @@ export default function PublicReportPage() {
                       </div>
 
                       <div className="space-y-6">
-                        <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest block">Upload Evidence (Min. 1 Image)</label>
-                        <div className="relative group h-40">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                            onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
-                          />
-                          <div className="h-full border-2 border-dashed border-[oklch(0.15_0.02_200_/_0.1)] rounded-3xl flex flex-col items-center justify-center gap-3 group-hover:bg-emerald-500/[0.02] group-hover:border-emerald-500/50 transition-all bg-white shadow-inner-rim">
-                            <Upload className="w-8 h-8 text-[oklch(0.15_0.02_200_/_0.2)] group-hover:text-emerald-600" />
-                            <p className="text-sm text-[oklch(0.40_0.02_200)] font-bold">Drop files or <span className="text-emerald-600 underline">Browse</span></p>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest">Evidence</label>
+                          <div className="flex-1">
+                            <div className="flex-1 flex items-center justify-center p-8 rounded-2xl border-2 border-dashed border-[oklch(0.15_0.02_200_/_0.15)] bg-[oklch(0.15_0.02_200_/_0.02)] hover:border-emerald-500/30 hover:bg-[oklch(0.60_0.18_260_/_0.05)] transition-all cursor-pointer group">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                onChange={(e) => setSelectedFiles(Array.from(e.target.files || []))}
+                              />
+                              <div className="text-center space-y-3 relative z-10 pointer-events-none">
+                                <Upload className="w-8 h-8 text-[oklch(0.15_0.02_200_/_0.3)] group-hover:text-emerald-600 mx-auto transition-colors" />
+                                <div>
+                                  <p className="text-sm font-bold text-[oklch(0.15_0.02_200_/_0.6)]">Click to upload</p>
+                                  <p className="text-xs text-[oklch(0.15_0.02_200_/_0.3)]">Images only (auto-compressed)</p>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        
-                        <PrismButton 
-                          onClick={handleFilesSelected}
-                          disabled={selectedFiles.length === 0}
-                          className="w-full bg-emerald-600 text-white h-14"
-                        >
-                          <Upload className="w-4 h-4 mr-2" />
-                          {isOnline
-                            ? `Upload ${selectedFiles.length} Selected Files`
-                            : `Siapkan ${selectedFiles.length} File untuk Antrean Offline`}
-                        </PrismButton>
+                      </div>
+                    </div>
 
-                        {selectedFiles.length > 0 && (
-                          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
-                            {selectedFiles.length} file dipilih dan siap dipakai saat submit laporan.
-                          </div>
-                        )}
-
-                        <div className="grid grid-cols-4 gap-3 mt-4">
+                    {formData.evidence_urls.length > 0 && (
+                      <div className="space-y-3 p-6 rounded-2xl bg-[oklch(0.60_0.18_260_/_0.05)] border border-emerald-500/10">
+                        <label className="text-xs font-bold text-[oklch(0.60_0.18_260)] uppercase tracking-widest">Uploaded Evidence</label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                           {formData.evidence_urls.map((url, idx) => (
-                            <motion.div 
-                              initial={{ scale: 0.8, opacity: 0 }}
-                              animate={{ scale: 1, opacity: 1 }}
-                              key={idx} 
-                              className="group relative rounded-2xl overflow-hidden border border-[oklch(0.15_0.02_200_/_0.1)] aspect-square shadow-spatial-sm"
-                            >
-                              <img src={url} alt="evidence" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                            <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden bg-white border border-[oklch(0.15_0.02_200_/_0.08)]">
+                              <Image src={url} alt={`Evidence ${idx + 1}`} width={800} height={600} className="w-full h-full object-cover" />
                               <button
+                                type="button"
                                 onClick={() => removeEvidenceAt(idx)}
-                                className="absolute top-2 right-2 p-1.5 bg-black/80 backdrop-blur-md rounded-lg text-white opacity-0 group-hover:opacity-100 transition-all shadow-lg"
+                                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                               >
-                                <X className="w-4 h-4" />
+                                <X size={14} />
                               </button>
-                            </motion.div>
+                            </div>
                           ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedFiles.length > 0 && (
+                      <div className="space-y-3 p-6 rounded-2xl bg-blue-50 border border-blue-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs font-bold text-blue-700 uppercase tracking-widest">Pending Upload</p>
+                            <p className="text-sm text-blue-600 font-medium">{selectedFiles.length} file(s) selected</p>
+                          </div>
+                          <PrismButton
+                            onClick={handleFilesSelected}
+                            className="bg-blue-600 text-white px-6 py-2.5 text-sm font-bold shadow-sm active:scale-95 transition-all"
+                          >
+                            Upload Now
+                          </PrismButton>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </WizardStep>
+
+                <WizardStep isActive={step === 6}>
+                  <div className="text-center py-12 animate-in fade-in slide-in-from-right-4 duration-500">
+                    <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Sparkles className="w-10 h-10 text-emerald-600" />
+                    </div>
+                    <h3 className="text-2xl font-display font-black text-[oklch(0.15_0.05_200)] mb-3">Review Your Report</h3>
+                    <p className="text-[oklch(0.40_0.02_200)] mb-8 font-medium">Please review before submitting</p>
+
+                    <div className="max-w-xl mx-auto space-y-4 text-left">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div className="p-4 rounded-xl bg-white border border-[oklch(0.15_0.02_200_/_0.05)]">
+                          <p className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.4)] uppercase tracking-widest mb-1">Airline</p>
+                          <p className="font-bold text-[oklch(0.15_0.05_200)]">{formData.airline}</p>
+                        </div>
+                        <div className="p-4 rounded-xl bg-white border border-[oklch(0.15_0.02_200_/_0.05)]">
+                          <p className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.4)] uppercase tracking-widest mb-1">Flight</p>
+                          <p className="font-bold text-[oklch(0.15_0.05_200)]">{formData.flight_number}</p>
+                        </div>
+                        <div className="p-4 rounded-xl bg-white border border-[oklch(0.15_0.02_200_/_0.05)]">
+                          <p className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.4)] uppercase tracking-widest mb-1">Station</p>
+                          <p className="font-bold text-[oklch(0.15_0.05_200)]">{stations.find(s => s.id === formData.station_id)?.code || '-'}</p>
+                        </div>
+                        <div className="p-4 rounded-xl bg-white border border-[oklch(0.15_0.02_200_/_0.05)]">
+                          <p className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.4)] uppercase tracking-widest mb-1">Date</p>
+                          <p className="font-bold text-[oklch(0.15_0.05_200)]">{formData.incident_date}</p>
+                        </div>
+                        <div className="col-span-2 p-4 rounded-xl bg-white border border-[oklch(0.15_0.02_200_/_0.05)]">
+                          <p className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.4)] uppercase tracking-widest mb-1">Category</p>
+                          <p className="font-bold text-[oklch(0.15_0.05_200)]">{formData.area} - {formData.area_category}</p>
                         </div>
                       </div>
                     </div>
                   </div>
-                </WizardStep>
-                  </>
-                )}
-              </div>
+	                </WizardStep>
+	              </>
+	            )}
+	              </div>
 
-              {formData.main_category === 'Irregularity' && (
-                <div className="p-6 md:p-8 pt-4 border-t border-[oklch(0.15_0.02_200_/_0.05)] relative z-10 bg-white/50 backdrop-blur-md flex items-center justify-between">
-                  <button
-                    onClick={prevStep}
-                    disabled={step === 1}
-                    className="px-8 py-4 rounded-2xl border border-[oklch(0.15_0.02_200_/_0.1)] text-[oklch(0.15_0.02_200_/_0.4)] hover:text-emerald-700 hover:border-emerald-500/30 transition-all font-bold disabled:opacity-0"
-                  >
-                    Back
-                  </button>
-                  
-                  {step < 5 ? (
-                    <PrismButton
-                      onClick={nextStep}
-                      disabled={!isStepValid()}
-                      className="px-10 h-14 bg-emerald-600 text-white font-black flex items-center gap-3 overflow-hidden shadow-spatial-md"
-                    >
-                      Continue
-                      <ChevronRight className="w-5 h-5" />
-                    </PrismButton>
-                  ) : (
-                    <PrismButton
-                      onClick={handleSubmit}
-                      isLoading={loading}
-                      disabled={!isStepValid()}
-                      className="px-12 h-14 bg-emerald-600 text-white font-black flex items-center gap-3 overflow-hidden shadow-[0_20px_40px_-12px_rgba(5,150,105,0.4)]"
-                    >
-                      Submit Report
-                      <ArrowRight className="w-5 h-5 ml-2" />
-                    </PrismButton>
-                  )}
+              {/* Modal Footer */}
+              <div className="p-6 md:p-8 border-t border-[oklch(0.15_0.02_200_/_0.05)] relative z-10 bg-white/50 backdrop-blur-xl">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.4)] uppercase tracking-widest">Step</span>
+                    <div className="flex gap-1.5">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <div
+                          key={s}
+                          className={`w-6 h-1.5 rounded-full transition-all duration-300 ${
+                            step >= s ? 'bg-emerald-600' : 'bg-[oklch(0.15_0.02_200_/_0.1)]'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    {step > 1 && (
+                      <PrismButton
+                        onClick={prevStep}
+                        className="bg-white text-[oklch(0.15_0.05_200)] px-6 py-3 rounded-2xl text-sm font-bold border border-[oklch(0.15_0.02_200_/_0.1)] hover:border-emerald-500/30 transition-all shadow-spatial-sm"
+                      >
+                        <ChevronLeft size={16} className="mr-1" />
+                        Back
+                      </PrismButton>
+                    )}
+                    {step < 5 ? (
+                      <PrismButton
+                        onClick={nextStep}
+                        disabled={!isStepValid()}
+                        className="bg-emerald-600 text-white px-6 py-3 rounded-2xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed shadow-spatial-sm active:scale-95 transition-all"
+                      >
+                        Next
+                        <ChevronRight size={16} className="ml-1" />
+                      </PrismButton>
+                    ) : (
+                      <PrismButton
+                        onClick={(e) => handleSubmit(e)}
+                        disabled={!isStepValid() || loading}
+                        className="bg-emerald-600 text-white px-8 py-3 rounded-2xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed shadow-spatial-sm active:scale-95 transition-all flex items-center gap-2"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle size={16} />
+                            Submit Report
+                          </>
+                        )}
+                      </PrismButton>
+                    )}
+                  </div>
                 </div>
-              )}
+              </div>
+
+              {/* Password Prompt Modal */}
+              <AnimatePresence>
+                {pendingProtectedCategory && (
+                  <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="w-full max-w-md bg-white rounded-3xl shadow-spatial-xl border border-[oklch(0.15_0.02_200_/_0.08)] p-8"
+                    >
+                      <h3 className="text-xl font-display font-black text-[oklch(0.15_0.05_200)] mb-2">
+                        Password Required
+                      </h3>
+                      <p className="text-[oklch(0.40_0.02_200)] text-sm mb-6">
+                        Masukkan password untuk mengakses {pendingProtectedCategory.title}
+                      </p>
+                      <div className="space-y-4">
+                        <input
+                          type="password"
+                          value={passwordInput}
+                          onChange={(e) => setPasswordInput(e.target.value)}
+                          placeholder="Enter password..."
+                          className="w-full px-5 py-4 rounded-2xl bg-[oklch(0.15_0.02_200_/_0.02)] border border-[oklch(0.15_0.02_200_/_0.1)] focus:border-emerald-500/50 outline-none transition-all text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              submitPassword();
+                            }
+                          }}
+                        />
+                        {passwordError && (
+                          <p className="text-sm text-red-500 font-medium flex items-center gap-2">
+                            <AlertTriangle size={16} />
+                            {passwordError}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-3 mt-6">
+                        <PrismButton
+                          onClick={closePasswordPrompt}
+                          className="flex-1 bg-white text-[oklch(0.15_0.05_200)] px-6 py-3 rounded-2xl text-sm font-bold border border-[oklch(0.15_0.02_200_/_0.1)] hover:border-red-500/30 transition-all"
+                        >
+                          Cancel
+                        </PrismButton>
+                        <PrismButton
+                          onClick={submitPassword}
+                          disabled={!passwordInput || loading}
+                          className="flex-1 bg-emerald-600 text-white px-6 py-3 rounded-2xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed shadow-spatial-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                        >
+                          {loading ? (
+                            <>
+                              <Loader2 size={16} className="animate-spin" />
+                            </>
+                          ) : (
+                            'Access'
+                          )}
+                        </PrismButton>
+                      </div>
+                    </motion.div>
+                  </div>
+                )}
+              </AnimatePresence>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
-      <AnimatePresence>
-        {pendingProtectedCategory && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-[oklch(0.15_0.02_200_/_0.35)] backdrop-blur-sm"
-              onClick={closePasswordPrompt}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: 16, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 16, scale: 0.98 }}
-              className="relative w-full max-w-md rounded-[28px] bg-white p-6 md:p-7 shadow-spatial-lg border border-[oklch(0.15_0.02_200_/_0.08)]"
-            >
-              <div className="space-y-2 mb-5">
-                <h3 className="text-2xl font-display font-black tracking-tight text-[oklch(0.15_0.05_200)]">Kata Sandi Diperlukan</h3>
-                <p className="text-sm text-[oklch(0.40_0.02_200)] font-medium">
-                  Masukkan kata sandi untuk membuka {pendingProtectedCategory.title}.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <input
-                  type="password"
-                  value={passwordInput}
-                  onChange={(e) => {
-                    setPasswordInput(e.target.value);
-                    if (passwordError) setPasswordError('');
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault();
-                      submitPassword();
-                    }
-                  }}
-                  autoFocus
-                  placeholder="Masukkan kata sandi"
-                  className="w-full rounded-2xl border border-[oklch(0.15_0.02_200_/_0.12)] px-4 py-3 outline-none focus:border-emerald-500"
-                />
-                {passwordError ? (
-                  <p className="text-sm font-semibold text-red-600">{passwordError}</p>
-                ) : null}
-              </div>
-
-              <div className="mt-6 flex items-center justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={closePasswordPrompt}
-                  className="px-4 py-2.5 rounded-xl border border-[oklch(0.15_0.02_200_/_0.12)] font-bold text-[oklch(0.15_0.05_200)]"
-                >
-                  Batal
-                </button>
-                <button
-                  type="button"
-                  onClick={submitPassword}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 text-white font-bold"
-                >
-                  Buka Akses
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Footer Details */}
-      <footer className="max-w-7xl mx-auto py-12 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 opacity-30 italic font-light text-sm">
-        <p>© 2025 Gapura Angkasa. Automated Irregularity System V4.0.</p>
-        <div className="flex items-center gap-8">
-          <Link href="/auth/login" className="hover:text-emerald-400 transition-colors">Internal Dashboard</Link>
-          <span className="cursor-help underline underline-offset-4">Privacy Policy</span>
-        </div>
-      </footer>
     </div>
   );
 }

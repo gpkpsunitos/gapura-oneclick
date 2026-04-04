@@ -1,9 +1,30 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi template generator untuk dashboard Customer Feedback
+ * Menghasilkan dashboard definition lengkap dengan berbagai halaman dan visualisasi
+ */
+
 import type { DashboardDefinition, DashboardTile, DashboardPage, QueryFilter } from '@/types/builder';
 
-// ─── Division Filters ────────────────────────────────────────────────────────
-// Division filters removed as per requirement
-
-function dateFilters(dateFrom: string, dateTo: string) {
+/**
+ * Helper untuk generate filter array berdasarkan field dan values
+ * @param field - Nama field
+ * @param values - Array nilai untuk filter
+ * @returns Array QueryFilter
+ * @example
+ * ```ts
+ * const filters = arrayFilter('branch', ['CGK', 'DPS']);
+ * ```
+ */
+/**
+ * Helper untuk generate filter berdasarkan rentang tanggal
+ * @param dateFrom - Tanggal awal (format YYYY-MM-DD)
+ * @param dateTo - Tanggal akhir (format YYYY-MM-DD)
+ * @returns Array QueryFilter untuk rentang tanggal
+ */
+function dateFilters(dateFrom: string, dateTo: string): QueryFilter[] {
   // Fix: Ensure dateTo includes the entire day if time is not specified
   // This prevents exclusion of records on the end date when using ISO timestamps
   let safeDateTo = dateTo;
@@ -30,6 +51,16 @@ export interface DashboardOptions {
   }
 }
 
+/**
+ * Helper untuk generate filter array berdasarkan field dan values
+ * @param field - Nama field
+ * @param values - Array nilai untuk filter
+ * @returns Array QueryFilter
+ * @example
+ * ```ts
+ * const filters = arrayFilter('branch', ['CGK', 'DPS']);
+ * ```
+ */
 function arrayFilter(field: string, values: string[] | undefined): QueryFilter[] {
   if (!values || values.length === 0) return [];
   return [{
@@ -41,6 +72,17 @@ function arrayFilter(field: string, values: string[] | undefined): QueryFilter[]
   }];
 }
 
+/**
+ * Menghasilkan dashboard Customer Feedback lengkap
+ * @param dateFrom - Tanggal awal range
+ * @param dateTo - Tanggal akhir range
+ * @param options - Opsi konfigurasi tambahan (opsional)
+ * @returns Dashboard definition lengkap
+ * @example
+ * ```ts
+ * const dashboard = generateCustomerFeedbackDashboard('2024-01-01', '2024-12-31');
+ * ```
+ */
 export function generateCustomerFeedbackDashboard(dateFrom: string, dateTo: string, options?: DashboardOptions): DashboardDefinition {
   tileCounter = 0;
   

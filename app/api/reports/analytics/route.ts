@@ -1,6 +1,23 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengambil data laporan dengan dukungan filter dan caching
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { reportsService } from '@/lib/services/reports-service';
 
+/**
+ * GET /api/reports/analytics
+ * 
+ * Mengambil data laporan untuk analitik dengan dukungan filter berbagai parameter
+ * Mendukung refresh data dari sumber eksternal dan caching
+ * 
+ * @param request - Objek request HTTP dengan query parameters
+ * @returns Promise<NextResponse> - Response JSON berisi daftar laporan yang difilter atau error
+ * @throws Mengembalikan 500 jika terjadi error server
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);

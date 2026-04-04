@@ -1,5 +1,15 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi fungsi untuk mencatat aksi yang terkait dengan keamanan ke audit trail
+ */
+
 import { createClient } from '@/lib/supabase-admin';
 
+/**
+ * Entri audit log
+ */
 export interface AuditEntry {
     actorId: string;
     action: string;
@@ -12,9 +22,24 @@ export interface AuditEntry {
 }
 
 /**
- * Log a security-related action to the audit trail.
- * Aligned with database schema: actor_id, entity_type, etc.
- * Complexity: Time O(1) | Space O(1)
+ * Mencatat aksi yang terkait dengan keamanan ke audit trail
+ * Selaras dengan skema database: actor_id, entity_type, dll
+ * Kompleksitas: Waktu O(1) | Ruang O(1)
+ * @param {AuditEntry} entry - Data entri audit
+ * @returns {Promise<void>}
+ * @example
+ * ```ts
+ * await logSecurityAudit({
+ *   actorId: 'user-123',
+ *   action: 'UPDATE',
+ *   entityType: 'Report',
+ *   entityId: 'report-456',
+ *   oldValue: { status: 'OPEN' },
+ *   newValue: { status: 'CLOSED' },
+ *   ipAddress: '192.168.1.1',
+ *   userAgent: 'Mozilla/5.0...'
+ * });
+ * ```
  */
 export async function logSecurityAudit(entry: AuditEntry) {
     const supabase = createClient(

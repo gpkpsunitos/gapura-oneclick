@@ -1,18 +1,16 @@
-import { Metadata } from 'next';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/auth-utils';
-import { CalendarPage } from '@/components/calendar/CalendarPage';
+'use client';
 
-export const metadata: Metadata = {
-  title: 'Event Calendar | Analyst Dashboard',
-  description: 'Shared calendar for team events and coordination',
-};
+import { useAuth } from '@/lib/hooks';
+import dynamic from 'next/dynamic';
 
-export default async function AnalystEventCalendarPage() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('session')?.value;
-  const session = token ? await verifySession(token) : null;
-  const role = session?.role as string;
+const CalendarPage = dynamic(
+  () => import('@/components/calendar/CalendarPage').then(m => ({ default: m.CalendarPage })),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-xl" /> }
+);
+
+export default function AnalystEventCalendarPage() {
+  const { user } = useAuth();
+  const role = user?.role as string;
   const canEdit = role?.toUpperCase() === 'ANALYST';
 
   return (

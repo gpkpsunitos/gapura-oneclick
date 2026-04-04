@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman manajemen laporan untuk analyst,
+ * menampilkan daftar laporan dengan fitur filter, search, dan manajemen status.
+ */
+
 'use client';
 
 // --- Imports --- (Existing imports slightly expanded)
@@ -18,6 +26,11 @@ import { ReportsList } from '@/components/dashboard/analyst/ReportsList';
 import { cn } from '@/lib/utils';
 import { AISummaryKPICards } from '@/components/dashboard/ai-summary';
 
+/**
+ * Komponen halaman manajemen laporan untuk analyst
+ * Menampilkan daftar laporan dengan fitur filter, search, dan manajemen status
+ * @returns {JSX.Element} Tampilan halaman manajemen laporan analyst
+ */
 export default function AnalystReportsPage() {
   // --- Data Fetching ---
   const { reports: allReports, isLoading: loading, refresh } = useReportsData('/api/admin/reports');
@@ -33,6 +46,9 @@ export default function AnalystReportsPage() {
   const [refreshing, setRefreshing] = useState(false);
 
   // --- Effects ---
+  /**
+   * Mengambil daftar station dari API master data
+   */
   const fetchStations = useCallback(async () => {
     try {
       const res = await fetch('/api/master-data?type=stations');
@@ -46,6 +62,9 @@ export default function AnalystReportsPage() {
 
   useEffect(() => { fetchStations(); }, [fetchStations]);
 
+  /**
+   * Handler untuk refresh data laporan
+   */
   const handleRefresh = async () => {
     setRefreshing(true);
     await refresh();
@@ -72,12 +91,22 @@ export default function AnalystReportsPage() {
     });
   }, [allReports, filter, stationFilter, severityFilter, search]);
 
+  /**
+   * Statistik laporan yang difilter
+   */
   const stats = useMemo(() => ({
     total: filteredReports.length,
     pending: filteredReports.filter(r => r.status === 'OPEN').length,
     resolved: filteredReports.filter(r => r.status === 'CLOSED').length
   }), [filteredReports]);
 
+  /**
+   * Handler untuk update status laporan
+   * @param {string} reportId - ID laporan yang akan diupdate
+   * @param {string} status - Status baru untuk laporan
+   * @param {string} [notes] - Catatan tindakan yang diambil
+   * @param {string} [evidenceUrl] - URL bukti/evidence
+   */
   const handleUpdateStatus = async (reportId: string, status: string, notes?: string, evidenceUrl?: string) => {
     try {
       const res = await fetch(`/api/reports/${reportId}`, {
@@ -139,16 +168,16 @@ export default function AnalystReportsPage() {
                  { label: 'Pending', value: stats.pending, color: 'amber' },
                  { label: 'Selesai', value: stats.resolved, color: 'teal' }
                ].map((stat, idx) => (
-                 <motion.div
-                   key={stat.label}
-                   initial={{ opacity: 0, scale: 0.9 }}
-                   animate={{ opacity: 1, scale: 1 }}
-                   transition={{ delay: 0.3 + idx * 0.1 }}
-                   className="bg-white/10 backdrop-blur-2xl border border-white/20 p-4 rounded-[24px] min-w-[124px] shadow-xl shadow-black/5"
-                 >
-                    <p className="text-[10px] uppercase font-black tracking-widest text-emerald-100/60 mb-1">{stat.label}</p>
-                    <p className="text-2xl font-display font-black text-white">{stat.value.toLocaleString()}</p>
-                 </motion.div>
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3 + idx * 0.1 }}
+                    className="bg-white/10 backdrop-blur-2xl border border-white/20 p-4 rounded-[24px] min-w-[124px] shadow-xl shadow-black/5"
+                  >
+                     <p className="text-[10px] uppercase font-black tracking-widest text-emerald-100/60 mb-1">{stat.label}</p>
+                     <p className="text-2xl font-display font-black text-white">{stat.value.toLocaleString()}</p>
+                  </motion.div>
                ))}
             </div>
           </div>

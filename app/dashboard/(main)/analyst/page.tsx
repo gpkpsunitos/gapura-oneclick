@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman dashboard utama untuk analyst,
+ * menampilkan analitik komprehensif, statistik, chart, dan manajemen laporan.
+ */
+
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
@@ -38,8 +46,10 @@ const AnalystCharts = dynamic(
 );
 
 /**
- * Refactored Analyst Dashboard Page
- * Mobile-first responsive design
+ * Dashboard Analitik Utama untuk Analyst
+ * Menampilkan analitik komprehensif, statistik, chart, dan manajemen laporan
+ * Menggunakan desain responsive mobile-first
+ * @returns {JSX.Element} Tampilan dashboard analyst lengkap
  */
 export default function AnalystDashboard() {
   const router = useRouter();
@@ -77,7 +87,10 @@ export default function AnalystDashboard() {
     categories: [],
   });
 
-  // Fetch data
+  /**
+   * Mengambil data laporan dan analitik dari API
+   * @param {boolean} [isRefresh=false] - Apakah ini adalah refresh data atau load awal
+   */
   const fetchData = useCallback(
     async (isRefresh = false) => {
       if (isRefresh) setRefreshing(true);
@@ -88,9 +101,10 @@ export default function AnalystDashboard() {
           await fetch('/api/reports/refresh', { method: 'POST' });
         }
 
-        const [reportsRes, analyticsRes] = await Promise.all([
+        const [reportsRes, analyticsRes, dbRes] = await Promise.all([
           fetch('/api/admin/reports?source=sheets'),
           fetch('/api/admin/analytics'),
+          fetch('/api/dashboards'),
         ]);
 
         if (reportsRes.ok) {
@@ -101,8 +115,6 @@ export default function AnalystDashboard() {
           const data = await analyticsRes.json();
           setAnalytics(data);
         }
-
-        const dbRes = await fetch('/api/dashboards');
         if (dbRes.ok) {
           const data = await dbRes.json();
           setSavedDashboards(data.dashboards || []);
@@ -201,12 +213,17 @@ export default function AnalystDashboard() {
   }, [filteredReports]);
 
   // Drilldown URL helper
-  const drilldownUrl = (type: string, value: string) =>
+  const drilldownUrl = useCallback((type: string, value: string) =>
     `/dashboard/analyst/drilldown?type=${type}&value=${encodeURIComponent(
       value
-    )}&period=${dateRange}`;
+    )}&period=${dateRange}`
+  , [dateRange]);
 
   // Customer Feedback Dashboard shortcut handler
+  /**
+   * Handler untuk shortcut Customer Feedback Dashboard
+   * Memeriksa cache slug atau membuat dashboard baru jika tidak ada
+   */
   const handleCustomerFeedbackShortcut = useCallback(async () => {
     setCfLoading(true);
     try {
@@ -284,7 +301,11 @@ export default function AnalystDashboard() {
   );
 
   // Handle filter apply
-  const handleApplyFilter = async (filterData: any) => {
+  /**
+   * Handler untuk menerapkan filter pada dashboard Customer Feedback
+   * @param {any} filterData - Data filter yang akan diterapkan
+   */
+  const handleApplyFilter = useCallback(async (filterData: any) => {
     setFilterLoading(true);
     try {
       const res = await fetch('/api/dashboards/customer-feedback-generate', {
@@ -306,10 +327,17 @@ export default function AnalystDashboard() {
       setFilterLoading(false);
       setShowFilterModal(false);
     }
-  };
+  }, [router]);
 
   // Handle triage submit
-  const handleTriageSubmit = async (data: {
+  /**
+   * Handler untuk submit triage pada laporan
+   * @param {Object} data - Data triage yang akan dikirim
+   * @param {string} data.primary_tag - Tag utama untuk triage
+   * @param {string} data.sub_category_note - Catatan sub kategori
+   * @param {string} data.target_division - Divisi target untuk laporan
+   */
+  const handleTriageSubmit = useCallback(async (data: {
     primary_tag: string;
     sub_category_note: string;
     target_division: string;
@@ -337,29 +365,31 @@ export default function AnalystDashboard() {
       console.error('Triage update failed:', error);
       alert('Gagal update laporan');
     }
-  };
+  }, [triageReport, fetchData]);
 
   // Export handlers
-  const exportToExcel = async () => {
+  /**
+   * Handler untuk export data ke Excel
+   */
+  const exportToExcel = useCallback(async () => {
     setExporting('excel');
     try {
       await doExportExcel({ reports, filteredReports, analytics, dateRange });
     } finally {
       setExporting(null);
     }
-  };
+  }, [reports, filteredReports, analytics, dateRange]);
 
-  const exportToPDF = async () => {
+  const exportToPDF = useCallback(async () => {
     setExporting('pdf');
     try {
       await doExportPDF({ reports, filteredReports, analytics, dateRange });
     } finally {
       setExporting(null);
     }
-  };
+  }, [reports, filteredReports, analytics, dateRange]);
 
-  // Handle stat card click
-  const handleStatClick = (type: string) => {
+  const handleStatClick = useCallback((type: string) => {
     switch (type) {
       case 'total':
         router.push(drilldownUrl('severity', 'all'));
@@ -374,7 +404,7 @@ export default function AnalystDashboard() {
         router.push(drilldownUrl('severity', 'high'));
         break;
     }
-  };
+  }, [dateRange, router, drilldownUrl]);
 
   // Analytics data calculations
   const caseCategoryData = useMemo(() => {

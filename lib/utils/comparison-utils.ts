@@ -1,10 +1,25 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi fungsi utilitas untuk menghitung data perbandingan Month-over-Month dan Year-over-Year
+ */
+
 import { Report, ComparisonData, ComparisonMetric, MonthlyBucket } from '@/types';
 
 /**
- * Calculates Month-over-Month and Year-over-Year comparison data from a list of reports.
- * Used across multiple dashboard components.
+ * Menghitung data perbandingan MoM dan YoY dari daftar laporan
+ * Digunakan di berbagai komponen dashboard
  * 
- * Complexity: Time O(n) | Space O(m) where n = reports, m = unique months
+ * Kompleksitas: Waktu O(n) | Ruang O(m) dimana n = laporan, m = bulan unik
+ * @param {Report[]} filteredReports - Array laporan yang sudah difilter
+ * @returns {ComparisonData} Objek data perbandingan lengkap
+ * @example
+ * ```ts
+ * const comparisonData = calculateComparisonData(reports);
+ * console.log(comparisonData.overallMetrics);
+ * console.log(comparisonData.monthlyTrend);
+ * ```
  */
 export function calculateComparisonData(filteredReports: Report[]): ComparisonData {
     console.log('[calculateComparisonData] Starting with reports:', filteredReports.length);

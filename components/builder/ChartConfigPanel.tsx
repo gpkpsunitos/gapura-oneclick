@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen panel konfigurasi grafik untuk mengatur tipe, axis, dan warna
+ */
+
 'use client';
 
 import {
@@ -8,12 +15,23 @@ import {
 import type { ChartType, ChartVisualization, QueryResult } from '@/types/builder';
 import { cn } from '@/lib/utils';
 
+/**
+ * Props untuk komponen ChartConfigPanel
+ * @interface ChartConfigPanelProps
+ * @property {ChartVisualization} visualization - Konfigurasi visualisasi grafik
+ * @property {QueryResult | null} result - Hasil query untuk menampilkan kolom yang tersedia
+ * @property {Function} onChange - Fungsi untuk memperbarui konfigurasi
+ */
 interface ChartConfigPanelProps {
   visualization: ChartVisualization;
   result: QueryResult | null;
   onChange: (updates: Partial<ChartVisualization>) => void;
 }
 
+/**
+ * Opsi tipe grafik yang tersedia
+ * @constant {{value: ChartType; label: string; icon: typeof BarChart3}[]} CHART_TYPES
+ */
 const CHART_TYPES: { value: ChartType; label: string; icon: typeof BarChart3 }[] = [
   { value: 'bar', label: 'Bar', icon: BarChart3 },
   { value: 'horizontal_bar', label: 'H. Bar', icon: ArrowRightLeft },
@@ -29,6 +47,10 @@ const CHART_TYPES: { value: ChartType; label: string; icon: typeof BarChart3 }[]
   { value: 'combo', label: 'Combo', icon: GitMerge },
 ];
 
+/**
+ * Palet warna yang tersedia untuk grafik
+ * @constant {{name: string; colors: string[]}[]} COLOR_PALETTES
+ */
 const COLOR_PALETTES = [
   { name: 'Default', colors: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] },
   { name: 'Pastel', colors: ['#93c5fd', '#6ee7b7', '#fcd34d', '#fca5a5', '#c4b5fd'] },
@@ -37,6 +59,22 @@ const COLOR_PALETTES = [
   { name: 'Warm', colors: ['#f97316', '#ef4444', '#eab308', '#ec4899', '#f43f5e'] },
 ];
 
+/**
+ * Komponen panel konfigurasi grafik
+ * Menyediakan kontrol untuk mengatur tipe grafik, axis, judul, dan palet warna
+ * 
+ * @param {ChartConfigPanelProps} props - Props untuk konfigurasi panel
+ * @returns {JSX.Element} Element React yang berisi panel konfigurasi grafik
+ * 
+ * @example
+ * ```tsx
+ * <ChartConfigPanel
+ *   visualization={chartVisualization}
+ *   result={queryResult}
+ *   onChange={(updates) => updateChartConfig(updates)}
+ * />
+ * ```
+ */
 export function ChartConfigPanel({ visualization, result, onChange }: ChartConfigPanelProps) {
   const columns = result?.columns || [];
 

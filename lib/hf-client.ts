@@ -1,35 +1,86 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi implementasi klien HuggingFace dengan fitur caching, rate limiting,
+ * retry logic, dan queue management untuk optimasi request ke layanan AI
+ */
+
+/**
+ * Interface untuk entry cache
+ * Menyimpan data, waktu kadaluarsa, dan URL asli
+ * 
+ * @template T - Tipe data yang disimpan dalam cache
+ */
 interface CacheEntry<T> {
+  /** Data yang disimpan dalam cache */
   data: T;
+  /** Waktu kadaluarsa cache dalam timestamp */
   expiry: number;
+  /** URL asli dari request */
   url: string;
 }
 
+/**
+ * Interface untuk request yang di-queue
+ * Menyimpan resolve/reject function dan informasi request
+ */
 interface QueuedRequest {
+  /** Fungsi resolve untuk Promise */
   resolve: (value: Response) => void;
+  /** Fungsi reject untuk Promise */
   reject: (error: Error) => void;
+  /** URL target request */
   url: string;
+  /** Opsi request (method, headers, body, dll) */
   options: RequestInit;
+  /** Jumlah percobaan yang sudah dilakukan */
   attempt: number;
 }
 
+/**
+ * Interface untuk konfigurasi HfClient
+ */
 interface HfClientConfig {
+  /** Base URL untuk layanan AI */
   baseUrl: string;
+  /** Rate limit dalam request per menit */
   rateLimitRpm: number;
+  /** Time-to-live cache dalam milidetik */
   cacheTtlMs: number;
+  /** Jumlah maksimal retry untuk request gagal */
   maxRetries: number;
+  /** Timeout untuk request dalam milidetik */
   timeoutMs: number;
+  /** Backoff time untuk retry dalam milidetik */
   retryBackoffMs: number;
 }
 
+/**
+ * Interface untuk statistik HfClient
+ * Menyimpan berbagai metrik performa dan penggunaan
+ */
 interface HfClientStats {
+  /** Jumlah cache hit */
   cacheHits: number;
+  /** Jumlah cache miss */
   cacheMisses: number;
+  /** Jumlah request yang terkena rate limit */
   rateLimited: number;
+  /** Jumlah retry yang dilakukan */
   retries: number;
+  /** Jumlah request yang dideduplikasi */
   dedupedRequests: number;
+  /** Jumlah request yang di-queue */
   requestsQueued: number;
 }
 
+const MAX_CACHE_SIZE = 500;
+
+/**
+ * Konfigurasi default untuk HfClient
+ * Nilai-nilai ini dapat di-override dengan environment variable atau parameter
+ */
 const DEFAULT_CONFIG: HfClientConfig = {
   baseUrl: typeof window !== 'undefined'
     ? ''
@@ -41,6 +92,11 @@ const DEFAULT_CONFIG: HfClientConfig = {
   retryBackoffMs: parseInt(process.env.HF_RETRY_BACKOFF_MS || '1000', 10),
 };
 
+/**
+ * Kelas klien HuggingFace dengan caching, rate limiting, dan retry logic
+ * Kelas ini menyediakan antarmuka untuk melakukan request ke layanan AI
+ * dengan berbagai optimasi seperti caching, deduplikasi, dan rate limiting
+ */
 class HuggingFaceClient {
   private config: HfClientConfig;
   private requestTimestamps: number[] = [];
@@ -57,11 +113,20 @@ class HuggingFaceClient {
     requestsQueued: 0,
   };
 
+  /**
+   * Membuat instance baru dari HuggingFaceClient
+   * 
+   * @param config - Konfigurasi parsial untuk override default
+   */
   constructor(config: Partial<HfClientConfig> = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.startCacheCleanup();
   }
 
+  /**
+   * Memulai proses pembersihan cache secara berkala
+   * Membersihkan cache yang sudah kadaluarsa setiap 60 detik
+   */
   private startCacheCleanup(): void {
     setInterval(() => {
       const now = Date.now();
@@ -70,25 +135,50 @@ class HuggingFaceClient {
           this.cache.delete(key);
         }
       }
+      if (this.cache.size > MAX_CACHE_SIZE) {
+        const entries = Array.from(this.cache.entries())
+          .sort((a, b) => a[1].expiry - b[1].expiry);
+        const toRemove = entries.slice(0, entries.length - MAX_CACHE_SIZE);
+        toRemove.forEach(([key]) => this.cache.delete(key));
+      }
     }, 60000);
   }
 
+  /**
+   * Menghasilkan kunci cache yang unik berdasarkan URL dan opsi request
+   * 
+   * @param url - URL request
+   * @param options - Opsi request (method, body, dll)
+   * @returns String kunci cache yang unik
+   */
   private generateCacheKey(url: string, options?: RequestInit): string {
     const method = options?.method || 'GET';
     const body = options?.body ? JSON.stringify(options.body) : '';
     return `${method}:${url}:${body}`;
   }
 
+  /**
+   * Membersihkan timestamp request yang sudah lama (lebih dari 60 detik)
+   */
   private cleanOldTimestamps(): void {
     const windowStart = Date.now() - 60000;
     this.requestTimestamps = this.requestTimestamps.filter(ts => ts > windowStart);
   }
 
+  /**
+   * Memeriksa apakah request baru dapat dibuat tanpa melanggar rate limit
+   * 
+   * @returns True jika request dapat dibuat, false jika rate limit tercapai
+   */
   private canMakeRequest(): boolean {
     this.cleanOldTimestamps();
     return this.requestTimestamps.length < this.config.rateLimitRpm;
   }
 
+  /**
+   * Menunggu hingga rate limit terlewati
+   * Fungsi ini akan menunggu hingga request dapat dibuat lagi
+   */
   private async waitForRateLimit(): Promise<void> {
     while (!this.canMakeRequest()) {
       const oldestInWindow = this.requestTimestamps[0];
@@ -100,14 +190,33 @@ class HuggingFaceClient {
     }
   }
 
+  /**
+   * Fungsi helper untuk menunggu selama waktu tertentu
+   * 
+   * @param ms - Waktu tunggu dalam milidetik
+   * @returns Promise yang resolve setelah waktu tunggu selesai
+   */
   private sleep(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
+  /**
+   * Mencatat timestamp request baru
+   */
   private recordRequest(): void {
     this.requestTimestamps.push(Date.now());
   }
 
+  /**
+   * Melakukan request dengan timeout dan abort signal
+   * 
+   * @param url - URL target request
+   * @param options - Opsi request
+   * @param timeout - Timeout dalam milidetik
+   * @param signal - Abort signal untuk membatalkan request
+   * @returns Promise yang resolve dengan Response
+   * @throws Error jika timeout atau request dibatalkan
+   */
   private async fetchWithTimeout(
     url: string,
     options: RequestInit = {},
@@ -147,6 +256,16 @@ class HuggingFaceClient {
     }
   }
 
+  /**
+   * Melakukan request dengan retry logic
+   * Akan melakukan retry otomatis jika request gagal atau terkena rate limit
+   * 
+   * @param url - URL target request
+   * @param options - Opsi request
+   * @param attempt - Jumlah percobaan yang sudah dilakukan
+   * @returns Promise yang resolve dengan Response
+   * @throws Error jika request gagal setelah semua percobaan
+   */
   private async executeRequest(
     url: string,
     options: RequestInit,
@@ -180,6 +299,9 @@ class HuggingFaceClient {
     }
   }
 
+  /**
+   * Memproses antrian request yang tertahan karena rate limit
+   */
   private processQueue(): void {
     if (this.isProcessingQueue || this.requestQueue.length === 0) return;
     
@@ -212,6 +334,16 @@ class HuggingFaceClient {
     processNext();
   }
 
+  /**
+   * Melakukan request ke layanan AI dengan caching dan deduplikasi
+   * 
+   * @param url - URL target request (relative atau absolute)
+   * @param options - Opsi request (method, headers, body, dll)
+   * @param cacheOptions - Opsi untuk mengatur cache behavior
+   * @param signal - Abort signal untuk membatalkan request
+   * @returns Promise yang resolve dengan Response
+   * @throws Error jika request gagal atau dibatalkan
+   */
   async fetch(
     url: string,
     options: RequestInit = {},
@@ -295,6 +427,18 @@ class HuggingFaceClient {
     return requestPromise;
   }
 
+  /**
+   * Melakukan request dan mengembalikan data JSON
+   * Shortcut untuk fetch() dengan response.json()
+   * 
+   * @template T - Tipe data JSON yang diharapkan
+   * @param url - URL target request
+   * @param options - Opsi request
+   * @param cacheOptions - Opsi untuk mengatur cache behavior
+   * @param signal - Abort signal untuk membatalkan request
+   * @returns Promise yang resolve dengan data JSON
+   * @throws Error jika request gagal atau response tidak OK
+   */
   async fetchJson<T = unknown>(
     url: string,
     options: RequestInit = {},
@@ -315,6 +459,11 @@ class HuggingFaceClient {
     return response.json();
   }
 
+  /**
+   * Mengambil statistik penggunaan klien
+   * 
+   * @returns Object berisi statistik cache, queue, dan request
+   */
   getStats(): HfClientStats & { cacheSize: number; queueLength: number } {
     return {
       ...this.stats,
@@ -323,10 +472,19 @@ class HuggingFaceClient {
     };
   }
 
+  /**
+   * Menghapus semua entry dari cache
+   */
   clearCache(): void {
     this.cache.clear();
   }
 
+  /**
+   * Menghapus entry cache yang cocok dengan pattern
+   * Pattern dapat berupa string atau regex
+   * 
+   * @param pattern - Pattern untuk mencocokkan kunci cache
+   */
   invalidateCache(pattern?: string | RegExp): void {
     if (!pattern) {
       this.cache.clear();
@@ -346,10 +504,20 @@ class HuggingFaceClient {
     }
   }
 
+  /**
+   * Mengambil konfigurasi saat ini
+   * 
+   * @returns Copy dari konfigurasi saat ini
+   */
   getConfig(): HfClientConfig {
     return { ...this.config };
   }
 
+  /**
+   * Memperbarui konfigurasi klien
+   * 
+   * @param newConfig - Konfigurasi baru yang akan di-merge dengan konfigurasi saat ini
+   */
   updateConfig(newConfig: Partial<HfClientConfig>): void {
     this.config = { ...this.config, ...newConfig };
   }
@@ -357,6 +525,17 @@ class HuggingFaceClient {
 
 let globalHfClient: HuggingFaceClient | null = null;
 
+/**
+ * Mendapatkan atau membuat instance global HuggingFaceClient
+ * Menggunakan pattern singleton untuk memastikan hanya satu instance yang digunakan
+ * 
+ * @param config - Konfigurasi parsial untuk instance baru (hanya jika belum ada)
+ * @returns Instance HuggingFaceClient
+ * @example
+ * ```typescript
+ * const client = getHfClient({ rateLimitRpm: 200 });
+ * ```
+ */
 export function getHfClient(config?: Partial<HfClientConfig>): HuggingFaceClient {
   if (!globalHfClient) {
     globalHfClient = new HuggingFaceClient(config);
@@ -364,6 +543,10 @@ export function getHfClient(config?: Partial<HfClientConfig>): HuggingFaceClient
   return globalHfClient;
 }
 
+/**
+ * Mereset instance global HuggingFaceClient
+ * Berguna untuk testing atau re-initialization
+ */
 export function resetHfClient(): void {
   globalHfClient = null;
 }

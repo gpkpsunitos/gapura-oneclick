@@ -1,8 +1,36 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk registrasi pengguna baru
+ * Melakukan validasi data, hashing password, dan pembuatan user di database
+ */
+
 import { NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabase-admin';
 import { hashPassword } from '@/lib/auth-utils';
 
-// Complexity: Time O(1) | Space O(1)
+/**
+ * Menangani request POST untuk registrasi pengguna baru
+ * Memvalidasi field-field registrasi, mengecek duplikasi email/NIK,
+ * dan membuat user baru dengan role sesuai email domain dan stasiun
+ * @param request - Request object berisi data registrasi di body JSON
+ * @returns Response JSON dengan status registrasi
+ * @throws {Error} Jika terjadi kesalahan server
+ * @example
+ * ```json
+ * {
+ *   "email": "user@example.com",
+ *   "password": "password123",
+ *   "full_name": "John Doe",
+ *   "nik": "12345",
+ *   "phone": "08123456789",
+ *   "station_id": "JKT-001",
+ *   "unit_id": "UNIT-001",
+ *   "position_id": "POS-001"
+ * }
+ * ```
+ */
 export async function POST(request: Request) {
     try {
         const body = await request.json();

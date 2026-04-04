@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman detail laporan untuk analyst dengan komponen ReportDetailView
+ */
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -9,6 +16,11 @@ import { supabase } from '@/lib/supabase';
 import { Report, User } from '@/types';
 import { ReportDetailView } from '@/components/dashboard/ReportDetailView';
 
+/**
+ * Komponen halaman detail laporan untuk analyst
+ * Menggunakan ReportDetailView komponen yang sama dengan admin
+ * @returns JSX element halaman detail laporan analyst
+ */
 export default function AnalystReportDetailPage() {
     const params = useParams();
     const router = useRouter();
@@ -20,39 +32,56 @@ export default function AnalystReportDetailPage() {
     const [error, setError] = useState('');
     const [user, setUser] = useState<User | null>(null);
 
-    const fetchUser = useCallback(async () => {
+    /**
+     * Mengambil data user saat ini dari session
+     * @param signal - AbortSignal untuk membatalkan request
+     */
+    const fetchUser = useCallback(async (signal?: AbortSignal) => {
         try {
-            const res = await fetch('/api/auth/me');
+            const res = await fetch('/api/auth/me', { signal });
             if (res.ok) {
                 const data = await res.json();
                 setUser(data);
             }
         } catch (err) {
+            if (err instanceof DOMException && err.name === 'AbortError') return;
             console.error('Error fetching user:', err);
         }
     }, []);
 
-    const fetchReport = useCallback(async (updatedData?: Report) => {
+    /**
+     * Mengambil data laporan berdasarkan ID
+     * @param updatedData - Data laporan yang sudah diupdate (opsional)
+     * @param signal - AbortSignal untuk membatalkan request
+     */
+    const fetchReport = useCallback(async (updatedData?: Report, signal?: AbortSignal) => {
         if (updatedData) {
             setReport(updatedData);
             return;
         }
         try {
-            const res = await fetch(`/api/reports/${reportId}`);
+            const res = await fetch(`/api/reports/${reportId}`, { signal });
             if (!res.ok) throw new Error('Failed to load report');
             const data = await res.json();
             setReport(data);
             setLoading(false);
         } catch (err) {
+            if (err instanceof DOMException && err.name === 'AbortError') return;
             setError(err instanceof Error ? err.message : 'Unknown error');
             setLoading(false);
         }
     }, [reportId]);
 
+    /**
+     * Setup real-time subscription dan inisialisasi data
+     */
     useEffect(() => {
-        fetchUser();
-        fetchReport();
-        // Subscribe to realtime updates for comments
+        const controller = new AbortController();
+        const { signal } = controller;
+
+        fetchUser(signal);
+        fetchReport(undefined, signal);
+
         const channel = supabase
             .channel(`report-${reportId}`)
             .on('postgres_changes', { 
@@ -61,15 +90,23 @@ export default function AnalystReportDetailPage() {
                 table: 'comments', 
                 filter: `report_id=eq.${reportId}` 
             }, () => {
-                fetchReport(); // Refresh full data to get updated comments
+                fetchReport(undefined, signal);
             })
             .subscribe();
 
         return () => {
+            controller.abort();
             supabase.removeChannel(channel);
         };
     }, [reportId, fetchReport, fetchUser]);
 
+    /**
+     * Menangani update status laporan
+     * @param id - ID laporan
+     * @param status - Status baru laporan
+     * @param notes - Catatan tambahan (opsional)
+     * @param evidenceUrl - URL bukti (opsional)
+     */
     const handleStatusUpdate = async (id: string, status: string, notes?: string, evidenceUrl?: string) => {
         setActionLoading(true);
         try {

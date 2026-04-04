@@ -1,7 +1,20 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi layout dashboard yang memeriksa autentikasi user
+ */
+
 import { cookies } from 'next/headers';
 import { readSessionPayload } from '@/lib/auth-utils';
 import { redirect } from 'next/navigation';
 
+/**
+ * Komponen layout dashboard
+ * Memeriksa autentikasi user dan redirect ke login jika belum login
+ * @param children - Child components yang akan dirender
+ * @returns JSX element dengan children atau redirect ke login
+ */
 export default async function DashboardLayout({
     children,
 }: {

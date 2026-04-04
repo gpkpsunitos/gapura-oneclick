@@ -19,21 +19,7 @@ import {
   CategoryKPIs,
   SeverityDistribution,
 } from './data';
-import { barLabelsPlugin } from '../chartConfig';
-import { Bar, Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
-import { BarChart, CartesianGrid, XAxis, YAxis, Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer, Bar as RechartsBar } from 'recharts';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
 import { ArrowUp, ArrowDown, Minus, Download, FileText, Filter, X, Zap, Brain } from 'lucide-react';
 import { saveAs } from 'file-saver';
 import { motion } from 'framer-motion';
@@ -43,18 +29,6 @@ import { AiRootCauseInvestigation } from '../ai-root-cause/AiRootCauseInvestigat
 import { fetchRiskSummaryAi, AiRiskSummary, fetchSeverityDistributionsAi } from '@/lib/services/gapura-ai';
 import { HeatmapChart } from '@/components/charts/HeatmapChart';
 import type { QueryResult } from '@/types/builder';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
 
 interface FilterParams {
   hub?: string;
@@ -174,240 +148,111 @@ function AutoInsight({ categoryData, total }: { categoryData: CategoryData[], to
 }
 
 function CategoryBarChart({ data }: { data: CategoryData[] }) {
-  const colors = {
-    Irregularity: { bg: '#ef4444', border: '#dc2626' },
-    Complaint: { bg: '#f97316', border: '#ea580c' },
-    Compliment: { bg: '#22c55e', border: '#16a34a' },
+  const colors: Record<string, string> = {
+    Irregularity: '#ef4444',
+    Complaint: '#f97316',
+    Compliment: '#22c55e',
   };
 
-  const chartData = {
-    labels: data.map(d => d.name),
-    datasets: [
-      {
-        label: 'Count',
-        data: data.map(d => d.count),
-        backgroundColor: data.map(d => colors[d.name as keyof typeof colors]?.bg || '#6b7280'),
-        borderColor: data.map(d => colors[d.name as keyof typeof colors]?.border || '#4b5563'),
-        borderWidth: 1,
-        borderRadius: 6,
-      },
-    ],
-  };
-
-  const options = {
-    indexAxis: 'x' as const,
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        callbacks: {
-          label: (ctx: { dataIndex: number; raw: unknown }) => {
-            const item = data[ctx.dataIndex];
-            return `${item.count} (${item.percentage.toFixed(1)}%)`;
-          },
-        },
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 11 }, maxRotation: 0, minRotation: 0, padding: 12 },
-      },
-      y: {
-        grid: { color: 'rgba(0,0,0,0.05)' },
-        ticks: { font: { size: 12 } },
-        suggestedMax: data.length > 0 ? Math.max(...data.map(d => d.count)) * 1.15 : undefined,
-      },
-    },
-  };
+  const rechartsData = data.map(d => ({
+    name: d.name,
+    Count: d.count,
+    fill: colors[d.name] || '#6b7280',
+  }));
 
   return (
     <div className="h-[300px]">
-      <Bar data={chartData} options={options} plugins={[barLabelsPlugin]} />
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+          <YAxis tick={{ fontSize: 12 }} />
+          <Tooltip />
+          <Bar dataKey="Count" radius={[6, 6, 0, 0]}>
+            {rechartsData.map((entry, index) => (
+              <Cell key={index} fill={entry.fill} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
 
 function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
-  const chartData = {
-    labels: data.map(d => d.month),
-    datasets: [
-      {
-        label: 'Irregularity',
-        data: data.map(d => d.Irregularity),
-        borderColor: '#ef4444',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        fill: true,
-        tension: 0.3,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-      },
-      {
-        label: 'Complaint',
-        data: data.map(d => d.Complaint),
-        borderColor: '#f97316',
-        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-        fill: true,
-        tension: 0.3,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-      },
-      {
-        label: 'Compliment',
-        data: data.map(d => d.Compliment),
-        borderColor: '#22c55e',
-        backgroundColor: 'rgba(34, 197, 94, 0.1)',
-        fill: true,
-        tension: 0.3,
-        pointRadius: 3,
-        pointHoverRadius: 5,
-      },
-    ],
-  };
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { usePointStyle: true, padding: 20, font: { size: 11 } },
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { font: { size: 10 } },
-      },
-      y: {
-        grid: { color: 'rgba(0,0,0,0.05)' },
-        ticks: { font: { size: 10 } },
-        suggestedMax: data.length > 0 ? Math.max(...data.map(d => Math.max(d.Irregularity, d.Complaint, d.Compliment))) * 1.2 : undefined,
-      },
-    },
-    interaction: {
-      intersect: false,
-      mode: 'index' as const,
-    },
-  };
+  const rechartsData = data.map(d => ({
+    name: d.month,
+    Irregularity: d.Irregularity,
+    Complaint: d.Complaint,
+    Compliment: d.Compliment,
+  }));
 
   return (
     <div className="h-[250px]">
-      <Line data={chartData} options={options} plugins={[barLabelsPlugin]} />
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip />
+          <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+          <Line type="monotone" dataKey="Irregularity" stroke="#ef4444" strokeWidth={2} dot={{ r: 3 }} />
+          <Line type="monotone" dataKey="Complaint" stroke="#f97316" strokeWidth={2} dot={{ r: 3 }} />
+          <Line type="monotone" dataKey="Compliment" stroke="#22c55e" strokeWidth={2} dot={{ r: 3 }} />
+        </LineChart>
+      </ResponsiveContainer>
     </div>
   );
 }
 
 function BranchStackedBar({ data }: { data: BranchCategoryData[] }) {
-  const chartData = {
-    labels: data.slice(0, 8).map(d => d.branch.split(' ')),
-    datasets: [
-      {
-        label: 'Irregularity',
-        data: data.slice(0, 8).map(d => d.Irregularity),
-        backgroundColor: '#ef4444',
-        borderRadius: 4,
-      },
-      {
-        label: 'Complaint',
-        data: data.slice(0, 8).map(d => d.Complaint),
-        backgroundColor: '#f97316',
-        borderRadius: 4,
-      },
-      {
-        label: 'Compliment',
-        data: data.slice(0, 8).map(d => d.Compliment),
-        backgroundColor: '#22c55e',
-        borderRadius: 4,
-      },
-    ],
-  };
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { usePointStyle: true, padding: 15, font: { size: 10 } },
-      },
-    },
-    scales: {
-      x: {
-        stacked: false,
-        grid: { display: false },
-        ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 },
-      },
-      y: {
-        stacked: false,
-        grid: { color: 'rgba(0,0,0,0.05)' },
-        ticks: { font: { size: 10 } },
-        suggestedMax: data.length > 0 ? Math.max(...data.slice(0, 8).map(d => Math.max(d.Irregularity, d.Complaint, d.Compliment))) * 1.15 : undefined,
-      },
-    },
-  };
+  const rechartsData = data.slice(0, 8).map(d => ({
+    name: d.branch,
+    Irregularity: d.Irregularity,
+    Complaint: d.Complaint,
+    Compliment: d.Compliment,
+  }));
 
   return (
     <div className="h-[300px]">
-      <Bar data={chartData} options={options} plugins={[barLabelsPlugin]} />
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip />
+          <Legend wrapperStyle={{ fontSize: 10, paddingTop: 5 }} />
+          <Bar dataKey="Irregularity" fill="#ef4444" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Complaint" fill="#f97316" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Compliment" fill="#22c55e" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
 
 function AirlineTop10Chart({ data }: { data: AirlineCategoryData[] }) {
-  const chartData = {
-    labels: data.map(d => d.airline.split(' ')),
-    datasets: [
-      {
-        label: 'Irregularity',
-        data: data.map(d => d.Irregularity),
-        backgroundColor: '#ef4444',
-        borderRadius: 4,
-      },
-      {
-        label: 'Complaint',
-        data: data.map(d => d.Complaint),
-        backgroundColor: '#f97316',
-        borderRadius: 4,
-      },
-      {
-        label: 'Compliment',
-        data: data.map(d => d.Compliment),
-        backgroundColor: '#22c55e',
-        borderRadius: 4,
-      },
-    ],
-  };
-
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { usePointStyle: true, padding: 15, font: { size: 10 } },
-      },
-    },
-    scales: {
-      x: {
-        stacked: false,
-        grid: { display: false },
-        ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 },
-      },
-      y: {
-        stacked: false,
-        grid: { color: 'rgba(0,0,0,0.05)' },
-        ticks: { font: { size: 10 } },
-        suggestedMax: data.length > 0 ? Math.max(...data.map(d => Math.max(d.Irregularity, d.Complaint, d.Compliment))) * 1.15 : undefined,
-      },
-    },
-  };
+  const rechartsData = data.map(d => ({
+    name: d.airline,
+    Irregularity: d.Irregularity,
+    Complaint: d.Complaint,
+    Compliment: d.Compliment,
+  }));
 
   return (
     <div className="h-[350px]">
-      <Bar data={chartData} options={options} plugins={[barLabelsPlugin]} />
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip />
+          <Legend wrapperStyle={{ fontSize: 10, paddingTop: 5 }} />
+          <Bar dataKey="Irregularity" fill="#ef4444" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Complaint" fill="#f97316" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Compliment" fill="#22c55e" radius={[4, 4, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }

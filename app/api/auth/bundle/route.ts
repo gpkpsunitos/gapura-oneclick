@@ -31,6 +31,8 @@ export async function GET() {
                 isCurrent: u.id === bundle.active_uid,
                 isOrigin: u.id === bundle.origin_uid,
             }))
+        }, {
+            headers: { 'Cache-Control': 'no-store, max-age=0' },
         });
     } catch {
         return NextResponse.json({ error: 'Failed to fetch bundle' }, { status: 500 });

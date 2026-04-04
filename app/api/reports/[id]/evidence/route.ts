@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengunggah bukti (evidence) laporan
+ */
+
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
@@ -5,6 +12,19 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { randomUUID } from 'crypto';
 import { compressToExactSize } from '@/lib/image-compression';
 
+/**
+ * POST /api/reports/[id]/evidence
+ * 
+ * Mengunggah file bukti (evidence) untuk laporan tertentu
+ * Mendukung file gambar dan dokumen (PDF/Word)
+ * 
+ * @param request - Objek request HTTP dengan FormData berisi file
+ * @param params - Parameter route berisi ID laporan
+ * @returns Promise<NextResponse> - Response JSON berisi URL file yang diunggah atau error
+ * @throws Mengembalikan 401 jika tidak terautentikasi
+ * @throws Mengembalikan 400 jika file tidak valid atau terlalu besar
+ * @throws Mengembalikan 500 jika terjadi error saat upload
+ */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -101,4 +121,3 @@ export async function POST(
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
-

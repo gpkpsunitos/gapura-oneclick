@@ -1,10 +1,34 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk upload file evidence/bukti
+ * Melakukan validasi file, kompresi otomatis, dan upload ke Supabase Storage
+ */
+
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { randomUUID } from 'crypto';
 import { compressToExactSize, getOptimalFormat } from '@/lib/image-compression';
+import { validateImageFile } from '@/lib/security/file-validation';
 
+/**
+ * Menangani request POST untuk upload file evidence/bukti
+ * Melakukan validasi file (tipe, ukuran, magic bytes), kompresi otomatis
+ * ke ukuran kurang dari 5KB, dan upload ke Supabase Storage
+ * @param request - Request object berisi file di formData
+ * @returns Response JSON dengan URL publik file yang diupload
+ * @throws {Error} Jika terjadi kesalahan upload atau kompresi
+ * @example
+ * ```http
+ * POST /api/uploads/evidence
+ * Content-Type: multipart/form-data
+ * 
+ * file: [binary]
+ * ```
+ */
 export async function POST(request: Request) {
   try {
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -38,13 +62,22 @@ export async function POST(request: Request) {
 
     console.log(`[UPLOAD] Original file size: ${(file.size / 1024).toFixed(2)}KB`);
 
-    // Compress image to <5KB
     const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Server-side magic byte validation
+    const validation = validateImageFile(buffer, file.type);
+    if (!validation.valid) {
+        console.warn(`[UPLOAD] File validation failed: ${validation.error}`);
+        return NextResponse.json({ error: 'Invalid image file' }, { status: 400 });
+    }
+
+    // Compress image to <5KB
     let compressedBuffer: Buffer;
     let contentType: string;
 
     try {
-      const result = await compressToExactSize(arrayBuffer, 5);
+      const result = await compressToExactSize(buffer, 5);
       compressedBuffer = result.buffer;
       contentType = 'image/webp';
       
@@ -52,7 +85,7 @@ export async function POST(request: Request) {
       console.log(`[UPLOAD] Final dimensions: ${result.width}x${result.height}`);
     } catch (error) {
       console.error('[UPLOAD] Compression failed, using original:', error);
-      compressedBuffer = Buffer.from(arrayBuffer);
+      compressedBuffer = buffer;
       contentType = file.type;
     }
 

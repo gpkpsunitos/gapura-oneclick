@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi utility functions untuk parsing dan formatting data chart
+ */
+
 // ISO datetime pattern:
 // - 2026-01-23T00:00:00+00:00
 // - 2026-01-23T00:00:00.000Z
@@ -5,10 +12,20 @@
 // - 2026-01-23 (YYYY-MM-DD)
 // - 2026-01 (YYYY-MM)
 // - 2026 (YYYY)
+/**
+ * Regex pattern untuk ISO datetime
+ * @constant ISO_DATETIME_RE
+ */
 export const ISO_DATETIME_RE = /^\d{4}(?:-\d{2}(?:-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:?\d{2})?)?)?)?$/;
 
+/** Token hints untuk nama kolom yang berisi date */
 const DATE_HINT_TOKENS = new Set(['date', 'datetime', 'timestamp', 'created', 'updated', 'time']);
 
+/**
+ * Mengecek apakah nama kolom mengindikasikan kolom date
+ * @param colName - Nama kolom yang akan dicek
+ * @returns true jika nama kolom mengandung token date
+ */
 function isDateLikeColumnName(colName: string): boolean {
   const tokens = colName
     .toLowerCase()
@@ -20,6 +37,10 @@ function isDateLikeColumnName(colName: string): boolean {
   return tokens.some(token => DATE_HINT_TOKENS.has(token));
 }
 
+/**
+ * Mapping nama bulan dalam bahasa Indonesia/Inggris ke angka
+ * @constant MonthMap
+ */
 const MonthMap: Record<string, number> = {
   januari: 0, jan: 0,
   februari: 1, feb: 1,
@@ -35,6 +56,17 @@ const MonthMap: Record<string, number> = {
   desember: 11, des: 11
 };
 
+/**
+ * Parse nilai menjadi Date object dengan support berbagai format
+ * @param val - Nilai yang akan di-parse (string, Date, atau unknown)
+ * @returns Date object atau null jika parsing gagal
+ * @example
+ * ```ts
+ * const d1 = parseDate('2026-01-23');
+ * const d2 = parseDate('23 Mei 2026');
+ * const d3 = parseDate('23/01/2026');
+ * ```
+ */
 export function parseDate(val: unknown): Date | null {
   if (!val) return null;
   if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
@@ -98,6 +130,16 @@ export function parseDate(val: unknown): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+/**
+ * Format tanggal ke string yang human-readable dalam bahasa Indonesia
+ * @param val - Nilai tanggal yang akan diformat
+ * @returns String tanggal yang sudah diformat
+ * @example
+ * ```ts
+ * formatDateValue('2026-01-23') // '23 Jan 2026'
+ * formatDateValue('2026-01') // 'Jan 2026'
+ * ```
+ */
 export function formatDateValue(val: unknown): string {
   const d = parseDate(val);
   if (!d) return String(val ?? '');
@@ -153,6 +195,18 @@ export function formatDisplayValue(val: unknown, colName?: string): string {
   return String(val);
 }
 
+/**
+ * Mengecek apakah kolom berisi data date
+ * @param rows - Array rows data
+ * @param key - Key kolom yang akan dicek
+ * @returns true jika kolom berisi data date
+ * @example
+ * ```ts
+ * if (isDateColumn(rows, 'created_at')) {
+ *   // Handle sebagai date column
+ * }
+ * ```
+ */
 export function isDateColumn(rows: Record<string, unknown>[], key: string): boolean {
   if (!rows || rows.length === 0) return false;
   for (const row of rows.slice(0, 5)) {
@@ -162,6 +216,16 @@ export function isDateColumn(rows: Record<string, unknown>[], key: string): bool
   return false;
 }
 
+/**
+ * Proses data chart untuk sorting dan formatting date
+ * @param rows - Array rows data
+ * @param xKey - Key kolom X-axis yang akan diproses
+ * @returns Array rows yang sudah diproses
+ * @example
+ * ```ts
+ * const processed = processChartData(data, 'created_at');
+ * ```
+ */
 export function processChartData(
   rows: Record<string, unknown>[],
   xKey: string,

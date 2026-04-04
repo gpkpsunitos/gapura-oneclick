@@ -1,12 +1,24 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi utility untuk normalisasi query dan visualisasi dashboard
+ * Memastikan data konsisten dan valid untuk SQL builder dan chart renderer
+ */
+
 import type { QueryDefinition, QueryMeasure, ChartVisualization, DashboardTile } from '@/types/builder';
 import { TABLES, JOINS, getFieldDef } from './schema';
 
 /**
- * Normalizes a QueryDefinition to ensure it's valid for the SQL builder.
- * This is the primary defense against AI-generated or malformed queries.
- */
-/**
- * Helper to map human-readable field names to database columns for the 'reports' table.
+ * Mapping nama field report ke nama kolom database
+ * Menangani variasi penulisan dan alias dari berbagai sumber data
+ * @param field - Nama field dari query
+ * @returns Nama kolom database yang sudah dimapping
+ * @example
+ * ```ts
+ * const dbField = mapReportsField('tipemaskapai');
+ * // returns: 'jenis_maskapai'
+ * ```
  */
 function mapReportsField(field: string): string {
   if (!field) return field;
@@ -168,6 +180,16 @@ function mapReportsField(field: string): string {
   return mapping[fieldLower] || field;
 }
 
+/**
+ * Normalisasi nilai bulan ke format konsisten
+ * @param val - Nilai bulan dalam format apapun
+ * @returns Nilai bulan yang sudah dinormalisasi
+ * @example
+ * ```ts
+ * const month = normalizeMonthValue('januari');
+ * // returns: 'januari'
+ * ```
+ */
 function normalizeMonthValue(val: any): any {
   if (typeof val !== 'string') return val;
   const lower = val.toLowerCase().trim();
@@ -189,8 +211,14 @@ function normalizeMonthValue(val: any): any {
 }
 
 /**
- * Normalizes a QueryDefinition to ensure it's valid for the SQL builder.
- * This is the primary defense against AI-generated or malformed queries.
+ * Normalisasi definisi query untuk memastikan validitas
+ * @param query - Definisi query yang akan dinormalisasi
+ * @returns QueryDefinition yang sudah dinormalisasi
+ * @throws Error jika query tidak valid
+ * @example
+ * ```ts
+ * const normalized = normalizeQuery(queryDef);
+ * ```
  */
 export function normalizeQuery(query: any): QueryDefinition {
   if (!query || typeof query !== 'object') {
@@ -376,8 +404,14 @@ export function normalizeQuery(query: any): QueryDefinition {
 }
 
 /**
- * Normalizes a visualization configuration to ensure it's compatible with the data shape.
- * Handles fail-safes like downgrading Heatmaps if dimensions are insufficient.
+ * Normalisasi konfigurasi visualisasi tile
+ * Memastikan konfigurasi kompatibel dengan data yang tersedia
+ * @param tile - Definisi tile dashboard
+ * @returns Tile dashboard yang sudah dinormalisasi
+ * @example
+ * ```ts
+ * const normalizedTile = normalizeVisualization(tileDef);
+ * ```
  */
 export function normalizeVisualization(tile: DashboardTile): DashboardTile {
   if (!tile.visualization) {

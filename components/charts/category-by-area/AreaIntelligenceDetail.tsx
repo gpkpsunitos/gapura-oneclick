@@ -35,37 +35,13 @@ import {
   Maximize2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bar, Line } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler,
-} from 'chart.js';
-import { barLabelsPlugin } from '../chartConfig';
+import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { saveAs } from 'file-saver';
 import { InvestigativeTable } from '@/components/chart-detail/InvestigativeTable';
 import { DataTableWithPagination } from '@/components/chart-detail/DataTableWithPagination';
 import { AiRootCauseInvestigation } from '../ai-root-cause/AiRootCauseInvestigation';
 import type { QueryResult } from '@/types/builder';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+import { sanitizeTableCell } from '@/lib/security/sanitize';
 
 interface FilterParams {
   hub?: string;
@@ -210,81 +186,76 @@ function AutoInsight({ data }: { data: AreaSummary[] }) {
 
 // ─── Category Grouped Vertical Bar ───
 function CategoryBreakdownChart({ data }: { data: AreaCategoryBreakdown[] }) {
+  const sliced = data.slice(0, 12);
   const chartData = {
-    labels: data.slice(0, 12).map(d => d.area.split(' ')),
+    labels: sliced.map(d => d.area),
     datasets: [
-      { label: 'Irregularity', data: data.slice(0, 12).map(d => d.Irregularity), backgroundColor: '#ef4444', borderRadius: 4 },
-      { label: 'Complaint', data: data.slice(0, 12).map(d => d.Complaint), backgroundColor: '#f97316', borderRadius: 4 },
-      { label: 'Compliment', data: data.slice(0, 12).map(d => d.Compliment), backgroundColor: '#22c55e', borderRadius: 4 },
+      { label: 'Irregularity', data: sliced.map(d => d.Irregularity), backgroundColor: '#ef4444' },
+      { label: 'Complaint', data: sliced.map(d => d.Complaint), backgroundColor: '#f97316' },
+      { label: 'Compliment', data: sliced.map(d => d.Compliment), backgroundColor: '#22c55e' },
     ],
   };
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: {
-      legend: { position: 'bottom' as const, labels: { usePointStyle: true, padding: 15, font: { size: 10 } } },
-    },
-    scales: {
-      x: { stacked: false, grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { stacked: false, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
+  const rechartsData = chartData.labels.map((label, i) => {
+    const obj: any = { name: label };
+    chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
+    return obj;
+  });
 
-  return <div className="h-[400px]"><Bar data={chartData} options={options} /></div>;
+  return (
+    <div className="h-[400px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip />
+          <Legend />
+          {chartData.datasets.map((ds: any, i: number) => (
+            <Bar key={i} dataKey={ds.label} fill={ds.backgroundColor} radius={[4,4,0,0]} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 // ─── Branch Distribution Vertical Bar ───
 function BranchDistributionChart({ data }: { data: BranchWithinAreaData[] }) {
-  const chartData = {
-    labels: data.slice(0, 12).map(d => d.branch.split(' ')),
-    datasets: [{
-      label: 'Reports',
-      data: data.slice(0, 12).map(d => d.count),
-      backgroundColor: '#3b82f6',
-      borderRadius: 4,
-    }],
-  };
+  const rechartsData = data.slice(0, 12).map(d => ({ name: d.branch, Reports: d.count }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
-
-  return <div className="h-[300px]"><Bar data={chartData} options={options} /></div>;
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip />
+          <Bar dataKey="Reports" fill="#3b82f6" radius={[4,4,0,0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 // ─── Airline Distribution Vertical Bar ───
 function AirlineDistributionChart({ data }: { data: AirlineWithinAreaData[] }) {
-  const chartData = {
-    labels: data.slice(0, 12).map(d => d.airline.split(' ')),
-    datasets: [{
-      label: 'Reports',
-      data: data.slice(0, 12).map(d => d.count),
-      backgroundColor: '#8b5cf6',
-      borderRadius: 4,
-    }],
-  };
+  const rechartsData = data.slice(0, 12).map(d => ({ name: d.airline, Reports: d.count }));
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    indexAxis: 'x' as const,
-    plugins: { legend: { display: false } },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0, minRotation: 0, padding: 12 } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
-
-  return <div className="h-[300px]"><Bar data={chartData} options={options} /></div>;
+  return (
+    <div className="h-[300px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip />
+          <Bar dataKey="Reports" fill="#8b5cf6" radius={[4,4,0,0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 // ─── Monthly Trend Line Chart ───
@@ -292,49 +263,34 @@ function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
   const chartData = {
     labels: data.map(d => d.month),
     datasets: [
-      {
-        label: 'Total',
-        data: data.map(d => d.total),
-        borderColor: '#3b82f6',
-        backgroundColor: 'rgba(59, 130, 246, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: 'Irregularity',
-        data: data.map(d => d.Irregularity),
-        borderColor: '#ef4444',
-        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
-      {
-        label: 'Complaint',
-        data: data.map(d => d.Complaint),
-        borderColor: '#f97316',
-        backgroundColor: 'rgba(249, 115, 22, 0.1)',
-        fill: true,
-        tension: 0.3,
-      },
+      { label: 'Total', data: data.map(d => d.total), borderColor: '#3b82f6' },
+      { label: 'Irregularity', data: data.map(d => d.Irregularity), borderColor: '#ef4444' },
+      { label: 'Complaint', data: data.map(d => d.Complaint), borderColor: '#f97316' },
     ],
   };
 
-  const options = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: 'bottom' as const,
-        labels: { usePointStyle: true, padding: 20, font: { size: 11 } },
-      },
-    },
-    scales: {
-      x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-      y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 10 } } },
-    },
-  };
+  const rechartsData = chartData.labels.map((label, i) => {
+    const obj: any = { name: label };
+    chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
+    return obj;
+  });
 
-  return <div className="h-[250px]"><Line data={chartData} options={options} /></div>;
+  return (
+    <div className="h-[250px]">
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip />
+          <Legend />
+          {chartData.datasets.map((ds: any, i: number) => (
+            <Line key={i} type="monotone" dataKey={ds.label} stroke={ds.borderColor} strokeWidth={2} dot={{ r: 3 }} />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </div>
+  );
 }
 
 
@@ -596,7 +552,7 @@ function DataTable({ data }: { data: AreaReportRecord[] }) {
                 >
                   {columns.map(col => (
                     col === 'Evidence' ? (
-                      <td key={col} className="px-6 py-4 text-xs font-medium text-blue-600" dangerouslySetInnerHTML={{ __html: row[col] as string || '-' }} />
+                      <td key={col} className="px-6 py-4 text-xs font-medium text-blue-600" dangerouslySetInnerHTML={{ __html: sanitizeTableCell(row[col]) }} />
                     ) : (
                       <td key={col} className={`px-6 py-4 text-xs font-semibold ${col === 'Date' ? 'text-[var(--surface-500)]' : 'text-[var(--surface-700)]'}`}>
                         {row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'}

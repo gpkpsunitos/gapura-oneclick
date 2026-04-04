@@ -1,3 +1,11 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman dashboard employee dengan statistik dan daftar laporan
+ * Menampilkan KPI, daftar laporan terkini, dan fitur pembuatan laporan baru
+ */
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -22,11 +30,24 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+/**
+ * Komponen halaman dashboard default employee
+ * Menampilkan sapaan berdasarkan waktu, statistik laporan, dan daftar laporan terkini
+ * Mendukung pembuatan laporan baru dan melihat detail laporan
+ * @returns JSX element berisi layout dashboard employee dengan statistik dan daftar laporan
+ */
 export default function EmployeeDashboard() {
+    /** State untuk menyimpan daftar laporan */
     const [reports, setReports] = useState<Report[]>([]);
+    /** State untuk kontrol tampilan modal pembuatan laporan */
     const [showCreateModal, setShowCreateModal] = useState(false);
+    /** State untuk menyimpan laporan yang dipilih untuk ditampilkan detailnya */
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
 
+    /**
+     * Menghasilkan sapaan berdasarkan waktu saat ini
+     * @returns String sapaan dalam Bahasa Indonesia (Selamat Pagi/Siang/Sore/Malam)
+     */
     const getGreeting = () => {
         const hour = new Date().getHours();
         if (hour < 12) return 'Selamat Pagi';
@@ -35,8 +56,13 @@ export default function EmployeeDashboard() {
         return 'Selamat Malam';
     };
 
+    /** Sapaan yang akan ditampilkan di header */
     const greeting = getGreeting();
 
+    /**
+     * Mengambil daftar laporan dari API
+     * @throws {Error} Jika terjadi kesalahan saat mengambil data
+     */
     const fetchReports = useCallback(async () => {
         try {
             const res = await fetch('/api/reports');
@@ -50,11 +76,16 @@ export default function EmployeeDashboard() {
         }
     }, []);
 
+    /**
+     * Mengambil ulang statistik untuk memperbarui data
+     * Dipanggil setelah berhasil membuat laporan baru
+     */
     const fetchStats = useCallback(async () => {
-        // re-fetch to update stats
+        // re-fetch untuk update stats
         await fetchReports();
     }, [fetchReports]);
 
+    /** Efek untuk mengambil data laporan saat komponen dimount */
     useEffect(() => {
         const init = async () => {
             await fetchReports();
@@ -62,6 +93,10 @@ export default function EmployeeDashboard() {
         init();
     }, [fetchReports]);
 
+    /**
+     * Menangani klik pada laporan untuk menampilkan detailnya
+     * @param report - Objek laporan yang dipilih
+     */
     const handleReportClick = (report: Report) => {
         setSelectedReport(report);
     }

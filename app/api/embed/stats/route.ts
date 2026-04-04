@@ -1,35 +1,80 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengambil statistik laporan
+ * Menyediakan data agregasi dan tren untuk berbagai dimensi (airline, category, status, dll)
+ */
+
 import { NextRequest, NextResponse } from 'next/server';
 import { reportsService } from '@/lib/services/reports-service';
 
+/**
+ * Interface untuk data baris laporan
+ * Menyimpan informasi dasar laporan untuk agregasi statistik
+ */
 interface ReportRow {
+  /** ID unik laporan */
   id: string;
+  /** Nama maskapai penerbangan */
   airline: string | null;
+  /** Kategori utama laporan */
   main_category: string | null;
+  /** Status laporan */
   status: string | null;
+  /** Tingkat keparahan laporan */
   severity: string | null;
+  /** Area lokasi kejadian */
   area: string | null;
+  /** Prioritas laporan */
   priority: string | null;
+  /** Divisi target penanganan */
   target_division: string | null;
+  /** Kode stasiun/branch */
   station_code: string | null;
+  /** Tanggal insiden */
   incident_date: string | null;
+  /** Tanggal pembuatan laporan */
   created_at: string;
 }
 
+/**
+ * Interface untuk item hasil agregasi
+ * Menyimpan jumlah dan persentase untuk setiap nilai unik
+ */
 interface AggregatedItem {
+  /** Nama nilai yang diagregasi */
   name: string;
+  /** Jumlah kemunculan */
   count: number;
+  /** Persentase dari total */
   percentage: number;
 }
 
+/**
+ * Interface untuk response statistik
+ * Menyimpan hasil agregasi lengkap dengan distribusi dan tren
+ */
 interface StatsResponse {
+  /** Tipe agregasi yang diminta (airline, category, status, dll) */
   type: string;
+  /** Rentang waktu (7d atau 30d) */
   range: string;
+  /** Total jumlah laporan */
   totalCount: number;
+  /** Data distribusi berdasarkan tipe */
   distribution: AggregatedItem[];
+  /** Data tren berdasarkan waktu */
   trendData: { date: string; count: number }[];
 }
 
-// Complexity: Time O(n) | Space O(n) - n = number of reports
+/**
+ * Mengagregasi laporan berdasarkan field tertentu
+ * Kompleksitas: Time O(n) | Space O(n) - n = jumlah laporan
+ * @param reports - Array laporan yang akan diagregasi
+ * @param field - Field yang digunakan untuk agregasi
+ * @returns Array item yang diagregasi dengan count dan percentage, diurutkan berdasarkan count
+ */
 function aggregateByField(reports: ReportRow[], field: keyof ReportRow): AggregatedItem[] {
   const counts = new Map<string, number>();
   
@@ -49,19 +94,25 @@ function aggregateByField(reports: ReportRow[], field: keyof ReportRow): Aggrega
     .sort((a, b) => b.count - a.count);
 }
 
-// Complexity: Time O(n) | Space O(d) - d = unique dates
+/**
+ * Membangun data tren berdasarkan tanggal
+ * Kompleksitas: Time O(n) | Space O(d) - d = jumlah tanggal unik
+ * @param reports - Array laporan yang akan dianalisis trennya
+ * @param rangeDays - Jumlah hari ke belakang untuk analisis tren
+ * @returns Array data tren dengan tanggal dan jumlah laporan per hari
+ */
 function buildTrendData(reports: ReportRow[], rangeDays: number): { date: string; count: number }[] {
   const dateMap = new Map<string, number>();
   const today = new Date();
   
-  // Pre-fill all dates with 0
+  // Pre-fill semua tanggal dengan 0
   for (let i = rangeDays - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     dateMap.set(d.toISOString().split('T')[0], 0);
   }
   
-  // Count reports per date
+  // Hitung laporan per tanggal
   for (const report of reports) {
     const dateStr = report.created_at.split('T')[0];
     if (dateMap.has(dateStr)) {
@@ -74,6 +125,15 @@ function buildTrendData(reports: ReportRow[], rangeDays: number): { date: string
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+/**
+ * Menangani request GET untuk mengambil statistik laporan
+ * Menerima query parameter untuk tipe dan rentang waktu
+ * @param request - Request object dengan query parameter
+ * @returns Response JSON berisi data statistik dengan distribusi dan tren
+ * @throws {Error} Jika terjadi kesalahan saat mengambil atau memproses data
+ * @example
+ * GET /api/embed/stats?type=airline&range=30d
+ */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -96,7 +156,7 @@ export async function GET(request: NextRequest) {
     
     const field = fieldMap[type] || 'airline';
 
-    // Fetch from Google Sheets with server-side optimization
+    // Ambil dari Google Sheets dengan optimasi server-side
     const reports = await reportsService.getReports({
       filters: {
         dateFrom: startDate.toISOString()
@@ -104,7 +164,7 @@ export async function GET(request: NextRequest) {
       fields: ['id', 'created_at', 'incident_date', 'date_of_event', 'airline', 'airlines', 'main_category', 'general_category', 'status', 'severity', 'area', 'priority', 'target_division', 'station_code', 'branch']
     });
     
-    // Map to ReportRow structure
+    // Map ke struktur ReportRow
     const typedReports: ReportRow[] = reports.map(r => ({
         id: r.id,
         airline: r.airline || r.airlines || null,

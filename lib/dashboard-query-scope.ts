@@ -1,17 +1,41 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi utilitas untuk manajemen filter dan scope pada query dashboard
+ */
+
 import type { QueryDefinition, QueryFilter } from '@/types/builder';
 
+/**
+ * Interface untuk filter scope dashboard
+ * @interface DashboardScopeFilters
+ */
 export interface DashboardScopeFilters {
+  /** Filter hub */
   hub?: string;
+  /** Filter branch */
   branch?: string;
+  /** Filter maskapai */
   maskapai?: string;
+  /** Filter airline */
   airline?: string;
+  /** Filter kategori utama */
   main_category?: string;
+  /** Filter area */
   area?: string;
+  /** Filter divisi tujuan */
   target_division?: string;
+  /** Filter severity */
   severity?: string;
+  /** Filter status */
   status?: string;
 }
 
+/**
+ * Konfigurasi mapping filter ke field database
+ * @constant DASHBOARD_FILTER_FIELDS
+ */
 export const DASHBOARD_FILTER_FIELDS = [
   { key: 'hub', table: 'reports', field: 'hub' },
   { key: 'branch', table: 'reports', field: 'branch' },
@@ -24,6 +48,22 @@ export const DASHBOARD_FILTER_FIELDS = [
   { key: 'status', table: 'reports', field: 'status' },
 ] as const;
 
+/**
+ * Menormalisasi filter dashboard dengan menghapus nilai kosong dan 'all'
+ * @param filters - Objek filter untuk dinormalisasi
+ * @param dateFrom - Tanggal awal (opsional)
+ * @param dateTo - Tanggal akhir (opsional)
+ * @returns Objek dengan filters yang sudah dinormalisasi dan range tanggal
+ * @example
+ * ```ts
+ * const normalized = normalizeDashboardScope(
+ *   { hub: 'CGK', branch: 'all' },
+ *   '2024-01-01',
+ *   '2024-12-31'
+ * );
+ * // returns: { filters: { hub: 'CGK' }, dateFrom: '2024-01-01', dateTo: '2024-12-31' }
+ * ```
+ */
 export function normalizeDashboardScope(filters: DashboardScopeFilters, dateFrom?: string, dateTo?: string) {
   return {
     filters: Object.fromEntries(
@@ -36,6 +76,25 @@ export function normalizeDashboardScope(filters: DashboardScopeFilters, dateFrom
   };
 }
 
+/**
+ * Menerapkan filter scope dashboard ke definisi query
+ * @param queryConfig - Konfigurasi query yang akan difilter
+ * @param options - Opsi filter dan konfigurasi tambahan
+ * @param options.filters - Filter scope untuk diterapkan
+ * @param options.dateFrom - Tanggal awal filter
+ * @param options.dateTo - Tanggal akhir filter
+ * @param options.activePage - Nomor halaman aktif untuk filter CGO
+ * @returns Query definition dengan filter yang sudah diterapkan
+ * @example
+ * ```ts
+ * const scopedQuery = applyDashboardScopeToQuery(baseQuery, {
+ *   filters: { hub: 'CGK' },
+ *   dateFrom: '2024-01-01',
+ *   dateTo: '2024-12-31',
+ *   activePage: 2
+ * });
+ * ```
+ */
 export function applyDashboardScopeToQuery(
   queryConfig: QueryDefinition,
   options: {

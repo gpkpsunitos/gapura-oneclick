@@ -3,8 +3,6 @@
 import { useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  Clock,
-  CheckCircle2,
   FileText,
   FileSpreadsheet,
   RefreshCw,
@@ -26,26 +24,31 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 
+type HeaderVariant = 'default' | 'op-executive';
+type HeaderView = 'dashboard' | 'reports';
+
 interface ResponsiveHeaderProps {
   dateRange: 'all' | 'week' | 'month' | { from: string; to: string };
   onDateRangeChange: (range: 'all' | 'week' | 'month' | { from: string; to: string }) => void;
   onRefresh: () => void;
-    refreshing: boolean;
-    onCustomerFeedback?: () => void;
-    cfLoading?: boolean;
-    onFilterClick?: () => void;
-    onExportExcel: () => void;
-    onExportPDF: () => void;
-    exporting: 'excel' | 'pdf' | null;
-    divisionDashboardLabel?: string;
-    onOpenDivisionDashboard?: () => void;
-    onSwitchDivision?: () => void;
+  refreshing: boolean;
+  onCustomerFeedback?: () => void;
+  cfLoading?: boolean;
+  onFilterClick?: () => void;
+  onExportExcel: () => void;
+  onExportPDF: () => void;
+  exporting: 'excel' | 'pdf' | null;
+  divisionDashboardLabel?: string;
+  onOpenDivisionDashboard?: () => void;
+  onSwitchDivision?: () => void;
+  eyebrow?: string;
+  title?: string;
+  subtitle?: string;
+  variant?: HeaderVariant;
+  activeView?: HeaderView;
+  onViewChange?: (view: HeaderView) => void;
 }
 
-/**
- * Responsive Header Component for Analyst Dashboard
- * Mobile-first design with optimized touch targets
- */
 export function ResponsiveHeader({
   dateRange,
   onDateRangeChange,
@@ -60,28 +63,49 @@ export function ResponsiveHeader({
   divisionDashboardLabel,
   onOpenDivisionDashboard,
   onSwitchDivision,
+  eyebrow,
+  title,
+  subtitle,
+  variant = 'default',
+  activeView,
+  onViewChange,
 }: ResponsiveHeaderProps) {
   const router = useRouter();
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [showCustomPicker, setShowCustomPicker] = useState(typeof dateRange === 'object');
   const [customRange, setCustomRange] = useState(
-    typeof dateRange === 'object' 
-      ? dateRange 
+    typeof dateRange === 'object'
+      ? dateRange
       : { from: new Date().toISOString().split('T')[0], to: new Date().toISOString().split('T')[0] }
   );
 
+  const headerTitle = title ?? 'Pusat Analytics';
+  const headerSubtitle = subtitle ?? 'Divisi Operational Services Center';
+  const isExecutiveVariant = variant === 'op-executive';
+  const canToggleView = Boolean(activeView && onViewChange);
+
   const dateRangeOptions = [
-    { value: 'all' as const, label: 'Semua', shortLabel: 'Semua' },
-    { value: 'month' as const, label: '30 Hari', shortLabel: '30d' },
-    { value: 'week' as const, label: '7 Hari', shortLabel: '7d' },
-    { value: 'custom' as const, label: 'Kustom', shortLabel: 'Kustom' },
+    { value: 'all' as const, label: 'Semua' },
+    { value: 'month' as const, label: '30 Hari' },
+    { value: 'week' as const, label: '7 Hari' },
+    { value: 'custom' as const, label: 'Kustom' },
   ];
 
-  const currentDateLabel = typeof dateRange === 'string' 
-    ? dateRangeOptions.find((o) => o.value === dateRange)
-    : { label: 'Kustom', value: 'custom' };
+  const currentDateLabel =
+    typeof dateRange === 'string'
+      ? dateRangeOptions.find((option) => option.value === dateRange)
+      : { label: 'Kustom', value: 'custom' as const };
 
-  // Mobile menu actions for hidden buttons
+  const handleDateRangeSelection = (value: 'all' | 'month' | 'week' | 'custom') => {
+    if (value === 'custom') {
+      setShowCustomPicker(true);
+      return;
+    }
+
+    setShowCustomPicker(false);
+    onDateRangeChange(value);
+  };
+
   const mobileMenuActions: { label: string; icon?: ReactNode; onClick: () => void }[] = [];
   if (onCustomerFeedback) {
     mobileMenuActions.push({
@@ -124,152 +148,345 @@ export function ResponsiveHeader({
     }
   );
 
+  const executiveMenuItems = [
+    ...(onSwitchDivision
+      ? [
+          {
+            label: 'Ganti Divisi',
+            icon: <LayoutDashboard className="w-4 h-4 text-[var(--text-secondary)]" />,
+            onClick: onSwitchDivision,
+            disabled: false,
+          },
+        ]
+      : []),
+    {
+      label: 'Download Excel',
+      icon:
+        exporting === 'excel' ? (
+          <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+        ) : (
+          <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+        ),
+      onClick: onExportExcel,
+      disabled: exporting !== null,
+    },
+    {
+      label: 'Download PDF',
+      icon:
+        exporting === 'pdf' ? (
+          <Loader2 className="w-4 h-4 animate-spin text-red-600" />
+        ) : (
+          <FileText className="w-4 h-4 text-red-600" />
+        ),
+      onClick: onExportPDF,
+      disabled: exporting !== null,
+    },
+  ];
+
+  const dateRangeSelector = (
+    <div className={cn('flex flex-col gap-2', isExecutiveVariant ? 'w-full lg:w-auto' : 'w-full sm:w-auto')}>
+      <div className="flex items-center gap-2">
+        <div
+          className={cn(
+            'hidden sm:flex items-center p-1.5 rounded-2xl border',
+            isExecutiveVariant
+              ? 'bg-white/85 border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04)]'
+              : 'bg-[oklch(0.97_0.012_160_/_0.6)] backdrop-blur-xl border-[oklch(0.65_0.18_160_/_0.15)] shadow-[inset_0_1px_2px_oklch(0.45_0.06_160_/_0.06)]'
+          )}
+        >
+          {dateRangeOptions.map((option) => (
+            <button
+              key={option.value}
+              onClick={() => handleDateRangeSelection(option.value)}
+              className={cn(
+                'px-5 py-2.5 text-[11px] font-display font-black uppercase tracking-widest rounded-xl transition-all duration-300 whitespace-nowrap min-h-[40px]',
+                (typeof dateRange === 'string' ? dateRange === option.value : option.value === 'custom')
+                  ? 'bg-gradient-to-br from-[var(--brand-emerald-500)] to-[var(--brand-emerald-600)] text-[var(--text-on-brand)] shadow-lg shadow-emerald-500/20'
+                  : isExecutiveVariant
+                    ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-slate-100/80'
+                    : 'text-text-secondary hover:text-text-primary hover:bg-[oklch(0.95_0.015_160_/_0.5)]'
+              )}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
+        {showCustomPicker && (
+          <div className="hidden sm:flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
+            <div
+              className={cn(
+                'flex items-center p-1 rounded-xl border',
+                isExecutiveVariant
+                  ? 'bg-white/90 border-slate-200/80'
+                  : 'bg-[oklch(0.97_0.012_160_/_0.6)] border-[oklch(0.65_0.18_160_/_0.15)]'
+              )}
+            >
+              <input
+                type="date"
+                value={customRange.from}
+                onChange={(e) => {
+                  const newRange = { ...customRange, from: e.target.value };
+                  setCustomRange(newRange);
+                  onDateRangeChange(newRange);
+                }}
+                className="bg-transparent border-0 text-[11px] font-bold p-1 w-[120px] focus:ring-0"
+              />
+              <span className="text-[10px] px-1 text-[var(--text-muted)]">→</span>
+              <input
+                type="date"
+                value={customRange.to}
+                onChange={(e) => {
+                  const newRange = { ...customRange, to: e.target.value };
+                  setCustomRange(newRange);
+                  onDateRangeChange(newRange);
+                }}
+                className="bg-transparent border-0 text-[11px] font-bold p-1 w-[120px] focus:ring-0"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="sm:hidden w-full">
+          <DropdownMenu open={isDateOpen} onOpenChange={setIsDateOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  'w-full min-h-[44px] justify-between rounded-2xl',
+                  isExecutiveVariant && 'bg-white/85 border-slate-200 text-[var(--text-primary)]'
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  {currentDateLabel?.label}
+                </span>
+                <ChevronDown className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-[220px] bg-[var(--surface-1)] border border-[var(--surface-3)] shadow-xl rounded-xl p-1">
+              {dateRangeOptions.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => {
+                    handleDateRangeSelection(option.value);
+                    setIsDateOpen(false);
+                  }}
+                  className={cn(
+                    'min-h-[44px] cursor-pointer',
+                    (typeof dateRange === 'string' ? dateRange === option.value : option.value === 'custom') &&
+                      'bg-emerald-50 text-emerald-700'
+                  )}
+                >
+                  {option.label}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {showCustomPicker && (
+        <div
+          className={cn(
+            'sm:hidden w-full space-y-2 p-3 rounded-2xl border animate-in fade-in slide-in-from-top-2',
+            isExecutiveVariant
+              ? 'bg-white/90 border-slate-200/80'
+              : 'bg-[oklch(0.97_0.012_160_/_0.6)] border-[oklch(0.65_0.18_160_/_0.15)]'
+          )}
+        >
+          <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">
+                Mulai
+              </span>
+              <input
+                type="date"
+                value={customRange.from}
+                onChange={(e) => {
+                  const newRange = { ...customRange, from: e.target.value };
+                  setCustomRange(newRange);
+                  onDateRangeChange(newRange);
+                }}
+                className="bg-white/50 border border-surface-3 rounded-xl p-2 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <span className="text-[9px] font-black uppercase tracking-widest text-[var(--text-muted)] px-1">
+                Selesai
+              </span>
+              <input
+                type="date"
+                value={customRange.to}
+                onChange={(e) => {
+                  const newRange = { ...customRange, to: e.target.value };
+                  setCustomRange(newRange);
+                  onDateRangeChange(newRange);
+                }}
+                className="bg-white/50 border border-surface-3 rounded-xl p-2 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const createReportButton = (
+    <Button
+      onClick={() => router.push('/dashboard/employee/new')}
+      className={cn(
+        'min-h-[48px] px-6 rounded-2xl font-display font-bold tracking-tight transition-all duration-300 w-full sm:w-auto',
+        'bg-gradient-to-br from-[var(--brand-emerald-500)] to-[var(--brand-emerald-600)] text-[var(--text-on-brand)]',
+        'hover:shadow-xl hover:-translate-y-0.5 active:scale-95'
+      )}
+    >
+      <Plus size={18} className="sm:mr-2" />
+      <span className="hidden sm:inline">Laporan</span>
+    </Button>
+  );
+
+  const refreshButton = (
+    <Button
+      onClick={onRefresh}
+      disabled={refreshing}
+      variant={isExecutiveVariant ? 'ghost' : 'outline'}
+      className={cn(
+        'min-h-[44px] min-w-[44px] sm:min-w-fit w-full sm:w-auto inline-flex items-center gap-2 rounded-2xl',
+        isExecutiveVariant &&
+          'bg-white/85 border border-slate-200/80 text-[var(--text-primary)] hover:bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]',
+        refreshing && 'opacity-50'
+      )}
+    >
+      <RefreshCw size={16} className={cn(refreshing && 'animate-spin')} />
+      <span className="hidden sm:inline">{refreshing ? '...' : 'Refresh'}</span>
+    </Button>
+  );
+
+  const divisionDashboardButton =
+    onOpenDivisionDashboard && divisionDashboardLabel ? (
+      <Button
+        onClick={onOpenDivisionDashboard}
+        className={cn(
+          'items-center gap-2 min-h-[48px] px-5 rounded-2xl border-0 transition-all duration-300 font-display font-bold',
+          isExecutiveVariant
+            ? 'inline-flex bg-white/85 text-[var(--text-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] border border-slate-200/80 hover:bg-white hover:-translate-y-0.5 active:scale-95'
+            : 'hidden xl:inline-flex bg-gradient-to-br from-teal-700 to-cyan-700 text-white shadow-lg shadow-teal-600/20 hover:shadow-xl hover:shadow-teal-600/30 hover:-translate-y-0.5 active:scale-95'
+        )}
+      >
+        <LayoutDashboard size={16} className={isExecutiveVariant ? 'text-cyan-700' : undefined} />
+        <span className={cn(!isExecutiveVariant && 'hidden 2xl:inline tracking-tight')}>{divisionDashboardLabel}</span>
+      </Button>
+    ) : null;
+
+  const executiveOverflowMenu =
+    executiveMenuItems.length > 0 ? (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="min-h-[48px] min-w-[48px] rounded-2xl bg-white/85 border border-slate-200/80 text-[var(--text-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] hover:bg-white hover:-translate-y-0.5 active:scale-95"
+          >
+            <MoreVertical size={18} />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56 rounded-2xl border-slate-200 bg-white p-1.5 shadow-xl">
+          {executiveMenuItems.map((item) => (
+            <DropdownMenuItem
+              key={item.label}
+              disabled={item.disabled}
+              onClick={item.onClick}
+              className="min-h-[42px] rounded-xl px-3 text-[13px] font-medium text-[var(--text-primary)]"
+            >
+              {item.icon}
+              <span>{item.label}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ) : null;
+
+  if (isExecutiveVariant) {
+    return (
+      <div className="animate-fade-in-up">
+        <div className="rounded-[28px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(248,250,252,0.96))] p-4 sm:p-5 lg:p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+          <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+              <div className="max-w-3xl space-y-3">
+                {eyebrow && (
+                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-700">
+                    <span className="inline-flex h-2 w-2 rounded-full bg-cyan-500" />
+                    {eyebrow}
+                  </div>
+                )}
+                <div className="space-y-2">
+                  <h1 className="text-3xl sm:text-4xl lg:text-[3.4rem] leading-[0.95] font-display font-black tracking-[-0.05em] text-[var(--text-primary)]">
+                    {headerTitle}
+                  </h1>
+                  <p className="max-w-2xl text-sm sm:text-base text-[var(--text-secondary)]">
+                    {headerSubtitle}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
+                {divisionDashboardButton}
+                {refreshButton}
+                {executiveOverflowMenu}
+                {createReportButton}
+              </div>
+            </div>
+
+            <div className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(248,250,252,0.92))] p-3 sm:p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                {canToggleView && (
+                  <div className="inline-flex w-full sm:w-auto items-center rounded-2xl border border-slate-200/80 bg-slate-100/80 p-1">
+                    {(['dashboard', 'reports'] as HeaderView[]).map((viewOption) => (
+                      <button
+                        key={viewOption}
+                        onClick={() => onViewChange?.(viewOption)}
+                        className={cn(
+                          'flex-1 sm:flex-none rounded-xl px-4 py-2.5 text-[11px] font-black uppercase tracking-[0.22em] transition-all',
+                          activeView === viewOption
+                            ? 'bg-white text-[var(--text-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.08)]'
+                            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                        )}
+                      >
+                        {viewOption === 'dashboard' ? 'Dashboard' : 'Semua Laporan'}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                <div className="w-full xl:w-auto">{dateRangeSelector}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4 animate-fade-in-up">
-      {/* Title Section */}
       <div className="space-y-1">
+        {eyebrow && (
+          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--text-muted)]">
+            {eyebrow}
+          </p>
+        )}
         <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-extrabold tracking-tight text-text-primary">
-          Pusat Analytics
+          {headerTitle}
         </h1>
         <p className="text-sm sm:text-base font-body font-medium text-brand-emerald-700">
-          Divisi Operational Services Center
+          {headerSubtitle}
         </p>
       </div>
 
-      {/* Controls Section - Responsive Layout */}
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between flex-wrap">
-        {/* Date Range Selector */}
-        <div className="flex items-center gap-2">
-          {/* Desktop: Segmented Control */}
-          <div className="hidden sm:flex items-center p-1.5 rounded-2xl bg-[oklch(0.97_0.012_160_/_0.6)] backdrop-blur-xl border border-[oklch(0.65_0.18_160_/_0.15)] shadow-[inset_0_1px_2px_oklch(0.45_0.06_160_/_0.06)]">
-            {dateRangeOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => {
-                  if (option.value === 'custom') {
-                    setShowCustomPicker(true);
-                  } else {
-                    setShowCustomPicker(false);
-                    onDateRangeChange(option.value);
-                  }
-                }}
-                className={cn(
-                  'px-5 py-2.5 text-[11px] font-display font-black uppercase tracking-widest rounded-xl transition-all duration-300 whitespace-nowrap min-h-[40px]',
-                  (typeof dateRange === 'string' ? dateRange === option.value : option.value === 'custom')
-                    ? 'bg-gradient-to-br from-[var(--brand-emerald-500)] to-[var(--brand-emerald-600)] text-[var(--text-on-brand)] shadow-lg shadow-emerald-500/20'
-                    : 'text-text-secondary hover:text-text-primary hover:bg-[oklch(0.95_0.015_160_/_0.5)]'
-                )}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
+        {dateRangeSelector}
 
-          {showCustomPicker && (
-            <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300">
-              <div className="flex items-center p-1 rounded-xl bg-[oklch(0.97_0.012_160_/_0.6)] border border-[oklch(0.65_0.18_160_/_0.15)]">
-                <input
-                  type="date"
-                  value={customRange.from}
-                  onChange={(e) => {
-                    const newRange = { ...customRange, from: e.target.value };
-                    setCustomRange(newRange);
-                    onDateRangeChange(newRange);
-                  }}
-                  className="bg-transparent border-0 text-[11px] font-bold p-1 w-[120px] focus:ring-0"
-                />
-                <span className="text-[10px] px-1 text-text-muted">→</span>
-                <input
-                  type="date"
-                  value={customRange.to}
-                  onChange={(e) => {
-                    const newRange = { ...customRange, to: e.target.value };
-                    setCustomRange(newRange);
-                    onDateRangeChange(newRange);
-                  }}
-                  className="bg-transparent border-0 text-[11px] font-bold p-1 w-[120px] focus:ring-0"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Mobile: Dropdown */}
-          <div className="sm:hidden w-full">
-            <DropdownMenu open={isDateOpen} onOpenChange={setIsDateOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="w-full min-h-[44px] justify-between"
-                >
-                  <span className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    {currentDateLabel?.label}
-                  </span>
-                  <ChevronDown className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-[200px] bg-[var(--surface-1)] border border-[var(--surface-3)] shadow-xl rounded-xl p-1 backdrop-blur-0">
-                {dateRangeOptions.map((option) => (
-                  <DropdownMenuItem
-                    key={option.value}
-                    onClick={() => {
-                      if (option.value === 'custom') {
-                        setShowCustomPicker(true);
-                      } else {
-                        setShowCustomPicker(false);
-                        onDateRangeChange(option.value);
-                      }
-                      setIsDateOpen(false);
-                    }}
-                    className={cn(
-                      'min-h-[44px] cursor-pointer focus:bg-gray-50',
-                      (typeof dateRange === 'string' ? dateRange === option.value : option.value === 'custom') && 'bg-blue-50 text-blue-600'
-                    )}
-                  >
-                    {option.label}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-
-          {showCustomPicker && (
-            <div className="sm:hidden w-full space-y-2 mt-2 p-3 rounded-2xl bg-[oklch(0.97_0.012_160_/_0.6)] border border-[oklch(0.65_0.18_160_/_0.15)] animate-in fade-in slide-in-from-top-2">
-              <div className="flex flex-col gap-2">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-text-muted px-1">Mulai</span>
-                  <input
-                    type="date"
-                    value={customRange.from}
-                    onChange={(e) => {
-                      const newRange = { ...customRange, from: e.target.value };
-                      setCustomRange(newRange);
-                      onDateRangeChange(newRange);
-                    }}
-                    className="bg-white/50 border border-surface-3 rounded-xl p-2 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-text-muted px-1">Selesai</span>
-                  <input
-                    type="date"
-                    value={customRange.to}
-                    onChange={(e) => {
-                      const newRange = { ...customRange, to: e.target.value };
-                      setCustomRange(newRange);
-                      onDateRangeChange(newRange);
-                    }}
-                    className="bg-white/50 border border-surface-3 rounded-xl p-2 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Action Buttons */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          {/* Desktop: Full buttons */}
           {onCustomerFeedback && (
             <Button
               onClick={onCustomerFeedback}
@@ -282,11 +499,7 @@ export function ResponsiveHeader({
                 cfLoading && 'opacity-70 cursor-not-allowed'
               )}
             >
-              {cfLoading ? (
-                <Loader2 size={16} className="animate-spin" />
-              ) : (
-                <LayoutDashboard size={16} />
-              )}
+              {cfLoading ? <Loader2 size={16} className="animate-spin" /> : <LayoutDashboard size={16} />}
               <span className="hidden 2xl:inline tracking-tight">Feedback</span>
             </Button>
           )}
@@ -306,21 +519,8 @@ export function ResponsiveHeader({
             </Button>
           )}
 
-          {onOpenDivisionDashboard && divisionDashboardLabel && (
-            <Button
-              onClick={onOpenDivisionDashboard}
-              className={cn(
-                'hidden xl:inline-flex items-center gap-2 min-h-[48px] px-6',
-                'bg-gradient-to-br from-teal-700 to-cyan-700 text-white',
-                'rounded-2xl border-0 shadow-lg shadow-teal-600/20 transition-all duration-300',
-                'hover:shadow-xl hover:shadow-teal-600/30 hover:-translate-y-0.5 active:scale-95 font-display font-bold'
-              )}
-            >
-              <LayoutDashboard size={16} />
-              <span className="hidden 2xl:inline tracking-tight">{divisionDashboardLabel}</span>
-            </Button>
-          )}
-          
+          {divisionDashboardButton}
+
           {onSwitchDivision && (
             <Button
               onClick={onSwitchDivision}
@@ -347,11 +547,7 @@ export function ResponsiveHeader({
               exporting === 'excel' && 'opacity-50'
             )}
           >
-            {exporting === 'excel' ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <FileSpreadsheet size={16} />
-            )}
+            {exporting === 'excel' ? <Loader2 size={16} className="animate-spin" /> : <FileSpreadsheet size={16} />}
             <span className="hidden 2xl:inline">Excel</span>
           </Button>
 
@@ -366,58 +562,19 @@ export function ResponsiveHeader({
               exporting === 'pdf' && 'opacity-50'
             )}
           >
-            {exporting === 'pdf' ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <FileText size={16} />
-            )}
+            {exporting === 'pdf' ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
             <span className="hidden 2xl:inline">PDF</span>
           </Button>
 
-          {/* Mobile: Action menu for hidden buttons */}
           <div className="xl:hidden w-full sm:w-auto">
-            <MobileActionMenu
-              actions={mobileMenuActions}
-              triggerLabel="Menu"
-              align="end"
-            />
+            <MobileActionMenu actions={mobileMenuActions} triggerLabel="Menu" align="end" />
           </div>
 
-          {/* Create Report Button */}
-          <Button
-            onClick={() => router.push('/dashboard/employee/new')}
-            className={cn(
-              'min-h-[48px] px-6 rounded-2xl font-display font-bold tracking-tight transition-all duration-300 w-full sm:w-auto',
-              'bg-gradient-to-br from-[var(--brand-emerald-500)] to-[var(--brand-emerald-600)] text-[var(--text-on-brand)]',
-              'hover:shadow-xl hover:-translate-y-0.5 active:scale-95'
-            )}
-          >
-            <Plus size={18} className="sm:mr-2" />
-            <span className="hidden sm:inline">Laporan</span>
-          </Button>
+          {createReportButton}
 
-          {/* Divider - hidden on smallest screens */}
           <div className="hidden sm:block h-8 w-px bg-[var(--surface-4)]" />
 
-          {/* Refresh Button */}
-          <Button
-            onClick={onRefresh}
-            disabled={refreshing}
-            variant="outline"
-            className={cn(
-              'min-h-[44px] min-w-[44px] sm:min-w-fit w-full sm:w-auto',
-              'inline-flex items-center gap-2',
-              refreshing && 'opacity-50'
-            )}
-          >
-            <RefreshCw
-              size={16}
-              className={cn(refreshing && 'animate-spin')}
-            />
-            <span className="hidden sm:inline">
-              {refreshing ? '...' : 'Refresh'}
-            </span>
-          </Button>
+          {refreshButton}
         </div>
       </div>
     </div>

@@ -1,15 +1,31 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi API route untuk mengelola komentar laporan
+ */
+
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { UserRole } from '@/types';
+import { reportsService } from '@/lib/services/reports-service';
 
 interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
-// Helper to check if user has access to the report's comments
-async function canAccessReportComments(reportId: string, userId: string, role: UserRole): Promise<boolean> {
+/**
+ * Mengecek apakah pengguna memiliki akses ke komentar laporan
+ * 
+ * @param reportId - ID laporan yang akan dicek aksesnya
+ * @param userId - ID pengguna yang melakukan permintaan
+ * @param role - Role pengguna untuk menentukan tingkat akses
+ * @returns Promise<boolean> - true jika pengguna memiliki akses, false jika tidak
+ * @throws Tidak melempar error, mengembalikan false jika terjadi error
+ */
+async function canAccessReportComments(reportId: string, userId: string, role: UserRole, stationId?: string): Promise<boolean> {
     // 1. High-level admins always have access
     const GLOBAL_ACCESS_ROLES: UserRole[] = ['SUPER_ADMIN', 'DIVISI_ESKALASI', 'DIVISI_OS', 'ANALYST', 'DIVISI_OT', 'DIVISI_OP', 'DIVISI_UQ'];
     if (GLOBAL_ACCESS_ROLES.includes(role)) {
@@ -24,20 +40,15 @@ async function canAccessReportComments(reportId: string, userId: string, role: U
         }
 
         // Fetch both report and user station
+        // Fetch both report and user station in parallel
         const { data: report } = await supabaseAdmin
             .from('reports')
             .select('station_id')
             .eq('id', reportId)
             .single();
 
-        const { data: user } = await supabaseAdmin
-            .from('users')
-            .select('station_id')
-            .eq('id', userId)
-            .single();
-
-        if (!report || !user) return false;
-        return report.station_id === user.station_id;
+        if (!report) return false;
+        return report.station_id === stationId;
     }
 
     // 3. STAFF_CABANG can only access their own reports
@@ -61,8 +72,16 @@ async function canAccessReportComments(reportId: string, userId: string, role: U
 
 /**
  * GET /api/reports/[id]/comments
- * Fetch all comments for a report including user info
- * Uses Admin Client to bypass RLS, with manual auth check
+ * 
+ * Mengambil semua komentar untuk laporan tertentu beserta informasi pengguna
+ * Menggunakan Admin Client untuk mengabaikan RLS, dengan pengecekan autentikasi manual
+ * 
+ * @param request - Objek request HTTP
+ * @param params - Parameter route berisi ID laporan
+ * @returns Promise<NextResponse> - Response JSON berisi daftar komentar atau error
+ * @throws Mengembalikan 401 jika tidak terautentikasi
+ * @throws Mengembalikan 403 jika tidak memiliki akses
+ * @throws Mengembalikan 500 jika terjadi error server
  */
 export async function GET(request: Request, { params }: RouteParams) {
     try {
@@ -85,16 +104,14 @@ export async function GET(request: Request, { params }: RouteParams) {
            If reportId includes '!', it is a Google Sheet report.
            We allow access if the user has a valid session and an appropriate role.
            More granular ownership checks are performed at the report detail level.
-        */
+         */
         if (!reportId.includes('!')) {
-            const hasAccess = await canAccessReportComments(reportId, payload.id as string, payload.role as UserRole);
+            const hasAccess = await canAccessReportComments(reportId, payload.id as string, payload.role as UserRole, payload.station_id as string);
             if (!hasAccess) {
                 return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
             }
         }
 
-        // Fetch report metadata to get the original_id for legacy comment support
-        const { reportsService } = await import('@/lib/services/reports-service');
         const report = await reportsService.getReportById(reportId);
 
         // Fetch comments using Admin Client
@@ -132,9 +149,19 @@ export async function GET(request: Request, { params }: RouteParams) {
 }
 
 /**
- * POST /api/reports/[id]/comments  
- * Add a new comment to a report
- * Uses Admin Client to bypass RLS, with manual auth check
+ * POST /api/reports/[id]/comments
+ * 
+ * Menambahkan komentar baru ke laporan
+ * Menggunakan Admin Client untuk mengabaikan RLS, dengan pengecekan autentikasi manual
+ * 
+ * @param request - Objek request HTTP dengan body berisi konten dan lampiran komentar
+ * @param params - Parameter route berisi ID laporan
+ * @returns Promise<NextResponse> - Response JSON berisi komentar yang dibuat atau error
+ * @throws Mengembalikan 401 jika tidak terautentikasi
+ * @throws Mengembalikan 403 jika tidak memiliki akses
+ * @throws Mengembalikan 400 jika konten atau lampiran tidak diberikan
+ * @throws Mengembalikan 404 jika laporan tidak ditemukan
+ * @throws Mengembalikan 500 jika terjadi error server
  */
 export async function POST(request: Request, { params }: RouteParams) {
     try {
@@ -172,7 +199,7 @@ export async function POST(request: Request, { params }: RouteParams) {
                 // Sheet-sourced report: allow for authenticated branch roles
                 hasAccess = (payload.role === 'MANAGER_CABANG' || payload.role === 'STAFF_CABANG');
             } else {
-                hasAccess = await canAccessReportComments(reportId, payload.id as string, payload.role as UserRole);
+                hasAccess = await canAccessReportComments(reportId, payload.id as string, payload.role as UserRole, payload.station_id as string);
             }
         }
 
@@ -181,7 +208,6 @@ export async function POST(request: Request, { params }: RouteParams) {
         }
 
         // Fetch report data to get the stable UUID and original_id (sheet_id)
-        const { reportsService } = await import('@/lib/services/reports-service');
         const report = await reportsService.getReportById(reportId);
         
         if (!report) {

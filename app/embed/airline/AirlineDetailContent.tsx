@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi komponen untuk menampilkan detail dan distribusi laporan per airline
+ */
+
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
@@ -10,6 +17,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 
+/**
+ * Interface untuk data laporan
+ */
 interface Report {
   id: string;
   title: string;
@@ -22,6 +32,9 @@ interface Report {
   created_at: string;
 }
 
+/**
+ * Interface untuk response API laporan
+ */
 interface ReportsResponse {
   range: string;
   summary: {
@@ -32,20 +45,28 @@ interface ReportsResponse {
   reports: Report[];
 }
 
+/** Warna chart untuk berbagai kategori */
 const CHART_COLORS = ['#60a5fa', '#a78bfa', '#34d399', '#fbbf24', '#f87171', '#2dd4bf'];
 
+/** Mapping status dengan label dan class CSS */
 const STATUS_MAP: Record<string, { label: string; class: string }> = {
   'OPEN': { label: 'Open', class: 'pending' },
   'ON PROGRESS': { label: 'Dalam Proses', class: 'verified' },
   'CLOSED': { label: 'Selesai', class: 'completed' }
 };
 
+/** Mapping severity dengan label */
 const SEVERITY_MAP: Record<string, string> = {
   'low': 'low',
   'medium': 'medium', 
   'high': 'high'
 };
 
+/**
+ * Komponen untuk menampilkan detail dan distribusi laporan per airline
+ * Menampilkan chart distribusi airline, breakdown per kategori, dan daftar laporan
+ * @returns JSX element berisi analisis airline
+ */
 export function AirlineDetailContent() {
   const searchParams = useSearchParams();
   const range = searchParams.get('range') || '7d';
@@ -54,24 +75,40 @@ export function AirlineDetailContent() {
   const [data, setData] = useState<ReportsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   
-  const fetchData = useCallback(async () => {
+  /**
+   * Mengambil data laporan dari API
+   * @param signal - AbortSignal untuk membatalkan request
+   */
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
       const url = airlineName 
         ? `/api/embed/reports?range=${range}&airline=${encodeURIComponent(airlineName)}`
         : `/api/embed/reports?range=${range}`;
-      const res = await fetch(url);
+      const res = await fetch(url, { signal });
       const json = await res.json();
       setData(json);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
     } finally {
       setLoading(false);
     }
   }, [range, airlineName]);
   
+  /**
+   * Setup auto-refresh dan inisialisasi data
+   */
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    const controller = new AbortController();
+    const { signal } = controller;
+
+    fetchData(signal);
+    const interval = setInterval(() => fetchData(signal), 30000);
+
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, [fetchData]);
   
   if (loading && !data) {

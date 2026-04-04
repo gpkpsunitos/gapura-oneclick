@@ -147,19 +147,24 @@ function AddStaffModal({
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
+        const controller = new AbortController();
+        const { signal } = controller;
+
         const load = async () => {
             try {
                 const [pos, un] = await Promise.all([
-                    fetch('/api/master-data?type=positions').then(r => r.json()).catch(() => []),
-                    fetch('/api/master-data?type=units').then(r => r.json()).catch(() => []),
+                    fetch('/api/master-data?type=positions', { signal }).then(r => r.json()).catch(() => []),
+                    fetch('/api/master-data?type=units', { signal }).then(r => r.json()).catch(() => []),
                 ]);
                 setPositions(Array.isArray(pos) ? pos : []);
                 setUnits(Array.isArray(un) ? un : []);
-            } catch {
-                // ignore
+            } catch (err) {
+                if (err instanceof DOMException && err.name === 'AbortError') return;
             }
         };
         load();
+
+        return () => controller.abort();
     }, []);
 
     const handleCreate = async () => {

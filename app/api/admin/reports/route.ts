@@ -107,7 +107,9 @@ export async function GET(request: Request) {
         const duration = Date.now() - startTime;
         console.log(`[API] GET /admin/reports - Found ${filteredData.length}/${allReports.length} reports in ${duration}ms (Role: ${role}, Division: ${targetDivision})`);
 
-        return NextResponse.json(filteredData);
+        return NextResponse.json(filteredData, {
+            headers: { 'Cache-Control': 'private, no-cache' },
+        });
     } catch (error) {
         console.error('Error fetching reports:', error);
         return NextResponse.json({ error: 'Gagal memuat laporan' }, { status: 500 });

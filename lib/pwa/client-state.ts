@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi fungsi-fungsi utilitas untuk manajemen state client PWA, termasuk auth scope dan storage
+ */
+
 "use client";
 
 import {
@@ -8,6 +15,10 @@ import {
   PWA_VERSION,
 } from "@/lib/pwa/constants";
 
+/**
+ * Mendapatkan scope autentikasi PWA saat ini
+ * @returns Scope auth saat ini atau "guest" jika tidak ada
+ */
 export function getPwaAuthScope() {
   if (typeof window === "undefined") {
     return "guest";
@@ -16,6 +27,10 @@ export function getPwaAuthScope() {
   return localStorage.getItem(PWA_AUTH_SCOPE_KEY) || "guest";
 }
 
+/**
+ * Mengatur scope autentikasi PWA
+ * @param scope - Scope auth yang akan disimpan (default: "guest")
+ */
 export function setPwaAuthScope(scope: string) {
   if (typeof window === "undefined") {
     return;
@@ -24,14 +39,29 @@ export function setPwaAuthScope(scope: string) {
   localStorage.setItem(PWA_AUTH_SCOPE_KEY, scope || "guest");
 }
 
+/**
+ * Membuat storage key dengan scope PWA
+ * @param base - Base key untuk storage
+ * @returns Storage key yang sudah di-scope dengan version dan auth scope
+ */
 export function buildPwaScopedStorageKey(base: string) {
   return `${PWA_STORAGE_PREFIX}:${PWA_VERSION}:${getPwaAuthScope()}:${base}`;
 }
 
+/**
+ * Memeriksa apakah storage key adalah key PWA
+ * @param key - Storage key yang akan dicek
+ * @returns true jika key adalah key PWA
+ */
 export function isPwaStorageKey(key: string) {
   return key.startsWith(`${PWA_STORAGE_PREFIX}:`);
 }
 
+/**
+ * Membersihkan semua state client PWA
+ * Digunakan saat logout untuk menghapus data lokal, cache, dan IndexedDB
+ * @throws Tidak melempar error secara eksplisit, error ditangani secara internal
+ */
 export async function purgePwaClientState() {
   if (typeof window === "undefined") {
     return;

@@ -49,14 +49,8 @@ export async function GET(request: NextRequest) {
     const branchFilter: string | null = branchParam;
     let branchCode: string | null = null;
     if (role === 'MANAGER_CABANG') {
-      const { data: userData } = await supabaseAdmin
-        .from('users')
-        .select('station_id')
-        .eq('id', payload.id)
-        .single();
-
-      if (userData?.station_id) {
-        branchCode = String(userData.station_id);
+      if (payload.station_id) {
+        branchCode = String(payload.station_id);
         console.log(`[AI API] Applying branch code for MANAGER_CABANG: ${branchCode}`);
       }
     }

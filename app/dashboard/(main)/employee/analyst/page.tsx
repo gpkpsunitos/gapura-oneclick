@@ -1,8 +1,22 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman dashboard analyst karyawan cabang,
+ * menampilkan analitik dan statistik berdasarkan divisi ANALYST.
+ */
+
 'use client';
 
 import { DivisionAnalystDashboard } from '@/components/dashboard/DivisionAnalystDashboard';
 import type { DivisionConfig } from '@/components/dashboard/AnalyticsDashboard';
 
+/**
+ * Konfigurasi untuk divisi ANALYST
+ * Berisi informasi identitas, warna, gaya tampilan, dan properti visual
+ * @constant
+ * @type {DivisionConfig}
+ */
 const divisionConfig: DivisionConfig = {
   code: 'ANALYST',
   name: 'Analyst Dashboard Cabang',
@@ -12,6 +26,11 @@ const divisionConfig: DivisionConfig = {
   textColor: 'text-sky-600',
 };
 
+/**
+ * Komponen halaman dashboard analyst karyawan cabang
+ * Menampilkan analitik dan statistik berdasarkan konfigurasi divisi ANALYST
+ * @returns {JSX.Element} Tampilan dashboard analyst karyawan cabang
+ */
 export default function EmployeeAnalystDashboardPage() {
   return <DivisionAnalystDashboard division={divisionConfig} />;
 }

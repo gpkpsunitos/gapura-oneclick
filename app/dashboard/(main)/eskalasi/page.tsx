@@ -26,9 +26,12 @@ export default function EskalasiDashboard() {
     const [switchingCode, setSwitchingCode] = useState<string | null>(null);
 
     useEffect(() => {
+        const controller = new AbortController();
+        const { signal } = controller;
+
         const fetchStats = async () => {
             try {
-                const res = await fetch('/api/admin/reports');
+                const res = await fetch('/api/admin/reports', { signal });
                 const data = await res.json();
                 const reports = data.reports || [];
 
@@ -48,11 +51,14 @@ export default function EskalasiDashboard() {
                 setStats(divisionStats);
                 setTotalCount(reports.length);
             } catch (error) {
+                if (error instanceof DOMException && error.name === 'AbortError') return;
                 console.error('Failed to fetch stats:', error);
             }
         };
 
         fetchStats();
+
+        return () => controller.abort();
     }, []);
 
     const handleOpenDivision = async (code: string) => {

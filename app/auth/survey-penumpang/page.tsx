@@ -1,8 +1,19 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi halaman Survey Penumpang dengan tampilan QR code
+ * untuk scan dan mengisi survey kepuasan penumpang
+ */
 'use client';
 
 import GuestNav from '@/components/GuestNav';
 import Image from 'next/image';
 
+/**
+ * Halaman Survey Penumpang
+ * @returns Komponen React
+ */
 export default function SurveyPenumpangPage() {
   return (
     <div className="min-h-[100dvh] bg-gray-50">
@@ -26,4 +37,3 @@ export default function SurveyPenumpangPage() {
     </div>
   );
 }
-

@@ -1,34 +1,39 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi layout utama aplikasi dengan konfigurasi metadata dan PWA
+ */
+
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import '@fontsource/bricolage-grotesque/latin.css';
 import '@fontsource/jetbrains-mono/latin.css';
 
-import PWAProvider from '@/components/PWAProvider';
+import Providers from '@/components/Providers';
 
+/**
+ * Konfigurasi viewport untuk responsivitas
+ */
 export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
     viewportFit: 'cover',
-    themeColor: [
-        { media: '(prefers-color-scheme: light)', color: '#10b981' },
-        { media: '(prefers-color-scheme: dark)', color: '#0ea5a2' }
-    ],
+    themeColor: '#0b9818',
 };
 
+/**
+ * Metadata aplikasi untuk SEO dan PWA
+ */
 export const metadata: Metadata = {
     title: 'Gapura OneClick',
     applicationName: 'OneClick',
     description: 'Gapura OneClick - Sistem Pelaporan & Monitoring Operasional Bandara',
     manifest: '/manifest.webmanifest',
     icons: {
-        icon: [
-            { url: '/icons/pwa-192.png', sizes: '192x192', type: 'image/png' },
-            { url: '/icons/pwa-512.png', sizes: '512x512', type: 'image/png' },
-        ],
+        icon: '/icons/pwa-192.png',
         shortcut: '/icons/pwa-192.png',
-        apple: [
-            { url: '/icons/pwa-192.png', sizes: '192x192', type: 'image/png' },
-        ],
+        apple: '/icons/pwa-192.png',
     },
     appleWebApp: {
         capable: true,
@@ -36,6 +41,8 @@ export const metadata: Metadata = {
         title: 'OneClick',
     },
     formatDetection: {
+        email: false,
+        address: false,
         telephone: false,
     },
     openGraph: {
@@ -43,14 +50,41 @@ export const metadata: Metadata = {
         siteName: 'OneClick',
         title: 'Gapura OneClick',
         description: 'Sistem Pelaporan & Monitoring Operasional Bandara',
+        images: [
+            {
+                url: '/icons/pwa-512.png',
+                width: 512,
+                height: 512,
+            },
+        ],
     },
     twitter: {
         card: 'summary_large_image',
         title: 'Gapura OneClick',
         description: 'Sistem Pelaporan & Monitoring Operasional Bandara',
+        images: [
+            {
+                url: '/icons/pwa-512.png',
+                width: 512,
+                height: 512,
+            },
+        ],
+    },
+    robots: {
+        index: true,
+        follow: true,
+    },
+    verification: {
+        google: 'your-google-verification-code',
     },
 };
 
+/**
+ * Komponen layout utama aplikasi
+ * Membungkus konten aplikasi dengan PWAProvider untuk PWA support
+ * @param children - Child components yang akan dirender
+ * @returns JSX element dengan children dibungkus PWAProvider
+ */
 export default function RootLayout({
     children,
 }: {
@@ -59,9 +93,9 @@ export default function RootLayout({
     return (
         <html lang="id">
             <body>
-                <PWAProvider>
+                <Providers>
                     {children}
-                </PWAProvider>
+                </Providers>
             </body>
         </html>
     );

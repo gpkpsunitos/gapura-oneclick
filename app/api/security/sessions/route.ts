@@ -34,7 +34,9 @@ export async function GET() {
             isCurrent: s.session_id === payload.sid
         }));
 
-        return NextResponse.json({ sessions: safeSessions });
+        return NextResponse.json({ sessions: safeSessions }, {
+            headers: { 'Cache-Control': 'private, max-age=15, stale-while-revalidate=30' },
+        });
     } catch (err) {
         console.error('Fetch sessions failed:', err);
         return NextResponse.json({ error: 'Server error' }, { status: 500 });

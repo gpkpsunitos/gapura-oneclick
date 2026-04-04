@@ -1,3 +1,10 @@
+/**
+ * @file
+ * Dibuat oleh Claude
+ * 
+ * File ini berisi utilitas untuk kontrol akses berbasis role (RBAC)
+ */
+
 import { UserRole, DivisionType } from '@/types';
 
 // ==========================================
@@ -5,7 +12,8 @@ import { UserRole, DivisionType } from '@/types';
 // ==========================================
 
 /**
- * Role hierarchy level (higher = more access)
+ * Hirarki level role (semakin tinggi = semakin banyak akses)
+ * @constant ROLE_HIERARCHY
  */
 const ROLE_HIERARCHY: Record<UserRole, number> = {
     STAFF_CABANG: 1,
@@ -22,64 +30,136 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
 };
 
 /**
- * Check if user can export data (Excel/PDF)
- * DIVISI_OS, ANALYST, and SUPER_ADMIN per requirements
+ * Mengecek apakah user dapat mengekspor data (Excel/PDF)
+ * DIVISI_OS, ANALYST, dan SUPER_ADMIN sesuai requirement
+ * @param role - Role user yang akan dicek
+ * @returns true jika role memiliki izin ekspor
+ * @example
+ * ```ts
+ * if (canExportData(userRole)) {
+ *   renderExportButton();
+ * }
+ * ```
  */
 export const canExportData = (role: UserRole): boolean =>
     role === 'DIVISI_OS' || role === 'DIVISI_ESKALASI' || role === 'ANALYST' || role === 'SUPER_ADMIN';
 
 /**
- * Check if user can access admin dashboard
- * All except CABANG
+ * Mengecek apakah user dapat mengakses dashboard admin
+ * Semua role kecuali CABANG
+ * @param role - Role user yang akan dicek
+ * @returns true jika role memiliki izin akses admin
+ * @example
+ * ```ts
+ * if (canAccessAdminDashboard(userRole)) {
+ *   router.push('/dashboard/admin');
+ * }
+ * ```
  */
 export const canAccessAdminDashboard = (role: UserRole): boolean =>
     ROLE_HIERARCHY[role] >= 2;
 
 /**
- * Check if user can execute/update report status
- * Only ANALYST and SUPER_ADMIN can change statuses
+ * Mengecek apakah user dapat mengeksekusi/update status laporan
+ * Hanya ANALYST dan SUPER_ADMIN yang dapat mengubah status
+ * @param role - Role user yang akan dicek
+ * @returns true jika role memiliki izin eksekusi laporan
+ * @example
+ * ```ts
+ * if (canExecuteReport(userRole)) {
+ *   showStatusControls();
+ * }
+ * ```
  */
 export const canExecuteReport = (role: UserRole): boolean =>
     role === 'ANALYST' || role === 'SUPER_ADMIN';
 
 /**
- * Check if user can close a case (mark as CLOSED)
- * Only ANALYST and SUPER_ADMIN
+ * Mengecek apakah user dapat menutup case (mark sebagai CLOSED)
+ * Hanya ANALYST dan SUPER_ADMIN
+ * @param role - Role user yang akan dicek
+ * @returns true jika role memiliki izin menutup case
+ * @example
+ * ```ts
+ * if (canCloseCase(userRole)) {
+ *   showCloseButton();
+ * }
+ * ```
  */
 export const canCloseCase = (role: UserRole): boolean =>
     role === 'ANALYST' || role === 'SUPER_ADMIN';
 
 /**
- * Check if user can reopen a case (CLOSED → OPEN)
- * Only ANALYST and SUPER_ADMIN
+ * Mengecek apakah user dapat membuka kembali case (CLOSED → OPEN)
+ * Hanya ANALYST dan SUPER_ADMIN
+ * @param role - Role user yang akan dicek
+ * @returns true jika role memiliki izin membuka case
+ * @example
+ * ```ts
+ * if (canReopenCase(userRole)) {
+ *   showReopenButton();
+ * }
+ * ```
  */
 export const canReopenCase = (role: UserRole): boolean =>
     role === 'ANALYST' || role === 'SUPER_ADMIN';
 
 /**
- * Check if user can manage users (approve/reject/edit)
- * Only SUPER_ADMIN
+ * Mengecek apakah user dapat mengelola user (approve/reject/edit)
+ * Hanya SUPER_ADMIN
+ * @param role - Role user yang akan dicek
+ * @returns true jika role adalah SUPER_ADMIN
+ * @example
+ * ```ts
+ * if (canManageUsers(userRole)) {
+ *   renderUserManagement();
+ * }
+ * ```
  */
 export const canManageUsers = (role: UserRole): boolean =>
     role === 'SUPER_ADMIN';
 
 /**
- * Check if user can manage master data (stations, categories)
- * Only SUPER_ADMIN
+ * Mengecek apakah user dapat mengelola master data (stations, categories)
+ * Hanya SUPER_ADMIN
+ * @param role - Role user yang akan dicek
+ * @returns true jika role adalah SUPER_ADMIN
+ * @example
+ * ```ts
+ * if (canManageMasterData(userRole)) {
+ *   renderMasterDataManagement();
+ * }
+ * ```
  */
 export const canManageMasterData = (role: UserRole): boolean =>
     role === 'SUPER_ADMIN';
 
 /**
- * Check if user can view audit logs
- * Only SUPER_ADMIN
+ * Mengecek apakah user dapat melihat audit logs
+ * Hanya SUPER_ADMIN
+ * @param role - Role user yang akan dicek
+ * @returns true jika role adalah SUPER_ADMIN
+ * @example
+ * ```ts
+ * if (canViewAuditLogs(userRole)) {
+ *   renderAuditLogs();
+ * }
+ * ```
  */
 export const canViewAuditLogs = (role: UserRole): boolean =>
     role === 'SUPER_ADMIN';
 
 /**
- * Check if user can create reports
- * MANAGER_CABANG and STAFF_CABANG (station-scoped), ANALYST (HQ reports), SUPER_ADMIN, DIVISI_OS
+ * Mengecek apakah user dapat membuat laporan
+ * MANAGER_CABANG dan STAFF_CABANG (station-scoped), ANALYST (HQ reports), SUPER_ADMIN, DIVISI_OS
+ * @param role - Role user yang akan dicek
+ * @returns true jika role memiliki izin membuat laporan
+ * @example
+ * ```ts
+ * if (canCreateReport(userRole)) {
+ *   renderCreateReportButton();
+ * }
+ * ```
  */
 export const canCreateReport = (role: UserRole): boolean =>
     role === 'MANAGER_CABANG' ||
@@ -89,14 +169,31 @@ export const canCreateReport = (role: UserRole): boolean =>
     role === 'DIVISI_OS';
 
 /**
- * Check if user has global data access (all stations)
- * All except MANAGER_CABANG and STAFF_CABANG
+ * Mengecek apakah user memiliki akses data global (semua stasiun)
+ * Semua role kecuali MANAGER_CABANG dan STAFF_CABANG
+ * @param role - Role user yang akan dicek
+ * @returns true jika role memiliki akses global
+ * @example
+ * ```ts
+ * if (hasGlobalAccess(userRole)) {
+ *   fetchAllReports();
+ * } else {
+ *   fetchStationReports();
+ * }
+ * ```
  */
 export const hasGlobalAccess = (role: UserRole): boolean =>
     ROLE_HIERARCHY[role] >= 2;
 
 /**
- * Get the redirect path after login based on role
+ * Mendapatkan path redirect setelah login berdasarkan role
+ * @param role - Role user
+ * @returns Path untuk redirect
+ * @example
+ * ```ts
+ * const redirectPath = getLoginRedirectPath(userRole);
+ * router.push(redirectPath);
+ * ```
  */
 export const getLoginRedirectPath = (role: UserRole): string => {
     if (role === 'MANAGER_CABANG' || role === 'STAFF_CABANG') {
@@ -109,15 +206,35 @@ export const getLoginRedirectPath = (role: UserRole): string => {
 };
 
 /**
- * Check if user can view all reports from their station
- * MANAGER_CABANG can see all station reports
+ * Mengecek apakah user dapat melihat semua laporan dari stasiunnya
+ * MANAGER_CABANG dapat melihat semua laporan stasiun
+ * @param role - Role user yang akan dicek
+ * @returns true jika role dapat melihat semua laporan stasiun
+ * @example
+ * ```ts
+ * if (canViewAllStationReports(userRole)) {
+ *   fetchAllStationReports();
+ * }
+ * ```
  */
 export const canViewAllStationReports = (role: UserRole): boolean =>
     role === 'MANAGER_CABANG' || ROLE_HIERARCHY[role] >= 3;
 
 /**
- * Check if user can edit a specific report
- * MANAGER_CABANG can edit all station reports, STAFF_CABANG only own reports
+ * Mengecek apakah user dapat mengedit laporan tertentu
+ * MANAGER_CABANG dapat mengedit semua laporan stasiun, STAFF_CABANG hanya laporan sendiri
+ * @param role - Role user yang akan dicek
+ * @param userId - ID user
+ * @param reportUserId - ID user pembuat laporan
+ * @param userStationId - ID stasiun user (opsional)
+ * @param reportStationId - ID stasiun laporan (opsional)
+ * @returns true jika user dapat mengedit laporan
+ * @example
+ * ```ts
+ * if (canEditReport(userRole, userId, reportUserId, userStationId, reportStationId)) {
+ *   showEditButton();
+ * }
+ * ```
  */
 export const canEditReport = (
     role: UserRole,
@@ -142,15 +259,33 @@ export const canEditReport = (
 };
 
 /**
- * Check if user can export branch data (Excel/PDF)
- * MANAGER_CABANG can export, STAFF_CABANG cannot
+ * Mengecek apakah user dapat mengekspor data cabang (Excel/PDF)
+ * MANAGER_CABANG dapat mengekspor, STAFF_CABANG tidak
+ * @param role - Role user yang akan dicek
+ * @returns true jika role memiliki izin ekspor data cabang
+ * @example
+ * ```ts
+ * if (canExportBranchData(userRole)) {
+ *   renderExportButton();
+ * }
+ * ```
  */
 export const canExportBranchData = (role: UserRole): boolean =>
     role === 'MANAGER_CABANG' || canExportData(role);
 
 /**
- * Check if user can approve staff registration
- * MANAGER_CABANG can approve staff from same station
+ * Mengecek apakah user dapat menyetujui registrasi staff
+ * MANAGER_CABANG dapat menyetujui staff dari stasiun yang sama
+ * @param role - Role user yang akan dicek
+ * @param userStationId - ID stasiun user (opsional)
+ * @param staffStationId - ID stasiun staff (opsional)
+ * @returns true jika user dapat menyetujui staff
+ * @example
+ * ```ts
+ * if (canApproveStaff(userRole, userStationId, staffStationId)) {
+ *   showApproveButton();
+ * }
+ * ```
  */
 export const canApproveStaff = (
     role: UserRole,
@@ -163,14 +298,25 @@ export const canApproveStaff = (
 };
 
 /**
- * Check if user can only view own reports
- * True for STAFF_CABANG only
+ * Mengecek apakah user hanya dapat melihat laporan sendiri
+ * Hanya STAFF_CABANG yang terbatas ke laporan sendiri
+ * @param role - Role user yang akan dicek
+ * @returns true jika role terbatas ke laporan sendiri
+ * @example
+ * ```ts
+ * if (isRestrictedToOwnReports(userRole)) {
+ *   fetchOwnReports();
+ * } else {
+ *   fetchAllReports();
+ * }
+ * ```
  */
 export const isRestrictedToOwnReports = (role: UserRole): boolean =>
     role === 'STAFF_CABANG';
 
 /**
- * Division labels for UI display
+ * Label divisi untuk tampilan UI
+ * @constant DIVISION_LABELS
  */
 export const DIVISION_LABELS: Record<DivisionType, string> = {
     GENERAL: 'Umum',
@@ -183,7 +329,8 @@ export const DIVISION_LABELS: Record<DivisionType, string> = {
 };
 
 /**
- * Role labels for UI display
+ * Label role untuk tampilan UI
+ * @constant ROLE_LABELS
  */
 export const ROLE_LABELS: Record<UserRole, string> = {
     MANAGER_CABANG: 'Manager Cabang',
@@ -200,7 +347,8 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 };
 
 /**
- * Role descriptions for tooltips/help text
+ * Deskripsi role untuk tooltips/help text
+ * @constant ROLE_DESCRIPTIONS
  */
 export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
     MANAGER_CABANG: 'Manager/Supervisor cabang (@gapura.id). Akses penuh station, approve staff, export data.',
