@@ -167,6 +167,41 @@ const WRITE_MAPPING: Record<string, string> = {
 
 const CACHE_KEY_ALL_REPORTS = 'reports:all:v3';
 const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+const VALID_DIVISIONS = ['OT', 'OP', 'UQ', 'OS', 'HT', 'HC'] as const;
+const GSE_KEYWORDS = [
+  'gse',
+  'ground support equipment',
+  'belt loader',
+  'baggage tractor',
+  'tow tractor',
+  'pushback',
+  'push back',
+  'gpu',
+  'ground power unit',
+  'lavatory truck',
+  'water truck',
+  'air starter',
+  'forklift',
+  'cargo loader',
+  'ambulift',
+  'tld',
+  'conveyor',
+  'uld',
+];
+
+export type SupportedDivision = typeof VALID_DIVISIONS[number];
+
+export interface ReportQueryFilters {
+  dateFrom?: string;
+  dateTo?: string;
+  hub?: string;
+  branch?: string;
+  area?: string;
+  airlines?: string;
+  sourceSheet?: string;
+  targetDivision?: string;
+  gseOnly?: boolean;
+}
 
 const MonthMap: Record<string, number> = {
   januari: 0, jan: 0,
@@ -244,6 +279,40 @@ function parseDate(dateStr: string | number | Date): Date | null {
   // Fallback to native Date
   const d = new Date(str);
   return isNaN(d.getTime()) ? null : d;
+}
+
+export function normalizeDivisionCode(value?: string | null): SupportedDivision | undefined {
+  if (!value) return undefined;
+  const match = String(value).trim().toUpperCase().match(/\b(OT|OP|UQ|OS|HT|HC)\b/);
+  return match?.[1] as SupportedDivision | undefined;
+}
+
+export function isGseRelatedReport(report: Partial<Report>): boolean {
+  if (report.is_gse_related) return true;
+  if (report.gse_number || report.gse_name) return true;
+
+  const textBlob = [
+    report.primary_tag,
+    report.sub_category_note,
+    report.main_category,
+    report.category,
+    report.irregularity_complain_category,
+    report.report,
+    report.description,
+    report.title,
+    report.root_caused,
+    report.root_cause,
+    report.action_taken,
+    report.preventive_action,
+    report.area,
+  ]
+    .filter(Boolean)
+    .map((value) => String(value).toLowerCase())
+    .join(' ');
+
+  if (!textBlob) return false;
+  if (/\bgse\b/.test(textBlob)) return true;
+  return GSE_KEYWORDS.some((keyword) => textBlob.includes(keyword));
 }
 
 
@@ -705,17 +774,9 @@ export class ReportsService {
     return entry ? entry.ts : Date.now();
   }
 
-  async getReports(options?: { 
-    refresh?: boolean; 
-    filters?: {
-      dateFrom?: string;
-      dateTo?: string;
-      hub?: string;
-      branch?: string;
-      area?: string;
-      airlines?: string;
-      sourceSheet?: string;
-    },
+  async getReports(options?: {
+    refresh?: boolean;
+    filters?: ReportQueryFilters;
     fields?: string[];
     source?: 'auto' | 'sheets' | 'sync';
   }): Promise<Report[]> {
@@ -778,6 +839,15 @@ export class ReportsService {
           
           // Source Sheet filtering
           if (filters.sourceSheet && report.source_sheet !== filters.sourceSheet) return false;
+
+          // Division filtering
+          if (filters.targetDivision) {
+            const reportDivision = normalizeDivisionCode(report.target_division);
+            if (reportDivision !== normalizeDivisionCode(filters.targetDivision)) return false;
+          }
+
+          // GSE filtering
+          if (filters.gseOnly && !isGseRelatedReport(report)) return false;
         }
         return true;
     });
@@ -837,15 +907,7 @@ export class ReportsService {
   }
 
   // Fetch from reports_sync table (fast path - synced from Google Sheets)
-  private async fetchReportsFromSync(filters?: {
-    dateFrom?: string;
-    dateTo?: string;
-    hub?: string;
-    branch?: string;
-    area?: string;
-    airlines?: string;
-    sourceSheet?: string;
-  }): Promise<Report[]> {
+  private async fetchReportsFromSync(filters?: ReportQueryFilters): Promise<Report[]> {
     try {
       const buildQuery = () => {
         let q = supabaseAdmin
@@ -859,6 +921,12 @@ export class ReportsService {
         if (filters?.dateFrom) q = q.gte('date_of_event', filters.dateFrom);
         if (filters?.dateTo) q = q.lte('date_of_event', filters.dateTo);
         if (filters?.sourceSheet) q = q.eq('source_sheet', filters.sourceSheet);
+        if (filters?.targetDivision) {
+          const normalizedDivision = normalizeDivisionCode(filters.targetDivision);
+          if (normalizedDivision) {
+            q = q.eq('target_division', normalizedDivision);
+          }
+        }
         return q;
       };
 

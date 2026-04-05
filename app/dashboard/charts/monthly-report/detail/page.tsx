@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import MonthlyReportDetail from '@/components/charts/monthly-report/MonthlyReportDetail';
 import DetailFilterHeader from '@/components/chart-detail/DetailFilterHeader';
+import { AnalyticsSourceStrip } from '@/components/dashboard/analytics-source-strip';
+import { getShortcutSourceConfig } from '@/lib/op-shortcut-source-matrix';
 
 interface FilterState {
   hub: string;
@@ -17,7 +18,6 @@ interface FilterState {
 }
 
 export default function MonthlyReportPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const sourceSheet = searchParams.get('sourceSheet') === 'CGO' ? 'CGO' : 'NON CARGO';
   const sourcePage = searchParams.get('sourcePage') || 'customer-feedback-main';
@@ -30,6 +30,7 @@ export default function MonthlyReportPage() {
     month: 'all',
     sourceSheet,
   });
+  const sourceConfig = getShortcutSourceConfig('monitoringEfektivitas');
 
   return (
     <div className="min-h-screen bg-[var(--surface-0)] overflow-x-hidden relative">
@@ -73,6 +74,12 @@ export default function MonthlyReportPage() {
         className="relative z-10 w-full px-6 py-32"
       >
         <div className="max-w-[1600px] mx-auto space-y-12">
+          <AnalyticsSourceStrip
+            title="Monitoring Efektivitas"
+            description="Halaman shared ini tetap mempertahankan chart real di bagian atas dan layer AI di bawahnya. Provenance ditampilkan di sini agar shortcut OP dan penggunaan native memakai kontrak sumber yang sama."
+            realSource={sourceConfig.realSource}
+            aiSource={sourceConfig.aiSource}
+          />
           <MonthlyReportDetail filters={filters} />
         </div>
       </motion.main>

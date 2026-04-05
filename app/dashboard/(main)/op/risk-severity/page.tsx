@@ -1,9 +1,40 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ActivitySquare, Gauge, ShieldAlert, Target, Thermometer } from 'lucide-react';
-import { SeverityDistributionChart } from '@/components/chart-detail/custom-charts/SeverityDistributionChart';
+import { AlertTriangle, Building2, Gauge, Plane, ShieldAlert } from 'lucide-react';
+import { AnalyticsMetricCard } from '@/components/dashboard/analytics-metric-card';
+import {
+  AnalyticsSection,
+  AnalyticsSectionLoading,
+  AnalyticsSourceStrip,
+  AnalyticsUnavailable,
+} from '@/components/dashboard/analytics-source-strip';
+import { ResponsiveBarChart } from '@/components/charts/ResponsiveBarChart';
 import { ResponsivePieChart } from '@/components/charts/ResponsivePieChart';
+import { SeverityDistributionChart } from '@/components/chart-detail/custom-charts/SeverityDistributionChart';
+import { getShortcutSourceConfig } from '@/lib/op-shortcut-source-matrix';
+import type { AnalyticsRuntimeStatus } from '@/lib/op-shortcut-source-matrix';
+import {
+  fetchAnalyticsReports,
+  normalizeSeverity,
+  normalizeStatus,
+  pickAirline,
+  pickBranch,
+} from '@/lib/op-shortcut-analytics';
+
+type ReportRow = {
+  id: string;
+  severity?: string;
+  status?: string;
+  airlines?: string;
+  airline?: string;
+  branch?: string;
+  reporting_branch?: string;
+  hub?: string;
+  created_at?: string;
+  date_of_event?: string;
+  target_division?: string;
+};
 
 type RiskLevel = 'Critical' | 'High' | 'Medium' | 'Low';
 
@@ -29,338 +60,285 @@ interface RiskSummary {
   airline_details: EntityDetail[];
   branch_details: EntityDetail[];
   hub_details: EntityDetail[];
+  cached?: boolean;
+  stale?: boolean;
+  generatedAt?: string;
+  sourceSyncAt?: string | null;
 }
 
-function toSeverityData(map: Record<string, number>, selected?: RiskLevel[]) {
-  const norm = {
-    CRITICAL: map['Critical'] || map['CRITICAL'] || 0,
-    HIGH: map['High'] || map['HIGH'] || 0,
-    MEDIUM: map['Medium'] || map['MEDIUM'] || 0,
-    LOW: map['Low'] || map['LOW'] || 0,
-  };
-  const apply = (sev: 'CRITICAL'|'HIGH'|'MEDIUM'|'LOW') => {
-    if (!selected || selected.length === 0) return norm[sev];
-    const allow = selected.includes(sev === 'CRITICAL' ? 'Critical' : sev === 'HIGH' ? 'High' : sev === 'MEDIUM' ? 'Medium' : 'Low');
-    return allow ? norm[sev] : 0;
-  };
-  const filtered = {
-    CRITICAL: apply('CRITICAL'),
-    HIGH: apply('HIGH'),
-    MEDIUM: apply('MEDIUM'),
-    LOW: apply('LOW'),
-  };
-  const total = Object.values(filtered).reduce((a, b) => a + b, 0) || 1;
-  return (Object.keys(filtered) as Array<'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'>).map(k => ({
-    severity: k,
-    count: filtered[k],
-    percentage: (filtered[k] / total) * 100,
+const SOURCE_CONFIG = getShortcutSourceConfig('riskSeverity');
+
+function toSeverityChartData(map: Record<string, number>) {
+  const total = Object.values(map).reduce((sum, value) => sum + value, 0) || 1;
+  return (['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'] as const).map((severity) => ({
+    severity,
+    count: map[severity] || 0,
+    percentage: ((map[severity] || 0) / total) * 100,
   }));
 }
 
 export default function OPRiskSeverity() {
-  const [data, setData] = useState<RiskSummary | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [riskFilter, setRiskFilter] = useState<RiskLevel[]>(['Critical', 'High', 'Medium', 'Low']);
-  const [detailTab, setDetailTab] = useState<'branches' | 'hubs'>('branches');
+  const [reports, setReports] = useState<ReportRow[]>([]);
+  const [realLoading, setRealLoading] = useState(true);
+  const [realError, setRealError] = useState<string | null>(null);
+  const [realStatus, setRealStatus] = useState<AnalyticsRuntimeStatus>();
+
+  const [riskSummary, setRiskSummary] = useState<RiskSummary | null>(null);
+  const [aiLoading, setAiLoading] = useState(true);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiStatus, setAiStatus] = useState<AnalyticsRuntimeStatus>();
 
   useEffect(() => {
-    let mounted = true;
-    const fetcher = async () => {
+    let active = true;
+
+    async function loadReal() {
       try {
-        setLoading(true);
-        setError(null);
-        const esklasiRegex = 'OP';
-        const res = await fetch(`/api/ai/risk/summary?esklasi_regex=${encodeURIComponent(esklasiRegex)}`, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' },
+        setRealLoading(true);
+        setRealError(null);
+        const response = await fetchAnalyticsReports<ReportRow>(
+          {},
+          ['id', 'severity', 'status', 'airlines', 'airline', 'branch', 'reporting_branch', 'hub', 'created_at', 'date_of_event', 'target_division']
+        );
+        if (!active) return;
+        setReports(response.reports || []);
+        setRealStatus({
+          lastSyncAt: response.timestamp,
+          count: response.count,
         });
-        const ct = res.headers.get('content-type') || '';
-        if (!res.ok || !ct.includes('application/json')) throw new Error(`Non-JSON or HTTP ${res.status}`);
-        const json = await res.json();
-        if (mounted) setData(json as unknown as RiskSummary);
-      } catch (e: any) {
-        if (mounted) setError('Gagal memuat risk summary');
+      } catch (loadError) {
+        if (!active) return;
+        setRealError(loadError instanceof Error ? loadError.message : 'Gagal memuat data real');
       } finally {
-        if (mounted) setLoading(false);
+        if (active) setRealLoading(false);
       }
-    };
-    fetcher();
+    }
+
+    async function loadAi() {
+      try {
+        setAiLoading(true);
+        setAiError(null);
+        const response = await fetch('/api/ai/risk/summary', {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const payload = (await response.json()) as RiskSummary;
+        if (!active) return;
+        setRiskSummary(payload);
+        setAiStatus({
+          cached: payload.cached,
+          stale: payload.stale,
+          generatedAt: payload.generatedAt,
+          sourceSyncAt: payload.sourceSyncAt,
+        });
+      } catch (loadError) {
+        if (!active) return;
+        setAiError(loadError instanceof Error ? loadError.message : 'Gagal memuat ringkasan AI');
+      } finally {
+        if (active) setAiLoading(false);
+      }
+    }
+
+    loadReal();
+    loadAi();
+
     return () => {
-      mounted = false;
+      active = false;
     };
   }, []);
 
-  const airlineSeverity = useMemo(() => toSeverityData(data?.airline_risks || {}, riskFilter), [data, riskFilter]);
-  const branchSeverity = useMemo(() => toSeverityData(data?.branch_risks || {}, riskFilter), [data, riskFilter]);
-  const hubSeverity = useMemo(() => toSeverityData(data?.hub_risks || {}, riskFilter), [data, riskFilter]);
+  const realSeverityMap = useMemo(() => {
+    return reports.reduce<Record<string, number>>((accumulator, report) => {
+      const severity = normalizeSeverity(report.severity);
+      accumulator[severity] = (accumulator[severity] || 0) + 1;
+      return accumulator;
+    }, { CRITICAL: 0, HIGH: 0, MEDIUM: 0, LOW: 0 });
+  }, [reports]);
 
-  const topAirlines = useMemo(() => {
-    const arr = (data?.airline_details || []).slice().sort((a, b) => b.risk_score - a.risk_score);
-    const filtered = arr.filter(a => riskFilter.includes(a.risk_level));
-    return filtered.slice(0, 12);
-  }, [data, riskFilter]);
+  const realStatusData = useMemo(() => {
+    const counts = reports.reduce<Record<string, number>>((accumulator, report) => {
+      const status = normalizeStatus(report.status);
+      accumulator[status] = (accumulator[status] || 0) + 1;
+      return accumulator;
+    }, { OPEN: 0, PROGRESS: 0, CLOSED: 0 });
+
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [reports]);
 
   const topBranches = useMemo(() => {
-    const arr = (data?.branch_details || []).slice().sort((a, b) => b.risk_score - a.risk_score);
-    const filtered = arr.filter(a => riskFilter.includes(a.risk_level));
-    return filtered.slice(0, 12);
-  }, [data, riskFilter]);
+    const branchMap = new Map<string, number>();
+    reports.forEach((report) => {
+      const branch = pickBranch(report);
+      branchMap.set(branch, (branchMap.get(branch) || 0) + 1);
+    });
+    return Array.from(branchMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 8);
+  }, [reports]);
 
-  const topHubs = useMemo(() => {
-    const arr = (data?.hub_details || []).slice().sort((a, b) => b.risk_score - a.risk_score);
-    const filtered = arr.filter(a => riskFilter.includes(a.risk_level));
-    return filtered.slice(0, 12);
-  }, [data, riskFilter]);
+  const topAirlines = useMemo(() => {
+    const airlineMap = new Map<string, number>();
+    reports.forEach((report) => {
+      const airline = pickAirline(report);
+      airlineMap.set(airline, (airlineMap.get(airline) || 0) + 1);
+    });
+    return Array.from(airlineMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 8);
+  }, [reports]);
 
-  const donutTopAirlines = useMemo(() => {
-    return topAirlines.map(a => ({ name: a.name || 'Unknown', value: Math.max(0, a.risk_score) }));
-  }, [topAirlines]);
+  const affectedHubs = useMemo(() => {
+    return new Set(reports.map((report) => report.hub).filter(Boolean)).size;
+  }, [reports]);
 
-  const toggleFilter = (lvl: RiskLevel) => {
-    setRiskFilter(prev => prev.includes(lvl) ? prev.filter(x => x !== lvl) : [...prev, lvl]);
-  };
+  const aiBranchChart = useMemo(() => {
+    return (riskSummary?.branch_details || [])
+      .slice()
+      .sort((left, right) => right.risk_score - left.risk_score)
+      .slice(0, 8)
+      .map((entry) => ({
+        name: entry.name,
+        riskScore: Math.round(entry.risk_score * 10) / 10,
+        issues: entry.total_issues || 0,
+      }));
+  }, [riskSummary]);
 
-  const drillAirline = (name: string) => {
-    const url = `/embed/airline?name=${encodeURIComponent(name)}`;
-    window.open(url, '_blank');
-  };
-  const drillBranch = (code: string) => {
-    const url = `/embed/branch-report/detail?branch=${encodeURIComponent(code)}&viewMode=static`;
-    window.open(url, '_blank');
-  };
-  const drillHub = (hubName: string) => {
-    const url = `/embed/hub-report/detail?hub=${encodeURIComponent(hubName)}&viewMode=static`;
-    window.open(url, '_blank');
-  };
+  const aiAirlineChart = useMemo(() => {
+    return (riskSummary?.airline_details || [])
+      .slice()
+      .sort((left, right) => right.risk_score - left.risk_score)
+      .slice(0, 8)
+      .map((entry) => ({
+        name: entry.name,
+        riskScore: Math.round(entry.risk_score * 10) / 10,
+        issues: entry.total_issues || 0,
+      }));
+  }, [riskSummary]);
+
+  const aiHubSeverity = useMemo(() => toSeverityChartData(riskSummary?.hub_risks || {}), [riskSummary]);
+  const aiBranchSeverity = useMemo(() => toSeverityChartData(riskSummary?.branch_risks || {}), [riskSummary]);
+  const aiAirlineSeverity = useMemo(() => toSeverityChartData(riskSummary?.airline_risks || {}), [riskSummary]);
+
+  const topRiskLevel = useMemo(() => {
+    return (riskSummary?.branch_details || []).slice().sort((left, right) => right.risk_score - left.risk_score)[0];
+  }, [riskSummary]);
 
   return (
-    <div className="min-h-screen px-4 md:px-6 py-6 space-y-6">
-      <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <div className="flex items-center justify-between gap-2 mb-1">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-emerald-600" />
-            <h1 className="text-lg font-bold text-gray-800">Risk & Severity Intelligence</h1>
+    <div className="min-h-screen space-y-6 px-4 py-6 md:px-6">
+      <AnalyticsSourceStrip
+        title="Risk & Severity"
+        description="Pisahkan eksposur real dari laporan aktual dan scoring risiko AI. Chart real menggambarkan volume aktual, sedangkan chart AI menggambarkan penilaian risiko model."
+        realSource={SOURCE_CONFIG.realSource}
+        realStatus={realStatus}
+        aiSource={SOURCE_CONFIG.aiSource}
+        aiStatus={aiStatus}
+      />
+
+      <AnalyticsSection
+        title="Eksposur Severity Aktual"
+        description="Data real di bawah ini dihitung langsung dari laporan aktual pada dataset utama melalui `/api/reports/analytics`."
+        variant="real"
+      >
+        {realError ? <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{realError}</div> : null}
+
+        <div className="grid gap-4 lg:grid-cols-4">
+          <AnalyticsMetricCard icon={Gauge} label="Total Reports" value={reports.length.toLocaleString('id-ID')} caption="Volume kasus aktual" tone="real" />
+          <AnalyticsMetricCard icon={AlertTriangle} label="High + Critical" value={((realSeverityMap.HIGH || 0) + (realSeverityMap.CRITICAL || 0)).toLocaleString('id-ID')} caption="Kasus severity tinggi" tone="real" />
+          <AnalyticsMetricCard icon={Building2} label="Affected Hubs" value={affectedHubs.toLocaleString('id-ID')} caption="Hub aktif pada dataset" tone="real" />
+          <AnalyticsMetricCard icon={ShieldAlert} label="Open Cases" value={(realStatusData.find((entry) => entry.name === 'OPEN')?.value || 0).toLocaleString('id-ID')} caption="Status masih open" tone="real" />
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-3">
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <SeverityDistributionChart data={toSeverityChartData(realSeverityMap)} title="Severity Aktual" />
           </div>
-          {data?.last_updated && (
-            <div className="text-[10px] font-bold text-gray-500">Updated {new Date(data.last_updated).toLocaleString('id-ID')}</div>
-          )}
-        </div>
-        <p className="text-sm text-gray-500">Profil risiko operasional berdasarkan severity dan eksposur entitas.</p>
-      </section>
-
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        {(loading ? Array.from({ length: 4 }) : [
-          { icon: Gauge, label: 'Airlines', value: data?.total_airlines?.toLocaleString('id-ID') || '0' },
-          { icon: Thermometer, label: 'Branches', value: data?.total_branches?.toLocaleString('id-ID') || '0' },
-          { icon: ShieldAlert, label: 'Hubs', value: data?.total_hubs?.toLocaleString('id-ID') || '0' },
-          { icon: ActivitySquare, label: 'Top Airlines', value: String((data?.top_risky_airlines || []).length) },
-        ]).map((k: any, idx: number) => (
-          <div key={idx} className="bg-[var(--surface-1)] rounded-2xl p-4 border border-[var(--surface-2)] shadow-spatial-sm">
-            {loading ? (
-              <div className="animate-pulse space-y-2">
-                <div className="h-4 bg-[var(--surface-2)] rounded w-24" />
-                <div className="h-6 bg-[var(--surface-2)] rounded w-32" />
-              </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <k.icon className="w-4 h-4 text-emerald-600" />
-                <div>
-                  <div className="text-xs text-gray-500">{k.label}</div>
-                  <div className="text-lg font-bold text-gray-800">{k.value}</div>
-                </div>
-              </div>
-            )}
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <ResponsivePieChart data={realStatusData} title="Distribusi Status" donut showLegend percentageLabels height="h-[280px]" />
           </div>
-        ))}
-      </section>
-
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-[var(--surface-1)] rounded-2xl p-4 border border-[var(--surface-2)] shadow-spatial-sm">
-          <SeverityDistributionChart data={airlineSeverity} title="Severity: Airlines" />
-        </div>
-        <div className="bg-[var(--surface-1)] rounded-2xl p-4 border border-[var(--surface-2)] shadow-spatial-sm">
-          <SeverityDistributionChart data={branchSeverity} title="Severity: Branches" />
-        </div>
-        <div className="bg-[var(--surface-1)] rounded-2xl p-4 border border-[var(--surface-2)] shadow-spatial-sm">
-          <SeverityDistributionChart data={hubSeverity} title="Severity: Hubs" />
-        </div>
-      </section>
-
-      <section className="bg-[var(--surface-1)] rounded-2xl p-4 border border-[var(--surface-2)] shadow-spatial-sm">
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-xs font-bold text-gray-700">Risk Level Filter</div>
-          <div className="flex flex-wrap gap-2">
-            {(['Critical','High','Medium','Low'] as RiskLevel[]).map(lvl => {
-              const active = riskFilter.includes(lvl);
-              return (
-                <button
-                  key={lvl}
-                  onClick={() => toggleFilter(lvl)}
-                  className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.12em] border transition-all ${
-                    active 
-                      ? 'bg-emerald-600 text-white border-emerald-600' 
-                      : 'bg-[var(--surface-0)] text-gray-600 border-[var(--surface-border)] hover:bg-[var(--surface-2)]'
-                  }`}
-                >
-                  {lvl}
-                </button>
-              );
-            })}
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <div className="mb-3">
+              <h3 className="text-sm font-black text-slate-900">Top Airlines by Volume</h3>
+              <p className="text-xs text-slate-600">Volume riil kasus severity menurut maskapai.</p>
+            </div>
+            <ResponsiveBarChart data={topAirlines} xAxisKey="name" dataKeys={['count']} showLegend={false} height="h-[280px]" />
           </div>
         </div>
-        <div className="text-[10px] text-gray-500">Filter mempengaruhi daftar Top Airlines/Branches/Hubs dan ringkasan donut.</div>
-      </section>
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <div className="bg-[var(--surface-1)] rounded-2xl p-4 border border-[var(--surface-2)] shadow-spatial-sm lg:col-span-1">
-          <ResponsivePieChart
-            data={donutTopAirlines}
-            title="Top Risky Airlines"
-            donut
-            showLegend
-            height="h-[45vh] min-h-[220px] lg:h-[360px]"
+        <div className="mt-5 rounded-2xl border border-emerald-200 bg-white/90 p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-black text-slate-900">Top Branches by Volume</h3>
+            <p className="text-xs text-slate-600">Branch exposure chart dari data real, tanpa bobot AI.</p>
+          </div>
+          <ResponsiveBarChart data={topBranches} xAxisKey="name" dataKeys={['count']} showLegend={false} height="h-[320px]" />
+        </div>
+
+        {realLoading ? <div className="mt-4 text-sm text-slate-500">Memuat data real...</div> : null}
+      </AnalyticsSection>
+
+      <AnalyticsSection
+        title="Skor Risiko dari AI"
+        description="Layer AI diambil melalui proxy internal `/api/ai/risk/summary`. Metrik ini tidak dicampur dengan volume real; fungsinya untuk prioritisasi dan profiling risiko."
+        variant="ai"
+      >
+        {aiError ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{aiError}</div>
+        ) : aiLoading ? (
+          <AnalyticsSectionLoading
+            variant="ai"
+            title="Memuat skor risiko AI"
+            description="Pipeline AI sedang menghitung severity distribution, ranking branch, dan ranking airline."
+            cards={4}
+            panels={5}
           />
-        </div>
-        <div className="bg-[var(--surface-1)] rounded-2xl p-4 border border-[var(--surface-2)] shadow-spatial-sm lg:col-span-2">
-          <div className="text-xs font-bold text-gray-600 mb-3">Top Airlines Detail</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {(loading ? [] : topAirlines).map((a) => (
-              <div
-                key={`${a.name}-${a.risk_score}`}
-                className={`rounded-xl border p-4 transition-all hover:shadow-md cursor-pointer ${
-                  a.risk_level === 'Critical' ? 'bg-red-50/60 border-red-100' :
-                  a.risk_level === 'High' ? 'bg-orange-50/60 border-orange-100' :
-                  a.risk_level === 'Medium' ? 'bg-yellow-50/60 border-yellow-100' :
-                  'bg-white border-gray-100'
-                }`}
-                onClick={() => drillAirline(a.name)}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-gray-800">{a.name || 'Unknown'}</div>
-                    <div className="text-[10px] text-gray-500 mt-0.5">{a.risk_level}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xl font-extrabold text-gray-900">{a.risk_score.toFixed(2)}</div>
-                    <div className="text-[10px] text-gray-400">Risk Score</div>
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-4 gap-2">
-                  {(['Critical','High','Medium','Low'] as RiskLevel[]).map(level => (
-                    <div key={level} className="text-center">
-                      <div className="text-[10px] font-bold text-gray-600">
-                        {a.severity_distribution?.[level] || 0}
-                      </div>
-                      <div className="text-[9px] text-gray-500">{level}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <div className="text-[10px] text-gray-500 mb-1">Top Issues</div>
-                  <div className="flex flex-wrap gap-1">
-                    {(a.issue_categories || []).slice(0, 4).map((c, i) => (
-                      <span key={i} className="px-2 py-0.5 rounded-full bg-white border border-gray-200 text-[10px] text-gray-700">
-                        {c}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+        ) : riskSummary ? (
+          <>
+            <div className="grid gap-4 lg:grid-cols-4">
+              <AnalyticsMetricCard icon={Plane} label="Airlines Scored" value={(riskSummary.total_airlines || 0).toLocaleString('id-ID')} caption="Entitas yang di-score AI" tone="ai" />
+              <AnalyticsMetricCard icon={Building2} label="Branches Scored" value={(riskSummary.total_branches || 0).toLocaleString('id-ID')} caption="Cabang dengan skor AI" tone="ai" />
+              <AnalyticsMetricCard icon={ShieldAlert} label="Hubs Scored" value={(riskSummary.total_hubs || 0).toLocaleString('id-ID')} caption="Hub dalam model AI" tone="ai" />
+              <AnalyticsMetricCard icon={Gauge} label="Top Risk Branch" value={topRiskLevel?.name || '-'} caption={topRiskLevel ? `Score ${topRiskLevel.risk_score.toFixed(2)}` : 'Belum ada skor'} tone="ai" />
+            </div>
 
-      <section className="bg-[var(--surface-1)] rounded-2xl p-4 border border-[var(--surface-2)] shadow-spatial-sm">
-        <div className="flex items-center gap-2 mb-3">
-          <button
-            onClick={() => setDetailTab('branches')}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold border ${detailTab === 'branches' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-[var(--surface-0)] text-gray-700 border-[var(--surface-border)]'}`}
-          >
-            Top Branches
-          </button>
-          <button
-            onClick={() => setDetailTab('hubs')}
-            className={`px-4 py-1.5 rounded-full text-xs font-bold border ${detailTab === 'hubs' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-[var(--surface-0)] text-gray-700 border-[var(--surface-border)]'}`}
-          >
-            Hub Details
-          </button>
-        </div>
-        {detailTab === 'branches' ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {(loading ? [] : topBranches).map((b) => (
-              <div
-                key={`${b.name}-${b.risk_score}`}
-                className={`rounded-xl border p-4 transition-all hover:shadow-md cursor-pointer ${
-                  b.risk_level === 'Critical' ? 'bg-red-50/60 border-red-100' :
-                  b.risk_level === 'High' ? 'bg-orange-50/60 border-orange-100' :
-                  b.risk_level === 'Medium' ? 'bg-yellow-50/60 border-yellow-100' :
-                  'bg-white border-gray-100'
-                }`}
-                onClick={() => drillBranch(b.name)}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-gray-800">{b.name || 'Unknown'}</div>
-                    <div className="text-[10px] text-gray-500 mt-0.5">{b.risk_level}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xl font-extrabold text-gray-900">{b.risk_score.toFixed(2)}</div>
-                    <div className="text-[10px] text-gray-400">Risk Score</div>
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-4 gap-2">
-                  {(['Critical','High','Medium','Low'] as RiskLevel[]).map(level => (
-                    <div key={level} className="text-center">
-                      <div className="text-[10px] font-bold text-gray-600">
-                        {b.severity_distribution?.[level] || 0}
-                      </div>
-                      <div className="text-[9px] text-gray-500">{level}</div>
-                    </div>
-                  ))}
-                </div>
+            <div className="mt-5 grid gap-4 xl:grid-cols-3">
+              <div className="rounded-2xl border border-amber-200 bg-white/90 p-4">
+                <SeverityDistributionChart data={aiAirlineSeverity} title="Severity AI: Airlines" />
               </div>
-            ))}
-          </div>
+              <div className="rounded-2xl border border-amber-200 bg-white/90 p-4">
+                <SeverityDistributionChart data={aiBranchSeverity} title="Severity AI: Branches" />
+              </div>
+              <div className="rounded-2xl border border-amber-200 bg-white/90 p-4">
+                <SeverityDistributionChart data={aiHubSeverity} title="Severity AI: Hubs" />
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 xl:grid-cols-2">
+              <div className="rounded-2xl border border-amber-200 bg-white/90 p-4">
+                <div className="mb-3">
+                  <h3 className="text-sm font-black text-slate-900">Top Risky Branches</h3>
+                  <p className="text-xs text-slate-600">Skor AI tertinggi berdasarkan severity distribution dan frekuensi kasus.</p>
+                </div>
+                <ResponsiveBarChart data={aiBranchChart} xAxisKey="name" dataKeys={['riskScore', 'issues']} height="h-[320px]" />
+              </div>
+              <div className="rounded-2xl border border-amber-200 bg-white/90 p-4">
+                <div className="mb-3">
+                  <h3 className="text-sm font-black text-slate-900">Top Risky Airlines</h3>
+                  <p className="text-xs text-slate-600">Skor AI tertinggi per maskapai, dipisahkan dari volume real.</p>
+                </div>
+                <ResponsiveBarChart data={aiAirlineChart} xAxisKey="name" dataKeys={['riskScore', 'issues']} height="h-[320px]" />
+              </div>
+            </div>
+          </>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-            {(loading ? [] : topHubs).map((h) => (
-              <div
-                key={`${h.name}-${h.risk_score}`}
-                className={`rounded-xl border p-4 transition-all hover:shadow-md cursor-pointer ${
-                  h.risk_level === 'Critical' ? 'bg-red-50/60 border-red-100' :
-                  h.risk_level === 'High' ? 'bg-orange-50/60 border-orange-100' :
-                  h.risk_level === 'Medium' ? 'bg-yellow-50/60 border-yellow-100' :
-                  'bg-white border-gray-100'
-                }`}
-                onClick={() => drillHub(h.name)}
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-gray-800">{h.name || 'Unknown'}</div>
-                    <div className="text-[10px] text-gray-500 mt-0.5">{h.risk_level}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-xl font-extrabold text-gray-900">{h.risk_score.toFixed(2)}</div>
-                    <div className="text-[10px] text-gray-400">Risk Score</div>
-                  </div>
-                </div>
-                <div className="mt-3 grid grid-cols-4 gap-2">
-                  {(['Critical','High','Medium','Low'] as RiskLevel[]).map(level => (
-                    <div key={level} className="text-center">
-                      <div className="text-[10px] font-bold text-gray-600">
-                        {h.severity_distribution?.[level] || 0}
-                      </div>
-                      <div className="text-[9px] text-gray-500">{level}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <AnalyticsUnavailable
+            title="Analitik risiko AI belum tersedia"
+            description="Proxy AI tidak mengembalikan payload risiko yang valid, jadi section ini belum bisa menampilkan scoring risiko."
+          />
         )}
-      </section>
+      </AnalyticsSection>
     </div>
   );
 }

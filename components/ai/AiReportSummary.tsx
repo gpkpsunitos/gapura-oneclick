@@ -1,25 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  fetchReportSummaryAi, 
-  AiReportSummaryResponse 
-} from '@/lib/services/gapura-ai';
+import { motion } from 'framer-motion';
+import { AiReportSummaryResponse } from '@/lib/services/gapura-ai';
 import { 
   Lightbulb, 
   ShieldAlert, 
   Target, 
   ChevronRight,
   Info,
-  AlertOctagon,
   CheckCircle2,
-  TrendingUp,
   BarChart2,
   PieChart as PieChartIcon,
   Layout
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { AnalyticsRuntimeStatus } from '@/lib/op-shortcut-source-matrix';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -38,12 +34,22 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.6,
-      ease: [0.22, 1, 0.36, 1] as any
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number]
     }
   }
 };
 
-export function AiReportSummary({ source }: { source?: 'NON CARGO' | 'CGO' }) {
+type AiReportSummaryPayload = AiReportSummaryResponse & AnalyticsRuntimeStatus;
+
+export function AiReportSummary({
+  source,
+  esklasiRegex,
+  onStatus,
+}: {
+  source?: 'NON CARGO' | 'CGO';
+  esklasiRegex?: string;
+  onStatus?: (status: AnalyticsRuntimeStatus) => void;
+}) {
   const [data, setData] = useState<AiReportSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,20 +60,36 @@ export function AiReportSummary({ source }: { source?: 'NON CARGO' | 'CGO' }) {
       try {
         setLoading(true);
         const normalizedSource = source === 'CGO' ? 'cgo' : 'non-cargo';
-        const result = await fetchReportSummaryAi(normalizedSource);
+        const query = new URLSearchParams({ category: normalizedSource });
+        if (esklasiRegex) query.set('esklasi_regex', esklasiRegex);
+        const response = await fetch(`/api/ai/summarize?${query.toString()}`, {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const result = (await response.json()) as AiReportSummaryPayload;
         if (result) {
           setData(result);
+          onStatus?.({
+            cached: result.cached,
+            stale: result.stale,
+            generatedAt: result.generatedAt,
+            sourceSyncAt: result.sourceSyncAt,
+            count: result.summary?.total_records,
+          });
         } else {
           setError('Failed to fetch AI report summary');
         }
-      } catch (err) {
+      } catch {
         setError('Error loading AI summary');
       } finally {
         setLoading(false);
       }
     }
     loadData();
-  }, [source]);
+  }, [source, esklasiRegex, onStatus]);
 
   if (loading) {
     return (

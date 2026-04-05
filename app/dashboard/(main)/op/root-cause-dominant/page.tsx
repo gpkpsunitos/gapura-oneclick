@@ -1,10 +1,39 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Target, ActivitySquare, DatabaseZap, TrendingUp, AlertTriangle } from 'lucide-react';
-import { ResponsivePieChart } from '@/components/charts/ResponsivePieChart';
-import type { QueryResult } from '@/types/builder';
+import { ActivitySquare, AlertTriangle, DatabaseZap, SearchSlash, Target } from 'lucide-react';
 import { DataTableWithPagination } from '@/components/chart-detail/DataTableWithPagination';
+import { AnalyticsMetricCard } from '@/components/dashboard/analytics-metric-card';
+import {
+  AnalyticsSection,
+  AnalyticsSectionLoading,
+  AnalyticsSourceStrip,
+  AnalyticsUnavailable,
+} from '@/components/dashboard/analytics-source-strip';
+import { ResponsiveBarChart } from '@/components/charts/ResponsiveBarChart';
+import { ResponsivePieChart } from '@/components/charts/ResponsivePieChart';
+import { getShortcutSourceConfig } from '@/lib/op-shortcut-source-matrix';
+import type { AnalyticsRuntimeStatus } from '@/lib/op-shortcut-source-matrix';
+import { fetchAnalyticsReports, pickAirline } from '@/lib/op-shortcut-analytics';
+import type { QueryResult } from '@/types/builder';
+
+type ReportRow = {
+  id: string;
+  date_of_event?: string;
+  created_at?: string;
+  airlines?: string;
+  airline?: string;
+  area?: string;
+  category?: string;
+  main_category?: string;
+  irregularity_complain_category?: string;
+  root_cause?: string;
+  root_caused?: string;
+  action_taken?: string;
+  preventive_action?: string;
+  description?: string;
+  report?: string;
+};
 
 type TopCategoryEntry = [string, { count: number; percentage?: number }];
 
@@ -12,7 +41,7 @@ interface RootCauseStats {
   total_records: number;
   classified: number;
   unknown: number;
-  classification_rate: number;
+  classification_rate: number | string;
   by_category: Record<string, {
     count: number;
     percentage?: number;
@@ -21,185 +50,334 @@ interface RootCauseStats {
     top_airlines?: Record<string, number>;
   }>;
   top_categories?: TopCategoryEntry[];
+  cached?: boolean;
+  stale?: boolean;
+  generatedAt?: string;
+  sourceSyncAt?: string | null;
+}
+
+const SOURCE_CONFIG = getShortcutSourceConfig('rootCauseDominant');
+const INVALID_ROOT_CAUSE_VALUES = new Set(['', '-', '#n/a', 'n/a', 'na', 'unknown', 'null', 'none', 'belum diketahui']);
+
+function normalizeRootCause(value?: string | null) {
+  const normalized = String(value || '').trim();
+  if (!normalized) return '';
+  if (INVALID_ROOT_CAUSE_VALUES.has(normalized.toLowerCase())) return '';
+  return normalized;
 }
 
 export default function OPRootCauseDominant() {
-  const [stats, setStats] = useState<RootCauseStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(false);
-  const [statsError, setStatsError] = useState<string | null>(null);
+  const [reports, setReports] = useState<ReportRow[]>([]);
+  const [realLoading, setRealLoading] = useState(true);
+  const [realError, setRealError] = useState<string | null>(null);
+  const [realStatus, setRealStatus] = useState<AnalyticsRuntimeStatus>();
 
-  const [reports, setReports] = useState<any[]>([]);
-  const [reportsLoading, setReportsLoading] = useState(false);
-  const [reportsError, setReportsError] = useState<string | null>(null);
+  const [stats, setStats] = useState<RootCauseStats | null>(null);
+  const [aiLoading, setAiLoading] = useState(true);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiStatus, setAiStatus] = useState<AnalyticsRuntimeStatus>();
 
   useEffect(() => {
     let active = true;
-    const fetchStats = async () => {
+
+    async function loadReal() {
       try {
-        setStatsLoading(true);
-        setStatsError(null);
-        const esklasiRegex = 'OP';
-        const res = await fetch(`/api/ai/root-cause/stats?esklasi_regex=${encodeURIComponent(esklasiRegex)}`, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' },
+        setRealLoading(true);
+        setRealError(null);
+        const response = await fetchAnalyticsReports<ReportRow>(
+          {},
+          [
+            'id',
+            'date_of_event',
+            'created_at',
+            'airlines',
+            'airline',
+            'area',
+            'category',
+            'main_category',
+            'irregularity_complain_category',
+            'root_cause',
+            'root_caused',
+            'action_taken',
+            'preventive_action',
+            'description',
+            'report',
+          ]
+        );
+        if (!active) return;
+        setReports(response.reports || []);
+        setRealStatus({
+          lastSyncAt: response.timestamp,
+          count: response.count,
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = await res.json();
-        if (active) setStats(json as unknown as RootCauseStats);
-      } catch (e: any) {
-        if (active) setStatsError('Gagal memuat root cause stats');
+      } catch (loadError) {
+        if (!active) return;
+        setRealError(loadError instanceof Error ? loadError.message : 'Gagal memuat root cause real');
       } finally {
-        if (active) setStatsLoading(false);
+        if (active) setRealLoading(false);
       }
-    };
-    fetchStats();
+    }
+
+    async function loadAi() {
+      try {
+        setAiLoading(true);
+        setAiError(null);
+        const response = await fetch('/api/ai/root-cause/stats', {
+          headers: { Accept: 'application/json' },
+          cache: 'no-store',
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const payload = (await response.json()) as RootCauseStats;
+        if (!active) return;
+        setStats(payload);
+        setAiStatus({
+          cached: payload.cached,
+          stale: payload.stale,
+          generatedAt: payload.generatedAt,
+          sourceSyncAt: payload.sourceSyncAt,
+        });
+      } catch (loadError) {
+        if (!active) return;
+        setAiError(loadError instanceof Error ? loadError.message : 'Gagal memuat statistik AI');
+      } finally {
+        if (active) setAiLoading(false);
+      }
+    }
+
+    loadReal();
+    loadAi();
+
     return () => {
       active = false;
     };
   }, []);
 
-  useEffect(() => {
-    let mounted = true;
-    const fetchReports = async () => {
-      try {
-        setReportsLoading(true);
-        setReportsError(null);
-        const res = await fetch('/api/reports?unfiltered=1&esklasi_regex=OP', { cache: 'no-store' });
-        if (!res.ok) {
-          const t = await res.text().catch(() => '');
-          throw new Error(t || `HTTP ${res.status}`);
-        }
-        const json = await res.json();
-        if (mounted) {
-          const onlyOP = Array.isArray(json) ? json.filter((r: any) => String(r?.target_division || '').trim() === 'OP') : [];
-          setReports(onlyOP);
-        }
-      } catch (e: any) {
-        if (mounted) setReportsError('Gagal memuat daftar laporan');
-      } finally {
-        if (mounted) setReportsLoading(false);
-      }
-    };
-    fetchReports();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  const donutData = useMemo(() => {
-    if (!stats) return [];
-    const entries: TopCategoryEntry[] = stats.top_categories
-      ? stats.top_categories
-      : Object.entries(stats.by_category).map(([k, v]) => [k, { count: v.count, percentage: v.percentage }]);
-    const sorted = [...entries].sort((a, b) => (b[1]?.count || 0) - (a[1]?.count || 0)).slice(0, 8);
-    return sorted.map(([name, info]) => ({ name, value: info.count }));
-  }, [stats]);
-
-  const kpis = useMemo(() => {
-    if (!stats) return [];
-    return [
-      { icon: DatabaseZap, label: 'Total Records', value: stats.total_records?.toLocaleString('id-ID') ?? '0' },
-      { icon: ActivitySquare, label: 'Classified', value: stats.classified?.toLocaleString('id-ID') ?? '0' },
-      { icon: AlertTriangle, label: 'Unknown', value: stats.unknown?.toLocaleString('id-ID') ?? '0' },
-      { icon: TrendingUp, label: 'Classification Rate', value: `${(stats.classification_rate ?? 0).toFixed(1)}%` },
-    ];
-  }, [stats]);
-
-  const reportsTable: QueryResult = useMemo(() => {
-    const columns = [
-      'date_of_event',
-      'airlines',
-      'area',
-      'category',
-      'irregularity_complain_category',
-      'root_cause',
-      'action_taken',
-      'preventive_action',
-      'description',
-    ];
-    const rows = (reports || []).map(r => ({
-      date_of_event: r.date_of_event || r.event_date || r.created_at || '',
-      airlines: r.airlines || r.airline || r.jenis_maskapai || '',
-      area: r.area || '',
-      category: r.category || r.main_category || r.case_classification || '',
-      irregularity_complain_category: r.irregularity_complain_category || r.sub_category_note || '',
-      root_cause: r.root_cause || r.root_caused || '',
-      action_taken: r.action_taken || '',
-      preventive_action: r.preventive_action || '',
-      description: r.description || r.report || '',
+  const normalizedReports = useMemo(() => {
+    return reports.map((report) => ({
+      ...report,
+      resolvedRootCause: normalizeRootCause(report.root_cause || report.root_caused),
     }));
+  }, [reports]);
+
+  const coverageData = useMemo(() => {
+    const withRootCause = normalizedReports.filter((report) => report.resolvedRootCause).length;
+    const withoutRootCause = normalizedReports.length - withRootCause;
+    return [
+      { name: 'With Root Cause', value: withRootCause },
+      { name: 'Missing Root Cause', value: withoutRootCause },
+    ];
+  }, [normalizedReports]);
+
+  const topRootCauses = useMemo(() => {
+    const counts = new Map<string, number>();
+    normalizedReports.forEach((report) => {
+      if (!report.resolvedRootCause) return;
+      counts.set(report.resolvedRootCause, (counts.get(report.resolvedRootCause) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 10);
+  }, [normalizedReports]);
+
+  const categoryCoverage = useMemo(() => {
+    const counts = new Map<string, number>();
+    normalizedReports.forEach((report) => {
+      if (!report.resolvedRootCause) return;
+      const category = report.irregularity_complain_category || report.category || report.main_category || 'Unknown';
+      counts.set(category, (counts.get(category) || 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 8);
+  }, [normalizedReports]);
+
+  const rootCauseTable: QueryResult = useMemo(() => {
+    const rows = normalizedReports.map((report) => ({
+      date_of_event: report.date_of_event || report.created_at || '',
+      airlines: pickAirline(report),
+      area: report.area || '',
+      category: report.category || report.main_category || '',
+      irregularity_complain_category: report.irregularity_complain_category || '',
+      root_cause: report.resolvedRootCause,
+      action_taken: report.action_taken || '',
+      preventive_action: report.preventive_action || '',
+      description: report.description || report.report || '',
+    }));
+
     return {
-      columns,
+      columns: [
+        'date_of_event',
+        'airlines',
+        'area',
+        'category',
+        'irregularity_complain_category',
+        'root_cause',
+        'action_taken',
+        'preventive_action',
+        'description',
+      ],
       rows,
       rowCount: rows.length,
       executionTimeMs: 0,
     };
-  }, [reports]);
+  }, [normalizedReports]);
+
+  const aiTopCategories = useMemo(() => {
+    if (!stats) return [];
+    const entries: TopCategoryEntry[] = stats.top_categories
+      ? stats.top_categories
+      : Object.entries(stats.by_category).map(([name, info]) => [name, { count: info.count, percentage: info.percentage }]);
+    return [...entries]
+      .sort((left, right) => (right[1]?.count || 0) - (left[1]?.count || 0))
+      .slice(0, 8)
+      .map(([name, info]) => ({ name, value: info.count }));
+  }, [stats]);
+
+  const aiCategoryBreakdown = useMemo(() => {
+    if (!stats) return [];
+    return Object.entries(stats.by_category)
+      .map(([name, info]) => ({
+        name,
+        count: info.count,
+        percentage: Math.round((info.percentage || 0) * 10) / 10,
+      }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 8);
+  }, [stats]);
+
+  const aiClassificationRate = useMemo(() => {
+    const value = parseFloat(String(stats?.classification_rate || 0).replace('%', ''));
+    return Number.isFinite(value) ? value : 0;
+  }, [stats]);
 
   return (
-    <div className="min-h-screen px-4 md:px-6 py-6 space-y-6">
-      <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <div className="flex items-center gap-2 mb-1">
-          <Target className="w-5 h-5 text-emerald-600" />
-          <h1 className="text-lg font-bold text-gray-800">Report Root Cause Dominan</h1>
+    <div className="min-h-screen space-y-6 px-4 py-6 md:px-6">
+      <AnalyticsSourceStrip
+        title="Root Cause Dominan"
+        description="Bandingkan root cause yang benar-benar diisi pada Google Sheets dengan hasil klasifikasi AI root cause. Keduanya dipisah agar sumber kebenaran tetap jelas."
+        realSource={SOURCE_CONFIG.realSource}
+        realStatus={realStatus}
+        aiSource={SOURCE_CONFIG.aiSource}
+        aiStatus={aiStatus}
+      />
+
+      <AnalyticsSection
+        title="Cakupan Root Cause pada Data Real"
+        description="Section ini fokus pada field root cause yang diisi pada dataset Google Sheets, termasuk coverage dan pola penyebab yang benar-benar ditulis."
+        variant="real"
+      >
+        {realError ? <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{realError}</div> : null}
+
+        <div className="grid gap-4 lg:grid-cols-4">
+          <AnalyticsMetricCard icon={DatabaseZap} label="Total Records" value={normalizedReports.length.toLocaleString('id-ID')} caption="Baris laporan pada dataset" tone="real" />
+          <AnalyticsMetricCard icon={ActivitySquare} label="Coverage" value={`${Math.round(((coverageData[0]?.value || 0) / Math.max(normalizedReports.length, 1)) * 100)}%`} caption="Laporan dengan root cause terisi" tone="real" />
+          <AnalyticsMetricCard icon={Target} label="Top Root Cause" value={topRootCauses[0]?.name || '-'} caption={`${topRootCauses[0]?.count || 0} laporan`} tone="real" />
+          <AnalyticsMetricCard icon={SearchSlash} label="Missing Root Cause" value={(coverageData[1]?.value || 0).toLocaleString('id-ID')} caption="Masih kosong atau invalid" tone="real" />
         </div>
-        <p className="text-sm text-gray-500">Ringkasan akar masalah dominan berdasarkan klasifikasi AI.</p>
-      </section>
 
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        {statsLoading ? (
-          Array.from({ length: 4 }).map((_, idx) => (
-            <div key={idx} className="bg-[var(--surface-1)] rounded-2xl p-4 border border-[var(--surface-2)] shadow-spatial-sm">
-              <div className="animate-pulse space-y-2">
-                <div className="h-4 bg-[var(--surface-2)] rounded w-24" />
-                <div className="h-6 bg-[var(--surface-2)] rounded w-32" />
-              </div>
+        <div className="mt-5 grid gap-4 xl:grid-cols-[1fr_1.2fr]">
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <ResponsivePieChart data={coverageData} title="Root Cause Coverage" donut showLegend percentageLabels height="h-[300px]" />
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <div className="mb-3">
+              <h3 className="text-sm font-black text-slate-900">Top Root Cause Terisi</h3>
+              <p className="text-xs text-slate-600">Hanya menghitung root cause yang benar-benar diisi pada dataset real.</p>
             </div>
-          ))
-        ) : (
-          kpis.map((k, idx) => (
-            <div key={idx} className="bg-[var(--surface-1)] rounded-2xl p-4 border border-[var(--surface-2)] shadow-spatial-sm">
-              <div className="flex items-center gap-3">
-                <k.icon className="w-4 h-4 text-emerald-600" />
-                <div>
-                  <div className="text-xs text-gray-500">{k.label}</div>
-                  <div className="text-lg font-bold text-gray-800">{k.value}</div>
+            <ResponsiveBarChart data={topRootCauses} xAxisKey="name" dataKeys={['count']} showLegend={false} height="h-[300px]" />
+          </div>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-emerald-200 bg-white/90 p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-black text-slate-900">Kategori dengan Root Cause Terbanyak</h3>
+            <p className="text-xs text-slate-600">Distribusi kategori laporan yang paling sering menyertakan root cause.</p>
+          </div>
+          <ResponsiveBarChart data={categoryCoverage} xAxisKey="name" dataKeys={['count']} showLegend={false} height="h-[320px]" />
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-emerald-200 bg-white/90 p-4">
+          <DataTableWithPagination
+            data={rootCauseTable}
+            title="Daftar Root Cause Real"
+            isLoading={realLoading}
+            rowsPerPage={25}
+            columnClasses={{
+              root_cause: 'min-w-[20rem] max-w-[36rem] break-words whitespace-pre-wrap',
+              action_taken: 'min-w-[20rem] max-w-[36rem] break-words whitespace-pre-wrap',
+              preventive_action: 'min-w-[20rem] max-w-[36rem] break-words whitespace-pre-wrap',
+              description: 'min-w-[24rem] max-w-[48rem] break-words whitespace-pre-wrap',
+            }}
+          />
+        </div>
+      </AnalyticsSection>
+
+      <AnalyticsSection
+        title="Klasifikasi Root Cause dari AI"
+        description="AI section mengambil data dari `/api/ai/root-cause/stats`. Angka ini adalah hasil klasifikasi model, bukan isian manual dari Google Sheets."
+        variant="ai"
+      >
+        {aiError ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{aiError}</div>
+        ) : aiLoading ? (
+          <AnalyticsSectionLoading
+            variant="ai"
+            title="Memuat klasifikasi root cause AI"
+            description="Model AI sedang menyusun kategori root cause, coverage klasifikasi, dan ringkasan issue dominan."
+            cards={4}
+            panels={3}
+          />
+        ) : stats ? (
+          <>
+            <div className="grid gap-4 lg:grid-cols-4">
+              <AnalyticsMetricCard icon={DatabaseZap} label="Total Records" value={(stats.total_records || 0).toLocaleString('id-ID')} caption="Record yang dianalisis AI" tone="ai" />
+              <AnalyticsMetricCard icon={ActivitySquare} label="Classified" value={(stats.classified || 0).toLocaleString('id-ID')} caption="Berhasil diklasifikasi" tone="ai" />
+              <AnalyticsMetricCard icon={AlertTriangle} label="Unknown" value={(stats.unknown || 0).toLocaleString('id-ID')} caption="Masih unknown menurut model" tone="ai" />
+              <AnalyticsMetricCard icon={Target} label="Classification Rate" value={`${aiClassificationRate.toFixed(1)}%`} caption="Coverage klasifikasi AI" tone="ai" />
+            </div>
+
+            <div className="mt-5 grid gap-4 xl:grid-cols-[1fr_1.2fr]">
+              <div className="rounded-2xl border border-amber-200 bg-white/90 p-4">
+                <ResponsivePieChart data={aiTopCategories} title="Top Root Cause AI" donut showLegend percentageLabels height="h-[300px]" />
+              </div>
+              <div className="rounded-2xl border border-amber-200 bg-white/90 p-4">
+                <div className="mb-3">
+                  <h3 className="text-sm font-black text-slate-900">Breakdown Kategori AI</h3>
+                  <p className="text-xs text-slate-600">Kategori root cause hasil klasifikasi model dengan jumlah record terbanyak.</p>
                 </div>
+                <ResponsiveBarChart data={aiCategoryBreakdown} xAxisKey="name" dataKeys={['count']} showLegend={false} height="h-[300px]" />
               </div>
             </div>
-          ))
-        )}
-      </section>
 
-      <section className="bg-[var(--surface-1)] rounded-3xl p-4 md:p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        {statsError ? (
-          <div className="text-sm text-red-600">{statsError}</div>
+            <div className="mt-5 rounded-2xl border border-amber-200 bg-white/90 p-4">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {Object.entries(stats.by_category || {}).slice(0, 6).map(([name, info]) => (
+                  <div key={name} className="rounded-2xl border border-amber-100 bg-amber-50/70 p-4">
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-black text-slate-900">{name}</h3>
+                      <span className="rounded-full border border-amber-200 bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-700">
+                        {info.count} cases
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600">
+                      {info.top_issue_categories ? `Top issues: ${Object.keys(info.top_issue_categories).slice(0, 3).join(', ')}` : 'Belum ada detail issue.'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
         ) : (
-          <ResponsivePieChart
-            data={donutData}
-            title="Top Root Causes"
-            donut
-            showLegend
-            height="h-[45vh] min-h-[220px] lg:h-[360px]"
+          <AnalyticsUnavailable
+            title="Klasifikasi root cause AI belum tersedia"
+            description="Proxy AI tidak mengembalikan payload root cause yang valid, jadi section ini belum bisa menampilkan hasil klasifikasi."
           />
         )}
-      </section>
-
-      <section className="bg-[var(--surface-1)] rounded-3xl p-4 md:p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <DataTableWithPagination
-          data={reportsTable}
-          title="Semua Laporan"
-          isLoading={reportsLoading}
-          rowsPerPage={50}
-          columnClasses={{
-            root_cause: 'min-w-[20rem] max-w-[40rem] break-words whitespace-pre-wrap',
-            action_taken: 'min-w-[20rem] max-w-[40rem] break-words whitespace-pre-wrap',
-            preventive_action: 'min-w-[20rem] max-w-[40rem] break-words whitespace-pre-wrap',
-            description: 'min-w-[28rem] max-w-[60rem] break-words whitespace-pre-wrap',
-          }}
-        />
-        {reportsError && <div className="mt-2 text-xs text-red-600">{reportsError}</div>}
-      </section>
+      </AnalyticsSection>
     </div>
   );
 }

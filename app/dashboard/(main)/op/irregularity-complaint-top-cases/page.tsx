@@ -1,276 +1,223 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { TrendingUp, RefreshCw } from 'lucide-react';
+import { Building2, Plane, TrendingUp, TriangleAlert } from 'lucide-react';
+import { AnalyticsMetricCard } from '@/components/dashboard/analytics-metric-card';
+import { ActionSummaryInsightPanel } from '@/components/dashboard/action-summary-insight-panel';
+import { AnalyticsSection, AnalyticsSourceStrip } from '@/components/dashboard/analytics-source-strip';
+import { ResponsiveBarChart } from '@/components/charts/ResponsiveBarChart';
+import { ResponsiveLineChart } from '@/components/charts/ResponsiveLineChart';
+import { ResponsivePieChart } from '@/components/charts/ResponsivePieChart';
+import { getShortcutSourceConfig } from '@/lib/op-shortcut-source-matrix';
+import type { AnalyticsRuntimeStatus } from '@/lib/op-shortcut-source-matrix';
+import {
+  buildMonthlySeries,
+  fetchAnalyticsReports,
+  normalizeIssueCategory,
+  pickAirline,
+  pickBranch,
+} from '@/lib/op-shortcut-analytics';
 
-type Report = {
+type ReportRow = {
   id: string;
   created_at?: string;
+  date_of_event?: string;
   category?: string;
   irregularity_complain_category?: string;
   main_category?: string;
+  airlines?: string;
+  airline?: string;
+  station_code?: string;
+  branch?: string;
+  reporting_branch?: string;
   target_division?: string;
 };
 
-export default function OPTopIrregularityComplaintCases() {
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [range, setRange] = useState<'all' | 'week' | 'month'>('all');
+const SOURCE_CONFIG = getShortcutSourceConfig('topIrregularityComplaint');
 
-  const fetchData = async (hard = false) => {
-    try {
-      if (hard) setRefreshing(true);
-      else setLoading(true);
-      if (hard) await fetch('/api/reports/refresh', { method: 'POST' });
-      // Primary endpoint (filtered by OP division)
-      let res = await fetch('/api/admin/reports?esklasi_regex=OP');
-      if (!res.ok) {
-        // Fallback to analytics endpoint (no division filter)
-        const fields = [
-          'id',
-          'created_at',
-          'category',
-          'irregularity_complain_category',
-          'main_category',
-          'airlines',
-          'airline',
-          'station_code',
-          'branch',
-          'reporting_branch',
-        ].join(',');
-        res = await fetch(`/api/reports/analytics?fields=${encodeURIComponent(fields)}&refresh=${hard ? 'true' : 'false'}&esklasi_regex=OP`);
-        if (res.ok) {
-          const data = await res.json();
-          const onlyOP = Array.isArray(data?.reports) ? data.reports.filter((r: any) => String(r?.target_division || '').trim() === 'OP') : [];
-          setReports(onlyOP);
-        } else {
-          setReports([]);
-        }
-      } else {
-        const data = await res.json();
-        const onlyOP = Array.isArray(data) ? data.filter((r: any) => String(r?.target_division || '').trim() === 'OP') : [];
-        setReports(onlyOP);
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+export default function OPTopIrregularityComplaintCases() {
+  const [reports, setReports] = useState<ReportRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [realStatus, setRealStatus] = useState<AnalyticsRuntimeStatus>();
+  const [aiStatus, setAiStatus] = useState<AnalyticsRuntimeStatus>();
 
   useEffect(() => {
-    fetchData();
+    let active = true;
+
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetchAnalyticsReports<ReportRow>(
+          {},
+          [
+            'id',
+            'created_at',
+            'date_of_event',
+            'category',
+            'irregularity_complain_category',
+            'main_category',
+            'airlines',
+            'airline',
+            'station_code',
+            'branch',
+            'reporting_branch',
+            'target_division',
+          ]
+        );
+        if (!active) return;
+        const filtered = (response.reports || []).filter((report) => {
+          const normalized = normalizeIssueCategory(report.category || report.main_category || report.irregularity_complain_category);
+          return normalized === 'Irregularity' || normalized === 'Complaint';
+        });
+        setReports(filtered);
+        setRealStatus({
+          lastSyncAt: response.timestamp,
+          count: filtered.length,
+        });
+      } catch (loadError) {
+        if (!active) return;
+        setError(loadError instanceof Error ? loadError.message : 'Gagal memuat top irregularity');
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    load();
+    return () => {
+      active = false;
+    };
   }, []);
 
-  const filtered = useMemo(() => {
-    let list = reports.filter(
-      (r) => r.category === 'Irregularity' || r.category === 'Complaint'
-    );
-    if (range !== 'all') {
-      const now = new Date();
-      const days = range === 'week' ? 7 : 30;
-      const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-      list = list.filter((r) => {
-        const d = r.created_at ? new Date(r.created_at) : null;
-        return d && d >= cutoff;
-      });
-    }
-    return list;
-  }, [reports, range]);
-
-  const topData = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const r of filtered) {
-      const key =
-        r.irregularity_complain_category ||
-        r.main_category ||
-        'Uncategorized';
-      map.set(key, (map.get(key) || 0) + 1);
-    }
-    const arr = Array.from(map.entries())
+  const categoryBreakdown = useMemo(() => {
+    const categoryMap = new Map<string, number>();
+    reports.forEach((report) => {
+      const category = report.irregularity_complain_category || report.main_category || report.category || 'Unknown';
+      categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
+    });
+    return Array.from(categoryMap.entries())
       .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-    const max = arr[0]?.count || 1;
-    return { arr, max };
-  }, [filtered]);
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 8);
+  }, [reports]);
 
   const topBranches = useMemo(() => {
     const branchMap = new Map<string, number>();
-    for (const r of filtered) {
-      // @ts-ignore
-      const key = (r as any).stations?.code || (r as any).station_code || (r as any).branch || (r as any).reporting_branch || 'Unknown';
-      branchMap.set(key, (branchMap.get(key) || 0) + 1);
-    }
-    const arr = Array.from(branchMap.entries())
+    reports.forEach((report) => {
+      const branch = pickBranch(report);
+      branchMap.set(branch, (branchMap.get(branch) || 0) + 1);
+    });
+    return Array.from(branchMap.entries())
       .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-    const max = arr[0]?.count || 1;
-    return { arr, max };
-  }, [filtered]);
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 8);
+  }, [reports]);
 
   const topAirlines = useMemo(() => {
     const airlineMap = new Map<string, number>();
-    for (const r of filtered) {
-      // @ts-ignore
-      const key = (r as any).airlines || (r as any).airline || 'Unknown';
-      airlineMap.set(key, (airlineMap.get(key) || 0) + 1);
-    }
-    const arr = Array.from(airlineMap.entries())
+    reports.forEach((report) => {
+      const airline = pickAirline(report);
+      airlineMap.set(airline, (airlineMap.get(airline) || 0) + 1);
+    });
+    return Array.from(airlineMap.entries())
       .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5);
-    const max = arr[0]?.count || 1;
-    return { arr, max };
-  }, [filtered]);
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 8);
+  }, [reports]);
+
+  const monthlyTrend = useMemo(() => {
+    return buildMonthlySeries(
+      reports,
+      (report) => report.created_at || report.date_of_event,
+      (report) => normalizeIssueCategory(report.category || report.main_category || report.irregularity_complain_category)
+    );
+  }, [reports]);
+
+  const overallBreakdown = useMemo(() => {
+    const irregularity = reports.filter((report) => normalizeIssueCategory(report.category || report.main_category || report.irregularity_complain_category) === 'Irregularity').length;
+    const complaint = reports.length - irregularity;
+    return [
+      { name: 'Irregularity', value: irregularity },
+      { name: 'Complaint', value: complaint },
+    ];
+  }, [reports]);
+
+  const topCategory = categoryBreakdown[0];
 
   return (
-    <div className="min-h-screen px-4 md:px-6 py-6">
-      <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-emerald-600" />
-            <h1 className="text-lg font-bold text-gray-800">
-              Top Irregularity & Complaint
-            </h1>
+    <div className="min-h-screen space-y-6 px-4 py-6 md:px-6">
+      <AnalyticsSourceStrip
+        title="Top Irregularity & Complaint"
+        description="Halaman ini memisahkan ranking real kasus irregularity/complaint OP dari prioritas kategori yang dihitung AI."
+        realSource={SOURCE_CONFIG.realSource}
+        realStatus={realStatus}
+        aiSource={SOURCE_CONFIG.aiSource}
+        aiStatus={aiStatus}
+      />
+
+      <AnalyticsSection
+        title="Top Kasus dari Data Real"
+        description="Chart real di bawah ini berasal dari laporan aktual dan menampilkan ranking kategori, cabang, serta maskapai tanpa campur tangan model AI."
+        variant="real"
+      >
+        {error ? <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div> : null}
+
+        <div className="grid gap-4 lg:grid-cols-4">
+          <AnalyticsMetricCard icon={TrendingUp} label="Total Records" value={reports.length.toLocaleString('id-ID')} caption="Kasus irregularity + complaint" tone="real" />
+          <AnalyticsMetricCard icon={TriangleAlert} label="Top Category" value={topCategory?.name || '-'} caption={`${topCategory?.count || 0} kasus`} tone="real" />
+          <AnalyticsMetricCard icon={Building2} label="Top Branch" value={topBranches[0]?.name || '-'} caption={`${topBranches[0]?.count || 0} kasus`} tone="real" />
+          <AnalyticsMetricCard icon={Plane} label="Top Airline" value={topAirlines[0]?.name || '-'} caption={`${topAirlines[0]?.count || 0} kasus`} tone="real" />
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-[1fr_1.2fr]">
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <ResponsivePieChart data={overallBreakdown} title="Irregularity vs Complaint" donut showLegend percentageLabels height="h-[300px]" />
           </div>
-          <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-xl bg-gray-100 p-1">
-              {(['all', 'week', 'month'] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRange(r)}
-                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg ${
-                    range === r
-                      ? 'bg-white shadow border border-gray-200 text-gray-800'
-                      : 'text-gray-500'
-                  }`}
-                >
-                  {r === 'all' ? 'Semua' : r === 'week' ? '7 Hari' : '30 Hari'}
-                </button>
-              ))}
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <div className="mb-3">
+              <h3 className="text-sm font-black text-slate-900">Top Kategori Kasus</h3>
+              <p className="text-xs text-slate-600">Kategori kasus paling dominan berdasarkan data laporan real.</p>
             </div>
-            <button
-              onClick={() => fetchData(true)}
-              disabled={refreshing}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-white border border-gray-200 hover:bg-gray-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
+            <ResponsiveBarChart data={categoryBreakdown} xAxisKey="name" dataKeys={['count']} showLegend={false} height="h-[300px]" />
           </div>
         </div>
 
-        {loading ? (
-          <div className="h-[30vh] flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full border-4 animate-spin" style={{ borderColor: 'var(--surface-4)', borderTopColor: 'var(--brand-primary)' }} />
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-4 rounded-2xl border border-[var(--surface-2)] bg-[var(--surface-1)]">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Total Records</p>
-                <p className="text-2xl font-extrabold text-gray-900">{filtered.length}</p>
-              </div>
-              <div className="p-4 rounded-2xl border border-[var(--surface-2)] bg-[var(--surface-1)]">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Top Category</p>
-                <p className="text-base font-bold text-gray-900">{topData.arr[0]?.name || '-'}</p>
-                <p className="text-sm text-gray-600">{topData.arr[0]?.count || 0} kasus</p>
-              </div>
+        <div className="mt-5 grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <div className="mb-3">
+              <h3 className="text-sm font-black text-slate-900">Top Branches</h3>
+              <p className="text-xs text-slate-600">Cabang dengan kasus irregularity/complaint terbanyak.</p>
             </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              {/* Top Branches */}
-              <div className="p-4 rounded-2xl border border-[var(--surface-2)] bg-[var(--surface-1)]">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-bold text-gray-800 tracking-wide uppercase">Top 5 Cabang</h2>
-                </div>
-                <div className="space-y-2">
-                  {topBranches.arr.length === 0 ? (
-                    <div className="text-sm text-gray-500 italic">Tidak ada data</div>
-                  ) : (
-                    topBranches.arr.map((row) => (
-                      <div key={row.name} className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium text-gray-800">{row.name}</span>
-                            <span className="text-gray-600 font-semibold">{row.count}</span>
-                          </div>
-                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden mt-1">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-600"
-                              style={{ width: `${Math.round((row.count / topBranches.max) * 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Top Airlines */}
-              <div className="p-4 rounded-2xl border border-[var(--surface-2)] bg-[var(--surface-1)]">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-bold text-gray-800 tracking-wide uppercase">Top 5 Airlines</h2>
-                </div>
-                <div className="space-y-2">
-                  {topAirlines.arr.length === 0 ? (
-                    <div className="text-sm text-gray-500 italic">Tidak ada data</div>
-                  ) : (
-                    topAirlines.arr.map((row) => (
-                      <div key={row.name} className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium text-gray-800">{row.name}</span>
-                            <span className="text-gray-600 font-semibold">{row.count}</span>
-                          </div>
-                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden mt-1">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-sky-600"
-                              style={{ width: `${Math.round((row.count / topAirlines.max) * 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Top Categories Overall */}
-              <div className="p-4 rounded-2xl border border-[var(--surface-2)] bg-[var(--surface-1)]">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-sm font-bold text-gray-800 tracking-wide uppercase">Top 5 Category Case</h2>
-                </div>
-                <div className="space-y-2">
-                  {topData.arr.length === 0 ? (
-                    <div className="text-sm text-gray-500 italic">Tidak ada data</div>
-                  ) : (
-                    topData.arr.map((row) => (
-                      <div key={row.name} className="flex items-center gap-3">
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between text-sm">
-                            <span className="font-medium text-gray-800">{row.name}</span>
-                            <span className="text-gray-600 font-semibold">{row.count}</span>
-                          </div>
-                          <div className="h-2 bg-gray-100 rounded-full overflow-hidden mt-1">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-600"
-                              style={{ width: `${Math.round((row.count / topData.max) * 100)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
+            <ResponsiveBarChart data={topBranches} xAxisKey="name" dataKeys={['count']} showLegend={false} height="h-[300px]" />
           </div>
-        )}
-      </section>
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <div className="mb-3">
+              <h3 className="text-sm font-black text-slate-900">Top Airlines</h3>
+              <p className="text-xs text-slate-600">Maskapai dengan kasus irregularity/complaint terbanyak pada data real.</p>
+            </div>
+            <ResponsiveBarChart data={topAirlines} xAxisKey="name" dataKeys={['count']} showLegend={false} height="h-[300px]" />
+          </div>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-emerald-200 bg-white/90 p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-black text-slate-900">Trend Bulanan Kasus</h3>
+            <p className="text-xs text-slate-600">Trend real per bulan untuk membedakan dominasi irregularity dan complaint.</p>
+          </div>
+          <ResponsiveLineChart data={monthlyTrend} xAxisKey="month" dataKeys={['Irregularity', 'Complaint']} showLegend height="h-[320px]" />
+        </div>
+
+        {loading ? <div className="mt-4 text-sm text-slate-500">Memuat data real...</div> : null}
+      </AnalyticsSection>
+
+      <AnalyticsSection
+        title="Highlight Prioritas dari AI"
+        description="Section AI menggunakan action summary untuk menunjukkan kategori berisiko tinggi dan rekomendasi tindak lanjut. Angka AI ini dipisahkan dari volume real."
+        variant="ai"
+      >
+        <ActionSummaryInsightPanel onStatus={setAiStatus} />
+      </AnalyticsSection>
     </div>
   );
 }

@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import AreaIntelligenceDetail from '@/components/charts/category-by-area/AreaIntelligenceDetail';
 import DetailFilterHeader from '@/components/chart-detail/DetailFilterHeader';
+import { AnalyticsSourceStrip } from '@/components/dashboard/analytics-source-strip';
+import { getShortcutSourceConfig } from '@/lib/op-shortcut-source-matrix';
 
 interface FilterState {
   hub: string;
@@ -15,7 +17,6 @@ interface FilterState {
 }
 
 export default function CategoryByAreaPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const sourceSheet = searchParams.get('sourceSheet') === 'CGO' ? 'CGO' : 'NON CARGO';
   const sourcePage = searchParams.get('sourcePage') || 'customer-feedback-main';
@@ -27,6 +28,7 @@ export default function CategoryByAreaPage() {
     area: searchParams.get('area') || 'all',
     sourceSheet,
   });
+  const sourceConfig = getShortcutSourceConfig('monitoringKesesuaianStandar');
 
   return (
     <div className="min-h-screen bg-[var(--surface-0)] overflow-x-hidden relative">
@@ -51,6 +53,12 @@ export default function CategoryByAreaPage() {
         className="relative z-10 w-full px-6 py-32"
       >
         <div className="max-w-[1600px] mx-auto space-y-12">
+          <AnalyticsSourceStrip
+            title="Monitoring Kesesuaian Standar"
+            description="Area Intelligence tetap menjadi halaman shared. Strip provenance ini menegaskan pemisahan data real area analytics dan investigasi AI root cause yang sudah ada di bagian bawah halaman."
+            realSource={sourceConfig.realSource}
+            aiSource={sourceConfig.aiSource}
+          />
           <AreaIntelligenceDetail filters={filters} />
         </div>
       </motion.main>

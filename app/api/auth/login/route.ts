@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
         const { data: user, error: fetchError } = await supabase
             .from('users')
-            .select('id, email, password, role, status, division, station_id, full_name, phone, nik, positions, units, avatar_url')
+            .select('id, email, password, role, status, division, station_id, full_name, phone, nik, unit_id, position_id')
             .ilike('email', email)
             .single();
 
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
         // AUTO-CORRECT ROLE for OT/OP/UQ/HC/HT if deemed as PARTNER
         // This ensures they get the correct dashboard experience
         let finalRole = user.role;
-        const posName = (user.positions?.name || '').toUpperCase();
+        const posName = (user.position_id || '').toUpperCase();
         const division = (user.division || '').toUpperCase();
         const emailUpper = email.toUpperCase();
         
@@ -120,7 +120,9 @@ export async function POST(request: Request) {
             role: finalRole, 
             division: user.division,
             station_id: user.station_id,
-            sid 
+            unit_id: user.unit_id,
+            position_id: user.position_id,
+            sid
         });
         const cookieStore = await cookies();
 

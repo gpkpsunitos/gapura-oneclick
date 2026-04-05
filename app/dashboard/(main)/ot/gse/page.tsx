@@ -5,13 +5,18 @@ import {
   Activity,
   AlertTriangle,
   BarChart3,
+  Building2,
   CircleGauge,
   Search,
   ShieldCheck,
   Wrench,
   ChevronDown,
   ChevronUp,
+  Plane,
 } from 'lucide-react';
+import { AnalyticsMetricCard } from '@/components/dashboard/analytics-metric-card';
+import { AnalyticsSection, AnalyticsSourceStrip } from '@/components/dashboard/analytics-source-strip';
+import { ResponsiveBarChart } from '@/components/charts/ResponsiveBarChart';
 import { ResponsivePieChart } from '@/components/charts/ResponsivePieChart';
 import {
   fetchGseIssuesTop,
@@ -19,18 +24,38 @@ import {
   fetchGseIrregularities,
   fetchGseRanking,
   toNumber,
-  sumMap,
   normalizeDistribution,
   toDonutData,
   type GseIssuesTopResponse,
   type GseServiceabilityResponse,
   type GseIrregularitiesResponse,
   type GseRankingResponse,
-  type GseIrregularityCase,
 } from '@/lib/gse-api';
+import { fetchAnalyticsReports, pickAirline, pickBranch } from '@/lib/op-shortcut-analytics';
+import { getShortcutSourceConfig } from '@/lib/op-shortcut-source-matrix';
+import type { AnalyticsRuntimeStatus } from '@/lib/op-shortcut-source-matrix';
 import { cn } from '@/lib/utils';
 
 type TabKey = 'overview' | 'equipment' | 'cases';
+type RealGseReport = {
+  id: string;
+  category?: string;
+  main_category?: string;
+  irregularity_complain_category?: string;
+  branch?: string;
+  reporting_branch?: string;
+  airlines?: string;
+  airline?: string;
+  status?: string;
+};
+
+const SOURCE_CONFIG = getShortcutSourceConfig('gseDashboard');
+type CachedAiMeta = {
+  cached?: boolean;
+  stale?: boolean;
+  generatedAt?: string;
+  sourceSyncAt?: string | null;
+};
 
 interface StatCardProps {
   icon: ElementType;
@@ -101,6 +126,10 @@ export default function GseDashboardPage() {
   const [activeTab, setActiveTab] = useState<TabKey>('overview');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [realReports, setRealReports] = useState<RealGseReport[]>([]);
+  const [realLoading, setRealLoading] = useState(true);
+  const [realStatus, setRealStatus] = useState<AnalyticsRuntimeStatus>();
+  const [aiStatus, setAiStatus] = useState<AnalyticsRuntimeStatus>();
 
   const [issuesData, setIssuesData] = useState<GseIssuesTopResponse | null>(null);
   const [serviceData, setServiceData] = useState<GseServiceabilityResponse | null>(null);
@@ -119,16 +148,21 @@ export default function GseDashboardPage() {
 
     async function loadAll() {
       setLoading(true);
+      setRealLoading(true);
       setError(null);
 
       try {
-        const [issues, service, irregularities, branch, area, airline] = await Promise.all([
+        const [issues, service, irregularities, branch, area, airline, realData] = await Promise.all([
           fetchGseIssuesTop('OT'),
           fetchGseServiceability('OT'),
           fetchGseIrregularities('OT'),
           fetchGseRanking('branch', 'OT'),
           fetchGseRanking('area', 'OT'),
           fetchGseRanking('airline', 'OT'),
+          fetchAnalyticsReports<RealGseReport>(
+            { targetDivision: 'OT', gseOnly: true },
+            ['id', 'category', 'main_category', 'irregularity_complain_category', 'branch', 'reporting_branch', 'airlines', 'airline', 'status']
+          ),
         ]);
 
         if (mounted) {
@@ -138,11 +172,26 @@ export default function GseDashboardPage() {
           setRankBranch(branch);
           setRankArea(area);
           setRankAirline(airline);
+          setRealReports(realData.reports || []);
+          setRealStatus({
+            lastSyncAt: realData.timestamp,
+            count: realData.count,
+          });
+          const aiMeta = issues as GseIssuesTopResponse & CachedAiMeta;
+          setAiStatus({
+            cached: aiMeta.cached,
+            stale: aiMeta.stale,
+            generatedAt: aiMeta.generatedAt,
+            sourceSyncAt: aiMeta.sourceSyncAt,
+          });
         }
       } catch {
         if (mounted) setError('Gagal memuat data GSE');
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setRealLoading(false);
+        }
       }
     }
 
@@ -239,6 +288,51 @@ export default function GseDashboardPage() {
     });
   }, [casesList, search, tagFilter, branchFilter]);
 
+  const realCategoryData = useMemo(() => {
+    const categoryMap = new Map<string, number>();
+    realReports.forEach((report) => {
+      const category = report.irregularity_complain_category || report.main_category || report.category || 'Unknown';
+      categoryMap.set(category, (categoryMap.get(category) || 0) + 1);
+    });
+    return Array.from(categoryMap.entries())
+      .map(([name, count]) => ({ name, count, value: count }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 8);
+  }, [realReports]);
+
+  const realBranchData = useMemo(() => {
+    const branchMap = new Map<string, number>();
+    realReports.forEach((report) => {
+      const branch = pickBranch(report);
+      branchMap.set(branch, (branchMap.get(branch) || 0) + 1);
+    });
+    return Array.from(branchMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 8);
+  }, [realReports]);
+
+  const realAirlineData = useMemo(() => {
+    const airlineMap = new Map<string, number>();
+    realReports.forEach((report) => {
+      const airline = pickAirline(report);
+      airlineMap.set(airline, (airlineMap.get(airline) || 0) + 1);
+    });
+    return Array.from(airlineMap.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((left, right) => right.count - left.count)
+      .slice(0, 8);
+  }, [realReports]);
+
+  const realStatusData = useMemo(() => {
+    const statusMap = realReports.reduce<Record<string, number>>((accumulator, report) => {
+      const key = String(report.status || 'UNKNOWN').toUpperCase();
+      accumulator[key] = (accumulator[key] || 0) + 1;
+      return accumulator;
+    }, {});
+    return Object.entries(statusMap).map(([name, value]) => ({ name, value }));
+  }, [realReports]);
+
   const tabs: Array<{ key: TabKey; label: string }> = [
     { key: 'overview', label: 'Overview' },
     { key: 'equipment', label: 'Equipment' },
@@ -247,6 +341,65 @@ export default function GseDashboardPage() {
 
   return (
     <div className="min-h-screen space-y-6 px-4 py-6 md:px-6">
+      <AnalyticsSourceStrip
+        title="GSE Dashboard"
+        description="Halaman shared ini sekarang memisahkan data real GSE yang diturunkan dari dataset laporan utama dan analitik AI GSE yang sudah ada."
+        realSource={SOURCE_CONFIG.realSource}
+        realStatus={realStatus}
+        aiSource={SOURCE_CONFIG.aiSource}
+        aiStatus={aiStatus}
+      />
+
+      <AnalyticsSection
+        title="Data Real Google Sheets"
+        description="Section ini menggunakan heuristic GSE pada `/api/reports/analytics?targetDivision=OT&gseOnly=true`, sehingga data real tidak lagi bergantung penuh pada layer AI."
+        variant="real"
+      >
+        <div className="grid gap-4 lg:grid-cols-4">
+          <AnalyticsMetricCard icon={Wrench} label="Real GSE Records" value={realReports.length.toLocaleString('id-ID')} caption="Laporan utama yang lolos heuristic GSE" tone="real" />
+          <AnalyticsMetricCard icon={BarChart3} label="Top Category" value={realCategoryData[0]?.name || '-'} caption={`${realCategoryData[0]?.count || 0} kasus`} tone="real" />
+          <AnalyticsMetricCard icon={Building2} label="Top Branch" value={realBranchData[0]?.name || '-'} caption={`${realBranchData[0]?.count || 0} kasus`} tone="real" />
+          <AnalyticsMetricCard icon={Plane} label="Top Airline" value={realAirlineData[0]?.name || '-'} caption={`${realAirlineData[0]?.count || 0} kasus`} tone="real" />
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-[1fr_1.2fr]">
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <ResponsivePieChart data={realStatusData} title="Status Data Real GSE" donut showLegend percentageLabels height="h-[280px]" />
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <div className="mb-3">
+              <h3 className="text-sm font-black text-slate-900">Top Kategori Real GSE</h3>
+              <p className="text-xs text-slate-600">Kategori real berasal dari dataset laporan utama yang disaring dengan heuristic GSE.</p>
+            </div>
+            <ResponsiveBarChart data={realCategoryData} xAxisKey="name" dataKeys={['count']} showLegend={false} height="h-[280px]" />
+          </div>
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-2">
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <div className="mb-3">
+              <h3 className="text-sm font-black text-slate-900">Top Branches Real GSE</h3>
+              <p className="text-xs text-slate-600">Cabang dengan volume GSE real tertinggi.</p>
+            </div>
+            <ResponsiveBarChart data={realBranchData} xAxisKey="name" dataKeys={['count']} showLegend={false} height="h-[280px]" />
+          </div>
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <div className="mb-3">
+              <h3 className="text-sm font-black text-slate-900">Top Airlines Real GSE</h3>
+              <p className="text-xs text-slate-600">Maskapai yang paling sering muncul pada kasus GSE real.</p>
+            </div>
+            <ResponsiveBarChart data={realAirlineData} xAxisKey="name" dataKeys={['count']} showLegend={false} height="h-[280px]" />
+          </div>
+        </div>
+
+        {realLoading ? <div className="mt-4 text-sm text-slate-500">Memuat data real GSE...</div> : null}
+      </AnalyticsSection>
+
+      <AnalyticsSection
+        title="Analitik AI GSE"
+        description="Blok berikut mempertahankan endpoint AI GSE yang sudah ada, tetapi sekarang diposisikan jelas sebagai layer analitik AI."
+        variant="ai"
+      >
       <section className="relative overflow-hidden rounded-3xl border border-emerald-200 bg-gradient-to-br from-[#f4fff6] via-[#f6fbff] to-[#fff8f1] p-6 shadow-spatial-sm">
         <div className="absolute -right-24 -top-24 h-64 w-64 rounded-full bg-emerald-200/40 blur-3xl" />
         <div className="absolute -bottom-24 -left-20 h-64 w-64 rounded-full bg-sky-200/40 blur-3xl" />
@@ -749,6 +902,7 @@ export default function GseDashboardPage() {
           </section>
         </>
       )}
+      </AnalyticsSection>
     </div>
   );
 }

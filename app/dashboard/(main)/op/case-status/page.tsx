@@ -1,298 +1,253 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Clock, RefreshCw } from 'lucide-react';
+import { Clock, FolderClock, Gauge, ShieldCheck } from 'lucide-react';
 import { DataTableWithPagination } from '@/components/chart-detail/DataTableWithPagination';
+import { AnalyticsMetricCard } from '@/components/dashboard/analytics-metric-card';
+import { ActionSummaryInsightPanel } from '@/components/dashboard/action-summary-insight-panel';
+import { AnalyticsSection, AnalyticsSourceStrip } from '@/components/dashboard/analytics-source-strip';
+import { ResponsiveBarChart } from '@/components/charts/ResponsiveBarChart';
+import { ResponsiveLineChart } from '@/components/charts/ResponsiveLineChart';
+import { ResponsivePieChart } from '@/components/charts/ResponsivePieChart';
+import { getShortcutSourceConfig } from '@/lib/op-shortcut-source-matrix';
+import type { AnalyticsRuntimeStatus } from '@/lib/op-shortcut-source-matrix';
+import {
+  buildMonthlySeries,
+  fetchAnalyticsReports,
+  getReportDate,
+  normalizeStatus,
+  pickAirline,
+  pickBranch,
+} from '@/lib/op-shortcut-analytics';
 import type { QueryResult } from '@/types/builder';
 
-type Report = {
+type ReportRow = {
   id: string;
   created_at?: string;
+  date_of_event?: string;
   status?: string;
+  severity?: string;
+  report?: string;
+  title?: string;
+  airlines?: string;
+  airline?: string;
+  branch?: string;
+  hub?: string;
   category?: string;
-  target_division?: string;
-  [key: string]: unknown;
+  main_category?: string;
+  reporter_name?: string;
+  flight_number?: string;
+  evidence_url?: string;
+  evidence_urls?: string[];
 };
 
-function normalizeStatus(s?: string): 'OPEN' | 'PROGRESS' | 'CLOSED' {
-  const v = (s || '').toString().toLowerCase();
-  if (v.includes('selesai') || v.includes('closed') || v === 'closed' || v === 'close' || v.includes('done')) {
-    return 'CLOSED';
-  }
-  if (
-    v.includes('menunggu') ||
-    v.includes('progress') ||
-    v.includes('verifikasi') ||
-    v.includes('pending')
-  ) {
-    return 'PROGRESS';
-  }
-  return 'OPEN';
-}
+const SOURCE_CONFIG = getShortcutSourceConfig('caseStatus');
 
 export default function OPCaseStatus() {
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [range, setRange] = useState<'all' | 'week' | 'month'>('all');
-  const [statusFilter, setStatusFilter] = useState<'ALL' | 'OPEN' | 'PROGRESS' | 'CLOSED'>('ALL');
-
-  const fetchData = async (hard = false) => {
-    try {
-      if (hard) setRefreshing(true);
-      else setLoading(true);
-      if (hard) await fetch('/api/reports/refresh', { method: 'POST' });
-      // Primary: Google Sheets enriched data with full columns (filtered by OP)
-      const res = await fetch('/api/reports?unfiltered=1&esklasi_regex=OP');
-      if (res.ok && (res.headers.get('content-type') || '').includes('application/json')) {
-        const data = await res.json();
-        const onlyOP = Array.isArray(data) ? data.filter((r: any) => String(r?.target_division || '').trim() === 'OP') : [];
-        setReports(onlyOP);
-      } else {
-        // Fallback to analytics
-        const res2 = await fetch(`/api/reports/analytics?refresh=${hard ? 'true' : 'false'}&esklasi_regex=OP`);
-        if (res2.ok && (res2.headers.get('content-type') || '').includes('application/json')) {
-          const data2 = await res2.json();
-          const onlyOP = Array.isArray(data2?.reports) ? data2.reports.filter((r: any) => String(r?.target_division || '').trim() === 'OP') : [];
-          setReports(onlyOP);
-        } else {
-          setReports([]);
-        }
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+  const [error, setError] = useState<string | null>(null);
+  const [realStatus, setRealStatus] = useState<AnalyticsRuntimeStatus>();
+  const [aiStatus, setAiStatus] = useState<AnalyticsRuntimeStatus>();
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    let active = true;
 
-  const filtered = useMemo(() => {
-    let list = reports;
-    if (range !== 'all') {
-      const now = new Date();
-      const days = range === 'week' ? 7 : 30;
-      const cutoff = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
-      list = list.filter((r) => {
-        const d = r.created_at ? new Date(r.created_at) : null;
-        return d && d >= cutoff;
-      });
-    }
-    return list;
-  }, [reports, range]);
-
-  const statusAgg = useMemo(() => {
-    const base = statusFilter === 'ALL'
-      ? filtered
-      : filtered.filter(r => normalizeStatus(r.status) === statusFilter);
-    let open = 0;
-    let progress = 0;
-    let closed = 0;
-    for (const r of base) {
-      const n = normalizeStatus(r.status);
-      if (n === 'OPEN') open++;
-      else if (n === 'PROGRESS') progress++;
-      else closed++;
-    }
-    const total = open + progress + closed;
-    const closedRate = total > 0 ? Math.round((closed / total) * 100) : 0;
-    return { open, progress, closed, total, closedRate };
-  }, [filtered, statusFilter]);
-
-  const tableRows = useMemo(() => {
-    let list = filtered;
-    if (statusFilter !== 'ALL') {
-      list = list.filter(r => normalizeStatus(r.status) === statusFilter);
-    }
-    return list
-      .slice() // copy
-      .sort((a, b) => {
-        const da = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const db = b.created_at ? new Date(b.created_at).getTime() : 0;
-        return db - da;
-      });
-  }, [filtered, statusFilter]);
-
-  const tableData: QueryResult = useMemo(() => {
-    const union = new Set<string>();
-    for (const r of reports) {
-      const obj = r as Record<string, unknown>;
-      for (const k of Object.keys(obj || {})) {
-        const v = obj[k];
-        const t = typeof v;
-        if (v === null || t === 'string' || t === 'number' || t === 'boolean') {
-          union.add(k);
-        }
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetchAnalyticsReports<ReportRow>(
+          {},
+          [
+            'id',
+            'created_at',
+            'date_of_event',
+            'status',
+            'severity',
+            'report',
+            'title',
+            'airlines',
+            'airline',
+            'branch',
+            'hub',
+            'category',
+            'main_category',
+            'reporter_name',
+            'flight_number',
+            'evidence_url',
+            'evidence_urls',
+          ]
+        );
+        if (!active) return;
+        setReports(response.reports || []);
+        setRealStatus({
+          lastSyncAt: response.timestamp,
+          count: response.count,
+        });
+      } catch (loadError) {
+        if (!active) return;
+        setError(loadError instanceof Error ? loadError.message : 'Gagal memuat status case');
+      } finally {
+        if (active) setLoading(false);
       }
     }
-    // Helper: pick first available column name
-    const pick = (...keys: string[]) => keys.find(k => union.has(k));
-    // Curated minimal columns for list view
-    const selected = [
-      pick('created_at', 'form_completed_at', 'form_submitted_at', 'date_of_event'),
-      pick('status'),
-      pick('severity'),
-      pick('report', 'title'),
-      pick('airlines', 'airline', 'jenis_maskapai'),
-      pick('station_code', 'branch'),
-      pick('hub'),
-      pick('category', 'irregularity_complain_category'),
-      pick('reporter_name'),
-      pick('flight_number'),
-      // Prefer evidence_urls; fall back to evidence_url
-      pick('evidence_urls') || (!union.has('evidence_urls') && pick('evidence_url')) || null,
-    ].filter(Boolean) as string[];
-    // Safety: ensure columns are present and exclude sensitive/internal keys
-    const columns = selected.filter(k => !['sheet_id', 'user_id', 'original_id', 'id'].includes(k));
+
+    load();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const statusDistribution = useMemo(() => {
+    const counts = reports.reduce<Record<'OPEN' | 'PROGRESS' | 'CLOSED', number>>((accumulator, report) => {
+      const key = normalizeStatus(report.status);
+      accumulator[key] += 1;
+      return accumulator;
+    }, { OPEN: 0, PROGRESS: 0, CLOSED: 0 });
+
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  }, [reports]);
+
+  const agingBuckets = useMemo(() => {
+    const counts = {
+      '0-7 Hari': 0,
+      '8-30 Hari': 0,
+      '31-90 Hari': 0,
+      '>90 Hari': 0,
+    };
+
+    reports.forEach((report) => {
+      if (normalizeStatus(report.status) === 'CLOSED') return;
+      const date = getReportDate(report.created_at || report.date_of_event);
+      if (!date) return;
+      const days = Math.floor((Date.now() - date.getTime()) / (1000 * 60 * 60 * 24));
+      if (days <= 7) counts['0-7 Hari'] += 1;
+      else if (days <= 30) counts['8-30 Hari'] += 1;
+      else if (days <= 90) counts['31-90 Hari'] += 1;
+      else counts['>90 Hari'] += 1;
+    });
+
+    return Object.entries(counts).map(([name, count]) => ({ name, count }));
+  }, [reports]);
+
+  const monthlyTrend = useMemo(() => {
+    return buildMonthlySeries(
+      reports,
+      (report) => report.created_at || report.date_of_event,
+      (report) => normalizeStatus(report.status)
+    );
+  }, [reports]);
+
+  const openCases = useMemo(() => statusDistribution.find((entry) => entry.name === 'OPEN')?.value || 0, [statusDistribution]);
+  const progressCases = useMemo(() => statusDistribution.find((entry) => entry.name === 'PROGRESS')?.value || 0, [statusDistribution]);
+  const closedCases = useMemo(() => statusDistribution.find((entry) => entry.name === 'CLOSED')?.value || 0, [statusDistribution]);
+  const closedRate = useMemo(() => {
+    return reports.length > 0 ? Math.round((closedCases / reports.length) * 100) : 0;
+  }, [closedCases, reports.length]);
+
+  const tableData: QueryResult = useMemo(() => {
+    const rows = reports
+      .slice()
+      .sort((left, right) => {
+        const leftTime = getReportDate(left.created_at || left.date_of_event)?.getTime() || 0;
+        const rightTime = getReportDate(right.created_at || right.date_of_event)?.getTime() || 0;
+        return rightTime - leftTime;
+      })
+      .map((report) => ({
+        id: report.id,
+        created_at: report.created_at || report.date_of_event || '',
+        status: normalizeStatus(report.status),
+        severity: report.severity || '',
+        report: report.report || report.title || '',
+        airlines: pickAirline(report),
+        branch: pickBranch(report),
+        hub: report.hub || '',
+        category: report.category || report.main_category || '',
+        reporter_name: report.reporter_name || '',
+        flight_number: report.flight_number || '',
+        evidence_url: Array.isArray(report.evidence_urls) ? report.evidence_urls.join(' | ') : report.evidence_url || '',
+      }));
+
     return {
-      columns,
-      rows: tableRows.map(r => {
-        const obj = r as Record<string, unknown>;
-        const row: Record<string, unknown> = { id: r.id };
-        for (const col of columns) {
-          if (col === 'status') row[col] = normalizeStatus(r.status);
-          else row[col] = obj[col] ?? '';
-        }
-        return row;
-      }),
-      rowCount: tableRows.length,
+      columns: ['created_at', 'status', 'severity', 'report', 'airlines', 'branch', 'hub', 'category', 'reporter_name', 'flight_number', 'evidence_url'],
+      rows,
+      rowCount: rows.length,
       executionTimeMs: 0,
     };
-  }, [tableRows, reports]);
+  }, [reports]);
 
   return (
-    <div className="min-h-screen px-4 md:px-6 py-6">
-      <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-emerald-600" />
-            <h1 className="text-lg font-bold text-gray-800">Status Case</h1>
+    <div className="min-h-screen space-y-6 px-4 py-6 md:px-6">
+      <AnalyticsSourceStrip
+        title="Status Case"
+        description="Pisahkan distribusi status aktual dari laporan dan rekomendasi AI prioritisasi. Section real di bawah ini sepenuhnya berasal dari Google Sheets."
+        realSource={SOURCE_CONFIG.realSource}
+        realStatus={realStatus}
+        aiSource={SOURCE_CONFIG.aiSource}
+        aiStatus={aiStatus}
+      />
+
+      <AnalyticsSection
+        title="Distribusi Status dan Aging Kasus"
+        description="Semua chart di bawah ini berasal dari laporan real pada dataset utama dan dipakai untuk melihat status, aging bucket, dan trend status dari waktu ke waktu."
+        variant="real"
+      >
+        {error ? <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</div> : null}
+
+        <div className="grid gap-4 lg:grid-cols-4">
+          <AnalyticsMetricCard icon={Gauge} label="Total Cases" value={reports.length.toLocaleString('id-ID')} caption="Semua kasus pada dataset" tone="real" />
+          <AnalyticsMetricCard icon={Clock} label="Open" value={openCases.toLocaleString('id-ID')} caption="Belum ditutup" tone="real" />
+          <AnalyticsMetricCard icon={FolderClock} label="In Progress" value={progressCases.toLocaleString('id-ID')} caption="Masih berjalan" tone="real" />
+          <AnalyticsMetricCard icon={ShieldCheck} label="Closed Rate" value={`${closedRate}%`} caption={`${closedCases.toLocaleString('id-ID')} kasus selesai`} tone="real" />
+        </div>
+
+        <div className="mt-5 grid gap-4 xl:grid-cols-[1fr_1.2fr]">
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <ResponsivePieChart data={statusDistribution} title="Distribusi Status" donut showLegend percentageLabels height="h-[300px]" />
           </div>
-          <div className="flex items-center gap-2">
-            <div className="inline-flex rounded-xl bg-gray-100 p-1">
-              {(['all', 'week', 'month'] as const).map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setRange(r)}
-                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg ${
-                    range === r
-                      ? 'bg-white shadow border border-gray-200 text-gray-800'
-                      : 'text-gray-500'
-                  }`}
-                >
-                  {r === 'all' ? 'Semua' : r === 'week' ? '7 Hari' : '30 Hari'}
-                </button>
-              ))}
+          <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
+            <div className="mb-3">
+              <h3 className="text-sm font-black text-slate-900">Aging Bucket Kasus Terbuka</h3>
+              <p className="text-xs text-slate-600">Kasus closed dikeluarkan dari chart aging agar fokus pada backlog aktif.</p>
             </div>
-            <div className="inline-flex rounded-xl bg-gray-100 p-1 border border-gray-200">
-              {(['ALL', 'OPEN', 'PROGRESS', 'CLOSED'] as const).map(s => (
-                <button
-                  key={s}
-                  onClick={() => setStatusFilter(s)}
-                  className={`px-3 py-1.5 text-xs font-bold uppercase tracking-wider rounded-lg ${
-                    statusFilter === s
-                      ? 'bg-white shadow border border-gray-200 text-gray-800'
-                      : 'text-gray-500'
-                  }`}
-                >
-                  {s === 'ALL' ? 'Semua' : s}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => fetchData(true)}
-              disabled={refreshing}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-white border border-gray-200 hover:bg-gray-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </button>
+            <ResponsiveBarChart data={agingBuckets} xAxisKey="name" dataKeys={['count']} showLegend={false} height="h-[300px]" />
           </div>
         </div>
 
-        {loading ? (
-          <div className="h-[30vh] flex items-center justify-center">
-            <div className="w-8 h-8 rounded-full border-4 animate-spin" style={{ borderColor: 'var(--surface-4)', borderTopColor: 'var(--brand-primary)' }} />
+        <div className="mt-5 rounded-2xl border border-emerald-200 bg-white/90 p-4">
+          <div className="mb-3">
+            <h3 className="text-sm font-black text-slate-900">Trend Bulanan Status</h3>
+            <p className="text-xs text-slate-600">Trend dibangun dari data real tanpa rekomendasi atau pengayaan AI.</p>
           </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="p-4 rounded-2xl border border-[var(--surface-2)] bg-[var(--surface-1)]">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Total</p>
-                <p className="text-2xl font-extrabold text-gray-900">{statusAgg.total}</p>
-              </div>
-              <div className="p-4 rounded-2xl border border-[var(--surface-2)] bg-[var(--surface-1)]">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Open</p>
-                <p className="text-2xl font-extrabold text-gray-900">{statusAgg.open}</p>
-              </div>
-              <div className="p-4 rounded-2xl border border-[var(--surface-2)] bg-[var(--surface-1)]">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Progress</p>
-                <p className="text-2xl font-extrabold text-gray-900">{statusAgg.progress}</p>
-              </div>
-              <div className="p-4 rounded-2xl border border-[var(--surface-2)] bg-[var(--surface-1)]">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Closed Rate</p>
-                <p className="text-2xl font-extrabold text-gray-900">{statusAgg.closedRate}%</p>
-              </div>
-            </div>
-
-            <div className="p-4 rounded-2xl border border-[var(--surface-2)] bg-[var(--surface-1)]">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-bold text-gray-800 tracking-wide uppercase">Distribusi Status</h2>
-              </div>
-              <div className="space-y-3">
-                {[
-                  { name: 'OPEN', value: statusAgg.open, color: 'from-amber-500 to-orange-600' },
-                  { name: 'PROGRESS', value: statusAgg.progress, color: 'from-cyan-500 to-sky-600' },
-                  { name: 'CLOSED', value: statusAgg.closed, color: 'from-emerald-500 to-teal-600' },
-                ].map((row) => {
-                  const max = Math.max(statusAgg.open, statusAgg.progress, statusAgg.closed, 1);
-                  const pct = Math.round((row.value / max) * 100);
-                  return (
-                    <div key={row.name}>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium text-gray-800">{row.name}</span>
-                        <span className="text-gray-600 font-semibold">{row.value}</span>
-                      </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden mt-1">
-                        <div
-                          className={`h-full rounded-full bg-gradient-to-r ${row.color}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* Table with Pagination & Status Filter */}
-      <section className="mt-6">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-gray-800 tracking-wide uppercase">Daftar Kasus</h2>
+          <ResponsiveLineChart data={monthlyTrend} xAxisKey="month" dataKeys={['OPEN', 'PROGRESS', 'CLOSED']} showLegend height="h-[320px]" />
         </div>
-        <DataTableWithPagination
-          data={tableData}
-          title="Case Status Table"
-          isLoading={loading}
-          rowsPerPage={10}
-          columnClasses={{ 
-            created_at: 'whitespace-nowrap w-48',
-            report: 'min-w-[36rem] w-[44rem] leading-relaxed',
-            title: 'min-w-[36rem] w-[44rem] leading-relaxed'
-          }}
-          onRowClick={(row) => {
-            const id = typeof row.id === 'string' ? row.id : undefined;
-            if (id) {
-              window.open(`/dashboard/op/reports/${id}`, '_blank');
-            }
-          }}
-        />
-      </section>
+
+        <div className="mt-5 rounded-2xl border border-emerald-200 bg-white/90 p-4">
+          <DataTableWithPagination
+            data={tableData}
+            title="Daftar Kasus Real"
+            isLoading={loading}
+            rowsPerPage={15}
+            columnClasses={{
+              created_at: 'whitespace-nowrap w-48',
+              report: 'min-w-[36rem] w-[44rem] leading-relaxed',
+            }}
+            onRowClick={(row) => {
+              const id = typeof row.id === 'string' ? row.id : undefined;
+              if (id) window.open(`/dashboard/op/reports/${id}`, '_blank');
+            }}
+          />
+        </div>
+      </AnalyticsSection>
+
+      <AnalyticsSection
+        title="Prioritas Penanganan dari AI"
+        description="AI action summary dipakai sebagai lapisan prioritisasi, bukan sebagai sumber jumlah kasus. Karena itu chart dan rekomendasinya ditempatkan terpisah."
+        variant="ai"
+      >
+        <ActionSummaryInsightPanel onStatus={setAiStatus} />
+      </AnalyticsSection>
     </div>
   );
 }

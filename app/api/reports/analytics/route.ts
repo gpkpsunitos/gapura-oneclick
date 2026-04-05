@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { reportsService } from '@/lib/services/reports-service';
+import { normalizeDivisionCode, reportsService, type ReportQueryFilters } from '@/lib/services/reports-service';
 
 /**
  * GET /api/reports/analytics
@@ -24,7 +24,15 @@ export async function GET(request: NextRequest) {
     const refresh = searchParams.get('refresh') === 'true';
     
     // Parse filters from query string
-    const filters = {
+    const targetDivision = searchParams.get('targetDivision');
+    const normalizedDivision = targetDivision ? normalizeDivisionCode(targetDivision) : undefined;
+    if (targetDivision && !normalizedDivision) {
+      return NextResponse.json(
+        { error: 'Invalid "targetDivision" parameter. Use one of: OT, OP, UQ, OS, HT, HC.' },
+        { status: 400 }
+      );
+    }
+    const filters: ReportQueryFilters = {
       dateFrom: searchParams.get('dateFrom') || undefined,
       dateTo: searchParams.get('dateTo') || undefined,
       hub: searchParams.get('hub') || undefined,
@@ -32,6 +40,8 @@ export async function GET(request: NextRequest) {
       area: searchParams.get('area') || undefined,
       airlines: searchParams.get('airlines') || undefined,
       sourceSheet: searchParams.get('sourceSheet') || undefined,
+      targetDivision: normalizedDivision,
+      gseOnly: searchParams.get('gseOnly') === 'true',
     };
 
     // Parse fields if provided (expects comma-separated string)

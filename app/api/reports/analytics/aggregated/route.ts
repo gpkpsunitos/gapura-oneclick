@@ -6,7 +6,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { reportsService } from '@/lib/services/reports-service';
+import { normalizeDivisionCode, reportsService, type ReportQueryFilters } from '@/lib/services/reports-service';
 import { AnalyticsProcessor } from '@/lib/services/analytics-processor';
 
 /**
@@ -34,7 +34,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing "view" parameter' }, { status: 400 });
     }
 
-    const filters = {
+    const targetDivision = searchParams.get('targetDivision');
+    const normalizedDivision = targetDivision ? normalizeDivisionCode(targetDivision) : undefined;
+    if (targetDivision && !normalizedDivision) {
+      return NextResponse.json(
+        { error: 'Invalid "targetDivision" parameter. Use one of: OT, OP, UQ, OS, HT, HC.' },
+        { status: 400 }
+      );
+    }
+
+    const filters: ReportQueryFilters = {
       dateFrom: searchParams.get('dateFrom') || undefined,
       dateTo: searchParams.get('dateTo') || undefined,
       hub: searchParams.get('hub') || undefined,
@@ -42,6 +51,8 @@ export async function GET(request: NextRequest) {
       area: searchParams.get('area') || undefined,
       airlines: searchParams.get('airlines') || undefined,
       sourceSheet: searchParams.get('sourceSheet') || undefined,
+      targetDivision: normalizedDivision,
+      gseOnly: searchParams.get('gseOnly') === 'true',
     };
 
     // Fast-path: only fetch reports if needed
@@ -51,7 +62,7 @@ export async function GET(request: NextRequest) {
       filters 
     });
 
-    let aggregatedData: any = {};
+    let aggregatedData: unknown = {};
 
     switch (view) {
       case 'case-category':

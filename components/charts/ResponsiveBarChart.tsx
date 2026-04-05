@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
  */
 interface ResponsiveBarChartProps {
   /** Data chart */
-  data: any[];
+  data: Array<Record<string, string | number | null | undefined>>;
   /** Key untuk axis X */
   xAxisKey?: string;
   /** Array key untuk series data */
@@ -58,13 +58,28 @@ export function ResponsiveBarChart({
   xAxisKey = 'name',
   dataKeys,
   layout = 'vertical',
-  title,
   className,
   height = 'h-[35vh] min-h-[180px] sm:min-h-[200px] lg:min-h-[240px] lg:h-[300px]',
   showLegend = true,
   stacked = false,
 }: ResponsiveBarChartProps) {
   const colors = generateChartColors(dataKeys.length);
+  const categoryAxisLabels = data.map((item) => String(item?.[xAxisKey] ?? ''));
+  const longestCategoryLabel = categoryAxisLabels.reduce((max, label) => Math.max(max, label.length), 0);
+  const showAllCategoryTicks = data.length > 0 && data.length <= 12;
+  const rotateCategoryTicks = layout !== 'horizontal' && showAllCategoryTicks && longestCategoryLabel > 10;
+  const categoryTickHeight = rotateCategoryTicks
+    ? Math.min(104, Math.max(60, Math.round(longestCategoryLabel * 3.4)))
+    : undefined;
+  const categoryAxisWidth = layout === 'horizontal'
+    ? Math.min(220, Math.max(60, Math.round(longestCategoryLabel * 7.5)))
+    : 60;
+  const chartMargin = {
+    top: 10,
+    right: 30,
+    left: layout === 'horizontal' ? categoryAxisWidth : 0,
+    bottom: rotateCategoryTicks ? 24 : 10,
+  };
 
   return (
     <div className={cn('w-full', height, className)}>
@@ -72,17 +87,32 @@ export function ResponsiveBarChart({
         <BarChart
           data={data}
           layout={layout === 'horizontal' ? 'vertical' : 'horizontal'}
-          margin={{ top: 10, right: 30, left: layout === 'horizontal' ? 60 : 0, bottom: 10 }}
+          margin={chartMargin}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
           {layout === 'horizontal' ? (
             <>
               <XAxis type="number" />
-              <YAxis dataKey={xAxisKey} type="category" width={60} tick={{ fontSize: 11 }} />
+              <YAxis
+                dataKey={xAxisKey}
+                type="category"
+                width={categoryAxisWidth}
+                interval={showAllCategoryTicks ? 0 : 'preserveStartEnd'}
+                tick={{ fontSize: 11 }}
+              />
             </>
           ) : (
             <>
-              <XAxis dataKey={xAxisKey} tick={{ fontSize: 11 }} />
+              <XAxis
+                dataKey={xAxisKey}
+                interval={showAllCategoryTicks ? 0 : 'preserveStartEnd'}
+                angle={rotateCategoryTicks ? -24 : 0}
+                textAnchor={rotateCategoryTicks ? 'end' : 'middle'}
+                height={categoryTickHeight}
+                minTickGap={rotateCategoryTicks ? 0 : 5}
+                tickMargin={rotateCategoryTicks ? 10 : 4}
+                tick={{ fontSize: 11 }}
+              />
               <YAxis />
             </>
           )}
