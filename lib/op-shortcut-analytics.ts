@@ -8,6 +8,8 @@ export interface ReportAnalyticsFilters {
   area?: string;
   airlines?: string;
   sourceSheet?: string;
+  esklasiRegex?: string;
+  esklasiDivision?: string;
   targetDivision?: string;
   gseOnly?: boolean;
 }

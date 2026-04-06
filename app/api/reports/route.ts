@@ -148,7 +148,10 @@ export async function GET(request: Request) {
 
         if (bypassFiltering) {
             console.log(`[REPORTS_API] Unfiltered mode active for role: ${role}`);
-            const reports = await reportsService.getReports();
+            const reports = await reportsService.getReports({
+                fields: requestedFields as unknown as string[],
+                source: 'sheets',
+            });
             return NextResponse.json(reports, {
                 headers: {
                     'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',

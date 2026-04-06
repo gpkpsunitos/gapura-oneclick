@@ -24,11 +24,11 @@ export async function GET(request: NextRequest) {
     const refresh = searchParams.get('refresh') === 'true';
     
     // Parse filters from query string
-    const targetDivision = searchParams.get('targetDivision');
-    const normalizedDivision = targetDivision ? normalizeDivisionCode(targetDivision) : undefined;
-    if (targetDivision && !normalizedDivision) {
+    const divisionParam = searchParams.get('esklasiDivision') || searchParams.get('targetDivision');
+    const normalizedDivision = divisionParam ? normalizeDivisionCode(divisionParam) : undefined;
+    if (divisionParam && !normalizedDivision) {
       return NextResponse.json(
-        { error: 'Invalid "targetDivision" parameter. Use one of: OT, OP, UQ, OS, HT, HC.' },
+        { error: 'Invalid "esklasiDivision/targetDivision" parameter. Use one of: OT, OP, UQ, OS, HT, HC.' },
         { status: 400 }
       );
     }
@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
       area: searchParams.get('area') || undefined,
       airlines: searchParams.get('airlines') || undefined,
       sourceSheet: searchParams.get('sourceSheet') || undefined,
+      esklasiRegex: searchParams.get('esklasiRegex') || searchParams.get('esklasi_regex') || undefined,
       targetDivision: normalizedDivision,
       gseOnly: searchParams.get('gseOnly') === 'true',
     };
@@ -52,7 +53,8 @@ export async function GET(request: NextRequest) {
     const reports = await reportsService.getReports({ 
       refresh, 
       filters,
-      fields 
+      fields,
+      source: 'sheets',
     });
     
     // Return with caching headers

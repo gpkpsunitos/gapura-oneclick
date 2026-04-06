@@ -45,7 +45,12 @@ export interface SessionPayload {
     full_name?: string;
     /** Divisi pengguna */
     division?: string;
+    /** ID stasiun */
     station_id?: string;
+    /** ID unit */
+    unit_id?: string;
+    /** ID posisi */
+    position_id?: string;
     /** ID sesi unik untuk tracking dan pencabutan database */
     sid?: string;
 }
@@ -324,6 +329,8 @@ export interface Report {
     primary_tag?: string;
     /** Catatan sub-kategori */
     sub_category_note?: string;
+    /** Nilai raw dari kolom Google Sheets ESKLASI DIVISI */
+    esklasi_divisi?: string;
     /** Divisi target: 'OS' | 'OP' | 'OT' | 'UQ' | 'HC' | 'HT' */
     target_division?: string;
 

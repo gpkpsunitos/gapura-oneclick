@@ -34,11 +34,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing "view" parameter' }, { status: 400 });
     }
 
-    const targetDivision = searchParams.get('targetDivision');
-    const normalizedDivision = targetDivision ? normalizeDivisionCode(targetDivision) : undefined;
-    if (targetDivision && !normalizedDivision) {
+    const divisionParam = searchParams.get('esklasiDivision') || searchParams.get('targetDivision');
+    const normalizedDivision = divisionParam ? normalizeDivisionCode(divisionParam) : undefined;
+    if (divisionParam && !normalizedDivision) {
       return NextResponse.json(
-        { error: 'Invalid "targetDivision" parameter. Use one of: OT, OP, UQ, OS, HT, HC.' },
+        { error: 'Invalid "esklasiDivision/targetDivision" parameter. Use one of: OT, OP, UQ, OS, HT, HC.' },
         { status: 400 }
       );
     }
@@ -51,6 +51,7 @@ export async function GET(request: NextRequest) {
       area: searchParams.get('area') || undefined,
       airlines: searchParams.get('airlines') || undefined,
       sourceSheet: searchParams.get('sourceSheet') || undefined,
+      esklasiRegex: searchParams.get('esklasiRegex') || searchParams.get('esklasi_regex') || undefined,
       targetDivision: normalizedDivision,
       gseOnly: searchParams.get('gseOnly') === 'true',
     };
@@ -59,7 +60,8 @@ export async function GET(request: NextRequest) {
     // For specialized views, we can even restrict fields further on the server fetch
     const reports = await reportsService.getReports({ 
       refresh, 
-      filters 
+      filters,
+      source: 'sheets',
     });
 
     let aggregatedData: unknown = {};

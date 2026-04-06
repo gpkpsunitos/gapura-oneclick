@@ -11,7 +11,7 @@ export function DashboardFrame({ role, children }: { role: string; children: Rea
   if (hideSidebar) {
     return (
       <div className="flex min-h-screen">
-        <main className="flex-1 min-h-screen overflow-x-hidden bg-[var(--surface-0)] flex flex-col">
+        <main className="flex-1 min-h-screen min-w-0 overflow-x-hidden bg-[var(--surface-0)] flex flex-col">
           {children}
         </main>
       </div>
@@ -21,8 +21,10 @@ export function DashboardFrame({ role, children }: { role: string; children: Rea
   return (
     <div className="flex min-h-screen">
       <Sidebar role={role} />
-      <main className="flex-1 min-h-screen overflow-x-hidden bg-[var(--surface-0)] flex flex-col pb-24 md:pb-0 md:pl-[240px] lg:pl-[260px]">
-        {children}
+      <main className="flex-1 min-h-screen min-w-0 overflow-x-hidden bg-[var(--surface-0)] flex flex-col pb-24 md:pb-0 md:pl-[240px] lg:pl-[260px]">
+        <div className="w-full min-w-0 flex-1 flex flex-col">
+          {children}
+        </div>
       </main>
       <MobileNavWrapper role={role} />
     </div>

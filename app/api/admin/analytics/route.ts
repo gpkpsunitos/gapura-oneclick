@@ -35,7 +35,7 @@ export async function GET(request: Request) {
         const division = searchParams.get('division');
 
         // 1. Fetch all reports from Google Sheets Cache
-        const allReports = await reportsService.getReports();
+        const allReports = await reportsService.getReports({ source: 'sheets' });
 
         // 2. Filter by Date Range
         let filteredReports = allReports;

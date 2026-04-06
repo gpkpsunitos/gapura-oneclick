@@ -46,22 +46,6 @@ export const OP_SHORTCUT_SOURCE_MATRIX: Record<string, ShortcutSourceConfig> = {
       upstreamPath: '/api/ai/analyze-all -> derived action summary',
     },
   },
-  riskSeverity: {
-    key: 'riskSeverity',
-    title: 'Risk & Severity',
-    pagePath: '/dashboard/op/risk-severity',
-    realSource: {
-      label: 'Google Sheets',
-      route: '/api/reports/analytics',
-      envKeys: ['GOOGLE_SHEET_ID'],
-      sheetNames: ['NON CARGO', 'CGO'],
-    },
-    aiSource: {
-      label: 'AI',
-      route: '/api/ai/risk/summary',
-      upstreamPath: '/api/ai/risk/summary',
-    },
-  },
   topIrregularityComplaint: {
     key: 'topIrregularityComplaint',
     title: 'Top Irregularity & Complaint',
@@ -94,52 +78,6 @@ export const OP_SHORTCUT_SOURCE_MATRIX: Record<string, ShortcutSourceConfig> = {
       upstreamPath: '/api/ai/root-cause/stats',
     },
   },
-  caseStatus: {
-    key: 'caseStatus',
-    title: 'Status Case',
-    pagePath: '/dashboard/op/case-status',
-    realSource: {
-      label: 'Google Sheets',
-      route: '/api/reports/analytics',
-      envKeys: ['GOOGLE_SHEET_ID'],
-      sheetNames: ['NON CARGO', 'CGO'],
-    },
-    aiSource: {
-      label: 'AI',
-      route: '/api/ai/action-summary',
-      upstreamPath: '/api/ai/analyze-all -> derived action summary',
-    },
-  },
-  slaCompliance: {
-    key: 'slaCompliance',
-    title: 'SLA Compliance',
-    pagePath: '/dashboard/op/sla-compliance',
-    realSource: {
-      label: 'Google Sheets',
-      route: '/api/sla/full-service',
-      envKeys: ['SLA_FULL_SERVICE_SHEET_ID'],
-      sheetNames: ['Sheet1', 'AVSEC', 'Bag Handling', 'DEBRIEFING AFTER SERVICE'],
-      notes: ['Dataset ini spesifik SLA Full Service dan tidak digabung dengan AI.'],
-    },
-  },
-  cargoIrregularity: {
-    key: 'cargoIrregularity',
-    title: 'Logistik Irregularity',
-    pagePath: '/dashboard/op/cargo-irregularity',
-    realSource: {
-      label: 'Google Sheets',
-      route: '/api/reports/analytics',
-      envKeys: ['GOOGLE_SHEET_ID'],
-      sheetNames: ['CGO'],
-      queryContract: ['sourceSheet=CGO'],
-    },
-    aiSource: {
-      label: 'AI',
-      route: '/api/ai/summarize',
-      upstreamPath: '/api/ai/summarize/cgo',
-      queryContract: ['category=cgo'],
-    },
-  },
   joumpa: {
     key: 'joumpa',
     title: 'Joumpa Handling',
@@ -161,9 +99,9 @@ export const OP_SHORTCUT_SOURCE_MATRIX: Record<string, ShortcutSourceConfig> = {
       route: '/api/reports/analytics',
       envKeys: ['GOOGLE_SHEET_ID'],
       sheetNames: ['NON CARGO', 'CGO'],
-      divisionFilter: 'OT',
-      queryContract: ['targetDivision=OT', 'gseOnly=true'],
-      notes: ['Tidak ada GSE_SHEET_ID khusus, sehingga data real diturunkan dari dataset laporan utama dengan heuristik GSE.'],
+      divisionFilter: 'regex OT pada ESKLASI DIVISI',
+      queryContract: ['esklasiRegex=OT', 'gseOnly=true'],
+      notes: ['Tidak ada GSE_SHEET_ID khusus, sehingga data real diturunkan dari dataset laporan utama dengan heuristik GSE lalu difilter memakai regex `OT` pada kolom ESKLASI DIVISI.', 'Jika hasil regex OT terlalu tipis di data live, halaman GSE akan fallback ke seluruh kasus yang terdeteksi GSE dari kolom-kolom Google Sheets.'],
     },
     aiSource: {
       label: 'AI',

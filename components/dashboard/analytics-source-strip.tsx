@@ -149,32 +149,14 @@ function SourceCard({
 }
 
 export function AnalyticsSourceStrip({
-  title,
-  description,
-  realSource,
-  realStatus,
-  aiSource,
-  aiStatus,
+  title: _title,
+  description: _description,
+  realSource: _realSource,
+  realStatus: _realStatus,
+  aiSource: _aiSource,
+  aiStatus: _aiStatus,
 }: AnalyticsSourceStripProps) {
-  return (
-    <section className="rounded-3xl border border-[var(--surface-2)] bg-[var(--surface-1)] p-6 shadow-spatial-sm">
-      <div className="mb-5 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-black tracking-tight text-slate-900">{title}</h1>
-          {description ? <p className="mt-2 max-w-3xl text-sm text-slate-600">{description}</p> : null}
-        </div>
-        <div className="hidden rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.22em] text-slate-500 lg:flex lg:items-center lg:gap-2">
-          <AlertTriangle className="h-3.5 w-3.5" />
-          Real vs AI dipisah
-        </div>
-      </div>
-
-      <div className={cn('grid gap-4', aiSource ? 'xl:grid-cols-2' : 'grid-cols-1')}>
-        <SourceCard kind="real" source={realSource} status={realStatus} />
-        {aiSource ? <SourceCard kind="ai" source={aiSource} status={aiStatus} /> : null}
-      </div>
-    </section>
-  );
+  return null;
 }
 
 export function AnalyticsSection({

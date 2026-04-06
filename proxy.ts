@@ -137,6 +137,7 @@ export default async function proxy(request: NextRequest) {
     if (payload) {
         // Normalize role for consistent checking
         const role = String(payload.role).trim().toUpperCase();
+        const isSharedGseDashboardPath = path.startsWith('/dashboard/ot/gse');
 
         // 2. If logged in and trying to access AUTH pages (login/register), redirect to dashboard
         // CRITICAL BUGFIX: We must NOT redirect if path is logout endpoint!
@@ -179,7 +180,11 @@ export default async function proxy(request: NextRequest) {
                   return NextResponse.redirect(new URL('/dashboard/employee', request.url));
              }
         }
-        if (path.startsWith('/dashboard/ot') && !['DIVISI_OT', 'PARTNER_OT'].includes(role)) {
+        const otAllowedRoles = isSharedGseDashboardPath
+            ? ['DIVISI_OT', 'PARTNER_OT', 'DIVISI_OP', 'PARTNER_OP']
+            : ['DIVISI_OT', 'PARTNER_OT'];
+
+        if (path.startsWith('/dashboard/ot') && !otAllowedRoles.includes(role)) {
              if (role === 'DIVISI_ESKALASI') {
                  return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
              }

@@ -47,6 +47,9 @@ type RealGseReport = {
   airlines?: string;
   airline?: string;
   status?: string;
+  esklasi_divisi?: string;
+  specific_location?: string;
+  apron_area_category?: string;
 };
 
 const SOURCE_CONFIG = getShortcutSourceConfig('gseDashboard');
@@ -129,6 +132,7 @@ export default function GseDashboardPage() {
   const [realReports, setRealReports] = useState<RealGseReport[]>([]);
   const [realLoading, setRealLoading] = useState(true);
   const [realStatus, setRealStatus] = useState<AnalyticsRuntimeStatus>();
+  const [realFilterMode, setRealFilterMode] = useState<'regex-ot' | 'all-gse'>('regex-ot');
   const [aiStatus, setAiStatus] = useState<AnalyticsRuntimeStatus>();
 
   const [issuesData, setIssuesData] = useState<GseIssuesTopResponse | null>(null);
@@ -152,7 +156,7 @@ export default function GseDashboardPage() {
       setError(null);
 
       try {
-        const [issues, service, irregularities, branch, area, airline, realData] = await Promise.all([
+        const [issues, service, irregularities, branch, area, airline, primaryRealData] = await Promise.all([
           fetchGseIssuesTop('OT'),
           fetchGseServiceability('OT'),
           fetchGseIrregularities('OT'),
@@ -160,10 +164,27 @@ export default function GseDashboardPage() {
           fetchGseRanking('area', 'OT'),
           fetchGseRanking('airline', 'OT'),
           fetchAnalyticsReports<RealGseReport>(
-            { targetDivision: 'OT', gseOnly: true },
-            ['id', 'category', 'main_category', 'irregularity_complain_category', 'branch', 'reporting_branch', 'airlines', 'airline', 'status']
+            { esklasiRegex: 'OT', gseOnly: true },
+            ['id', 'category', 'main_category', 'irregularity_complain_category', 'branch', 'reporting_branch', 'airlines', 'airline', 'status', 'esklasi_divisi', 'specific_location', 'apron_area_category']
           ),
         ]);
+
+        let resolvedRealData = primaryRealData;
+        let resolvedRealFilterMode: 'regex-ot' | 'all-gse' = 'regex-ot';
+        const primaryCount = primaryRealData.count ?? primaryRealData.reports?.length ?? 0;
+
+        // Live sheet currently has only a single OT-tagged row in ESKLASI DIVISI.
+        // When that slice is too sparse, fall back to all rows that match the expanded GSE heuristic.
+        if (primaryCount <= 1) {
+          const fallbackRealData = await fetchAnalyticsReports<RealGseReport>(
+            { gseOnly: true },
+            ['id', 'category', 'main_category', 'irregularity_complain_category', 'branch', 'reporting_branch', 'airlines', 'airline', 'status', 'esklasi_divisi', 'specific_location', 'apron_area_category']
+          );
+          if ((fallbackRealData.count ?? fallbackRealData.reports?.length ?? 0) > primaryCount) {
+            resolvedRealData = fallbackRealData;
+            resolvedRealFilterMode = 'all-gse';
+          }
+        }
 
         if (mounted) {
           setIssuesData(issues);
@@ -172,10 +193,11 @@ export default function GseDashboardPage() {
           setRankBranch(branch);
           setRankArea(area);
           setRankAirline(airline);
-          setRealReports(realData.reports || []);
+          setRealReports(resolvedRealData.reports || []);
+          setRealFilterMode(resolvedRealFilterMode);
           setRealStatus({
-            lastSyncAt: realData.timestamp,
-            count: realData.count,
+            lastSyncAt: resolvedRealData.timestamp,
+            count: resolvedRealData.count,
           });
           const aiMeta = issues as GseIssuesTopResponse & CachedAiMeta;
           setAiStatus({
@@ -352,11 +374,19 @@ export default function GseDashboardPage() {
 
       <AnalyticsSection
         title="Data Real Google Sheets"
-        description="Section ini menggunakan heuristic GSE pada `/api/reports/analytics?targetDivision=OT&gseOnly=true`, sehingga data real tidak lagi bergantung penuh pada layer AI."
+        description={realFilterMode === 'regex-ot'
+          ? 'Section ini menggunakan heuristic GSE pada dataset laporan utama, lalu memfilter kolom `ESKLASI DIVISI` dengan regex yang mengandung `OT`.'
+          : 'Regex `OT` di `ESKLASI DIVISI` terlalu tipis pada data live, jadi section ini otomatis menampilkan semua kasus yang terdeteksi GSE dari kolom-kolom Google Sheets.'}
         variant="real"
       >
+        {realFilterMode === 'all-gse' ? (
+          <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-800">
+            Debug Google Sheets menunjukkan hanya 1 row yang mengandung `OT` di kolom `ESKLASI DIVISI`, sementara fallback heuristic GSE menemukan {realReports.length.toLocaleString('id-ID')} row pada sheet utama. Dashboard ini memakai fallback ke semua kasus GSE agar data real tetap terbaca.
+          </div>
+        ) : null}
+
         <div className="grid gap-4 lg:grid-cols-4">
-          <AnalyticsMetricCard icon={Wrench} label="Real GSE Records" value={realReports.length.toLocaleString('id-ID')} caption="Laporan utama yang lolos heuristic GSE" tone="real" />
+          <AnalyticsMetricCard icon={Wrench} label="Real GSE Records" value={realReports.length.toLocaleString('id-ID')} caption={realFilterMode === 'regex-ot' ? 'Laporan utama yang lolos OT + heuristic GSE' : 'Laporan utama yang lolos fallback heuristic GSE'} tone="real" />
           <AnalyticsMetricCard icon={BarChart3} label="Top Category" value={realCategoryData[0]?.name || '-'} caption={`${realCategoryData[0]?.count || 0} kasus`} tone="real" />
           <AnalyticsMetricCard icon={Building2} label="Top Branch" value={realBranchData[0]?.name || '-'} caption={`${realBranchData[0]?.count || 0} kasus`} tone="real" />
           <AnalyticsMetricCard icon={Plane} label="Top Airline" value={realAirlineData[0]?.name || '-'} caption={`${realAirlineData[0]?.count || 0} kasus`} tone="real" />

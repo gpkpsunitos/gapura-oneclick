@@ -143,7 +143,7 @@ async function main() {
       console.log('  -');
     }
 
-    const showCols = ['Status', 'Severity', 'Report Category', 'Area', 'Terminal Area Category', 'Apron Area Category', 'General Category'];
+    const showCols = ['Status', 'Severity', 'Report Category', 'Area', 'Terminal Area Category', 'Apron Area Category', 'General Category', 'ESKLASI DIVISI', 'Target Division'];
     for (const col of showCols) {
       const idx = headers.findIndex(h => h.trim().toLowerCase() === col.trim().toLowerCase());
       if (idx !== -1) {
@@ -151,6 +151,7 @@ async function main() {
         const freq = {};
         vals.forEach(v => { freq[v] = (freq[v] || 0) + 1; });
         const top = Object.entries(freq).sort((a, b) => b[1] - a[1]).slice(0, 10);
+        console.log(`${col} filled rows: ${vals.length}/${dataRows.length}`);
         console.log(`${col} top values: ${top.map(([v, c]) => `${v}(${c})`).join(', ') || '-'}`);
       }
     }

@@ -81,6 +81,7 @@ const PROP_TO_HEADER: Partial<Record<keyof Report, string[]>> = {
   preventive_action: ['Preventive Action', 'Preventive_Action'],
   reporter_name: ['Report_By', 'Report By', 'Pelapor', 'Reporter'],
   reporter_email: ['Reporter Email', 'Email'],
+  specific_location: ['Location of Incident', 'Location_of_Incident', 'Specific Location'],
   evidence_url: ['Upload_Irregularity_Photo', 'Upload Irregularity Photo', 'Evidence', 'Bukti'],
   evidence_urls: ['Upload_Irregularity_Photo', 'Upload Irregularity Photo', 'Evidence', 'Bukti', 'Lampiran'],
   video_url: ['Upload_Irregularity_Photo', 'Upload Irregularity Photo', 'Evidence', 'Bukti'],
@@ -103,7 +104,8 @@ const PROP_TO_HEADER: Partial<Record<keyof Report, string[]>> = {
   // Triage Columns
   primary_tag: ['Primary Tag', 'Primary_Tag', 'Area Category', 'Area_Category'],
   sub_category_note: ['Sub Category Note', 'Sub_Category_Note', 'Sub Category', 'Additional Note'],
-  target_division: ['ESKLASI DIVISI', 'ESKLASI_DIVISI', 'Target Division'],
+  esklasi_divisi: ['ESKLASI DIVISI', 'ESKLASI_DIVISI'],
+  target_division: [],
   
   // Standard fields
   id: ['ID'],
@@ -155,6 +157,7 @@ const WRITE_MAPPING: Record<string, string> = {
   // Triage Write Mappings
   primary_tag: 'Primary Tag',
   sub_category_note: 'Sub Category Note',
+  esklasi_divisi: 'ESKLASI DIVISI',
   target_division: 'ESKLASI DIVISI',
 
   // System Fields
@@ -199,6 +202,7 @@ export interface ReportQueryFilters {
   area?: string;
   airlines?: string;
   sourceSheet?: string;
+  esklasiRegex?: string;
   targetDivision?: string;
   gseOnly?: boolean;
 }
@@ -287,11 +291,48 @@ export function normalizeDivisionCode(value?: string | null): SupportedDivision 
   return match?.[1] as SupportedDivision | undefined;
 }
 
+export function resolveReportEscalationDivision(report: Partial<Report>): SupportedDivision | undefined {
+  return normalizeDivisionCode(report.esklasi_divisi || report.target_division);
+}
+
+function syncEscalationDivisionAliases<T extends Partial<Report>>(report: T): T {
+  const rawDivision = [report.esklasi_divisi, report.target_division]
+    .find((value) => typeof value === 'string' && value.trim());
+
+  if (rawDivision) {
+    report.esklasi_divisi = String(rawDivision).trim();
+  } else {
+    delete report.esklasi_divisi;
+  }
+
+  const normalizedDivision = normalizeDivisionCode(rawDivision);
+  if (normalizedDivision) {
+    report.target_division = normalizedDivision;
+  } else {
+    delete report.target_division;
+  }
+
+  return report;
+}
+
+function matchesEsklasiRegex(report: Partial<Report>, pattern?: string): boolean {
+  if (!pattern) return true;
+  const rawEsklasi = String(report.esklasi_divisi || '').trim();
+  if (!rawEsklasi) return false;
+
+  try {
+    return new RegExp(pattern, 'i').test(rawEsklasi);
+  } catch {
+    return rawEsklasi.toLowerCase().includes(pattern.toLowerCase());
+  }
+}
+
 export function isGseRelatedReport(report: Partial<Report>): boolean {
   if (report.is_gse_related) return true;
   if (report.gse_number || report.gse_name) return true;
 
   const textBlob = [
+    report.esklasi_divisi,
     report.primary_tag,
     report.sub_category_note,
     report.main_category,
@@ -304,7 +345,12 @@ export function isGseRelatedReport(report: Partial<Report>): boolean {
     report.root_cause,
     report.action_taken,
     report.preventive_action,
+    report.specific_location,
+    report.location,
     report.area,
+    report.terminal_area_category,
+    report.apron_area_category,
+    report.general_category,
   ]
     .filter(Boolean)
     .map((value) => String(value).toLowerCase())
@@ -582,18 +628,7 @@ export class ReportsService {
         report.resolved_at = report.date_of_event || report.created_at || new Date().toISOString();
     }
 
-    // Normalize Target Division to match application constants (DIVISIONS) using strict regex extraction
-    if (report.target_division) {
-        const divRaw = String(report.target_division).trim();
-        // Strictly Match case: OT, OP, UQ, HT, OS, HC
-        const match = divRaw.match(/(OT|OP|UQ|HT|OS|HC)/);
-        if (match) {
-            report.target_division = match[1];
-        } else {
-            // No matches found for strict regex, clear to avoid false categorization
-            report.target_division = null;
-        }
-    }
+    syncEscalationDivisionAliases(report);
 
     report.source_fingerprint = buildReportFingerprint(report);
 
@@ -652,6 +687,8 @@ export class ReportsService {
       newReport.category = normalizedCategory;
     }
 
+    syncEscalationDivisionAliases(newReport);
+
     return newReport;
   }
 
@@ -699,7 +736,10 @@ export class ReportsService {
           return allUrls.length ? allUrls.join(' | ') : '';
         }
 
-        const val = report[prop];
+        let val = report[prop];
+        if ((prop === 'esklasi_divisi' || prop === 'target_division') && !val) {
+          val = report.esklasi_divisi || report.target_division;
+        }
         if (Array.isArray(val)) return val.join(' | ');
         if (val && typeof val === 'object') return JSON.stringify(val);
         return val !== undefined ? val : '';
@@ -840,9 +880,12 @@ export class ReportsService {
           // Source Sheet filtering
           if (filters.sourceSheet && report.source_sheet !== filters.sourceSheet) return false;
 
+          // Raw escalation regex filtering on Google Sheets column ESKLASI DIVISI
+          if (filters.esklasiRegex && !matchesEsklasiRegex(report, filters.esklasiRegex)) return false;
+
           // Division filtering
           if (filters.targetDivision) {
-            const reportDivision = normalizeDivisionCode(report.target_division);
+            const reportDivision = resolveReportEscalationDivision(report);
             if (reportDivision !== normalizeDivisionCode(filters.targetDivision)) return false;
           }
 
@@ -921,12 +964,6 @@ export class ReportsService {
         if (filters?.dateFrom) q = q.gte('date_of_event', filters.dateFrom);
         if (filters?.dateTo) q = q.lte('date_of_event', filters.dateTo);
         if (filters?.sourceSheet) q = q.eq('source_sheet', filters.sourceSheet);
-        if (filters?.targetDivision) {
-          const normalizedDivision = normalizeDivisionCode(filters.targetDivision);
-          if (normalizedDivision) {
-            q = q.eq('target_division', normalizedDivision);
-          }
-        }
         return q;
       };
 
@@ -959,7 +996,7 @@ export class ReportsService {
 
       console.log(`[ReportsService] Fetched ${allReports.length} reports from reports_sync`);
 
-      return allReports.map((row: any) => ({
+      return allReports.map((row: any) => syncEscalationDivisionAliases({
         ...row,
         id: row.id,
         sheet_id: row.sheet_id,
@@ -1009,7 +1046,7 @@ export class ReportsService {
 
     if (allReports.length === 0) return [];
 
-    return allReports.map((row: any) => ({
+    return allReports.map((row: any) => syncEscalationDivisionAliases({
       ...row,
       // Map DB fields to Report interface if needed
       // Most fields should match due to direct mapping in POST
@@ -1149,7 +1186,7 @@ export class ReportsService {
       .limit(1);
     if (error || !data || data.length === 0) return null;
     const row = data[0];
-    return {
+    return syncEscalationDivisionAliases({
       ...row,
       id: row.id,
       sheet_id: row.sheet_id,
@@ -1161,7 +1198,7 @@ export class ReportsService {
       date_of_event: row.date_of_event || row.incident_date || row.created_at,
       created_at: row.created_at || new Date().toISOString(),
       stations: row.station_id ? { code: row.station_id, name: row.station_id } : undefined,
-    } as Report;
+    } as Report);
   }
 
   private parseId(id: string): { sheetName: string, rowIndex: number } | null {
@@ -1224,7 +1261,14 @@ export class ReportsService {
         return col;
     };
 
-    if (['evidence_urls', 'evidence_url', 'video_urls', 'video_url'].some(k => k in updates)) {
+    const effectiveUpdates: Partial<Report> = { ...updates };
+
+    if ('target_division' in effectiveUpdates || 'esklasi_divisi' in effectiveUpdates) {
+      syncEscalationDivisionAliases(effectiveUpdates);
+      delete effectiveUpdates.target_division;
+    }
+
+    if (['evidence_urls', 'evidence_url', 'video_urls', 'video_url'].some(k => k in effectiveUpdates)) {
         const currentReport = await this.getReportById(id);
         if (currentReport) {
             const existingUrls = [
@@ -1234,18 +1278,18 @@ export class ReportsService {
                 ...(currentReport.video_url && !Array.isArray(currentReport.video_urls) ? [currentReport.video_url] : [])
             ];
             const newUrls = [
-                ...(Array.isArray(updates.evidence_urls) ? updates.evidence_urls : []),
-                ...(updates.evidence_url ? [updates.evidence_url] : []),
-                ...(Array.isArray(updates.video_urls) ? updates.video_urls : []),
-                ...(updates.video_url ? [updates.video_url] : [])
+                ...(Array.isArray(effectiveUpdates.evidence_urls) ? effectiveUpdates.evidence_urls : []),
+                ...(effectiveUpdates.evidence_url ? [effectiveUpdates.evidence_url] : []),
+                ...(Array.isArray(effectiveUpdates.video_urls) ? effectiveUpdates.video_urls : []),
+                ...(effectiveUpdates.video_url ? [effectiveUpdates.video_url] : [])
             ];
-            updates.evidence_urls = [...new Set([...existingUrls, ...newUrls])].filter(Boolean);
+            effectiveUpdates.evidence_urls = [...new Set([...existingUrls, ...newUrls])].filter(Boolean);
         }
     }
 
     const batchData: { range: string; values: string[][] }[] = [];
 
-    for (const [key, value] of Object.entries(updates)) {
+    for (const [key, value] of Object.entries(effectiveUpdates)) {
         if (value === undefined) continue;
         if (key === 'evidence_url' || key === 'video_url' || key === 'video_urls') continue;
 
@@ -1291,7 +1335,9 @@ export class ReportsService {
 
     this.invalidateCache();
     const existing = await this.getReportById(id);
-    return existing ? { ...existing, ...updates } : null;
+    return existing
+      ? syncEscalationDivisionAliases({ ...existing, ...effectiveUpdates })
+      : null;
   }
 
   async deleteReport(id: string): Promise<boolean> {
