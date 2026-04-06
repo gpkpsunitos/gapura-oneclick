@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from 'framer-motion';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { LINKS_CONFIG, GET_LINKS_KEY, type NavItemConfig } from '@/lib/nav-config';
+import { purgePwaClientState } from '@/lib/pwa/client-state';
 
 interface MobileBottomNavProps {
     role: string;
@@ -64,17 +65,14 @@ export function MobileBottomNav({ role, onMenuClick }: MobileBottomNavProps) {
         lastScrollY.current = latest;
     });
 
-    const handleLogout = useCallback(async () => {
+    const handleLogout = useCallback(() => {
         try {
-            const { purgePwaClientState } = await import('@/lib/pwa/client-state');
             purgePwaClientState();
         } catch {
-            // Ignore cleanup errors
+            // PWA cleanup is best-effort — never block logout
         }
-        document.cookie = 'session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'auth_bundle=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        router.push('/auth/login');
-    }, [router]);
+        window.location.href = '/api/auth/logout';
+    }, []);
 
     const navData = useMemo(() => {
         const configKey = GET_LINKS_KEY(role);

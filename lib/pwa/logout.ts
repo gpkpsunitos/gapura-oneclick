@@ -1,25 +1,15 @@
-/**
- * @file
- * Dibuat oleh Claude
- * 
- * File ini berisi fungsi logout dengan cleanup PWA untuk membersihkan state lokal saat logout.
- */
-
 "use client";
 
 import { purgePwaClientState } from "@/lib/pwa/client-state";
 
-/**
- * Melakukan logout dengan cleanup PWA
- * Membersihkan state PWA secara sinkron dan redirect ke server-side logout
- * @throws Tidak melempar error, error ditangani secara internal
- */
-export async function logoutWithPwaCleanup() {
-  try {
-    // Start PWA cleanup (synchronous parts run immediately, asynchronous parts in background)
-    purgePwaClientState();
-  } finally {
-    // Redirect immediately to server-side logout to flush cookies and trigger Clear-Site-Data
+// Performs a full logout: synchronously purges local PWA state then hard-redirects
+// to the server-side logout endpoint which revokes the DB session and clears httpOnly cookies.
+// Complexity: Time O(1) | Space O(1)
+export function logoutWithPwaCleanup() {
+    try {
+        purgePwaClientState();
+    } catch {
+        // PWA cleanup is best-effort — never block logout
+    }
     window.location.href = "/api/auth/logout";
-  }
 }

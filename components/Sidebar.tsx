@@ -16,6 +16,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { LINKS_CONFIG, GET_LINKS_KEY, type NavGroupConfig as NavGroup } from '@/lib/nav-config';
+import { purgePwaClientState } from '@/lib/pwa/client-state';
 
 declare global {
     interface Window {
@@ -271,17 +272,15 @@ export default function Sidebar({ role }: { role: string }) {
     const configKey = GET_LINKS_KEY(role || '', pathname);
     const groups = LINKS_CONFIG[configKey];
 
-    const handleLogout = async () => {
+    const handleLogout = () => {
         setLoading(true);
         try {
-            const { purgePwaClientState } = await import('@/lib/pwa/client-state');
             purgePwaClientState();
         } catch {
-            // Ignore cleanup errors
+            // PWA cleanup is best-effort — never block logout
         }
-        document.cookie = 'session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        document.cookie = 'auth_bundle=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-        router.push('/auth/login');
+        // Hard redirect to server-side logout: revokes session in DB, clears httpOnly cookies
+        window.location.href = '/api/auth/logout';
     };
 
     const handleReturnToOrigin = async () => {
