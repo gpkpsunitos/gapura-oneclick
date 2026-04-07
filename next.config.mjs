@@ -19,7 +19,12 @@ const nextConfig = {
             : false,
     },
 
-    turbopack: {},
+    turbopack: {
+        // [FIX] Explicitly declare the project root to silence the
+        // "Next.js inferred your workspace root" warning caused by
+        // multiple lockfiles (bun.lock + package-lock.json).
+        root: process.cwd(),
+    },
 
     webpack: (config, { isServer }) => {
         if (!isServer) {

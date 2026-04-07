@@ -21,7 +21,6 @@ import {
     Calendar,
     Layers,
     BookOpen,
-    GraduationCap
 } from 'lucide-react';
 
 /**
@@ -85,7 +84,6 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
                 { href: '/dashboard/employee/quick-access', label: 'Quick Access', icon: ChevronRight },
                 { href: '/dashboard/employee/hc-leave', label: 'Ajukan Cuti / Izin', icon: Users },
                 { href: '/dashboard/employee/hc-documents', label: 'Edaran HC', icon: BookOpen },
-                { href: '/dashboard/employee/training-hub', label: 'Training Hub', icon: GraduationCap },
             ]
         }
     ],
@@ -99,7 +97,6 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
                 { href: '/dashboard/employee/quick-access', label: 'Quick Access', icon: ChevronRight },
                 { href: '/dashboard/employee/hc-leave', label: 'Monitoring Cuti Cabang', icon: Users },
                 { href: '/dashboard/employee/hc-documents', label: 'Edaran HC', icon: BookOpen },
-                { href: '/dashboard/employee/training-hub', label: 'Training Hub', icon: GraduationCap },
             ]
         },
         {

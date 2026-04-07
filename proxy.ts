@@ -208,7 +208,7 @@ export default async function proxy(request: NextRequest) {
              }
              return NextResponse.redirect(new URL('/dashboard/employee', request.url));
         }
-        if (path.startsWith('/dashboard/ht') && !['DIVISI_HT', 'PARTNER_HT'].includes(role) && !path.startsWith('/dashboard/ht/training-hub')) {
+        if (path.startsWith('/dashboard/ht') && !['DIVISI_HT', 'PARTNER_HT'].includes(role)) {
              if (role === 'DIVISI_ESKALASI') {
                  return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
              }

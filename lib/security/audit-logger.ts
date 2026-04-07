@@ -5,7 +5,13 @@
  * File ini berisi fungsi untuk mencatat aksi yang terkait dengan keamanan ke audit trail
  */
 
-import { createClient } from '@/lib/supabase-admin';
+// [FIX] Import the shared singleton admin client instead of the `createClient`
+// factory. Previously, `createClient()` was called inside `logSecurityAudit()`
+// on EVERY invocation, creating a new Supabase client (with its own HTTP
+// connection pool, auth state, and real-time channel) each time. These were
+// never explicitly closed, causing connection/resource accumulation under
+// high audit traffic.
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 /**
  * Entri audit log
@@ -42,13 +48,11 @@ export interface AuditEntry {
  * ```
  */
 export async function logSecurityAudit(entry: AuditEntry) {
-    const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-    
+    // [FIX] Use the module-level `supabaseAdmin` singleton instead of
+    // creating a new client on every call. One client = one connection pool,
+    // properly reused across all audit log writes.
     try {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
             .from('audit_logs')
             .insert({
                 actor_id: entry.actorId,

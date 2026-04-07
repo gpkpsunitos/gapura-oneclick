@@ -1,0 +1,270 @@
+- generic [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - img "Gapura Logo" [ref=e7]
+      - navigation [ref=e8]:
+        - generic [ref=e10]:
+          - heading "Divisi Operasi" [level=3] [ref=e13]
+          - generic [ref=e14]:
+            - link "OP Dashboard" [ref=e15] [cursor=pointer]:
+              - /url: /dashboard/op
+              - generic [ref=e17]:
+                - img [ref=e18]
+                - generic [ref=e23]: OP Dashboard
+            - link "Laporan Divisi" [ref=e24] [cursor=pointer]:
+              - /url: /dashboard/op/dispatched
+              - generic [ref=e26]:
+                - img [ref=e27]
+                - generic [ref=e30]: Laporan Divisi
+            - link "Semua Laporan" [ref=e31] [cursor=pointer]:
+              - /url: /dashboard/op/reports
+              - generic [ref=e33]:
+                - img [ref=e34]
+                - generic [ref=e41]: Semua Laporan
+      - generic [ref=e43]:
+        - generic [ref=e44]:
+          - generic [ref=e45]: D
+          - generic [ref=e46]:
+            - paragraph [ref=e47]: Divisi OP
+            - paragraph [ref=e48]: Active Account
+        - button "Sign Out" [ref=e49] [cursor=pointer]:
+          - img [ref=e50]
+          - text: Sign Out
+    - main [ref=e54]:
+      - generic [ref=e56]:
+        - generic [ref=e57]:
+          - generic [ref=e58]:
+            - generic [ref=e59]:
+              - img [ref=e60]
+              - generic [ref=e65]: Periode
+            - button "30 Hari" [ref=e66] [cursor=pointer]
+            - button "90 Hari" [ref=e67] [cursor=pointer]
+            - button "6 Bulan" [ref=e68] [cursor=pointer]
+            - button "1 Tahun" [ref=e69] [cursor=pointer]
+            - button "Semua" [active] [ref=e70] [cursor=pointer]
+            - generic [ref=e71]:
+              - generic [ref=e72]: Sumber
+              - button "Semua" [ref=e73] [cursor=pointer]
+              - button "NON CARGO" [ref=e74] [cursor=pointer]
+              - button "CGO" [ref=e75] [cursor=pointer]
+          - button "Tampilkan Filter" [ref=e77] [cursor=pointer]:
+            - img [ref=e78]
+            - text: Tampilkan Filter
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - heading "Complaint Per Category" [level=1] [ref=e83]
+            - generic [ref=e85]:
+              - generic [ref=e86]: Latest complaint
+              - generic [ref=e87]: "-"
+              - generic [ref=e88]: Most recent filtered record
+          - generic [ref=e89]:
+            - generic [ref=e91]:
+              - generic [ref=e94]:
+                - img [ref=e96]
+                - generic [ref=e103]:
+                  - generic [ref=e104]: Filtered complaint volume
+                  - generic [ref=e105]: "0"
+              - generic [ref=e106]:
+                - generic [ref=e107]:
+                  - generic [ref=e108]: Latest event
+                  - generic [ref=e109]: "-"
+                - generic [ref=e110]:
+                  - generic [ref=e111]: Live categories
+                  - generic [ref=e112]: 0 buckets
+                - generic [ref=e113]:
+                  - generic [ref=e114]: Sheet scope
+                  - generic [ref=e115]: No live sheet data
+            - generic [ref=e116]:
+              - generic [ref=e117]:
+                - generic [ref=e118]:
+                  - generic [ref=e119]:
+                    - img [ref=e121]
+                    - generic [ref=e126]: Open now
+                  - generic [ref=e127]: 0 closed
+                - generic [ref=e128]: "0"
+                - paragraph [ref=e129]: 0.0% of filtered complaints
+              - generic [ref=e130]:
+                - generic [ref=e131]:
+                  - generic [ref=e132]:
+                    - img [ref=e134]
+                    - generic [ref=e148]: Closure rate
+                  - generic [ref=e149]: All closed
+                - generic [ref=e150]: 0.0%
+                - paragraph [ref=e151]: 0 complaints already closed
+          - generic [ref=e152]:
+            - generic [ref=e153]:
+              - generic [ref=e154]:
+                - generic [ref=e155]:
+                  - img [ref=e157]
+                  - generic [ref=e165]: CGO share
+                - generic [ref=e166]: 0.0% non-cargo
+              - generic [ref=e167]: 0.0%
+              - paragraph [ref=e168]: 0 CGO vs 0 NON CARGO
+            - generic [ref=e170]:
+              - generic [ref=e172]:
+                - img [ref=e174]
+                - generic [ref=e179]:
+                  - generic [ref=e180]: Top complaint category
+                  - generic [ref=e181]: No complaint category yet
+              - generic [ref=e183]: No ranked complaint category in active filter
+          - generic [ref=e184]:
+            - generic [ref=e187]: Tidak ada data
+            - generic [ref=e189]:
+              - heading "Complaint Mix by Area" [level=3] [ref=e190]
+              - paragraph [ref=e191]: Distribusi complaint yang sudah dipisahkan ke Apron, Terminal, dan General.
+            - generic [ref=e196]: Tidak ada data
+          - generic [ref=e198]:
+            - generic [ref=e199]:
+              - heading "Trend Bulanan Complaint" [level=3] [ref=e200]
+              - paragraph [ref=e201]: Gunakan toggle untuk melihat perubahan complaint berdasarkan source sheet atau area operasional.
+            - generic [ref=e202]:
+              - button "By Sheet" [ref=e203] [cursor=pointer]
+              - button "By Area" [ref=e204] [cursor=pointer]
+          - generic [ref=e208]:
+            - generic [ref=e209]:
+              - img [ref=e211]
+              - generic [ref=e215]:
+                - heading "Area-to-Category Heatmap" [level=3] [ref=e216]
+                - paragraph [ref=e217]: Matriks ini menunjukkan kombinasi area dan complaint category yang paling dominan setelah normalisasi taxonomy.
+            - table [ref=e219]:
+              - rowgroup [ref=e220]:
+                - row "Area" [ref=e221]:
+                  - generic [ref=e222]: Area
+              - rowgroup
+          - generic [ref=e223]:
+            - generic [ref=e224]:
+              - generic [ref=e225]:
+                - heading "Hotspot Ranking" [level=3] [ref=e226]
+                - paragraph [ref=e227]: Ranking entity berdasarkan volume complaint, porsi terhadap total complaint, open count, dan dominant complaint category.
+              - generic [ref=e228]:
+                - button "Cabang" [ref=e229] [cursor=pointer]
+                - button "Hub" [ref=e230] [cursor=pointer]
+                - button "Maskapai" [ref=e231] [cursor=pointer]
+            - generic [ref=e232]:
+              - generic [ref=e234]:
+                - heading "Top Cabang" [level=4] [ref=e235]
+                - paragraph [ref=e236]: Grafik cepat untuk volume complaint tertinggi pada entity terpilih.
+              - generic [ref=e239]:
+                - generic [ref=e240]:
+                  - generic [ref=e241]:
+                    - img [ref=e243]
+                    - generic [ref=e250]:
+                      - heading "Hotspot Cabang" [level=3] [ref=e251]
+                      - generic [ref=e253]: Syncing Archive
+                  - generic [ref=e255]:
+                    - generic [ref=e256]:
+                      - img [ref=e257]
+                      - textbox "QUERYS_SEARCH..." [ref=e260]
+                    - button "Export" [ref=e261] [cursor=pointer]:
+                      - img [ref=e262]
+                      - generic [ref=e268]: Export
+                - table [ref=e270]:
+                  - rowgroup [ref=e271]:
+                    - row "idx Cabang ▼ count ▼ share pct ▼ open count ▼ open rate pct ▼ dominant category ▼ latest report ▼" [ref=e272]:
+                      - columnheader "idx" [ref=e273]
+                      - columnheader "Cabang ▼" [ref=e274] [cursor=pointer]:
+                        - generic [ref=e275]:
+                          - generic [ref=e276]: Cabang
+                          - generic [ref=e277]: ▼
+                      - columnheader "count ▼" [ref=e278] [cursor=pointer]:
+                        - generic [ref=e279]:
+                          - generic [ref=e280]: count
+                          - generic [ref=e281]: ▼
+                      - columnheader "share pct ▼" [ref=e282] [cursor=pointer]:
+                        - generic [ref=e283]:
+                          - generic [ref=e284]: share pct
+                          - generic [ref=e285]: ▼
+                      - columnheader "open count ▼" [ref=e286] [cursor=pointer]:
+                        - generic [ref=e287]:
+                          - generic [ref=e288]: open count
+                          - generic [ref=e289]: ▼
+                      - columnheader "open rate pct ▼" [ref=e290] [cursor=pointer]:
+                        - generic [ref=e291]:
+                          - generic [ref=e292]: open rate pct
+                          - generic [ref=e293]: ▼
+                      - columnheader "dominant category ▼" [ref=e294] [cursor=pointer]:
+                        - generic [ref=e295]:
+                          - generic [ref=e296]: dominant category
+                          - generic [ref=e297]: ▼
+                      - columnheader "latest report ▼" [ref=e298] [cursor=pointer]:
+                        - generic [ref=e299]:
+                          - generic [ref=e300]: latest report
+                          - generic [ref=e301]: ▼
+                  - rowgroup [ref=e302]:
+                    - row "Null result set." [ref=e303]:
+                      - cell "Null result set." [ref=e304]
+                - generic [ref=e305]:
+                  - generic [ref=e306]: NULL SET
+                  - generic [ref=e307]:
+                    - button "Start" [disabled] [ref=e308]
+                    - generic [ref=e309]:
+                      - generic [ref=e310]: "1"
+                      - generic [ref=e311]: /
+                      - generic [ref=e312]: "1"
+                    - generic [ref=e313]:
+                      - button [disabled] [ref=e314]:
+                        - img [ref=e315]
+                      - button "Next Phase" [disabled] [ref=e317]
+                      - button [disabled] [ref=e318]:
+                        - img [ref=e319]
+          - generic [ref=e321]:
+            - generic [ref=e322]:
+              - generic [ref=e323]:
+                - heading "Drill-down per Complaint Category" [level=3] [ref=e324]
+                - paragraph [ref=e325]: Pilih kategori complaint di bawah untuk membuka investigasi detail, record list, dan export CSV untuk subset yang aktif.
+              - generic [ref=e326]:
+                - generic [ref=e327]: 0 ranked categories
+                - generic [ref=e328]: 0 complaints in scope
+            - generic [ref=e329]:
+              - generic [ref=e330]:
+                - generic [ref=e331]: No active category
+                - paragraph [ref=e332]: Pilih kategori dari ranking di sebelah kanan untuk membuka ringkasan dan record list.
+              - generic [ref=e333]:
+                - generic [ref=e334]:
+                  - generic [ref=e335]:
+                    - generic [ref=e336]: Browse ranked categories
+                    - heading "Compare volume, share, and open cases" [level=4] [ref=e337]
+                    - paragraph [ref=e338]: Start with the biggest drivers, then open a lower-ranked category only when you need detail.
+                  - generic [ref=e340]:
+                    - img
+                    - searchbox "Cari complaint category..." [ref=e341]
+                - generic [ref=e344]: 0 of 0 shown
+                - generic [ref=e345]:
+                  - generic [ref=e346]: Kategori tidak ditemukan
+                  - paragraph [ref=e347]: Ubah kata kunci pencarian untuk melihat complaint category lain.
+            - generic [ref=e348]:
+              - generic [ref=e349]:
+                - generic [ref=e350]:
+                  - generic [ref=e352]: Record list
+                  - generic [ref=e353]: Complaint Records
+                  - generic [ref=e354]: 0 record tersedia untuk kategori aktif. Cari judul, branch, airline, atau isi complaint untuk mempersempit subset.
+                - generic [ref=e355]:
+                  - generic [ref=e356]:
+                    - img
+                    - searchbox "Cari judul, branch, airline..." [ref=e357]
+                  - button "Export CSV" [disabled]:
+                    - img
+                    - text: Export CSV
+              - table [ref=e359]:
+                - rowgroup [ref=e360]:
+                  - row "Complaint Category Context Entity Tracking Detail" [ref=e361]:
+                    - columnheader "Complaint" [ref=e362]
+                    - columnheader "Category Context" [ref=e363]
+                    - columnheader "Entity" [ref=e364]
+                    - columnheader "Tracking" [ref=e365]
+                    - columnheader "Detail" [ref=e366]
+                - rowgroup [ref=e367]:
+                  - row "Tidak ada complaint records Belum ada record yang cocok untuk kategori aktif." [ref=e368]:
+                    - cell "Tidak ada complaint records Belum ada record yang cocok untuk kategori aktif." [ref=e369]:
+                      - generic [ref=e370]:
+                        - generic [ref=e371]: Tidak ada complaint records
+                        - paragraph [ref=e372]: Belum ada record yang cocok untuk kategori aktif.
+              - generic [ref=e373]:
+                - generic [ref=e374]: Menampilkan 0-0 dari 0 record
+                - generic [ref=e375]:
+                  - button "Prev" [disabled]
+                  - generic [ref=e376]: 1 / 1
+                  - button "Next" [disabled]
+  - generic [ref=e379]:
+    - img [ref=e380]
+    - generic [ref=e388]: Anda sedang offline. Draft laporan akan dikirim saat koneksi kembali.

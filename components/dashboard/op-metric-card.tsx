@@ -33,19 +33,19 @@ const TONE_MAP: Record<string, {
   badgeBg: string;
 }> = {
   real: {
-    container: 'border-emerald-200/60 bg-white',
-    iconBg: 'bg-emerald-100 text-emerald-700',
-    badgeBg: 'bg-emerald-100 text-emerald-800',
+    container: 'border-emerald-200/30 bg-white/60 ring-1 ring-white/60 backdrop-blur-xl',
+    iconBg: 'bg-emerald-100/50 text-emerald-700 ring-1 ring-emerald-200/50',
+    badgeBg: 'bg-emerald-100/80 text-emerald-800',
   },
   ai: {
-    container: 'border-amber-200/60 bg-white',
-    iconBg: 'bg-amber-100 text-amber-700',
-    badgeBg: 'bg-amber-100 text-amber-800',
+    container: 'border-amber-200/30 bg-white/60 ring-1 ring-white/60 backdrop-blur-xl',
+    iconBg: 'bg-amber-100/50 text-amber-700 ring-1 ring-amber-200/50',
+    badgeBg: 'bg-amber-100/80 text-amber-800',
   },
   neutral: {
-    container: 'border-slate-200/60 bg-white',
-    iconBg: 'bg-slate-100 text-slate-700',
-    badgeBg: 'bg-slate-100 text-slate-800',
+    container: 'border-slate-200/30 bg-white/60 ring-1 ring-white/60 backdrop-blur-xl',
+    iconBg: 'bg-slate-100/50 text-slate-700 ring-1 ring-slate-200/50',
+    badgeBg: 'bg-slate-100/80 text-slate-800',
   },
 };
 
@@ -89,10 +89,9 @@ export function OpMetricCard({
   return (
     <div
       className={cn(
-        'group relative overflow-hidden rounded-2xl border p-4 shadow-sm transition-all',
-        'hover:shadow-md',
+        'group relative overflow-hidden rounded-[24px] border px-5 py-4 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+        'hover:-translate-y-1 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:bg-white/80',
         styles.container,
-        size === 'sm' ? 'hover:-translate-y-0.5' : '',
         SIZE_CLASS[size],
       )}
     >
@@ -110,11 +109,11 @@ export function OpMetricCard({
               )}
             />
           </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start gap-2">
               <p
                 className={cn(
-                  'text-[10px] font-black uppercase tracking-[0.18em]',
+                  'font-black uppercase tracking-[0.06em] leading-tight text-slate-500',
                   size === 'sm' ? 'text-[9px]' : 'text-[11px]',
                 )}
               >
@@ -123,7 +122,7 @@ export function OpMetricCard({
               {badge && (
                 <span
                   className={cn(
-                    'rounded-full px-2 py-0.5 text-[9px] font-bold',
+                    'shrink-0 rounded-full px-2 py-0.5 text-[9px] font-bold mt-0.5',
                     badgeTone === 'emerald' && 'bg-emerald-100 text-emerald-700',
                     badgeTone === 'amber' && 'bg-amber-100 text-amber-700',
                     badgeTone === 'rose' && 'bg-rose-100 text-rose-700',
@@ -138,8 +137,8 @@ export function OpMetricCard({
             {caption && (
               <p
                 className={cn(
-                  'mt-0.5 truncate text-xs text-slate-500',
-                  size === 'sm' ? 'text-[9px] leading-tight' : '',
+                  'mt-1 text-xs text-slate-500 leading-relaxed max-w-full break-words',
+                  size === 'sm' ? 'text-[9px]' : '',
                 )}
               >
                 {caption}
@@ -150,17 +149,19 @@ export function OpMetricCard({
       </div>
 
       {/* Value + Trend indicator */}
-      <div className="mt-2 flex items-end gap-2">
+      <div className="mt-3 flex items-end gap-2.5">
         <p
           className={cn(
-            'font-black tracking-tight text-slate-900',
-            size === 'sm' ? 'text-xl' : size === 'md' ? 'text-2xl' : 'text-3xl',
+            'font-bold tracking-[-0.04em] text-slate-950',
+            size === 'sm' ? 'text-[24px]' : size === 'md' ? 'text-[32px]' : 'text-[40px]',
           )}
         >
           {formattedValue}
         </p>
         {trend && deltaLabel && (
-          <TrendBadge direction={trend} delta={deltaLabel} />
+          <div className="mb-1.5">
+            <TrendBadge direction={trend} delta={deltaLabel} />
+          </div>
         )}
       </div>
     </div>

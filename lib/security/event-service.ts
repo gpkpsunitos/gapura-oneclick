@@ -21,6 +21,32 @@ interface SecurityEventParams {
     actor_id?: string;
 }
 
+// [FIX] Throttle detection engine invocations.
+// Previously, every `logSecurityEvent()` call fired a `process.nextTick()`
+// that triggered `DetectionEngine.analyze()`. Under burst traffic (e.g.,
+// a brute-force attack generating hundreds of events/sec), this would
+// queue an unbounded number of nextTick callbacks, each holding a reference
+// to the event array and engine instance, preventing GC.
+//
+// We now batch events in a micro-buffer and flush at most once per tick.
+let pendingEvents: SecurityEvent[] = [];
+let flushScheduled = false;
+
+function scheduleDetectionFlush(): void {
+    if (flushScheduled) return;
+    flushScheduled = true;
+    process.nextTick(() => {
+        flushScheduled = false;
+        const events = pendingEvents;
+        pendingEvents = [];
+        if (events.length > 0) {
+            DetectionEngine.getInstance().analyze(events).catch(err =>
+                console.error('[SECURITY EVENT SERVICE] Detection trigger failure:', err)
+            );
+        }
+    });
+}
+
 /**
  * Mencatat event keamanan dari dalam logika sistem
  * Mendekoupling logika dari persistensi/analisis
@@ -52,19 +78,18 @@ export async function logSecurityEvent(params: SecurityEventParams) {
             return;
         }
 
-        // Trigger real-time detection
-        // We cast to SecurityEvent for the internal engine
+        // [FIX] Batch the event into the micro-buffer instead of firing
+        // a separate process.nextTick for each event. The flush function
+        // (scheduled once per tick) will send all accumulated events to
+        // the detection engine in a single `.analyze()` call.
         const event: SecurityEvent = {
             id: 'internal', // Placeholder
             ...params,
             created_at: new Date().toISOString()
         };
 
-        process.nextTick(() => {
-            DetectionEngine.getInstance().analyze([event]).catch(err => 
-                console.error('[SECURITY EVENT SERVICE] Detection trigger failure:', err)
-            );
-        });
+        pendingEvents.push(event);
+        scheduleDetectionFlush();
 
     } catch (err) {
         console.error('[SECURITY EVENT SERVICE] Critical failure:', err);

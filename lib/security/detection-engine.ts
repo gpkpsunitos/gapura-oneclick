@@ -11,31 +11,68 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 /**
  * Mesin Deteksi Keamanan Real-Time
  * Mengimplementasikan analisis perilaku ML-lite dan heuristik berbasis aturan
- * Kompleksitas: Analisis O(1) per event | Persistensi O(1)
+ *
+ * [FIX SUMMARY]
+ * 1. Replaced Array-based `eventWindow` with a circular buffer (O(1) push
+ *    instead of O(n) Array.shift).
+ * 2. Added bounded cleanup for `ipFailures` Map to prevent unbounded key
+ *    accumulation from IPs that stop generating events.
+ * 3. Added `destroy()` method for explicit resource release.
  */
 export class DetectionEngine {
-    private static INSTANCE: DetectionEngine;
-    private eventWindow: SecurityEvent[] = [];
-    private WINDOW_SIZE = 1000;
-    
+    private static INSTANCE: DetectionEngine | null = null;
+
+    // [FIX] Circular buffer replaces the old linear array.
+    // Array.shift() on a 1000-element array is O(n) because it re-indexes
+    // every remaining element. The ring buffer achieves O(1) for both
+    // push and eviction by overwriting the oldest slot via modular index.
+    private ringBuffer: (SecurityEvent | undefined)[];
+    private ringHead = 0; // Next write position
+    private ringCount = 0; // Number of filled slots
+    private readonly WINDOW_SIZE = 1000;
+
     // Incremental Stats for O(1) Z-Score
     private trafficStats = { count: 0, sum: 0, sumSq: 0 };
+
     // Per-IP failure windows for O(K) brute force (K = failures in 30s)
+    // [FIX] Added MAX_IP_ENTRIES cap to prevent unbounded growth.
     private ipFailures = new Map<string, number[]>();
+    private readonly MAX_IP_ENTRIES = 5000;
+
+    /**
+     * [FIX] Bounded IP failure tracking.
+     *
+     * When an IP ages out of the window, we clean its entries from `ipFailures`.
+     * Additionally, if the Map exceeds MAX_IP_ENTRIES, we proactively prune
+     * the oldest keys to prevent unbounded memory growth from long-running
+     * processes that see many unique IPs.
+     */
+    private pruneIpFailures(): void {
+        if (this.ipFailures.size <= this.MAX_IP_ENTRIES) return;
+        // Delete the first 20% of entries (oldest by insertion order)
+        const toDelete = Math.floor(this.MAX_IP_ENTRIES * 0.2);
+        let deleted = 0;
+        for (const key of this.ipFailures.keys()) {
+            if (deleted >= toDelete) break;
+            this.ipFailures.delete(key);
+            deleted++;
+        }
+    }
 
     /**
      * Mendapatkan instance singleton DetectionEngine
      * @returns {DetectionEngine} Instance DetectionEngine
-     * @example
-     * ```ts
-     * const engine = DetectionEngine.getInstance();
-     * ```
      */
     public static getInstance(): DetectionEngine {
         if (!DetectionEngine.INSTANCE) {
             DetectionEngine.INSTANCE = new DetectionEngine();
         }
         return DetectionEngine.INSTANCE;
+    }
+
+    private constructor() {
+        // Pre-allocate the ring buffer to the exact window size
+        this.ringBuffer = new Array(this.WINDOW_SIZE).fill(undefined);
     }
 
     /**
@@ -53,22 +90,32 @@ export class DetectionEngine {
             this.pushToWindow(event);
             await this.runRules(event);
         }
+
+        // [FIX] Periodically prune the ipFailures map to prevent unbounded growth
+        this.pruneIpFailures();
     }
 
     /**
-     * Menambahkan event ke window dan menghapus event lama jika diperlukan
-     * @private
-     * @param {SecurityEvent} event - Event yang akan ditambahkan
+     * [FIX] Push an event into the circular buffer, evicting the oldest
+     * entry in O(1) time. The previous implementation used Array.push()
+     * + Array.shift(), which was O(n) per eviction due to array re-indexing.
      */
     private pushToWindow(event: SecurityEvent) {
-        // 1. Handle Removal (Inc. Trimming)
-        if (this.eventWindow.length >= this.WINDOW_SIZE) {
-            const old = this.eventWindow.shift();
-            if (old) this.updateStats(old, 'REMOVE');
+        // Compute the slot we're about to overwrite
+        const slotIndex = this.ringHead % this.WINDOW_SIZE;
+        const old = this.ringBuffer[slotIndex];
+
+        // If the slot was occupied, remove its contribution to stats
+        if (old !== undefined && this.ringCount >= this.WINDOW_SIZE) {
+            this.updateStats(old, 'REMOVE');
         }
 
-        // 2. Handle Addition
-        this.eventWindow.push(event);
+        // Write the new event and advance the head
+        this.ringBuffer[slotIndex] = event;
+        this.ringHead++;
+        if (this.ringCount < this.WINDOW_SIZE) this.ringCount++;
+
+        // Add new event's contribution
         this.updateStats(event, 'ADD');
     }
 
@@ -99,6 +146,20 @@ export class DetectionEngine {
                 if (history.length === 0) this.ipFailures.delete(event.ip_address);
             }
         }
+    }
+
+    /**
+     * [FIX] Destroy the singleton and release all held memory.
+     * Resets the ring buffer, stats, and IP failure map.
+     */
+    public static destroyInstance(): void {
+        if (!DetectionEngine.INSTANCE) return;
+        DetectionEngine.INSTANCE.ringBuffer = [];
+        DetectionEngine.INSTANCE.ipFailures.clear();
+        DetectionEngine.INSTANCE.trafficStats = { count: 0, sum: 0, sumSq: 0 };
+        DetectionEngine.INSTANCE.ringHead = 0;
+        DetectionEngine.INSTANCE.ringCount = 0;
+        DetectionEngine.INSTANCE = null;
     }
 
     /**

@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "check:node": "node scripts/check-node-version.js",
-    "dev": "npm run check:node && NODE_OPTIONS='--max-old-space-size=4096' next dev",
-    "build": "npm run check:node && NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "dev": "npm run check:node && MallocNanoZone= NODE_OPTIONS='--max-old-space-size=4096' next dev",
+    "build": "npm run check:node && MallocNanoZone= NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "npm run check:node && next start",
     "lint": "eslint",
     "debug:sheets": "node scripts/debug-sheets.mjs",
@@ -13,6 +13,8 @@
     "sync:reports": "node scripts/sync-reports-node.mjs",
     "sync:auto": "node scripts/auto-sync-daemon.mjs",
     "sync:verify": "node scripts/verify-no-duplicates.mjs",
+    "sync:scheduler": "node scripts/sync-scheduler.mjs",
+    "sync:scheduler:dry": "DRY_RUN=1 node scripts/sync-scheduler.mjs",
     "clean": "rm -rf .next .turbo node_modules/.cache"
   },
   "engines": {

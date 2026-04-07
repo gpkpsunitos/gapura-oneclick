@@ -44,9 +44,9 @@ export function useAuth(redirectOnFail: boolean = true): UseAuthReturn {
     /**
      * Fetch data user dari API
      */
-    const fetchUser = useCallback(async () => {
+    const fetchUser = useCallback(async (signal?: AbortSignal) => {
         try {
-            const res = await fetchWithDemo('/api/auth/me');
+            const res = await fetchWithDemo('/api/auth/me', { signal } as RequestInit);
             if (res.ok) {
                 const data = await res.json();
                 setUser(data);
@@ -54,6 +54,8 @@ export function useAuth(redirectOnFail: boolean = true): UseAuthReturn {
                 router.push('/auth/login');
             }
         } catch (error) {
+            // [FIX] Ignore AbortError — component unmounted during fetch
+            if (error instanceof DOMException && error.name === 'AbortError') return;
             console.error('Auth error:', error);
             if (redirectOnFail) {
                 router.push('/auth/login');
@@ -64,7 +66,11 @@ export function useAuth(redirectOnFail: boolean = true): UseAuthReturn {
     }, [router, redirectOnFail]);
 
     useEffect(() => {
-        fetchUser();
+        // [FIX] AbortController ensures in-flight fetch is cancelled on unmount,
+        // preventing setState on unmounted component and response body retention.
+        const controller = new AbortController();
+        fetchUser(controller.signal);
+        return () => controller.abort();
     }, [fetchUser]);
 
     return {

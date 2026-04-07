@@ -113,6 +113,15 @@ class HuggingFaceClient {
     requestsQueued: 0,
   };
 
+  // [FIX] Store the interval ID so it can be cleared on destroy.
+  // Previously, setInterval() was called without storing the handle,
+  // creating an un-cancellable timer that leaked across HMR reloads.
+  private cleanupTimerId: ReturnType<typeof setInterval> | null = null;
+
+  // [FIX] Track whether the client has been explicitly destroyed
+  // to prevent use-after-destroy bugs.
+  private destroyed = false;
+
   /**
    * Membuat instance baru dari HuggingFaceClient
    * 
@@ -126,9 +135,28 @@ class HuggingFaceClient {
   /**
    * Memulai proses pembersihan cache secara berkala
    * Membersihkan cache yang sudah kadaluarsa setiap 60 detik
+   *
+   * [FIX] Now stores the interval handle in `cleanupTimerId` so it can
+   * be cleared via `destroy()`. This prevents the timer from running
+   * indefinitely (especially critical during Next.js HMR where module
+   * re-evaluation creates new singleton instances).
    */
   private startCacheCleanup(): void {
-    setInterval(() => {
+    // Guard: clear any existing timer before starting a new one
+    if (this.cleanupTimerId !== null) {
+      clearInterval(this.cleanupTimerId);
+    }
+
+    this.cleanupTimerId = setInterval(() => {
+      // [FIX] Early exit if client was destroyed between ticks
+      if (this.destroyed) {
+        if (this.cleanupTimerId !== null) {
+          clearInterval(this.cleanupTimerId);
+          this.cleanupTimerId = null;
+        }
+        return;
+      }
+
       const now = Date.now();
       for (const [key, entry] of this.cache.entries()) {
         if (entry.expiry < now) {
@@ -521,6 +549,39 @@ class HuggingFaceClient {
   updateConfig(newConfig: Partial<HfClientConfig>): void {
     this.config = { ...this.config, ...newConfig };
   }
+
+  /**
+   * [FIX] Destroy the client and release all held resources.
+   *
+   * Clears the periodic cleanup interval, drains the cache, rejects
+   * any queued requests, and clears pending request promises.
+   *
+   * This MUST be called when the client is no longer needed (e.g.,
+   * during process shutdown, test teardown, or before recreating
+   * the singleton) to prevent timer and memory leaks.
+   */
+  destroy(): void {
+    if (this.destroyed) return;
+    this.destroyed = true;
+
+    // 1. Stop the periodic cleanup timer
+    if (this.cleanupTimerId !== null) {
+      clearInterval(this.cleanupTimerId);
+      this.cleanupTimerId = null;
+    }
+
+    // 2. Clear all caches
+    this.cache.clear();
+    this.pendingRequests.clear();
+    this.requestTimestamps = [];
+
+    // 3. Reject all queued requests so callers don't hang forever
+    for (const queued of this.requestQueue) {
+      queued.reject(new Error('HuggingFaceClient destroyed'));
+    }
+    this.requestQueue = [];
+    this.isProcessingQueue = false;
+  }
 }
 
 let globalHfClient: HuggingFaceClient | null = null;
@@ -545,9 +606,18 @@ export function getHfClient(config?: Partial<HfClientConfig>): HuggingFaceClient
 
 /**
  * Mereset instance global HuggingFaceClient
+ *
+ * [FIX] Now calls destroy() on the existing instance before nulling
+ * the reference. This ensures the setInterval timer, cache Maps,
+ * and queued requests are properly cleaned up before the singleton
+ * is replaced — preventing the most common leak vector in this module.
+ *
  * Berguna untuk testing atau re-initialization
  */
 export function resetHfClient(): void {
+  if (globalHfClient) {
+    globalHfClient.destroy();
+  }
   globalHfClient = null;
 }
 

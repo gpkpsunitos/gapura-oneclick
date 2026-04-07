@@ -1,0 +1,70 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e5]:
+      - img "Gapura Logo" [ref=e7]
+      - navigation [ref=e8]:
+        - generic [ref=e9]:
+          - generic [ref=e10]:
+            - heading "Command Center" [level=3] [ref=e13]
+            - generic [ref=e14]:
+              - link "Dashboard" [ref=e15] [cursor=pointer]:
+                - /url: /dashboard/analyst
+                - generic [ref=e17]:
+                  - img [ref=e18]
+                  - generic [ref=e23]: Dashboard
+              - link "Laporan" [ref=e24] [cursor=pointer]:
+                - /url: /dashboard/analyst/reports
+                - generic [ref=e26]:
+                  - img [ref=e27]
+                  - generic [ref=e34]: Laporan
+              - link "AI Reports" [ref=e35] [cursor=pointer]:
+                - /url: /dashboard/analyst/ai-reports
+                - generic [ref=e37]:
+                  - img [ref=e38]
+                  - generic [ref=e47]: AI Reports
+              - link "Explore & Build" [ref=e48] [cursor=pointer]:
+                - /url: /dashboard/analyst/builder
+                - generic [ref=e50]:
+                  - img [ref=e51]
+                  - generic [ref=e56]: Explore & Build
+              - link "Custom Dashboards" [ref=e57] [cursor=pointer]:
+                - /url: /dashboard/analyst/dashboards
+                - generic [ref=e59]:
+                  - img [ref=e60]
+                  - generic [ref=e62]: Custom Dashboards
+              - link "Import Data" [ref=e63] [cursor=pointer]:
+                - /url: /dashboard/analyst/import
+                - generic [ref=e65]:
+                  - img [ref=e66]
+                  - generic [ref=e68]: Import Data
+              - link "Buat Laporan" [ref=e69] [cursor=pointer]:
+                - /url: /dashboard/employee/new
+                - generic [ref=e71]:
+                  - img [ref=e72]
+                  - generic [ref=e74]: Buat Laporan
+          - generic [ref=e75]:
+            - heading "Schedule" [level=3] [ref=e78]
+            - generic [ref=e79]:
+              - link "Event Calendar" [ref=e80] [cursor=pointer]:
+                - /url: /dashboard/analyst/calendar
+                - generic [ref=e82]:
+                  - img [ref=e83]
+                  - generic [ref=e88]: Event Calendar
+              - link "Meeting Calendar" [ref=e89] [cursor=pointer]:
+                - /url: /dashboard/analyst/meeting-calendar
+                - generic [ref=e91]:
+                  - img [ref=e92]
+                  - generic [ref=e97]: Meeting Calendar
+      - generic [ref=e99]:
+        - generic [ref=e100]:
+          - generic [ref=e101]: S
+          - generic [ref=e102]:
+            - paragraph [ref=e103]: Super Admin
+            - paragraph [ref=e104]: Active Account
+        - button "Sign Out" [ref=e105] [cursor=pointer]:
+          - img [ref=e106]
+          - text: Sign Out
+    - main [ref=e110]
+  - generic [ref=e116]:
+    - img [ref=e117]
+    - generic [ref=e125]: Anda sedang offline. Draft laporan akan dikirim saat koneksi kembali.

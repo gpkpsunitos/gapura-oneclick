@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const fetchUser = useCallback(async () => {
+    const fetchUser = useCallback(async (signal?: AbortSignal) => {
         if (typeof window !== 'undefined') {
             const path = window.location.pathname;
             if (path.startsWith('/auth/') || path.startsWith('/embed/')) {
@@ -43,14 +43,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         }
         try {
-            const res = await fetch('/api/auth/me');
+            // [FIX] Pass AbortSignal to fetch so the request is cancelled
+            // when the component unmounts. Without this, the response
+            // callback continues to execute after unmount, retaining
+            // the response body and triggering setState on a stale reference.
+            const res = await fetch('/api/auth/me', { signal });
             if (res.ok) {
                 const data = await res.json();
                 setUser(data);
             } else {
                 setUser(null);
             }
-        } catch {
+        } catch (err) {
+            // [FIX] Don't update state if the request was deliberately aborted
+            if (err instanceof DOMException && err.name === 'AbortError') return;
             setUser(null);
         } finally {
             setLoading(false);
@@ -58,11 +64,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     useEffect(() => {
-        fetchUser();
+        // [FIX] Create an AbortController tied to this effect's lifecycle.
+        // When the effect cleanup runs (component unmount or re-render),
+        // the controller aborts, cancelling any in-flight fetch and
+        // preventing setState on an unmounted component.
+        const controller = new AbortController();
+        fetchUser(controller.signal);
+
+        return () => {
+            controller.abort();
+        };
     }, [fetchUser]);
 
     return (
-        <AuthContext.Provider value={{ user, loading, refresh: fetchUser }}>
+        <AuthContext.Provider value={{ user, loading, refresh: () => fetchUser() }}>
             {children}
         </AuthContext.Provider>
     );

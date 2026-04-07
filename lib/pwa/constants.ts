@@ -54,9 +54,7 @@ export const PWA_CACHEABLE_PAGE_ROUTES = [
   "/auth/login",
   "/auth/public-report",
   "/dashboard/employee/new",
-  "/dashboard/employee/training-hub",
   "/dashboard/employee/hc-documents",
-  "/dashboard/ht/training-hub",
 ];
 
 /**

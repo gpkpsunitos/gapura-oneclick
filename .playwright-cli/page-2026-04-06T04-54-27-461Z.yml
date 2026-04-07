@@ -1,0 +1,44 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - img "Gapura" [ref=e7]
+      - generic [ref=e9]:
+        - img "Gapura" [ref=e11]
+        - img "Gapura" [ref=e13]
+        - img "Gapura" [ref=e15]
+      - generic [ref=e16]:
+        - heading "\"One Click\" Irregularity Report" [level=1] [ref=e17]:
+          - emphasis [ref=e18]: "\"One Click\""
+          - text: Irregularity Report
+        - paragraph [ref=e19]: Sistem Pelaporan Terintegrasi adalah Platform digital untuk pelaporan, pelacakan, dan penyelesaian masalah operasional penerbangan.
+      - generic [ref=e20]: © 2025 Gapura Angkasa. All rights reserved.
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - heading "Selamat Datang" [level=1] [ref=e24]
+        - paragraph [ref=e25]: Masuk ke platform OneClick Anda
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - generic [ref=e29]: Email
+            - generic [ref=e30]:
+              - img [ref=e31]
+              - textbox "email@perusahaan.com" [ref=e34]
+          - generic [ref=e35]:
+            - generic [ref=e36]: Password
+            - generic [ref=e37]:
+              - img [ref=e38]
+              - textbox "••••••••" [ref=e41]
+              - button "Tampilkan password" [ref=e42] [cursor=pointer]:
+                - img [ref=e43]
+          - button "Masuk" [ref=e46] [cursor=pointer]:
+            - text: Masuk
+            - img [ref=e47]
+        - 'link "Quick Access: Laporkan Irregularity" [ref=e51] [cursor=pointer]':
+          - /url: /auth/public-report
+        - paragraph [ref=e53]:
+          - text: Belum punya akun?
+          - link "Daftar Sekarang" [ref=e54] [cursor=pointer]:
+            - /url: /auth/register
+  - generic [ref=e57]:
+    - img [ref=e58]
+    - generic [ref=e66]: Anda sedang offline. Draft laporan akan dikirim saat koneksi kembali.

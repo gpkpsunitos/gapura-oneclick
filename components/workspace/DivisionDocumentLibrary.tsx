@@ -486,7 +486,7 @@ export function DivisionDocumentLibrary({
     useEffect(() => {
         if (!isTrainingInboxExperience || typeof window === 'undefined') return;
 
-        const dismissed = window.localStorage.getItem('training-hub-install-toast-dismissed') === '1';
+        const dismissed = window.localStorage.getItem('install-toast-dismissed') === '1';
         setShowInstallToast(!dismissed && !isStandaloneDisplayMode());
 
         const handleInstalled = () => {
@@ -777,7 +777,7 @@ export function DivisionDocumentLibrary({
     const MinimalEmptyIcon = isTrainingInboxExperience ? GraduationCap : Inbox;
     const dismissInstallToast = () => {
         if (typeof window !== 'undefined') {
-            window.localStorage.setItem('training-hub-install-toast-dismissed', '1');
+            window.localStorage.setItem('install-toast-dismissed', '1');
         }
         setShowInstallToast(false);
     };
@@ -982,7 +982,7 @@ export function DivisionDocumentLibrary({
                         <div className="space-y-3">
                             <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-bold uppercase tracking-[0.22em] text-sky-700">
                                 <HeroIcon className="h-4 w-4" />
-                                {isManageExperience ? (division === 'HT' ? 'Training Hub HT' : 'Edaran & Materi HC') : 'Kotak Masuk Internal'}
+                                {isManageExperience ? 'Edaran & Materi HC' : 'Kotak Masuk Internal'}
                             </div>
                             <div>
                                 <h1 className="text-2xl font-black tracking-tight text-[var(--text-primary)] md:text-3xl">

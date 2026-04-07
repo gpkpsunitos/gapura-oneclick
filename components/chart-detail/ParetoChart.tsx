@@ -206,27 +206,41 @@ export function ParetoChart({
   };
 
   return (
-    <div className="flex w-full max-w-full min-w-0 flex-col overflow-hidden rounded-[30px] border border-emerald-200/80 bg-white shadow-[0_22px_54px_-34px_rgba(15,23,42,0.3)]">
-      <div className="border-b border-emerald-100/80 bg-[linear-gradient(135deg,rgba(236,253,245,0.9),rgba(255,255,255,0.96)_58%,rgba(255,247,237,0.92))] px-5 py-5 sm:px-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-black uppercase tracking-[0.2em] text-emerald-700">
-              {title}
-            </div>
-            <h3 className="mt-2 text-[20px] font-black leading-7 tracking-tight text-slate-950">
-              {headline}
-            </h3>
+    <section className="min-w-0 flex w-full max-w-full flex-col overflow-hidden rounded-[32px] border border-white/60 bg-white/40 p-6 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.03] backdrop-blur-3xl">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-2xl min-w-0">
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.12em] text-emerald-700">
+            {title}
           </div>
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-200/80">
-            <Target className="h-5 w-5" />
-          </div>
+          <h2 className="text-[24px] font-medium tracking-tight text-slate-900">
+            {headline}
+          </h2>
+          {insightExplanation && <p className="mt-1 text-sm leading-relaxed text-slate-500">{insightExplanation}</p>}
         </div>
-
-
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            onClick={() => activeCategory && onViewCategoryRecords?.(activeCategory)}
+            disabled={!activeCategory || !onViewCategoryRecords}
+            className="h-9 rounded-full bg-emerald-600 px-4 text-xs font-bold text-white hover:bg-emerald-700"
+          >
+            {actionLabel}
+            <ArrowRight className="ml-1 h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExport}
+            className="h-9 rounded-full border-slate-300 bg-white px-4 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            Export
+            <Download className="ml-1 h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
 
-      <div className="grid min-w-0 items-start gap-4 overflow-hidden px-5 py-5 sm:px-6 xl:grid-cols-[3fr_2fr]">
-        <div className="min-w-0 rounded-[26px] border border-slate-200/80 bg-slate-50/80 p-4">
+      <div className="grid min-w-0 items-start gap-4 overflow-hidden xl:grid-cols-[3fr_2fr]">
+        <div className="min-w-0">
           <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
             <div>
               <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-600">
@@ -333,7 +347,7 @@ export function ParetoChart({
           </div>
         </div>
 
-        <div className="min-w-0 rounded-[26px] border border-slate-200/80 bg-white p-4">
+        <div className="min-w-0">
           <div className="mb-4 flex items-start justify-between gap-3">
             <div>
               <div className="text-xs font-black uppercase tracking-[0.16em] text-slate-700">
@@ -365,7 +379,7 @@ export function ParetoChart({
                   className={cn(
                     'w-full rounded-[22px] border px-4 py-3 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2',
                     isActive
-                      ? 'border-emerald-500 bg-emerald-50 shadow-[0_18px_36px_-28px_rgba(16,185,129,0.45)]'
+                      ? 'border-emerald-500 bg-emerald-50 shadow-sm'
                       : entry.priority === 'focus'
                         ? 'border-emerald-200 bg-white hover:border-emerald-300 hover:bg-emerald-50/50'
                         : 'border-slate-200 bg-slate-50/70 hover:border-slate-300 hover:bg-white',
@@ -407,41 +421,7 @@ export function ParetoChart({
           </div>
         </div>
       </div>
-
-      <div className="border-t border-slate-200/80 bg-slate-50/70 px-5 py-4 sm:px-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 max-w-3xl items-start gap-3">
-            <div className="rounded-xl bg-white p-2 text-emerald-700 shadow-sm">
-              <Info className="h-4 w-4" />
-            </div>
-            <p className="text-sm leading-6 text-slate-600">
-              {insightExplanation}
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              onClick={() => activeCategory && onViewCategoryRecords?.(activeCategory)}
-              disabled={!activeCategory || !onViewCategoryRecords}
-              className="h-10 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white hover:bg-emerald-700"
-            >
-              {actionLabel}
-              <ArrowRight className="h-4 w-4" />
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleExport}
-              className="h-10 rounded-xl border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 hover:border-slate-400 hover:bg-slate-100"
-            >
-              Export top categories
-              <Download className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    </div>
+    </section>
   );
 }
 

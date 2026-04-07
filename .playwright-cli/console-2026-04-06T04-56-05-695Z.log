@@ -1,0 +1,4 @@
+[    1987ms] [INFO] Download the React DevTools for a better development experience: https://react.dev/link/react-devtools @ http://127.0.0.1:3000/_next/static/chunks/node_modules_next_dist_115brz8._.js:2431
+[    1988ms] [TIMESTAMP] Server Requests Track @ http://127.0.0.1:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:710
+[    1988ms] [TIMESTAMP] Server Components Track @ http://127.0.0.1:3000/_next/static/chunks/node_modules_next_dist_compiled_react-server-dom-turbopack_0p3wegg._.js:710
+[   16692ms] [ERROR] [JavaScript Error: "Firefox can’t establish a connection to the server at ws://127.0.0.1:3000/_next/webpack-hmr?id=9sYucg3KzkkKki8rqNASV." {file: "http://127.0.0.1:3000/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js" line: 13300}] @ http://127.0.0.1:3000/_next/static/chunks/node_modules_next_dist_client_0fhqo1d._.js:13300

@@ -47,7 +47,7 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [showUpdatePrompt, setShowUpdatePrompt] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const hideAmbientPwaUi = pathname === '/dashboard/employee/training-hub';
+  const hideAmbientPwaUi = false;
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) {
