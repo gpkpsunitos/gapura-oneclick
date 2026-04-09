@@ -28,7 +28,7 @@ import { calculateComparisonData } from '@/lib/utils/comparison-utils';
 
 // Dynamic import for charts
 const AnalystCharts = dynamic(
-  () => import('@/components/dashboard/analyst/AnalystCharts'),
+  () => import('@/components/dashboard/analyst/OSAnalystCharts'),
   {
     ssr: false,
     loading: () => (

@@ -62,6 +62,12 @@ const REMARKS_ORDER = [
   'Compliment Best Of Service',
 ];
 
+type RemarksCaseMatrixRow = Record<string, number | string> & {
+  branch: string;
+  airline: string;
+  total: number;
+};
+
 function normalize(value: unknown) {
   return String(value || '').trim();
 }
@@ -204,9 +210,14 @@ function buildAreaTable(
   ));
 }
 
-function WrappedYAxisTick(props: { x: number; y: number; payload: { value: string | number } }) {
-  const { x, y, payload } = props;
-  const label = String(payload.value);
+function WrappedYAxisTick(props: {
+  x?: number | string;
+  y?: number | string;
+  payload?: { value?: string | number };
+}) {
+  const x = typeof props.x === 'number' ? props.x : Number(props.x || 0);
+  const y = typeof props.y === 'number' ? props.y : Number(props.y || 0);
+  const label = String(props.payload?.value || '');
   const words = label.split(/\s+/);
   const lines: string[] = [];
   let currentLine = '';
@@ -451,7 +462,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
   }, [issueReports]);
 
   const remarksCaseMatrix = useMemo(() => {
-    const grouped = new Map<string, Record<string, number | string>>();
+    const grouped = new Map<string, Omit<RemarksCaseMatrixRow, 'total'>>();
 
     filteredJoumpaReports.forEach((report) => {
       const branch = normalize(report.stations?.code || report.branch) || '-';
@@ -476,8 +487,10 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
     });
 
     return Array.from(grouped.values())
-      .map((row) => ({
+      .map<RemarksCaseMatrixRow>((row) => ({
         ...row,
+        branch: String(row.branch || '-'),
+        airline: String(row.airline || '-'),
         total: REMARKS_ORDER.reduce((sum, label) => sum + Number(row[label] || 0), 0),
       }))
       .sort((a, b) => (b.total === a.total ? String(a.airline).localeCompare(String(b.airline)) : b.total - a.total));

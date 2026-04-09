@@ -20,7 +20,7 @@ import { exportToExcel as doExportExcel, exportToPDF as doExportPDF } from '@/li
 import { CustomerFeedbackFilterModal } from './analyst/CustomerFeedbackFilterModal';
 import { NoiseTexture } from '@/components/ui/NoiseTexture';
 
-const AnalystCharts = dynamic(() => import('./analyst/AnalystCharts'), {
+const AnalystCharts = dynamic(() => import('./analyst/OSAnalystCharts'), {
     ssr: false,
     loading: () => (
         <div className="min-h-[40vh] flex items-center justify-center">
