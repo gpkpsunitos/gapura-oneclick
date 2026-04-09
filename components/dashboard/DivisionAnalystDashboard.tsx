@@ -1254,6 +1254,7 @@ export function DivisionAnalystDashboard({
             monthlyComparisonData={monthlyComparisonData}
             hubDistributionData={hubDistributionData}
             resolutionByBranchData={resolutionByBranchData}
+            allReports={reports}
             filteredReports={filteredReports}
             caseReportByAreaData={caseReportByAreaData}
             terminalAreaCategoryData={terminalAreaCategoryData}

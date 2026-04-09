@@ -305,6 +305,10 @@ export interface Report {
     week_in_month?: string;
     /** Laporan */
     report?: string;
+    /** Jenis layanan bisnis */
+    service_business_type?: string;
+    /** Remarks Case */
+    remarks_case?: string;
     /** Kategori keluhan ketidakteraturan */
     irregularity_complain_category?: string;
     /** Kode cabang */
@@ -315,6 +319,14 @@ export interface Report {
     maskapai_lookup?: string;
     /** Klasifikasi kasus */
     case_classification?: string;
+    /** Identifikasi akar masalah */
+    identification_of_root?: string;
+    /** Kecelakaan / Insiden */
+    accident_incident?: string;
+    /** Masalah penyebab */
+    issue_caused?: string;
+    /** Breakdown penyebab */
+    breakdown_caused?: string;
     /** Lokal MPA lookup */
     lokal_mpa_lookup?: string;
 

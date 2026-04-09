@@ -100,6 +100,11 @@ const PROP_TO_HEADER: Partial<Record<keyof Report, string[]>> = {
   kode_hub: ['KODE_HUB_VLOOKUP', 'KODE HUB (VLOOKUP)', 'Kode Hub'],
   delay_code: ['Delay Code', 'Delay_Code', 'Kode Delay'],
   delay_duration: ['Delay Duration', 'Delay_Duration', 'Durasi Delay'],
+  identification_of_root: ['Identification of Root', 'Identification_of_Root', 'identifikasi_akar_masalah'],
+  accident_incident: ['Accident / Incident', 'Accident_Incident', 'Kecelakaan / Insiden'],
+  issue_caused: ['Issue Caused', 'Issue_Caused', 'Masalah Penyebab'],
+  breakdown_caused: ['Breakdown Caused', 'Breakdown_Caused', 'Breakdown Penyebab'],
+  remarks_case: ['Remarks Case', 'Remarks_Case'],
   
   // Triage Columns
   primary_tag: ['Primary Tag', 'Primary_Tag', 'Area Category', 'Area_Category'],
@@ -117,6 +122,7 @@ const PROP_TO_HEADER: Partial<Record<keyof Report, string[]>> = {
   created_at: ['Created_At', 'Created At'],
   updated_at: ['Updated_At', 'Updated At'],
   report: ['Report', 'Judul Laporan'],
+  service_business_type: ['Service Business Type'],
   // Add other fields as needed
 };
 
@@ -153,6 +159,13 @@ const WRITE_MAPPING: Record<string, string> = {
   week_in_month: 'Per Week in Month',
   delay_code: 'Delay Code',
   delay_duration: 'Delay Duration',
+  case_classification: 'Case Classification',
+  identification_of_root: 'Identification of Root',
+  accident_incident: 'Accident / Incident',
+  issue_caused: 'Issue Caused',
+  breakdown_caused: 'Breakdown Caused',
+  remarks_case: 'Remarks Case',
+  service_business_type: 'Service Business Type',
 
   // Triage Write Mappings
   primary_tag: 'Primary Tag',
