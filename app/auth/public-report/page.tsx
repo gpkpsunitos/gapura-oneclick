@@ -1371,67 +1371,74 @@ export default function PublicReportPage() {
                 </div>
               </div>
 
-              {/* Password Prompt Modal */}
-              <AnimatePresence>
-                {pendingProtectedCategory && (
-                  <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-black/20 backdrop-blur-sm">
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      className="w-full max-w-md bg-white rounded-3xl shadow-spatial-xl border border-[oklch(0.15_0.02_200_/_0.08)] p-8"
-                    >
-                      <h3 className="text-xl font-display font-black text-[oklch(0.15_0.05_200)] mb-2">
-                        Password Required
-                      </h3>
-                      <p className="text-[oklch(0.40_0.02_200)] text-sm mb-6">
-                        Masukkan password untuk mengakses {pendingProtectedCategory.title}
-                      </p>
-                      <div className="space-y-4">
-                        <input
-                          type="password"
-                          value={passwordInput}
-                          onChange={(e) => setPasswordInput(e.target.value)}
-                          placeholder="Enter password..."
-                          className="w-full px-5 py-4 rounded-2xl bg-[oklch(0.15_0.02_200_/_0.02)] border border-[oklch(0.15_0.02_200_/_0.1)] focus:border-emerald-500/50 outline-none transition-all text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              submitPassword();
-                            }
-                          }}
-                        />
-                        {passwordError && (
-                          <p className="text-sm text-red-500 font-medium flex items-center gap-2">
-                            <AlertTriangle size={16} />
-                            {passwordError}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex gap-3 mt-6">
-                        <PrismButton
-                          onClick={closePasswordPrompt}
-                          className="flex-1 bg-white text-[oklch(0.15_0.05_200)] px-6 py-3 rounded-2xl text-sm font-bold border border-[oklch(0.15_0.02_200_/_0.1)] hover:border-red-500/30 transition-all"
-                        >
-                          Cancel
-                        </PrismButton>
-                        <PrismButton
-                          onClick={submitPassword}
-                          disabled={!passwordInput || loading}
-                          className="flex-1 bg-emerald-600 text-white px-6 py-3 rounded-2xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed shadow-spatial-sm active:scale-95 transition-all flex items-center justify-center gap-2"
-                        >
-                          {loading ? (
-                            <>
-                              <Loader2 size={16} className="animate-spin" />
-                            </>
-                          ) : (
-                            'Access'
-                          )}
-                        </PrismButton>
-                      </div>
-                    </motion.div>
-                  </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {pendingProtectedCategory && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/20 backdrop-blur-sm"
+              onClick={closePasswordPrompt}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative w-full max-w-md bg-white rounded-3xl shadow-spatial-xl border border-[oklch(0.15_0.02_200_/_0.08)] p-8"
+            >
+              <h3 className="text-xl font-display font-black text-[oklch(0.15_0.05_200)] mb-2">
+                Password Required
+              </h3>
+              <p className="text-[oklch(0.40_0.02_200)] text-sm mb-6">
+                Masukkan password untuk mengakses {pendingProtectedCategory.title}
+              </p>
+              <div className="space-y-4">
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  placeholder="Enter password..."
+                  className="w-full px-5 py-4 rounded-2xl bg-[oklch(0.15_0.02_200_/_0.02)] border border-[oklch(0.15_0.02_200_/_0.1)] focus:border-emerald-500/50 outline-none transition-all text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      submitPassword();
+                    }
+                  }}
+                />
+                {passwordError && (
+                  <p className="text-sm text-red-500 font-medium flex items-center gap-2">
+                    <AlertTriangle size={16} />
+                    {passwordError}
+                  </p>
                 )}
-              </AnimatePresence>
+              </div>
+              <div className="flex gap-3 mt-6">
+                <PrismButton
+                  onClick={closePasswordPrompt}
+                  className="flex-1 bg-white text-[oklch(0.15_0.05_200)] px-6 py-3 rounded-2xl text-sm font-bold border border-[oklch(0.15_0.02_200_/_0.1)] hover:border-red-500/30 transition-all"
+                >
+                  Cancel
+                </PrismButton>
+                <PrismButton
+                  onClick={submitPassword}
+                  disabled={!passwordInput || loading}
+                  className="flex-1 bg-emerald-600 text-white px-6 py-3 rounded-2xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed shadow-spatial-sm active:scale-95 transition-all flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                    </>
+                  ) : (
+                    'Access'
+                  )}
+                </PrismButton>
+              </div>
             </motion.div>
           </div>
         )}
