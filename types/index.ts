@@ -461,6 +461,10 @@ export interface HCLeaveRecord {
     id: string;
     /** Nama karyawan */
     employee_name: string;
+    /** Email karyawan */
+    employee_email?: string | null;
+    /** Telepon karyawan */
+    employee_phone?: string | null;
     /** Tipe cuti */
     leave_type: string;
     /** Tanggal mulai */

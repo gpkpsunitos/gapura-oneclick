@@ -13,6 +13,8 @@ const SPREADSHEET_ID = process.env.HC_SHEETS || process.env.NEXT_PUBLIC_HC_SHEET
 interface HCLeaveRecordRow {
     id: string;
     employee_name: string;
+    employee_email?: string | null;
+    employee_phone?: string | null;
     leave_type: string;
     start_date: string;
     end_date: string;
@@ -39,6 +41,8 @@ interface HCLeaveRecordRow {
 const HEADERS = [
     'ID',
     'Employee Name',
+    'Employee Email',
+    'Employee Phone',
     'Leave Type',
     'Start Date',
     'End Date',
@@ -113,6 +117,8 @@ export async function fetchHCLeaveRecordsForBackup(options?: { includeDeleted?: 
         return {
             id: row.id,
             employee_name: row.employee_name,
+            employee_email: row.employee_email,
+            employee_phone: row.employee_phone,
             leave_type: row.leave_type,
             start_date: row.start_date,
             end_date: row.end_date,
@@ -149,6 +155,8 @@ function toWorksheetRows(records: HCLeaveRecord[]): unknown[][] {
     return records.map((record) => [
         record.id,
         record.employee_name,
+        record.employee_email || '',
+        record.employee_phone || '',
         record.leave_type,
         record.start_date,
         record.end_date,
@@ -197,10 +205,11 @@ export async function buildHCLeaveWorkbook(records: HCLeaveRecord[]): Promise<Bu
 
     // Set column widths
     worksheet.columns = [
-        { width: 22 }, { width: 24 }, { width: 18 }, { width: 12 }, { width: 12 },
-        { width: 18 }, { width: 10 }, { width: 24 }, { width: 18 }, { width: 18 },
-        { width: 18 }, { width: 24 }, { width: 18 }, { width: 40 }, { width: 36 },
-        { width: 20 }, { width: 22 }, { width: 20 }, { width: 22 }, { width: 22 },
+        { width: 22 }, { width: 24 }, { width: 26 }, { width: 18 }, { width: 18 },
+        { width: 12 }, { width: 12 }, { width: 18 }, { width: 10 }, { width: 24 },
+        { width: 18 }, { width: 18 }, { width: 24 }, { width: 18 }, { width: 40 },
+        { width: 36 }, { width: 20 }, { width: 22 }, { width: 20 }, { width: 22 },
+        { width: 22 },
     ];
 
     const buffer = await workbook.xlsx.writeBuffer();

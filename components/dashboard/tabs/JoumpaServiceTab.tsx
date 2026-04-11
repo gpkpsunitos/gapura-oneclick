@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
-import type { Report } from '@/types';
+import { useEffect, useMemo, useState } from 'react';
+import type { ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -15,73 +15,120 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import type { Report } from '@/types';
+import { SummarySectionCard } from './summary/SummarySectionCard';
+import { SummaryDenseTable, type SummaryDenseColumn } from './summary/SummaryDenseTable';
+import { heatColor, normalizeText } from './summary/summary-utils';
 
 interface JoumpaServiceTabProps {
   allReports: Report[];
   reports: Report[];
 }
 
-const COLORS = {
-  header: '#86c97c',
-  bar: '#51b44d',
-  barSoft: '#8acc88',
-  heat: 'rgba(81, 180, 77, 0.14)',
-  heatStrong: 'rgba(81, 180, 77, 0.92)',
-  border: '#d7d9dc',
-  text: '#303030',
-  textSoft: '#4d4d4d',
-  sheetBg: '#ffffff',
-  cardBg: '#ffffff',
-  pieGreen: '#50b44e',
-  pieBlue: '#28afd0',
-  pieYellow: '#d6e92a',
-  pieDarkGreen: '#2f5d1e',
-  pieOrange: '#ea8c2a',
-};
+interface JoumpaRecord {
+  timestamp: string;
+  email: string;
+  date: string;
+  airlines: string;
+  flightNumber: string;
+  branch: string;
+  serviceType: string;
+  category: string;
+  evidence: string;
+  report: string;
+  reportBy: string;
+  reportType: string;
+  satisfactionRating: string;
+  averageRating: string;
+}
 
-const MONTH_ORDER = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-];
+interface MetricRow {
+  id: string;
+  label: string;
+  value: number;
+}
 
-const REMARKS_ORDER = [
-  'Joumpa Lack of Service',
-  'Joumpa Lack of Procedure',
-  'Joumpa Kontraproduktif Procedure',
-  'Compliment Best Of Service',
-];
+interface PieSlice {
+  name: string;
+  value: number;
+  fill: string;
+}
 
-type RemarksCaseMatrixRow = Record<string, number | string> & {
+interface MatrixRow {
+  id: string;
+  primary: string;
+  secondary?: string;
+  values: Record<string, number>;
+  total: number;
+}
+
+interface MatrixData {
+  columns: string[];
+  rows: MatrixRow[];
+  columnTotals: Record<string, number>;
+  grandTotal: number;
+  maxValue: number;
+}
+
+interface BreakdownTableRow {
+  id: string;
+  serviceType: string;
   branch: string;
   airline: string;
+  values: Record<string, number>;
   total: number;
+}
+
+interface RootCauseDetailRow {
+  id: string;
+  branch: string;
+  airline: string;
+  category: string;
+  area: string;
+  issueCaused: string;
+  rootCaused: string;
+  total: number;
+}
+
+interface VoiceDetailRow {
+  id: string;
+  date: string;
+  rawDate: number;
+  reportType: string;
+  category: string;
+  branch: string;
+  airline: string;
+  flight: string;
+  serviceType: string;
+  report: string;
+  categoryReport: string;
+  rating: string;
+  satisfaction: string;
+}
+
+interface VoiceTypeRow {
+  id: string;
+  label: string;
+  value: number;
+}
+
+const CHART_COLORS = {
+  emerald: 'oklch(0.67 0.16 150)',
+  teal: 'oklch(0.68 0.14 205)',
+  amber: 'oklch(0.79 0.16 88)',
+  orange: 'oklch(0.7 0.18 45)',
+  rose: 'oklch(0.69 0.18 20)',
+  indigo: 'oklch(0.58 0.12 255)',
 };
 
-function normalize(value: unknown) {
-  return String(value || '').trim();
-}
-
-function normalizeLower(value: unknown) {
-  return normalize(value).toLowerCase();
-}
-
-function formatDateLabel(value?: string) {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-}
+const SATISFACTION_LABELS: Record<string, string> = {
+  '5': 'Sangat Baik',
+  '4': 'Baik',
+  '3': 'Cukup',
+  '2': 'Kurang',
+  '1': 'Sangat Kurang',
+};
 
 function isExactJoumpaService(report: Report) {
   return normalizeLower(report.service_business_type) === 'joumpa service';
@@ -104,110 +151,184 @@ function isJoumpaSourceReport(report: Report) {
   return hasLegacyJoumpaSignal(report);
 }
 
-function isCompliment(report: Report) {
-  return normalizeLower(report.category) === 'compliment';
+function normalize(value: unknown) {
+  return String(value || '').trim();
 }
 
-function isIssueReport(report: Report) {
-  return !isCompliment(report);
+function normalizeLower(value: unknown) {
+  return normalize(value).toLowerCase();
 }
 
-function heatValue(value: number, max: number) {
-  if (!value || max <= 0) return 'transparent';
-  const ratio = Math.max(0.18, value / max);
-  return `rgba(81, 180, 77, ${ratio})`;
+function parseCalendarDate(value?: string) {
+  if (!value) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(value)) {
+    const [day, month, year] = value.split('/').map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Date(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate());
 }
 
-function countBy<T>(items: T[], getKey: (item: T) => string) {
+function formatDateLabel(value?: string) {
+  const parsed = parseCalendarDate(value);
+  if (!parsed) return normalizeText(value, '-');
+  return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function monthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function monthLabel(date: Date) {
+  return date.toLocaleString('en-US', { month: 'long' });
+}
+
+function buildCountRows<T>(items: T[], getKey: (item: T) => string, preferredOrder?: string[]): MetricRow[] {
   const counts = new Map<string, number>();
+
   items.forEach((item) => {
     const key = normalize(getKey(item));
     if (!key) return;
     counts.set(key, (counts.get(key) || 0) + 1);
   });
-  return counts;
-}
-
-function sumNumeric(values: Array<number | undefined>) {
-  return values.reduce((total, value) => total + (value || 0), 0);
-}
-
-function buildDistribution<T>(items: T[], getKey: (item: T) => string, preferredOrder?: string[]) {
-  const counts = countBy(items, getKey);
 
   if (preferredOrder?.length) {
     return preferredOrder
-      .map((label) => ({ name: label, value: counts.get(label) || 0 }))
-      .filter((item) => item.value > 0);
+      .map((label) => ({ id: label, label, value: counts.get(label) || 0 }))
+      .filter((row) => row.value > 0);
   }
 
   return Array.from(counts.entries())
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => (b.value === a.value ? a.name.localeCompare(b.name) : b.value - a.value));
+    .map(([label, value]) => ({ id: label, label, value }))
+    .sort((left, right) => (right.value === left.value ? left.label.localeCompare(right.label) : right.value - left.value));
 }
 
-function buildMatrix<T>(
-  items: T[],
-  rowKey: (item: T) => string,
-  colKey: (item: T) => string,
-  columnsOrder?: string[]
-) {
-  const columnSet = new Set<string>();
-  const rowMap = new Map<string, Record<string, number>>();
+function buildMonthlyRows<T>(items: T[], getDate: (item: T) => string | undefined) {
+  const counts = new Map<string, { label: string; value: number; order: number }>();
 
   items.forEach((item) => {
-    const rowName = normalize(rowKey(item));
-    const colName = normalize(colKey(item));
-    if (!rowName || !colName) return;
+    const parsed = parseCalendarDate(getDate(item));
+    if (!parsed) return;
 
-    columnSet.add(colName);
-    const row = rowMap.get(rowName) || {};
-    row[colName] = (row[colName] || 0) + 1;
-    rowMap.set(rowName, row);
+    const key = monthKey(parsed);
+    const label = monthLabel(parsed);
+    const existing = counts.get(key);
+
+    counts.set(key, {
+      label,
+      value: (existing?.value || 0) + 1,
+      order: parsed.getFullYear() * 100 + parsed.getMonth(),
+    });
   });
 
-  const columns = columnsOrder?.length
-    ? columnsOrder.filter((column) => columnSet.has(column))
-    : Array.from(columnSet).sort();
-
-  const data = Array.from(rowMap.entries())
-    .map(([name, row]) => {
-      const values = columns.map((column) => row[column] || 0);
-      return {
-        name,
-        total: sumNumeric(values),
-        ...row,
-      };
-    })
-    .sort((a, b) => (b.total === a.total ? a.name.localeCompare(b.name) : b.total - a.total));
-
-  return { columns, data };
+  return Array.from(counts.entries())
+    .sort((left, right) => right[1].order - left[1].order)
+    .map(([id, row]) => ({ id, label: row.label, value: row.value }));
 }
 
-function buildAreaTable(
-  items: Report[],
-  categoryField: 'terminal_area_category' | 'apron_area_category' | 'general_category'
+function buildPieSlices<T>(
+  items: T[],
+  getKey: (item: T) => string,
+  palette: string[]
 ) {
-  const counts = new Map<string, { label: string; classification: string; total: number }>();
+  const counts = buildCountRows(items, getKey);
+  return counts.map((row, index) => ({
+    name: row.label,
+    value: row.value,
+    fill: palette[index % palette.length],
+  }));
+}
 
-  items.forEach((report) => {
-    const areaLabel = normalize(report[categoryField]);
-    const classification = normalize(report.case_classification) || '-';
-    if (!areaLabel) return;
+function buildMatrixData<T>(
+  items: T[],
+  getRowKeys: (item: T) => { primary: string; secondary?: string },
+  getColumnKey: (item: T) => string,
+  preferredColumns?: string[]
+) {
+  const rowMap = new Map<string, MatrixRow>();
+  const columnSet = new Set<string>();
+  const columnTotals: Record<string, number> = {};
 
-    const key = `${areaLabel}__${classification}`;
-    const current = counts.get(key) || {
-      label: areaLabel,
-      classification,
+  items.forEach((item) => {
+    const rowKeys = getRowKeys(item);
+    const primary = normalizeText(rowKeys.primary, '-');
+    const secondary = rowKeys.secondary ? normalizeText(rowKeys.secondary, '-') : undefined;
+    const column = normalize(getColumnKey(item));
+    if (!column) return;
+
+    const id = secondary ? `${primary}::${secondary}` : primary;
+    const existing = rowMap.get(id) || {
+      id,
+      primary,
+      secondary,
+      values: {},
       total: 0,
     };
-    current.total += 1;
-    counts.set(key, current);
+
+    existing.values[column] = (existing.values[column] || 0) + 1;
+    existing.total += 1;
+    rowMap.set(id, existing);
+
+    columnSet.add(column);
+    columnTotals[column] = (columnTotals[column] || 0) + 1;
   });
 
-  return Array.from(counts.values()).sort((a, b) => (
-    b.total === a.total ? a.label.localeCompare(b.label) : b.total - a.total
-  ));
+  const detectedColumns = Array.from(columnSet);
+  const columns = preferredColumns?.length
+    ? preferredColumns.filter((column) => columnSet.has(column))
+    : detectedColumns.sort((left, right) => (columnTotals[right] || 0) - (columnTotals[left] || 0) || left.localeCompare(right));
+
+  const rows = Array.from(rowMap.values()).sort((left, right) => {
+    if (right.total !== left.total) return right.total - left.total;
+    return `${left.primary} ${left.secondary || ''}`.localeCompare(`${right.primary} ${right.secondary || ''}`);
+  });
+
+  const grandTotal = rows.reduce((sum, row) => sum + row.total, 0);
+  const maxValue = Math.max(0, ...rows.flatMap((row) => columns.map((column) => row.values[column] || 0)));
+
+  return { columns, rows, columnTotals, grandTotal, maxValue };
+}
+
+function metricColumns<T extends { label: string; value: number }>(
+  valueHeader = 'Total ▼',
+  labelHeader = 'Category'
+): SummaryDenseColumn<T>[] {
+  return [
+    {
+      id: 'label',
+      header: labelHeader,
+      accessor: (row) => row.label,
+      sortValue: (row) => row.label.toLowerCase(),
+      minWidth: '220px',
+    },
+    {
+      id: 'value',
+      header: valueHeader,
+      accessor: (row) => (
+        <div className="flex items-center gap-3">
+          <span className="min-w-[1.5rem] font-mono text-[0.8rem] font-bold text-[var(--text-primary)]">
+            {row.value}
+          </span>
+          <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-2)]">
+            <div
+              className="h-full rounded-full bg-[var(--brand-emerald-500)]"
+              style={{ width: `${Math.min(100, row.value ? row.value * 14 : 0)}%` }}
+            />
+          </div>
+        </div>
+      ),
+      sortValue: (row) => row.value,
+      minWidth: '200px',
+    },
+  ];
 }
 
 function WrappedYAxisTick(props: {
@@ -243,9 +364,9 @@ function WrappedYAxisTick(props: {
           y={index * 11}
           dy={-((Math.min(lines.length, 3) - 1) * 5.5)}
           textAnchor="end"
-          fill={COLORS.text}
+          fill="var(--text-secondary)"
           fontSize={10}
-          fontWeight={500}
+          fontWeight={600}
         >
           {line}
         </text>
@@ -254,834 +375,830 @@ function WrappedYAxisTick(props: {
   );
 }
 
-function Card({
+function SmallChartCard({
   title,
+  subtitle,
   children,
   className = '',
 }: {
   title: string;
+  subtitle?: string;
   children: ReactNode;
   className?: string;
 }) {
   return (
-    <section
-      className={`overflow-hidden border bg-white shadow-[0_1px_4px_rgba(15,23,42,0.14)] ${className}`}
-      style={{ borderColor: COLORS.border, backgroundColor: COLORS.cardBg }}
-    >
-      <div className="px-4 pt-4 pb-2 text-[14px] font-bold" style={{ color: COLORS.text }}>
-        {title}
+    <div className={`overflow-hidden rounded-[22px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-white/55 ${className}`}>
+      <div className="border-b border-[oklch(0.9_0.01_90_/_0.7)] px-5 py-4">
+        <h3 className="font-display text-lg font-black tracking-[-0.03em] text-[var(--text-primary)]">{title}</h3>
+        {subtitle ? <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">{subtitle}</p> : null}
       </div>
-      {children}
-    </section>
-  );
-}
-
-function EmptyState({ label = 'No data' }: { label?: string }) {
-  return (
-    <div className="flex h-full min-h-[180px] items-center justify-center px-4 py-8 text-[12px]" style={{ color: COLORS.textSoft }}>
-      {label}
+      <div className="p-5">{children}</div>
     </div>
   );
 }
 
-function PaginatedTable<T>({
-  data,
-  headers,
-  renderRow,
-  itemsPerPage = 10,
-  minHeightClass = 'min-h-[220px]',
+function EmptyPanel({ message = 'No data available for the current filter.' }: { message?: string }) {
+  return (
+    <div className="flex min-h-[220px] items-center justify-center rounded-[18px] border border-dashed border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-0)]/75 px-6 py-10 text-center text-sm text-[var(--text-muted)]">
+      {message}
+    </div>
+  );
+}
+
+function LoadingPanel({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-[220px] items-center justify-center gap-3 rounded-[18px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-[var(--surface-0)]/75 px-6 py-10 text-sm text-[var(--text-secondary)]">
+      <Loader2 className="h-4 w-4 animate-spin" />
+      <span>{message}</span>
+    </div>
+  );
+}
+
+function ErrorPanel({ message }: { message: string }) {
+  return (
+    <div className="flex min-h-[220px] items-center justify-center gap-3 rounded-[18px] border border-red-200 bg-red-50 px-6 py-10 text-sm text-red-700">
+      <AlertCircle className="h-4 w-4" />
+      <span>{message}</span>
+    </div>
+  );
+}
+
+function HorizontalBarPanel({
+  rows,
+  color,
+  emptyMessage,
+  height = 280,
+  yAxisWidth = 130,
+  leftMargin = 60,
 }: {
-  data: T[];
-  headers: Array<{ label: string; className?: string }>;
-  renderRow: (row: T, rowIndex: number) => React.ReactNode;
-  itemsPerPage?: number;
-  minHeightClass?: string;
+  rows: MetricRow[];
+  color: string;
+  emptyMessage?: string;
+  height?: number;
+  yAxisWidth?: number;
+  leftMargin?: number;
 }) {
-  const [page, setPage] = useState(0);
-  const totalPages = Math.max(1, Math.ceil(data.length / itemsPerPage));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageData = data.slice(safePage * itemsPerPage, (safePage + 1) * itemsPerPage);
-  const start = data.length === 0 ? 0 : safePage * itemsPerPage + 1;
-  const end = Math.min((safePage + 1) * itemsPerPage, data.length);
+  if (!rows.length) return <EmptyPanel message={emptyMessage} />;
 
   return (
-    <div className={`flex h-full flex-col ${minHeightClass}`}>
-      <div className="flex-1 overflow-auto">
-        <table className="w-full border-collapse text-left text-[11px]" style={{ color: COLORS.text }}>
-          <thead>
-            <tr style={{ backgroundColor: COLORS.header }}>
-              {headers.map((header) => (
+    <div style={{ height: Math.max(height, rows.length * 52 + 44) }}>
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 20, left: leftMargin, bottom: 4 }}>
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="oklch(0.9 0.01 90 / 0.85)" />
+          <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+          <YAxis
+            dataKey="label"
+            type="category"
+            axisLine={false}
+            tickLine={false}
+            width={yAxisWidth}
+            tick={WrappedYAxisTick}
+          />
+          <Tooltip
+            cursor={{ fill: 'oklch(0.96 0.01 90 / 0.75)' }}
+            contentStyle={{
+              borderRadius: 18,
+              border: '1px solid oklch(0.88 0.01 90 / 0.85)',
+              background: 'rgba(255,255,255,0.96)',
+              boxShadow: '0 16px 38px -22px rgba(15, 23, 42, 0.28)',
+            }}
+          />
+          <Bar dataKey="value" fill={color} radius={[0, 14, 14, 0]} barSize={26}>
+            <LabelList dataKey="value" position="right" fill="var(--text-primary)" fontSize={11} fontWeight={700} />
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function PiePanel({ slices, emptyMessage }: { slices: PieSlice[]; emptyMessage?: string }) {
+  if (!slices.length) return <EmptyPanel message={emptyMessage} />;
+
+  return (
+    <div className="space-y-4">
+      <div className="h-[280px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={slices}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="48%"
+              outerRadius={94}
+              stroke="none"
+              label={({ value }) => value}
+            >
+              {slices.map((slice) => (
+                <Cell key={slice.name} fill={slice.fill} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{
+                borderRadius: 18,
+                border: '1px solid oklch(0.88 0.01 90 / 0.85)',
+                background: 'rgba(255,255,255,0.96)',
+                boxShadow: '0 16px 38px -22px rgba(15, 23, 42, 0.28)',
+              }}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-[var(--text-secondary)]">
+        {slices.map((slice) => (
+          <div key={slice.name} className="flex items-center gap-2">
+            <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: slice.fill }} />
+            <span>{slice.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MatrixTable({
+  data,
+  rowLabel,
+  secondaryLabel,
+  columnMinWidth = 120,
+  primaryWidth = 100,
+  secondaryWidth = 180,
+}: {
+  data: MatrixData;
+  rowLabel: string;
+  secondaryLabel?: string;
+  columnMinWidth?: number;
+  primaryWidth?: number;
+  secondaryWidth?: number;
+}) {
+  if (!data.rows.length) return <EmptyPanel />;
+
+  return (
+    <div className="overflow-hidden rounded-[22px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-white/50">
+      <div className="max-h-[560px] overflow-auto">
+        <table className="border-separate border-spacing-0 text-sm" style={{ minWidth: secondaryLabel ? primaryWidth + secondaryWidth + data.columns.length * columnMinWidth + 120 : primaryWidth + data.columns.length * columnMinWidth + 120 }}>
+          <thead className="sticky top-0 z-10">
+            <tr>
+              <th
+                className="sticky left-0 z-30 border-b border-r border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)] px-4 py-3 text-left text-[0.65rem] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]"
+                style={{ minWidth: primaryWidth }}
+              >
+                {rowLabel}
+              </th>
+              {secondaryLabel ? (
                 <th
-                  key={header.label}
-                  className={`px-3 py-2 font-semibold ${header.className || ''}`}
-                  style={{ color: '#244124' }}
+                  className="sticky z-30 border-b border-r border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)] px-4 py-3 text-left text-[0.65rem] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]"
+                  style={{ left: primaryWidth, minWidth: secondaryWidth }}
                 >
-                  {header.label}
+                  {secondaryLabel}
+                </th>
+              ) : null}
+              {data.columns.map((column) => (
+                <th
+                  key={column}
+                  className="border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)] px-3 py-3 text-center text-[0.65rem] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]"
+                  style={{ minWidth: columnMinWidth }}
+                >
+                  {column}
                 </th>
               ))}
+              <th className="sticky right-0 z-30 min-w-[92px] border-b border-l border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)] px-4 py-3 text-right text-[0.65rem] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]">
+                Total
+              </th>
             </tr>
           </thead>
           <tbody>
-            {pageData.map((row, rowIndex) => renderRow(row, safePage * itemsPerPage + rowIndex))}
-            {pageData.length === 0 && (
-              <tr>
+            {data.rows.map((row) => (
+              <tr key={row.id} className="hover:bg-[var(--surface-2)]/60">
                 <td
-                  colSpan={headers.length}
-                  className="px-4 py-8 text-center text-[12px]"
-                  style={{ color: COLORS.textSoft }}
+                  className="sticky left-0 z-[5] border-b border-r border-[oklch(0.9_0.01_90_/_0.55)] bg-white px-4 py-3 text-sm font-semibold text-[var(--text-primary)]"
+                  style={{ minWidth: primaryWidth }}
                 >
-                  No data
+                  {row.primary}
+                </td>
+                {secondaryLabel ? (
+                  <td
+                    className="sticky z-[5] border-b border-r border-[oklch(0.9_0.01_90_/_0.55)] bg-white px-4 py-3 text-sm text-[var(--text-primary)]"
+                    style={{ left: primaryWidth, minWidth: secondaryWidth }}
+                  >
+                    {row.secondary || '–'}
+                  </td>
+                ) : null}
+                {data.columns.map((column) => {
+                  const value = row.values[column] || 0;
+                  return (
+                    <td
+                      key={`${row.id}-${column}`}
+                      className="border-b border-[oklch(0.9_0.01_90_/_0.5)] px-3 py-3 text-center font-mono text-[0.82rem] font-semibold text-[var(--text-primary)]"
+                      style={{ background: value > 0 ? heatColor(value, Math.max(data.maxValue, 1)) : 'oklch(0.98 0.005 90)' }}
+                    >
+                      {value > 0 ? value : '–'}
+                    </td>
+                  );
+                })}
+                <td className="sticky right-0 z-[5] border-b border-l border-[oklch(0.9_0.01_90_/_0.55)] bg-white px-4 py-3 text-right font-mono text-[0.82rem] font-black text-[var(--brand-emerald-700)]">
+                  {row.total}
                 </td>
               </tr>
-            )}
+            ))}
           </tbody>
+          <tfoot>
+            <tr className="bg-[var(--surface-0)]/90">
+              <td
+                colSpan={secondaryLabel ? 2 : 1}
+                className="border-t border-[oklch(0.9_0.01_90_/_0.85)] px-4 py-3 text-left text-[0.72rem] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]"
+              >
+                Grand Total
+              </td>
+              {data.columns.map((column) => (
+                <td
+                  key={`total-${column}`}
+                  className="border-t border-[oklch(0.9_0.01_90_/_0.85)] px-3 py-3 text-center font-mono text-[0.82rem] font-black text-[var(--text-primary)]"
+                >
+                  {data.columnTotals[column] || 0}
+                </td>
+              ))}
+              <td className="border-t border-[oklch(0.9_0.01_90_/_0.85)] px-4 py-3 text-right font-mono text-[0.82rem] font-black text-[var(--brand-emerald-700)]">
+                {data.grandTotal}
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </div>
-      {data.length > 0 && (
-        <div className="flex items-center justify-end gap-3 border-t px-3 py-2 text-[11px]" style={{ borderColor: '#e6e6e6', color: COLORS.textSoft }}>
-          <span>
-            {start} - {end} / {data.length}
-          </span>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => setPage((current) => Math.max(0, current - 1))}
-              disabled={safePage === 0}
-              className="rounded p-1 hover:bg-slate-100 disabled:opacity-30"
-            >
-              <ChevronLeft size={14} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
-              disabled={safePage >= totalPages - 1}
-              className="rounded p-1 hover:bg-slate-100 disabled:opacity-30"
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      )}
+    </div>
+  );
+}
+
+function BreakdownIdentifiedCausesTable({ data }: { data: MatrixData }) {
+  if (!data.rows.length) return <EmptyPanel />;
+
+  const rows: BreakdownTableRow[] = data.rows.map((row) => {
+    const [branch = '-', airline = '-'] = String(row.secondary || '').split(' / ');
+    return {
+      id: row.id,
+      serviceType: row.primary,
+      branch,
+      airline,
+      values: row.values,
+      total: row.total,
+    };
+  });
+
+  return (
+    <div className="overflow-hidden rounded-[22px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-white/50">
+      <div className="max-h-[620px] overflow-auto">
+        <table className="min-w-full border-separate border-spacing-0 text-sm">
+          <thead className="sticky top-0 z-10 bg-white">
+            <tr>
+              <th colSpan={3} className="border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-white px-4 py-3" />
+              <th
+                colSpan={data.columns.length + 1}
+                className="border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)] px-4 py-3 text-right text-[0.72rem] font-black uppercase tracking-[0.16em] text-[var(--text-primary)]"
+              >
+                Category Report / Record Count
+              </th>
+            </tr>
+            <tr>
+              <th className="min-w-[210px] border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-white px-4 py-3 text-left text-[0.72rem] font-black uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+                Joumpa Service Type
+              </th>
+              <th className="min-w-[110px] border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-white px-4 py-3 text-left text-[0.72rem] font-black uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+                Branch
+              </th>
+              <th className="min-w-[170px] border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-white px-4 py-3 text-left text-[0.72rem] font-black uppercase tracking-[0.16em] text-[var(--text-secondary)]">
+                Airlines
+              </th>
+              {data.columns.map((column) => (
+                <th
+                  key={column}
+                  className="min-w-[116px] border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-white px-3 py-3 text-center text-[0.72rem] font-black text-[var(--text-secondary)]"
+                >
+                  {column}
+                </th>
+              ))}
+              <th className="min-w-[96px] border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-white px-4 py-3 text-right text-[0.72rem] font-black text-[var(--text-secondary)]">
+                Grand total
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => {
+              const previous = rows[index - 1];
+              const showServiceType = !previous || previous.serviceType !== row.serviceType;
+              const showBranch = showServiceType || previous.branch !== row.branch;
+
+              return (
+                <tr key={row.id} className="hover:bg-[var(--surface-2)]/40">
+                  <td className="border-b border-[oklch(0.9_0.01_90_/_0.45)] px-4 py-3 align-top text-[0.95rem] font-medium text-[var(--text-primary)]">
+                    {showServiceType ? row.serviceType : ''}
+                  </td>
+                  <td className="border-b border-[oklch(0.9_0.01_90_/_0.45)] px-4 py-3 align-top text-[0.95rem] text-[var(--text-primary)]">
+                    {showBranch ? row.branch : ''}
+                  </td>
+                  <td className="border-b border-[oklch(0.9_0.01_90_/_0.45)] px-4 py-3 align-top text-[0.95rem] text-[var(--text-primary)]">
+                    {row.airline}
+                  </td>
+                  {data.columns.map((column) => {
+                    const value = row.values[column] || 0;
+                    return (
+                      <td
+                        key={`${row.id}-${column}`}
+                        className="border-b border-[oklch(0.9_0.01_90_/_0.45)] px-3 py-3 text-center font-mono text-[0.82rem] font-semibold text-[var(--text-primary)]"
+                        style={{ background: value > 0 ? heatColor(value, Math.max(data.maxValue, 1)) : 'transparent' }}
+                      >
+                        {value > 0 ? value : '-'}
+                      </td>
+                    );
+                  })}
+                  <td className="border-b border-[oklch(0.9_0.01_90_/_0.45)] px-4 py-3 text-right font-mono text-[0.9rem] font-black text-[var(--text-primary)]">
+                    {row.total}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr className="bg-white">
+              <td
+                colSpan={3}
+                className="border-t border-[oklch(0.9_0.01_90_/_0.85)] px-4 py-3 text-left text-[0.72rem] font-black text-[var(--text-secondary)]"
+              >
+                Grand total
+              </td>
+              {data.columns.map((column) => (
+                <td
+                  key={`grand-${column}`}
+                  className="border-t border-[oklch(0.9_0.01_90_/_0.85)] px-3 py-3 text-center font-mono text-[0.82rem] font-black text-[var(--text-primary)]"
+                >
+                  {data.columnTotals[column] || 0}
+                </td>
+              ))}
+              <td className="border-t border-[oklch(0.9_0.01_90_/_0.85)] px-4 py-3 text-right font-mono text-[0.9rem] font-black text-[var(--brand-emerald-700)]">
+                {data.grandTotal}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </div>
   );
 }
 
 export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps) {
   const activeReportIds = useMemo(() => new Set(reports.map((report) => report.id)), [reports]);
+  const activeMainReports = useMemo(
+    () => allReports.filter((report) => activeReportIds.has(report.id)),
+    [activeReportIds, allReports]
+  );
+  const scopedMainReports = useMemo(
+    () => activeMainReports.filter((report) => isJoumpaSourceReport(report)),
+    [activeMainReports]
+  );
 
-  const fullJoumpaReports = useMemo(() => allReports.filter(isJoumpaSourceReport), [allReports]);
+  const [voiceRecords, setVoiceRecords] = useState<JoumpaRecord[]>([]);
+  const [voiceLoading, setVoiceLoading] = useState(true);
+  const [voiceError, setVoiceError] = useState<string | null>(null);
 
-  const filteredJoumpaReports = useMemo(() => (
-    fullJoumpaReports.filter((report) => activeReportIds.has(report.id))
-  ), [activeReportIds, fullJoumpaReports]);
+  useEffect(() => {
+    let isMounted = true;
 
-  const issueReports = useMemo(() => filteredJoumpaReports.filter(isIssueReport), [filteredJoumpaReports]);
+    async function loadVoiceData() {
+      setVoiceLoading(true);
+      setVoiceError(null);
 
-  const kpis = useMemo(() => {
-    const branches = new Set(filteredJoumpaReports.map((report) => normalize(report.stations?.code || report.branch)).filter(Boolean));
-    const airlines = new Set(filteredJoumpaReports.map((report) => normalize(report.airlines || report.airline)).filter(Boolean));
+      try {
+        const response = await fetch('/api/joumpa', { cache: 'no-store' });
+        if (!response.ok) {
+          throw new Error(`Failed to load Joumpa dataset (${response.status})`);
+        }
 
-    return {
-      total: filteredJoumpaReports.length,
-      branches: branches.size,
-      airlines: airlines.size,
-      complaints: filteredJoumpaReports.filter((report) => normalizeLower(report.category).includes('complai')).length,
-      compliments: filteredJoumpaReports.filter((report) => normalizeLower(report.category).includes('compliment')).length,
-      open: filteredJoumpaReports.filter((report) => normalizeLower(report.status) === 'open').length,
-      closed: filteredJoumpaReports.filter((report) => normalizeLower(report.status) === 'closed').length,
+        const payload = await response.json();
+        if (!isMounted) return;
+        setVoiceRecords(Array.isArray(payload.records) ? payload.records : []);
+      } catch (error) {
+        if (!isMounted) return;
+        setVoiceError(error instanceof Error ? error.message : 'Failed to load Joumpa dataset');
+      } finally {
+        if (isMounted) setVoiceLoading(false);
+      }
+    }
+
+    loadVoiceData();
+    return () => {
+      isMounted = false;
     };
-  }, [filteredJoumpaReports]);
+  }, []);
 
-  const monthlyData = useMemo(() => {
-    const monthCounts = new Map<string, number>();
-
-    filteredJoumpaReports.forEach((report) => {
-      const rawDate = report.date_of_event || report.created_at;
-      const date = rawDate ? new Date(rawDate) : null;
-      if (!date || Number.isNaN(date.getTime())) return;
-
-      const month = date.toLocaleString('en-US', { month: 'long' });
-      monthCounts.set(month, (monthCounts.get(month) || 0) + 1);
-    });
-
-    return MONTH_ORDER
-      .filter((month) => monthCounts.has(month))
-      .map((month) => ({ month, value: monthCounts.get(month) || 0 }));
-  }, [filteredJoumpaReports]);
-
-  const remarksCaseData = useMemo(() => (
-    buildDistribution(filteredJoumpaReports, (report) => normalize(report.remarks_case), REMARKS_ORDER)
-  ), [filteredJoumpaReports]);
-
-  const reportCategoryData = useMemo(() => {
-    const counts = {
-      Complaint: 0,
-      'Accident / Incident': 0,
-      Compliment: 0,
-    };
-
-    filteredJoumpaReports.forEach((report) => {
+  const operationalReports = useMemo(() => (
+    scopedMainReports.filter((report) => {
       const category = normalizeLower(report.category);
-      if (category === 'compliment') {
-        counts.Compliment += 1;
-        return;
-      }
-      if (category === 'irregularity') {
-        counts['Accident / Incident'] += 1;
-        return;
-      }
-      counts.Complaint += 1;
-    });
+      const serviceType = normalizeLower(report.service_business_type);
+      return (
+        category !== 'compliment' &&
+        serviceType !== 'general operational service' &&
+        serviceType !== 'gse service performance'
+      );
+    })
+  ), [scopedMainReports]);
 
-    return [
-      { name: 'Complaint', value: counts.Complaint, fill: COLORS.pieBlue },
-      { name: 'Accident / Incident', value: counts['Accident / Incident'], fill: COLORS.pieGreen },
-      { name: 'Compliment', value: counts.Compliment, fill: COLORS.pieOrange },
-    ].filter((item) => item.value > 0);
-  }, [filteredJoumpaReports]);
+  const complimentReports = useMemo(() => (
+    activeMainReports.filter((report) => {
+      const category = normalizeLower(report.category);
+      return category !== 'complaint' && category !== 'irregularity';
+    })
+  ), [activeMainReports]);
 
-  const reportAreaData = useMemo(() => {
-    const counts = {
-      'Terminal Area': 0,
-      General: 0,
-    };
+  const operationalMonthly = useMemo(
+    () => buildMonthlyRows(operationalReports, (report) => report.date_of_event || report.created_at),
+    [operationalReports]
+  );
 
-    issueReports.forEach((report) => {
-      const area = normalize(report.area);
-      if (area === 'General') {
-        counts.General += 1;
-        return;
-      }
-      counts['Terminal Area'] += 1;
-    });
+  const operationalRemarks = useMemo(
+    () => buildCountRows(operationalReports, (report) => normalizeText(report.remarks_case, '-')),
+    [operationalReports]
+  );
 
-    return [
-      { name: 'Terminal Area', value: counts['Terminal Area'], fill: COLORS.pieGreen },
-      { name: 'General', value: counts.General, fill: COLORS.pieBlue },
-    ].filter((item) => item.value > 0);
-  }, [issueReports]);
+  const operationalDistribution = useMemo(
+    () => buildPieSlices(operationalReports, (report) => normalizeText(report.accident_incident, 'Unknown'), [
+      CHART_COLORS.teal,
+      CHART_COLORS.emerald,
+      CHART_COLORS.amber,
+      CHART_COLORS.orange,
+    ]),
+    [operationalReports]
+  );
 
-  const remarksCaseMatrix = useMemo(() => {
-    const grouped = new Map<string, Omit<RemarksCaseMatrixRow, 'total'>>();
+  const operationalAirlineMatrix = useMemo(
+    () => buildMatrixData(
+      operationalReports,
+      (report) => ({
+        primary: normalizeText(report.stations?.code || report.branch, '-').toUpperCase(),
+        secondary: normalizeText(report.airlines || report.airline, '-'),
+      }),
+      (report) => normalizeText(report.remarks_case, '-')
+    ),
+    [operationalReports]
+  );
 
-    filteredJoumpaReports.forEach((report) => {
-      const branch = normalize(report.stations?.code || report.branch) || '-';
-      const airline = normalize(report.airlines || report.airline) || '-';
-      const remarksCase = normalize(report.remarks_case);
-      const key = `${branch}__${airline}`;
+  const complimentRemarks = useMemo(
+    () => buildCountRows(
+      complimentReports.filter((report) => {
+        const remarks = normalize(report.remarks_case);
+        const lowered = remarks.toLowerCase();
+        return remarks.length > 0 && lowered !== 'compliment' && lowered !== '-';
+      }),
+      (report) => normalizeText(report.remarks_case, '-')
+    ),
+    [complimentReports]
+  );
 
-      const row = grouped.get(key) || {
+  const complimentRoots = useMemo(
+    () => buildCountRows(
+      complimentReports.filter((report) => normalize(report.identification_of_root).length > 0),
+      (report) => normalizeText(report.identification_of_root, '-')
+    ),
+    [complimentReports]
+  );
+
+  const complimentRootDetails = useMemo<RootCauseDetailRow[]>(() => {
+    const counts = new Map<string, RootCauseDetailRow>();
+
+    complimentReports.forEach((report) => {
+      const rawIssueCaused = normalize(report.remarks_case);
+      const rawRootCaused = normalize(report.identification_of_root);
+      if (!rawIssueCaused || !rawRootCaused) return;
+
+      const branch = normalizeText(report.stations?.code || report.branch, '-').toUpperCase();
+      const airline = normalizeText(report.airlines || report.airline, '-');
+      const category = normalizeText(report.category, '-');
+      const area = normalizeText(report.area, '-');
+      const issueCaused = rawIssueCaused;
+      const rootCaused = rawRootCaused;
+      const id = [branch, airline, category, area, issueCaused, rootCaused].join('::');
+
+      const existing = counts.get(id) || {
+        id,
         branch,
         airline,
+        category,
+        area,
+        issueCaused,
+        rootCaused,
+        total: 0,
       };
-
-      REMARKS_ORDER.forEach((label) => {
-        row[label] = Number(row[label] || 0);
-      });
-
-      if (remarksCase && REMARKS_ORDER.includes(remarksCase)) {
-        row[remarksCase] = Number(row[remarksCase] || 0) + 1;
-      }
-
-      grouped.set(key, row);
+      existing.total += 1;
+      counts.set(id, existing);
     });
 
-    return Array.from(grouped.values())
-      .map<RemarksCaseMatrixRow>((row) => ({
-        ...row,
-        branch: String(row.branch || '-'),
-        airline: String(row.airline || '-'),
-        total: REMARKS_ORDER.reduce((sum, label) => sum + Number(row[label] || 0), 0),
+    return Array.from(counts.values()).sort((left, right) => {
+      if (right.total !== left.total) return right.total - left.total;
+      return left.rootCaused.localeCompare(right.rootCaused);
+    });
+  }, [complimentReports]);
+
+  const filteredVoiceRecords = useMemo(
+    () => voiceRecords.filter((record) => (
+      normalize(record.reportType).length > 0 &&
+      normalize(record.serviceType).length > 0 &&
+      normalize(record.category).length > 0
+    )),
+    [voiceRecords]
+  );
+
+  const voiceMonthly = useMemo(
+    () => buildMonthlyRows(filteredVoiceRecords, (record) => record.date || record.timestamp),
+    [filteredVoiceRecords]
+  );
+
+  const voiceReportTypes = useMemo(
+    () => buildCountRows(filteredVoiceRecords, (record) => normalizeText(record.reportType, '-')),
+    [filteredVoiceRecords]
+  );
+
+  const voiceServiceTypeRows = useMemo<VoiceTypeRow[]>(
+    () => buildCountRows(filteredVoiceRecords, (record) => normalizeText(record.serviceType, '-')),
+    [filteredVoiceRecords]
+  );
+
+  const voiceCategoryDistribution = useMemo(
+    () => buildPieSlices(
+      filteredVoiceRecords,
+      (record) => normalizeText(record.category, '-'),
+      [CHART_COLORS.emerald, CHART_COLORS.teal, CHART_COLORS.amber, CHART_COLORS.orange]
+    ),
+    [filteredVoiceRecords]
+  );
+
+  const voiceBreakdownMatrix = useMemo(
+    () => buildMatrixData(
+      filteredVoiceRecords,
+      (record) => ({
+        primary: normalizeText(record.serviceType, '-'),
+        secondary: `${normalizeText(record.branch, '-').toUpperCase()} / ${normalizeText(record.airlines, '-')}`,
+      }),
+      (record) => normalizeText(record.category, '-')
+    ),
+    [filteredVoiceRecords]
+  );
+
+  const voiceServiceTypeCategory = useMemo(() => {
+    const rowMap = new Map<string, Record<string, number>>();
+    const categories = new Set<string>();
+
+    filteredVoiceRecords.forEach((record) => {
+      const serviceType = normalizeText(record.serviceType, '-');
+      const category = normalizeText(record.category, '-');
+      const row = rowMap.get(serviceType) || {};
+      row[category] = (row[category] || 0) + 1;
+      rowMap.set(serviceType, row);
+      categories.add(category);
+    });
+
+    const sortedCategories = Array.from(categories).sort();
+    const rows = Array.from(rowMap.entries())
+      .map(([serviceType, values]) => ({
+        serviceType,
+        total: sortedCategories.reduce((sum, category) => sum + (values[category] || 0), 0),
+        ...values,
       }))
-      .sort((a, b) => (b.total === a.total ? String(a.airline).localeCompare(String(b.airline)) : b.total - a.total));
-  }, [filteredJoumpaReports]);
+      .sort((left, right) => right.total - left.total);
 
-  const rootIdentificationData = useMemo(() => (
-    buildDistribution(issueReports, (report) => normalize(report.identification_of_root))
-  ), [issueReports]);
+    return { rows, categories: sortedCategories };
+  }, [filteredVoiceRecords]);
 
-  const breakdownData = useMemo(() => (
-    buildDistribution(issueReports, (report) => normalize(report.case_classification))
-  ), [issueReports]);
+  const voiceDetails = useMemo<VoiceDetailRow[]>(() => {
+    return filteredVoiceRecords
+      .map((record, index) => {
+        const parsed = parseCalendarDate(record.date || record.timestamp);
+        const rating = normalizeText(record.averageRating, normalizeText(record.satisfactionRating, '-'));
+        return {
+          id: `${record.timestamp}-${record.email}-${index}`,
+          date: formatDateLabel(record.date || record.timestamp),
+          rawDate: parsed?.getTime() || 0,
+          reportType: normalizeText(record.reportType, '-'),
+          category: normalizeText(record.category, '-'),
+          branch: normalizeText(record.branch, '-').toUpperCase(),
+          airline: normalizeText(record.airlines, '-'),
+          flight: normalizeText(record.flightNumber, '-'),
+          serviceType: normalizeText(record.serviceType, '-'),
+          report: normalizeText(record.report, '-'),
+          categoryReport: normalizeText(record.category, '-'),
+          rating,
+          satisfaction: SATISFACTION_LABELS[rating] || SATISFACTION_LABELS[normalize(record.satisfactionRating)] || '-',
+        };
+      })
+      .sort((left, right) => right.rawDate - left.rawDate);
+  }, [filteredVoiceRecords]);
 
-  const breakdownByBranch = useMemo(() => (
-    buildMatrix(issueReports, (report) => normalize(report.case_classification), (report) => normalize(report.stations?.code || report.branch))
-  ), [issueReports]);
+  const complimentRootColumns = useMemo<SummaryDenseColumn<RootCauseDetailRow>[]>(() => [
+    { id: 'branch', header: 'Branch', accessor: (row) => row.branch, sortValue: (row) => row.branch, minWidth: '90px' },
+    { id: 'airline', header: 'Airlines', accessor: (row) => row.airline, sortValue: (row) => row.airline, minWidth: '150px' },
+    { id: 'category', header: 'Category', accessor: (row) => row.category, sortValue: (row) => row.category, minWidth: '110px' },
+    { id: 'area', header: 'Area', accessor: (row) => row.area, sortValue: (row) => row.area, minWidth: '120px' },
+    { id: 'issue', header: 'Issue Caused', accessor: (row) => row.issueCaused, sortValue: (row) => row.issueCaused, minWidth: '200px' },
+    { id: 'root', header: 'Root Caused', accessor: (row) => row.rootCaused, sortValue: (row) => row.rootCaused, minWidth: '240px' },
+    { id: 'total', header: 'Total ▼', accessor: (row) => row.total, sortValue: (row) => row.total, align: 'right', minWidth: '80px' },
+  ], []);
 
-  const rootByBranch = useMemo(() => (
-    buildMatrix(issueReports, (report) => normalize(report.identification_of_root), (report) => normalize(report.stations?.code || report.branch))
-  ), [issueReports]);
-
-  const rootByAirline = useMemo(() => (
-    buildMatrix(
-      issueReports,
-      (report) => normalize(report.identification_of_root),
-      (report) => normalize(report.airlines || report.airline),
-      buildDistribution(issueReports, (report) => normalize(report.airlines || report.airline)).map((item) => item.name)
-    )
-  ), [issueReports]);
-
-  const areaTables = useMemo(() => ({
-    landside: buildAreaTable(issueReports.filter((report) => normalize(report.area) === 'Terminal Area'), 'terminal_area_category'),
-    airside: buildAreaTable(issueReports.filter((report) => normalize(report.area) === 'Apron Area'), 'apron_area_category'),
-    general: buildAreaTable(issueReports.filter((report) => normalize(report.area) === 'General'), 'general_category'),
-  }), [issueReports]);
-
-  const rootDetailRows = useMemo(() => filteredJoumpaReports.map((report) => ({
-    branch: normalize(report.stations?.code || report.branch) || '-',
-    airline: normalize(report.airlines || report.airline) || '-',
-    category: normalize(report.category) || '-',
-    area: normalize(report.area) || '-',
-    issueCaused: normalize(report.remarks_case) || '-',
-    breakdownCaused: normalize(report.case_classification) || '-',
-    rootCaused: normalize(report.identification_of_root) || '-',
-  })), [filteredJoumpaReports]);
-
-  const detailReportRows = useMemo(() => filteredJoumpaReports.map((report, index) => ({
-    index: index + 1,
-    date: formatDateLabel(report.date_of_event || report.created_at),
-    branch: normalize(report.stations?.code || report.branch) || '-',
-    airline: normalize(report.airlines || report.airline) || '-',
-    flight: normalize(report.flight_number) || '#N/A',
-    category: normalize(report.category) || '-',
-    breakdownCaused: normalize(report.case_classification) || '-',
-    identificationOfRoot: normalize(report.identification_of_root) || '-',
-    detailReport: normalize(report.description || report.report) || '-',
-    detailRootCaused: normalize(report.root_caused) || '-',
-    action: normalize(report.action_taken) || '#N/A',
-    preventiveAction: normalize(report.preventive_action) || '#N/A',
-    status: normalize(report.status) || 'OPEN',
-  })), [filteredJoumpaReports]);
-
-  const remarksColumnMaxima = useMemo(() => (
-    REMARKS_ORDER.map((label) => Math.max(1, ...remarksCaseMatrix.map((row) => Number(row[label] || 0))))
-  ), [remarksCaseMatrix]);
-
-  const branchBreakdownMaxima = useMemo(() => (
-    breakdownByBranch.columns.map((column) => Math.max(1, ...breakdownByBranch.data.map((row) => Number(row[column] || 0))))
-  ), [breakdownByBranch.columns, breakdownByBranch.data]);
-
-  const branchRootMaxima = useMemo(() => (
-    rootByBranch.columns.map((column) => Math.max(1, ...rootByBranch.data.map((row) => Number(row[column] || 0))))
-  ), [rootByBranch.columns, rootByBranch.data]);
-
-  const airlineRootMaxima = useMemo(() => (
-    rootByAirline.columns.map((column) => Math.max(1, ...rootByAirline.data.map((row) => Number(row[column] || 0))))
-  ), [rootByAirline.columns, rootByAirline.data]);
+  const voiceDetailColumns = useMemo<SummaryDenseColumn<VoiceDetailRow>[]>(() => [
+    { id: 'date', header: 'Date of Event', accessor: (row) => row.date, sortValue: (row) => row.rawDate, minWidth: '120px' },
+    { id: 'type', header: 'Report Type', accessor: (row) => row.reportType, sortValue: (row) => row.reportType, minWidth: '120px' },
+    { id: 'category', header: 'Category', accessor: (row) => row.category, sortValue: (row) => row.category, minWidth: '110px' },
+    { id: 'branch', header: 'Branch', accessor: (row) => row.branch, sortValue: (row) => row.branch, minWidth: '90px' },
+    { id: 'airline', header: 'Airlines', accessor: (row) => row.airline, sortValue: (row) => row.airline, minWidth: '150px' },
+    { id: 'flight', header: 'Flight', accessor: (row) => row.flight, sortValue: (row) => row.flight, minWidth: '110px' },
+    { id: 'service', header: 'Joumpa Service Type', accessor: (row) => <div className="max-w-[14rem] whitespace-normal">{row.serviceType}</div>, sortValue: (row) => row.serviceType, minWidth: '220px' },
+    { id: 'report', header: 'Report', accessor: (row) => <div className="max-w-[20rem] whitespace-normal line-clamp-3">{row.report}</div>, sortValue: (row) => row.report, minWidth: '320px' },
+    { id: 'categoryReport', header: 'Category Report', accessor: (row) => row.categoryReport, sortValue: (row) => row.categoryReport, minWidth: '140px' },
+    { id: 'rating', header: 'Rating', accessor: (row) => row.rating, sortValue: (row) => row.rating, align: 'center', minWidth: '80px' },
+    { id: 'satisfaction', header: 'Satisfaction', accessor: (row) => row.satisfaction, sortValue: (row) => row.satisfaction, minWidth: '120px' },
+  ], []);
 
   return (
-    <div className="min-h-screen bg-white px-4 pb-8 pt-2 text-[12px] md:px-6">
-      <div className="mx-auto max-w-[1520px]">
-        <div className="grid gap-[1px] border" style={{ borderColor: COLORS.border, backgroundColor: COLORS.border, gridTemplateColumns: 'repeat(7, minmax(0, 1fr))' }}>
-          {[
-            { label: 'Report', value: kpis.total },
-            { label: 'Branch', value: kpis.branches },
-            { label: 'Airlines', value: kpis.airlines },
-            { label: 'Complaint', value: kpis.complaints },
-            { label: 'Compliment Report', value: kpis.compliments },
-            { label: 'Report Open', value: kpis.open },
-            { label: 'Closed Report', value: kpis.closed },
-          ].map((item) => (
-            <div key={item.label} className="flex min-h-[88px] flex-col items-center justify-center bg-white px-3 py-4 text-center">
-              <div className="text-[13px] font-medium" style={{ color: '#2f8f8a' }}>
-                {item.label}
-              </div>
-              <div className="mt-1 text-[42px] font-normal leading-none" style={{ color: '#0d7070' }}>
-                {item.value}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-6">
-          <h1 className="text-[32px] font-bold leading-tight" style={{ color: '#0d7070' }}>
-            Report by Staff Joumpa
-          </h1>
-          <p className="mt-1 text-[14px] italic" style={{ color: '#0fa0b3' }}>
-            Joumpa Handling Report based on Staff feedback
-          </p>
-        </div>
-
-        <div className="mt-6 grid gap-6 xl:grid-cols-[320px,minmax(0,1fr)]">
-          <div className="space-y-6">
-            <Card title="Monthly Report">
-              {monthlyData.length === 0 ? (
-                <EmptyState />
-              ) : (
-                <div className="h-[250px] px-2 pb-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={monthlyData} layout="vertical" margin={{ top: 6, right: 16, left: 20, bottom: 4 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8edf2" />
-                      <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis dataKey="month" type="category" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} width={54} />
-                      <Tooltip />
-                      <Bar dataKey="value" fill={COLORS.barSoft} radius={[0, 0, 0, 0]} barSize={40}>
-                        <LabelList dataKey="value" position="right" fill="#111827" fontSize={10} fontWeight={600} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </Card>
-
-            <Card title="Monthly Report">
-              {remarksCaseData.length === 0 ? (
-                <EmptyState />
-              ) : (
-                <div className="h-[250px] px-2 pb-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={remarksCaseData} layout="vertical" margin={{ top: 6, right: 16, left: 84, bottom: 4 }}>
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e8edf2" />
-                      <XAxis type="number" tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={WrappedYAxisTick} width={126} />
-                      <Tooltip />
-                      <Bar dataKey="value" fill={COLORS.barSoft} radius={[0, 0, 0, 0]} barSize={32}>
-                        <LabelList dataKey="value" position="right" fill="#111827" fontSize={10} fontWeight={600} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </Card>
-
-            <Card title="Report Category">
-              {reportCategoryData.length === 0 ? (
-                <EmptyState />
-              ) : (
-                <div className="h-[280px] px-2 pb-4">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={reportCategoryData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="46%"
-                        outerRadius={92}
-                        stroke="none"
-                        label={({ value }) => value}
-                      >
-                        {reportCategoryData.map((item) => (
-                          <Cell key={item.name} fill={item.fill} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 px-4 pb-2 text-[11px]" style={{ color: COLORS.textSoft }}>
-                    {reportCategoryData.map((item) => (
-                      <div key={item.name} className="flex items-center gap-2">
-                        <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: item.fill }} />
-                        <span>{item.name}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </Card>
-          </div>
-
-          <Card title="Report Category by Airlines">
-            <div className="px-4 pb-2 text-right text-[12px] font-semibold" style={{ color: COLORS.textSoft }}>
-              Remarks Case / Record Count
-            </div>
-            <PaginatedTable
-              data={remarksCaseMatrix}
-              itemsPerPage={15}
-              minHeightClass="min-h-[580px]"
-              headers={[
-                { label: 'Branch' },
-                { label: 'Airlines' },
-                ...REMARKS_ORDER.map((label) => ({ label })),
-                { label: 'Grand total', className: 'text-right' },
-              ]}
-              renderRow={(row) => (
-                <tr key={`${row.branch}-${row.airline}`} className="border-b" style={{ borderColor: '#eef0f2' }}>
-                  <td className="px-3 py-2 align-top">{String(row.branch)}</td>
-                  <td className="px-3 py-2 align-top">{String(row.airline)}</td>
-                  {REMARKS_ORDER.map((label, index) => {
-                    const value = Number(row[label] || 0);
-                    return (
-                      <td
-                        key={label}
-                        className="px-3 py-2 text-right font-medium"
-                        style={{ backgroundColor: heatValue(value, remarksColumnMaxima[index]) }}
-                      >
-                        {value || '-'}
-                      </td>
-                    );
-                  })}
-                  <td className="px-3 py-2 text-right font-bold">{row.total}</td>
-                </tr>
-              )}
-            />
-          </Card>
-        </div>
-
-        <div className="mt-8 grid gap-6 xl:grid-cols-[1.08fr,1.42fr]">
-          <Card title="Root Cause Identification">
-            <PaginatedTable
-              data={rootIdentificationData}
-              itemsPerPage={7}
-              minHeightClass="min-h-[360px]"
-              headers={[
-                { label: 'Identification of Root' },
-                { label: 'Total ▼' },
-              ]}
-              renderRow={(row) => {
-                const maxValue = rootIdentificationData[0]?.value || 1;
-                return (
-                  <tr key={row.name} className="border-b" style={{ borderColor: '#eef0f2' }}>
-                    <td className="px-3 py-2 align-top">{row.name}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 shrink-0 text-left font-medium">{row.value}</span>
-                        <div className="h-3 flex-1" style={{ backgroundColor: COLORS.bar, width: `${(row.value / maxValue) * 100}%` }} />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              }}
-            />
-          </Card>
-
-          <div className="space-y-6">
-            <Card title="Breakdown of Identified Causes">
-              <PaginatedTable
-                data={rootByBranch.data}
-                itemsPerPage={7}
-                minHeightClass="min-h-[260px]"
-                headers={[
-                  { label: 'Identification of Root' },
-                  ...rootByBranch.columns.map((column) => ({ label: column })),
-                ]}
-                renderRow={(row) => (
-                  <tr key={row.name} className="border-b" style={{ borderColor: '#eef0f2' }}>
-                    <td className="px-3 py-2 align-top">{row.name}</td>
-                    {rootByBranch.columns.map((column, index) => {
-                      const value = Number(row[column] || 0);
-                      return (
-                        <td
-                          key={column}
-                          className="px-3 py-2 text-center font-medium"
-                          style={{ backgroundColor: heatValue(value, branchRootMaxima[index]) }}
-                        >
-                          {value || '-'}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                )}
-              />
-            </Card>
-
-            <Card title="Breakdown of Identified Causes">
-              <PaginatedTable
-                data={rootByAirline.data}
-                itemsPerPage={7}
-                minHeightClass="min-h-[260px]"
-                headers={[
-                  { label: 'Identification of Root' },
-                  ...rootByAirline.columns.map((column) => ({ label: column })),
-                ]}
-                renderRow={(row) => (
-                  <tr key={row.name} className="border-b" style={{ borderColor: '#eef0f2' }}>
-                    <td className="px-3 py-2 align-top">{row.name}</td>
-                    {rootByAirline.columns.map((column, index) => {
-                      const value = Number(row[column] || 0);
-                      return (
-                        <td
-                          key={column}
-                          className="px-3 py-2 text-center font-medium"
-                          style={{ backgroundColor: heatValue(value, airlineRootMaxima[index]) }}
-                        >
-                          {value || '-'}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                )}
-              />
-            </Card>
-          </div>
-        </div>
-
-        <div className="mt-8 grid gap-6 xl:grid-cols-[0.95fr,1.15fr]">
-          <Card title="Breakdown of Identified Causes">
-            <PaginatedTable
-              data={breakdownData}
-              itemsPerPage={8}
-              minHeightClass="min-h-[360px]"
-              headers={[
-                { label: 'Case Classification' },
-                { label: 'Total ▼' },
-              ]}
-              renderRow={(row) => {
-                const maxValue = breakdownData[0]?.value || 1;
-                return (
-                  <tr key={row.name} className="border-b" style={{ borderColor: '#eef0f2' }}>
-                    <td className="px-3 py-2 align-top">{row.name}</td>
-                    <td className="px-3 py-2">
-                      <div className="flex items-center gap-2">
-                        <span className="w-3 shrink-0 text-left font-medium">{row.value}</span>
-                        <div className="h-3 flex-1" style={{ backgroundColor: COLORS.bar, width: `${(row.value / maxValue) * 100}%` }} />
-                      </div>
-                    </td>
-                  </tr>
-                );
-              }}
-            />
-          </Card>
-
-          <Card title="Breakdown of Identified Causes">
-            <PaginatedTable
-              data={breakdownByBranch.data}
-              itemsPerPage={8}
-              minHeightClass="min-h-[360px]"
-              headers={[
-                { label: 'Case Classification' },
-                ...breakdownByBranch.columns.map((column) => ({ label: column })),
-              ]}
-              renderRow={(row) => (
-                <tr key={row.name} className="border-b" style={{ borderColor: '#eef0f2' }}>
-                  <td className="px-3 py-2 align-top">{row.name}</td>
-                  {breakdownByBranch.columns.map((column, index) => {
-                    const value = Number(row[column] || 0);
-                    return (
-                      <td
-                        key={column}
-                        className="px-3 py-2 text-center font-medium"
-                        style={{ backgroundColor: heatValue(value, branchBreakdownMaxima[index]) }}
-                      >
-                        {value || '-'}
-                      </td>
-                    );
-                  })}
-                </tr>
-              )}
-            />
-          </Card>
-        </div>
-
-        <div className="mt-8 grid gap-6 xl:grid-cols-3">
-          <Card title="Landside Area">
-            {areaTables.landside.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <PaginatedTable
-                data={areaTables.landside}
-                itemsPerPage={7}
-                minHeightClass="min-h-[320px]"
-                headers={[
-                  { label: 'Terminal Area' },
-                  { label: 'Case Classification' },
-                  { label: 'Total ▼' },
-                ]}
-                renderRow={(row) => {
-                  const maxValue = areaTables.landside[0]?.total || 1;
-                  return (
-                    <tr key={`${row.label}-${row.classification}`} className="border-b" style={{ borderColor: '#eef0f2' }}>
-                      <td className="px-3 py-2 align-top">{row.label}</td>
-                      <td className="px-3 py-2 align-top">{row.classification}</td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-3 shrink-0 text-left font-medium">{row.total}</span>
-                          <div className="h-3 flex-1" style={{ backgroundColor: COLORS.bar, width: `${(row.total / maxValue) * 100}%` }} />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }}
-              />
-            )}
-          </Card>
-
-          <Card title="Airside Area">
-            {areaTables.airside.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <PaginatedTable
-                data={areaTables.airside}
-                itemsPerPage={7}
-                minHeightClass="min-h-[320px]"
-                headers={[
-                  { label: 'Apron Area' },
-                  { label: 'Case Classification' },
-                  { label: 'Total ▼' },
-                ]}
-                renderRow={(row) => {
-                  const maxValue = areaTables.airside[0]?.total || 1;
-                  return (
-                    <tr key={`${row.label}-${row.classification}`} className="border-b" style={{ borderColor: '#eef0f2' }}>
-                      <td className="px-3 py-2 align-top">{row.label}</td>
-                      <td className="px-3 py-2 align-top">{row.classification}</td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-3 shrink-0 text-left font-medium">{row.total}</span>
-                          <div className="h-3 flex-1" style={{ backgroundColor: COLORS.bar, width: `${(row.total / maxValue) * 100}%` }} />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }}
-              />
-            )}
-          </Card>
-
-          <Card title="General Service">
-            {areaTables.general.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <PaginatedTable
-                data={areaTables.general}
-                itemsPerPage={7}
-                minHeightClass="min-h-[320px]"
-                headers={[
-                  { label: 'General Service' },
-                  { label: 'Case Classification' },
-                  { label: 'Total ▼' },
-                ]}
-                renderRow={(row) => {
-                  const maxValue = areaTables.general[0]?.total || 1;
-                  return (
-                    <tr key={`${row.label}-${row.classification}`} className="border-b" style={{ borderColor: '#eef0f2' }}>
-                      <td className="px-3 py-2 align-top">{row.label}</td>
-                      <td className="px-3 py-2 align-top">{row.classification}</td>
-                      <td className="px-3 py-2">
-                        <div className="flex items-center gap-2">
-                          <span className="w-3 shrink-0 text-left font-medium">{row.total}</span>
-                          <div className="h-3 flex-1" style={{ backgroundColor: COLORS.bar, width: `${(row.total / maxValue) * 100}%` }} />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }}
-              />
-            )}
-          </Card>
-        </div>
-
-        <div className="mt-8 grid gap-6 xl:grid-cols-[280px,minmax(0,1fr)]">
-          <Card title="Report Category">
-            {reportAreaData.length === 0 ? (
-              <EmptyState />
-            ) : (
-              <div className="h-[300px] px-2 pb-4">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={reportAreaData}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="46%"
-                      outerRadius={95}
-                      stroke="none"
-                      label={({ value }) => value}
-                    >
-                      {reportAreaData.map((item) => (
-                        <Cell key={item.name} fill={item.fill} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 px-4 pb-2 text-[11px]" style={{ color: COLORS.textSoft }}>
-                  {reportAreaData.map((item) => (
-                    <div key={item.name} className="flex items-center gap-2">
-                      <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: item.fill }} />
-                      <span>{item.name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </Card>
-
-          <Card title="Landside Area - Detail Root Cause Identification">
-            <PaginatedTable
-              data={rootDetailRows}
-              itemsPerPage={7}
-              minHeightClass="min-h-[360px]"
-              headers={[
-                { label: 'Branch' },
-                { label: 'Airlines' },
-                { label: 'Category' },
-                { label: 'Area' },
-                { label: 'Issue Caused' },
-                { label: 'Breakdown Caused' },
-                { label: 'Root Caused' },
-                { label: 'Total ▼' },
-              ]}
-              renderRow={(row, rowIndex) => (
-                <tr key={`${row.branch}-${row.airline}-${rowIndex}`} className="border-b" style={{ borderColor: '#eef0f2' }}>
-                  <td className="px-3 py-2 align-top">{row.branch}</td>
-                  <td className="px-3 py-2 align-top">{row.airline}</td>
-                  <td className="px-3 py-2 align-top">{row.category}</td>
-                  <td className="px-3 py-2 align-top">{row.area}</td>
-                  <td className="px-3 py-2 align-top">{row.issueCaused}</td>
-                  <td className="px-3 py-2 align-top">{row.breakdownCaused}</td>
-                  <td className="px-3 py-2 align-top">{row.rootCaused}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 shrink-0 text-left font-medium">1</span>
-                      <div className="h-3 flex-1" style={{ backgroundColor: COLORS.bar, width: '100%' }} />
-                    </div>
-                  </td>
-                </tr>
-              )}
-            />
-          </Card>
-        </div>
-
-        <Card title="Detail Report" className="mt-8">
-          <PaginatedTable
-            data={detailReportRows}
-            itemsPerPage={8}
-            minHeightClass="min-h-[420px]"
-            headers={[
-              { label: '' },
-              { label: 'Date' },
-              { label: 'Branch' },
-              { label: 'Airlines' },
-              { label: 'Flight' },
-              { label: 'Category' },
-              { label: 'Breakdown Caused' },
-              { label: 'Identification of Root' },
-              { label: 'Detail Report' },
-              { label: 'Detail Root Caused' },
-              { label: 'Action' },
-              { label: 'Preventive Action' },
-              { label: 'Status' },
-            ]}
-            renderRow={(row) => (
-              <tr key={`${row.index}-${row.date}-${row.airline}`} className="border-b align-top" style={{ borderColor: '#eef0f2' }}>
-                <td className="px-3 py-2 font-medium">{row.index}.</td>
-                <td className="whitespace-nowrap px-3 py-2">{row.date}</td>
-                <td className="px-3 py-2">{row.branch}</td>
-                <td className="px-3 py-2">{row.airline}</td>
-                <td className="px-3 py-2">{row.flight}</td>
-                <td className="px-3 py-2">{row.category}</td>
-                <td className="min-w-[180px] px-3 py-2">{row.breakdownCaused}</td>
-                <td className="min-w-[200px] px-3 py-2">{row.identificationOfRoot}</td>
-                <td className="min-w-[220px] px-3 py-2">
-                  <div className="line-clamp-5">{row.detailReport}</div>
-                </td>
-                <td className="min-w-[220px] px-3 py-2">
-                  <div className="line-clamp-5">{row.detailRootCaused}</div>
-                </td>
-                <td className="min-w-[180px] px-3 py-2">
-                  <div className="line-clamp-5">{row.action}</div>
-                </td>
-                <td className="min-w-[180px] px-3 py-2">
-                  <div className="line-clamp-5">{row.preventiveAction}</div>
-                </td>
-                <td className="px-3 py-2">{row.status}</td>
-              </tr>
-            )}
-          />
-        </Card>
+    <div className="space-y-8 pb-10">
+      <div className="space-y-3 px-1">
+        <h1 className="font-display text-3xl font-black tracking-[-0.04em] text-[var(--text-primary)] sm:text-[2.5rem]">
+          Joumpa Service
+        </h1>
       </div>
+
+      <SummarySectionCard
+        title="Operational Feedback Report"
+        subtitle="Rekap laporan operasional bersumber dari staf internal maupun eksternal serta laporan operasional airline sebagai customer."
+      >
+        <div className="grid gap-5 xl:grid-cols-3">
+          <SmallChartCard
+            title="Total Report per Month"
+            subtitle="Frekuensi jumlah laporan yang tercatat pada masing-masing bulan dalam periode pelaporan."
+          >
+            <HorizontalBarPanel rows={operationalMonthly} color={CHART_COLORS.emerald} />
+          </SmallChartCard>
+          <SmallChartCard
+            title="Reportby Category"
+            subtitle="Jumlah laporan berdasarkan kategori temuan dalam periode pelaporan."
+          >
+            <HorizontalBarPanel rows={operationalRemarks} color={CHART_COLORS.teal} />
+          </SmallChartCard>
+          <SmallChartCard
+            title="Category Distribution of Report"
+            subtitle="Distribusi laporan berdasarkan klasifikasi kejadian operasional dalam periode pelaporan."
+          >
+            <PiePanel slices={operationalDistribution} />
+          </SmallChartCard>
+        </div>
+
+        <div className="mt-5">
+          <SmallChartCard
+            title="Report Category by Airlines"
+            subtitle="Distribusi laporan berdasarkan maskapai dan jenis temuan pada operasional dalam periode pelaporan."
+          >
+            <MatrixTable data={operationalAirlineMatrix} rowLabel="Branch" secondaryLabel="Airlines" />
+          </SmallChartCard>
+        </div>
+      </SummarySectionCard>
+
+      <SummarySectionCard
+        title="Compliment From Operational Feedback Report"
+        subtitle="Apresiasi terhadap kualitas pelaksanaan prosedur operasional dan efektivitas service handling sebagai dasar identifikasi elemen kinerja yang perlu dipertahankan"
+      >
+        <div className="grid gap-5 xl:grid-cols-[0.9fr,1.1fr]">
+          <SmallChartCard title="Report by Category">
+            <HorizontalBarPanel rows={complimentRemarks} color={CHART_COLORS.emerald} />
+          </SmallChartCard>
+          <SmallChartCard title="Landside Area">
+            <SummaryDenseTable
+              data={complimentRoots}
+              columns={metricColumns()}
+              rowKey={(row) => row.label}
+              itemsPerPage={7}
+              initialSort={{ columnId: 'value', direction: 'desc' }}
+              emptyMessage="No compliment root identification found."
+            />
+          </SmallChartCard>
+        </div>
+
+        <div className="mt-5">
+          <SmallChartCard title="Landside Area - Detail Root Cause Identification">
+            <SummaryDenseTable
+              data={complimentRootDetails}
+              columns={complimentRootColumns}
+              rowKey={(row) => row.id}
+              itemsPerPage={8}
+              initialSort={{ columnId: 'total', direction: 'desc' }}
+              emptyMessage="No compliment detail rows found."
+            />
+          </SmallChartCard>
+        </div>
+      </SummarySectionCard>
+
+      <SummarySectionCard
+        title="Voice of Passenger Report"
+        subtitle="Rekap Laporan operasional yang disampaikan bersumber langsung dari penumpang dalam periode pelaporan."
+      >
+        {voiceLoading ? (
+          <LoadingPanel message="Loading Joumpa voice-of-passenger data..." />
+        ) : voiceError ? (
+          <ErrorPanel message={voiceError} />
+        ) : (
+          <>
+            <div className="grid gap-5 xl:grid-cols-2">
+              <SmallChartCard title="Total Report per Month">
+                <HorizontalBarPanel rows={voiceMonthly} color={CHART_COLORS.emerald} height={240} yAxisWidth={92} leftMargin={24} />
+              </SmallChartCard>
+              <SmallChartCard title="Total Report by Report Type">
+                <HorizontalBarPanel rows={voiceReportTypes} color={CHART_COLORS.teal} height={220} yAxisWidth={132} leftMargin={24} />
+              </SmallChartCard>
+            </div>
+
+            <div className="mt-5">
+              <SmallChartCard
+                title="Breakdown of Identified Causes"
+                subtitle="Rows follow Joumpa service type with branch and airline context; columns show category report counts."
+              >
+                <BreakdownIdentifiedCausesTable data={voiceBreakdownMatrix} />
+              </SmallChartCard>
+            </div>
+
+            <div className="mt-5 grid gap-5 xl:grid-cols-2">
+              <SmallChartCard title="Report by Service Type">
+                <SummaryDenseTable
+                  data={voiceServiceTypeRows}
+                  columns={metricColumns('Total ▼', 'Joumpa Service Type')}
+                  rowKey={(row) => row.label}
+                  itemsPerPage={4}
+                  initialSort={{ columnId: 'value', direction: 'desc' }}
+                  emptyMessage="No Joumpa service type rows found."
+                />
+              </SmallChartCard>
+
+              <SmallChartCard title="Category Distribution of Report">
+                <PiePanel slices={voiceCategoryDistribution} />
+              </SmallChartCard>
+            </div>
+
+            <div className="mt-5">
+              <SmallChartCard title="Service Type Report by Category">
+                {voiceServiceTypeCategory.rows.length ? (
+                  <div className="h-[320px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={voiceServiceTypeCategory.rows}
+                        layout="vertical"
+                        margin={{ top: 4, right: 20, left: 120, bottom: 4 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="oklch(0.9 0.01 90 / 0.85)" />
+                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+                        <YAxis
+                          dataKey="serviceType"
+                          type="category"
+                          axisLine={false}
+                          tickLine={false}
+                          width={190}
+                          tick={WrappedYAxisTick}
+                        />
+                        <Tooltip
+                          cursor={{ fill: 'oklch(0.96 0.01 90 / 0.75)' }}
+                          contentStyle={{
+                            borderRadius: 18,
+                            border: '1px solid oklch(0.88 0.01 90 / 0.85)',
+                            background: 'rgba(255,255,255,0.96)',
+                            boxShadow: '0 16px 38px -22px rgba(15, 23, 42, 0.28)',
+                          }}
+                        />
+                        {voiceServiceTypeCategory.categories.map((category, index) => (
+                          <Bar
+                            key={category}
+                            dataKey={category}
+                            stackId="voice"
+                            fill={[CHART_COLORS.emerald, CHART_COLORS.teal, CHART_COLORS.amber, CHART_COLORS.orange, CHART_COLORS.rose][index % 5]}
+                            radius={index === voiceServiceTypeCategory.categories.length - 1 ? [0, 12, 12, 0] : [0, 0, 0, 0]}
+                          />
+                        ))}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : (
+                  <EmptyPanel />
+                )}
+              </SmallChartCard>
+            </div>
+
+            <div className="mt-5">
+              <SmallChartCard title="Detail Report">
+                <SummaryDenseTable
+                  data={voiceDetails}
+                  columns={voiceDetailColumns}
+                  rowKey={(row) => row.id}
+                  itemsPerPage={7}
+                  initialSort={{ columnId: 'date', direction: 'desc' }}
+                  emptyMessage="No Joumpa detail rows found."
+                />
+              </SmallChartCard>
+            </div>
+          </>
+        )}
+      </SummarySectionCard>
     </div>
   );
 }

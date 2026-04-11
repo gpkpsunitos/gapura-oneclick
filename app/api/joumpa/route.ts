@@ -15,12 +15,13 @@ interface JoumpaRecord {
   evidence: string;
   report: string;
   reportBy: string;
+  reportType: string;
   satisfactionRating: string;
   averageRating: string;
 }
 
-const JOUMPA_SHEET_ID = process.env.JOUMPA_SHEET_ID;
-const SHEET_NAME = 'Form Responses 1';
+const JOUMPA_SHEET_ID = '1X4KN3ukUtMsd4udL-e2OdNIMheJqutXp0IbfE-Cwwsw';
+const SHEET_NAME = 'Report Data Staff & Customer ';
 
 const HEADER_MAP: Record<string, keyof JoumpaRecord> = {
   'timestamp': 'timestamp',
@@ -32,6 +33,7 @@ const HEADER_MAP: Record<string, keyof JoumpaRecord> = {
   'joumpa service type': 'serviceType',
   'category report': 'category',
   'report by': 'reportBy',
+  'report type': 'reportType',
   'rating rata-rata': 'averageRating',
 };
 
@@ -88,13 +90,6 @@ export async function GET(request: NextRequest) {
     const payload = await verifySession(token);
     if (!payload) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!JOUMPA_SHEET_ID) {
-      return NextResponse.json(
-        { error: 'JOUMPA_SHEET_ID is not configured' },
-        { status: 500 }
-      );
     }
 
     const sheets = await getGoogleSheets();

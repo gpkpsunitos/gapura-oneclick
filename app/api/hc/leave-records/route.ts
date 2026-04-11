@@ -16,6 +16,8 @@ import {
 import type { HCLeaveRecord, HCLeaveSubmissionStatus } from '@/types';
 
 const SUBMISSION_STATUS_VALUES: HCLeaveSubmissionStatus[] = ['PENDING', 'APPROVED', 'REJECTED'];
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^08\d{8,11}$/;
 
 /**
  * Mengecek apakah rekaman cuti cocok dengan bulan yang ditentukan
@@ -89,6 +91,8 @@ function applyFilters(records: HCLeaveRecord[], searchParams: URLSearchParams) {
 
         return [
             record.employee_name,
+            record.employee_email,
+            record.employee_phone,
             record.leave_type,
             record.station?.code,
             record.station?.name,
@@ -165,16 +169,34 @@ export async function POST(request: Request) {
 
         const body = await request.json();
         const employeeName = String(body.employee_name || '').trim();
+        const employeeEmail = String(body.employee_email || '').trim().toLowerCase();
+        const employeePhone = String(body.employee_phone || '').trim();
         const leaveType = String(body.leave_type || '').trim();
         const startDate = String(body.start_date || '').trim();
         const endDate = String(body.end_date || '').trim();
         const picName = String(body.pic_name || '').trim();
+        const picEmail = String(body.pic_email || '').trim().toLowerCase();
+        const picPhone = String(body.pic_phone || '').trim();
 
-        if (!employeeName || !leaveType || !startDate || !endDate || !picName) {
-            return NextResponse.json({ error: 'employee_name, leave_type, start_date, end_date, and pic_name are required' }, { status: 400 });
+        if (!employeeName || !employeeEmail || !employeePhone || !leaveType || !startDate || !endDate || !picName || !picEmail || !picPhone) {
+            return NextResponse.json({
+                error: 'employee_name, employee_email, employee_phone, leave_type, start_date, end_date, pic_name, pic_email, and pic_phone are required',
+            }, { status: 400 });
         }
         if (new Date(`${endDate}T00:00:00Z`) < new Date(`${startDate}T00:00:00Z`)) {
             return NextResponse.json({ error: 'end_date must be on or after start_date' }, { status: 400 });
+        }
+        if (!EMAIL_REGEX.test(employeeEmail)) {
+            return NextResponse.json({ error: 'employee_email format is invalid' }, { status: 400 });
+        }
+        if (!PHONE_REGEX.test(employeePhone)) {
+            return NextResponse.json({ error: 'employee_phone must be an active Indonesian mobile number' }, { status: 400 });
+        }
+        if (!EMAIL_REGEX.test(picEmail)) {
+            return NextResponse.json({ error: 'pic_email format is invalid' }, { status: 400 });
+        }
+        if (!PHONE_REGEX.test(picPhone)) {
+            return NextResponse.json({ error: 'pic_phone must be an active Indonesian mobile number' }, { status: 400 });
         }
 
         const stationId = role === 'STAFF_CABANG'
@@ -191,6 +213,8 @@ export async function POST(request: Request) {
 
         const insertPayload = {
             employee_name: employeeName,
+            employee_email: employeeEmail,
+            employee_phone: employeePhone,
             leave_type: leaveType,
             start_date: startDate,
             end_date: endDate,
@@ -199,8 +223,8 @@ export async function POST(request: Request) {
             division_name: body.division_name ? String(body.division_name).trim() : null,
             unit_name: body.unit_name ? String(body.unit_name).trim() : null,
             pic_name: picName,
-            pic_email: body.pic_email ? String(body.pic_email).trim() : null,
-            pic_phone: body.pic_phone ? String(body.pic_phone).trim() : null,
+            pic_email: picEmail,
+            pic_phone: picPhone,
             notes: body.notes ? String(body.notes).trim() : null,
             created_by: user.id,
             updated_by: user.id,

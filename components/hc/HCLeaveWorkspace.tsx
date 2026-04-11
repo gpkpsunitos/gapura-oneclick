@@ -42,6 +42,8 @@ interface StationOption {
 
 interface LeaveFormState {
     employee_name: string;
+    employee_email: string;
+    employee_phone: string;
     leave_type: string;
     start_date: string;
     end_date: string;
@@ -168,6 +170,8 @@ const SUBMISSION_STATUS_OPTIONS: Array<{ value: HCLeaveSubmissionStatus; label: 
 function emptyForm(stationId?: string | null): LeaveFormState {
     return {
         employee_name: '',
+        employee_email: '',
+        employee_phone: '',
         leave_type: '',
         start_date: '',
         end_date: '',
@@ -359,6 +363,8 @@ function recordMatchesSearch(record: HCLeaveRecord, search: string) {
 
     return [
         record.employee_name,
+        record.employee_email,
+        record.employee_phone,
         record.leave_type,
         record.station?.code,
         record.station?.name,
@@ -454,6 +460,16 @@ function getLeaveFormErrors(form: LeaveFormState): LeaveFormErrorMap {
     if (!form.employee_name.trim()) {
         errors.employee_name = 'Nama pegawai wajib diisi.';
     }
+    if (!form.employee_email.trim()) {
+        errors.employee_email = 'Email pegawai yang cuti wajib diisi.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.employee_email.trim())) {
+        errors.employee_email = 'Format email pegawai yang cuti tidak valid.';
+    }
+    if (!form.employee_phone.trim()) {
+        errors.employee_phone = 'Nomor HP pegawai yang cuti wajib diisi.';
+    } else if (!/^08\d{8,11}$/.test(form.employee_phone.trim())) {
+        errors.employee_phone = 'Nomor HP pegawai yang cuti harus aktif dan berformat 08xxxxxxxx.';
+    }
 
     if (!form.leave_type.trim()) {
         errors.leave_type = 'Jenis cuti wajib dipilih.';
@@ -472,9 +488,15 @@ function getLeaveFormErrors(form: LeaveFormState): LeaveFormErrorMap {
     if (!form.pic_name.trim()) {
         errors.pic_name = 'Pejabat Harian (PH) / Pengganti wajib diisi.';
     }
-
-    if (form.pic_email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.pic_email.trim())) {
-        errors.pic_email = 'Format email PIC tidak valid.';
+    if (!form.pic_email.trim()) {
+        errors.pic_email = 'Email PH / Pengganti wajib diisi.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.pic_email.trim())) {
+        errors.pic_email = 'Format email PH / Pengganti tidak valid.';
+    }
+    if (!form.pic_phone.trim()) {
+        errors.pic_phone = 'Nomor HP PH / Pengganti wajib diisi.';
+    } else if (!/^08\d{8,11}$/.test(form.pic_phone.trim())) {
+        errors.pic_phone = 'Nomor HP PH / Pengganti harus aktif dan berformat 08xxxxxxxx.';
     }
 
     return errors;
@@ -995,10 +1017,14 @@ function LeaveFormCard({
     const statusLabel = editing ? getSubmissionStatusLabel(editing.submission_status) : 'Draft';
     const canSubmit =
         form.employee_name.trim() &&
+        form.employee_email.trim() &&
+        form.employee_phone.trim() &&
         form.leave_type.trim() &&
         form.start_date &&
         form.end_date &&
         form.pic_name.trim() &&
+        form.pic_email.trim() &&
+        form.pic_phone.trim() &&
         Object.keys(errors).length === 0;
 
     const markTouched = useCallback((field: keyof LeaveFormState) => {
@@ -1027,12 +1053,16 @@ function LeaveFormCard({
 
     const summaryItems = [
         { label: 'Pegawai', value: form.employee_name.trim() || '-' },
+        { label: 'Email pegawai', value: form.employee_email.trim() || '-' },
+        { label: 'No. HP pegawai', value: form.employee_phone.trim() || '-' },
         { label: 'Jenis cuti', value: form.leave_type.trim() || '-' },
         { label: 'Periode', value: form.start_date && form.end_date ? formatLeavePeriod(form.start_date, form.end_date) : '-' },
         { label: 'Durasi', value: duration ? `${duration} hari` : '-' },
         { label: 'Status', value: statusLabel },
         ...(showStationSelect ? [{ label: 'Cabang', value: selectedStationLabel }] : []),
         { label: 'PH / Pengganti', value: form.pic_name.trim() || '-' },
+        { label: 'Email PH', value: form.pic_email.trim() || '-' },
+        { label: 'No. HP PH', value: form.pic_phone.trim() || '-' },
     ];
 
     return (
@@ -1074,6 +1104,31 @@ function LeaveFormCard({
                                 required
                             />
                             {showError('employee_name') ? <p className="mt-2 text-xs text-rose-600">{errors.employee_name}</p> : null}
+                        </div>
+                        <div>
+                            <FieldLabel label="Email pegawai yang cuti" required hint="Wajib email aktif" />
+                            <input
+                                type="email"
+                                value={form.employee_email}
+                                onBlur={() => markTouched('employee_email')}
+                                onChange={(event) => onChange('employee_email', event.target.value)}
+                                placeholder="pegawai@gapura.id"
+                                className={cn(formFieldClass, showError('employee_email') ? 'border-rose-300 focus:border-rose-500' : '')}
+                                required
+                            />
+                            {showError('employee_email') ? <p className="mt-2 text-xs text-rose-600">{errors.employee_email}</p> : null}
+                        </div>
+                        <div>
+                            <FieldLabel label="Nomor HP pegawai yang cuti" required hint="Wajib no HP aktif" />
+                            <input
+                                value={form.employee_phone}
+                                onBlur={() => markTouched('employee_phone')}
+                                onChange={(event) => onChange('employee_phone', event.target.value)}
+                                placeholder="08xxxxxxxxxx"
+                                className={cn(formFieldClass, showError('employee_phone') ? 'border-rose-300 focus:border-rose-500' : '')}
+                                required
+                            />
+                            {showError('employee_phone') ? <p className="mt-2 text-xs text-rose-600">{errors.employee_phone}</p> : null}
                         </div>
                         <div>
                             <FieldLabel label="Jenis cuti / izin" required />
@@ -1187,25 +1242,29 @@ function LeaveFormCard({
                             {showError('pic_name') ? <p className="mt-2 text-xs text-rose-600">{errors.pic_name}</p> : null}
                         </div>
                         <div>
-                            <FieldLabel label="Email PIC / PH" />
+                            <FieldLabel label="Email PH / Pengganti" required hint="Wajib email aktif" />
                             <input
                                 type="email"
                                 value={form.pic_email}
                                 onBlur={() => markTouched('pic_email')}
                                 onChange={(event) => onChange('pic_email', event.target.value)}
-                                placeholder="Email PIC / PH"
+                                placeholder="ph@gapura.id"
                                 className={cn(formFieldClass, showError('pic_email') ? 'border-rose-300 focus:border-rose-500' : '')}
+                                required
                             />
                             {showError('pic_email') ? <p className="mt-2 text-xs text-rose-600">{errors.pic_email}</p> : null}
                         </div>
                         <div>
-                            <FieldLabel label="Nomor HP PIC / PH" />
+                            <FieldLabel label="Nomor HP PH / Pengganti" required hint="Wajib no HP aktif" />
                             <input
                                 value={form.pic_phone}
+                                onBlur={() => markTouched('pic_phone')}
                                 onChange={(event) => onChange('pic_phone', event.target.value)}
-                                placeholder="Nomor HP PIC / PH"
-                                className={formFieldClass}
+                                placeholder="08xxxxxxxxxx"
+                                className={cn(formFieldClass, showError('pic_phone') ? 'border-rose-300 focus:border-rose-500' : '')}
+                                required
                             />
+                            {showError('pic_phone') ? <p className="mt-2 text-xs text-rose-600">{errors.pic_phone}</p> : null}
                         </div>
                     </div>
                 </StaffFormSection>
@@ -1569,6 +1628,8 @@ function HCMonitoringTable({
                                         <td className="px-5 py-4">
                                             <p className="text-[14px] font-semibold text-[var(--text-primary)]">{record.employee_name}</p>
                                             <p className="mt-1 text-[12px] text-[var(--text-secondary)]">{record.leave_type}</p>
+                                            <p className="mt-1 text-[12px] text-[var(--text-muted)]">{record.employee_email || '-'}</p>
+                                            <p className="mt-1 text-[12px] text-[var(--text-muted)]">{record.employee_phone || '-'}</p>
                                         </td>
                                         <td className="px-5 py-4 text-[12px] text-[var(--text-secondary)]">
                                             <p>{formatLeavePeriod(record.start_date, record.end_date)}</p>
@@ -1583,6 +1644,7 @@ function HCMonitoringTable({
                                         <td className="px-5 py-4">
                                             <p className="text-[14px] text-[var(--text-primary)]">{record.pic_name || '-'}</p>
                                             <p className="mt-1 text-[12px] text-[var(--text-secondary)]">{record.pic_email || '-'}</p>
+                                            <p className="mt-1 text-[12px] text-[var(--text-muted)]">{record.pic_phone || '-'}</p>
                                         </td>
                                         <td className="px-5 py-4">
                                             <SubmissionStatusChip status={record.submission_status} meta={reviewerMeta} />
@@ -1698,6 +1760,18 @@ function HCMonitoringTable({
                                                     <div>
                                                         <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Catatan</p>
                                                         <p className="mt-1 text-[13px] leading-6 text-[var(--text-secondary)]">{record.notes || '-'}</p>
+                                                    </div>
+                                                    <div className="grid gap-3 md:grid-cols-2">
+                                                        <div>
+                                                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Kontak Pegawai Cuti</p>
+                                                            <p className="mt-1 text-[13px] leading-6 text-[var(--text-secondary)]">{record.employee_email || '-'}</p>
+                                                            <p className="mt-1 text-[13px] leading-6 text-[var(--text-secondary)]">{record.employee_phone || '-'}</p>
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">Kontak PH / Pengganti</p>
+                                                            <p className="mt-1 text-[13px] leading-6 text-[var(--text-secondary)]">{record.pic_email || '-'}</p>
+                                                            <p className="mt-1 text-[13px] leading-6 text-[var(--text-secondary)]">{record.pic_phone || '-'}</p>
+                                                        </div>
                                                     </div>
                                                     {record.review_notes ? (
                                                         <div>
@@ -1830,6 +1904,8 @@ function LeaveRecordsTable({
                                     <td className="px-4 py-4">
                                         <p className="font-bold text-[var(--text-primary)]">{record.employee_name}</p>
                                         <p className="mt-1 text-xs text-[var(--text-muted)]">{record.leave_type}</p>
+                                        <p className="mt-1 text-xs text-[var(--text-muted)]">{record.employee_email || '-'}</p>
+                                        <p className="mt-1 text-xs text-[var(--text-muted)]">{record.employee_phone || '-'}</p>
                                     </td>
                                     <td className="px-4 py-4 text-[var(--text-secondary)]">
                                         <p>{formatLeavePeriod(record.start_date, record.end_date)}</p>
@@ -1926,8 +2002,11 @@ function LeaveRecordsTable({
                             <div className="mt-4 space-y-2 text-sm text-[var(--text-secondary)]">
                                 <p><strong>Periode:</strong> {formatLeavePeriod(record.start_date, record.end_date)}</p>
                                 <p><strong>Cabang:</strong> {record.station ? `${record.station.code} - ${record.station.name}` : '-'}</p>
+                                <p><strong>Email pegawai cuti:</strong> {record.employee_email || '-'}</p>
+                                <p><strong>No. HP pegawai cuti:</strong> {record.employee_phone || '-'}</p>
                                 <p><strong>Divisi / Unit:</strong> {record.division_name || '-'} / {record.unit_name || '-'}</p>
                                 <p><strong>PH / Pengganti:</strong> {record.pic_name || '-'} / {record.pic_phone || '-'}</p>
+                                <p><strong>Email PH / Pengganti:</strong> {record.pic_email || '-'}</p>
                                 {record.review_notes ? <p><strong>Catatan HC:</strong> {record.review_notes}</p> : null}
                                 <p><strong>Catatan:</strong> {record.notes || '-'}</p>
                             </div>
@@ -2697,6 +2776,8 @@ export function HCLeaveWorkspace({ mode }: { mode: WorkspaceMode }) {
         setEditing(record);
         setForm({
             employee_name: record.employee_name,
+            employee_email: record.employee_email || '',
+            employee_phone: record.employee_phone || '',
             leave_type: record.leave_type,
             start_date: record.start_date,
             end_date: record.end_date,

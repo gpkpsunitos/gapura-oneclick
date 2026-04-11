@@ -17,6 +17,8 @@ import {
 import type { HCLeaveRecord, HCLeaveSubmissionStatus } from '@/types';
 
 const SUBMISSION_STATUS_VALUES: HCLeaveSubmissionStatus[] = ['PENDING', 'APPROVED', 'REJECTED'];
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_REGEX = /^08\d{8,11}$/;
 
 /**
  * Mengambil rekaman cuti berdasarkan ID
@@ -99,6 +101,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
 
         const patchableFields = [
             'employee_name',
+            'employee_email',
+            'employee_phone',
             'leave_type',
             'start_date',
             'end_date',
@@ -149,21 +153,50 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         const nextEmployeeName = String(
             ('employee_name' in updates ? updates.employee_name : existing.employee_name) || ''
         ).trim();
+        const nextEmployeeEmail = String(
+            ('employee_email' in updates ? updates.employee_email : existing.employee_email) || ''
+        ).trim().toLowerCase();
+        const nextEmployeePhone = String(
+            ('employee_phone' in updates ? updates.employee_phone : existing.employee_phone) || ''
+        ).trim();
         const nextLeaveType = String(
             ('leave_type' in updates ? updates.leave_type : existing.leave_type) || ''
         ).trim();
         const nextPicName = String(
             ('pic_name' in updates ? updates.pic_name : existing.pic_name) || ''
         ).trim();
+        const nextPicEmail = String(
+            ('pic_email' in updates ? updates.pic_email : existing.pic_email) || ''
+        ).trim().toLowerCase();
+        const nextPicPhone = String(
+            ('pic_phone' in updates ? updates.pic_phone : existing.pic_phone) || ''
+        ).trim();
 
-        if (!nextEmployeeName || !nextLeaveType || !nextStartDate || !nextEndDate || !nextPicName) {
+        if (!nextEmployeeName || !nextEmployeeEmail || !nextEmployeePhone || !nextLeaveType || !nextStartDate || !nextEndDate || !nextPicName || !nextPicEmail || !nextPicPhone) {
             return NextResponse.json({
-                error: 'employee_name, leave_type, start_date, end_date, and pic_name are required',
+                error: 'employee_name, employee_email, employee_phone, leave_type, start_date, end_date, pic_name, pic_email, and pic_phone are required',
             }, { status: 400 });
         }
         if (new Date(`${nextEndDate}T00:00:00Z`) < new Date(`${nextStartDate}T00:00:00Z`)) {
             return NextResponse.json({ error: 'end_date must be on or after start_date' }, { status: 400 });
         }
+        if (!EMAIL_REGEX.test(nextEmployeeEmail)) {
+            return NextResponse.json({ error: 'employee_email format is invalid' }, { status: 400 });
+        }
+        if (!PHONE_REGEX.test(nextEmployeePhone)) {
+            return NextResponse.json({ error: 'employee_phone must be an active Indonesian mobile number' }, { status: 400 });
+        }
+        if (!EMAIL_REGEX.test(nextPicEmail)) {
+            return NextResponse.json({ error: 'pic_email format is invalid' }, { status: 400 });
+        }
+        if (!PHONE_REGEX.test(nextPicPhone)) {
+            return NextResponse.json({ error: 'pic_phone must be an active Indonesian mobile number' }, { status: 400 });
+        }
+
+        updates.employee_email = nextEmployeeEmail;
+        updates.employee_phone = nextEmployeePhone;
+        updates.pic_email = nextPicEmail;
+        updates.pic_phone = nextPicPhone;
 
         if (isHCManager && 'station_id' in body) {
             updates.station_id = body.station_id || null;
