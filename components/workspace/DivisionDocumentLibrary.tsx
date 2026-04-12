@@ -171,6 +171,13 @@ function formatCreatedDate(value?: string | null) {
     }).format(date);
 }
 
+function formatFileSize(value?: number | null) {
+    if (!value || value <= 0) return '-';
+    if (value < 1024) return `${value} B`;
+    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 function getInboxCategoryLabel(category: DivisionDocumentCategory) {
     switch (category) {
         case 'EDARAN_DIREKSI':
@@ -234,12 +241,31 @@ function getDocumentHref(document: DivisionDocument) {
     return document.source_type === 'upload' ? document.file_url : document.external_url;
 }
 
-function canPreviewDocument(document: DivisionDocument) {
+type DocumentPreviewConfig =
+    | { kind: 'iframe'; src: string }
+    | { kind: 'image'; src: string };
+
+function getDocumentPreviewConfig(document: DivisionDocument): DocumentPreviewConfig | null {
     const href = getDocumentHref(document);
-    if (!href) return false;
+    if (!href) return null;
 
     const descriptor = `${document.mime_type || ''} ${document.file_name || ''} ${href}`.toLowerCase();
-    return descriptor.includes('pdf');
+    if (descriptor.includes('pdf')) {
+        return { kind: 'iframe', src: href };
+    }
+
+    if (/\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(descriptor) || /image\/(png|jpeg|jpg|gif|webp|bmp|svg\+xml)/i.test(descriptor)) {
+        return { kind: 'image', src: href };
+    }
+
+    if (/\.(doc|docx|xls|xlsx|ppt|pptx)(\?|$)/i.test(descriptor) || /(word|excel|powerpoint|officedocument|msword|ms-excel|ms-powerpoint)/i.test(descriptor)) {
+        return {
+            kind: 'iframe',
+            src: `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(href)}`,
+        };
+    }
+
+    return null;
 }
 
 function isStandaloneDisplayMode() {
@@ -770,7 +796,10 @@ export function DivisionDocumentLibrary({
     const HeroIcon = heroIcon;
     const selectedDocumentHref = selectedDocument ? getDocumentHref(selectedDocument) : null;
     const selectedDocumentDate = selectedDocument ? formatCreatedDate(selectedDocument.created_at) : null;
-    const selectedDocumentCanPreview = selectedDocument ? canPreviewDocument(selectedDocument) : false;
+    const selectedDocumentPreview = selectedDocument ? getDocumentPreviewConfig(selectedDocument) : null;
+    const selectedMeetingDate = selectedDocument ? formatMeetingDate(selectedDocument.meeting_date) : null;
+    const selectedRoleLabels = selectedDocument ? resolveRoleLabels(selectedDocument.audience_roles) : [];
+    const selectedStationLabels = selectedDocument ? resolveStationLabels(selectedDocument.audience_station_ids) : [];
     const selectedDocumentOfflineSaved = selectedDocument ? Boolean(offlineSavedDocumentMap[selectedDocument.id]) : false;
     const minimalEmptyStateHeading = isTrainingInboxExperience ? 'Belum ada materi training' : 'Belum ada dokumen';
     const minimalEmptyStateSubtext = isTrainingInboxExperience ? 'Materi dari HC akan tampil di sini.' : 'Dokumen dari HC akan tampil di sini.';
@@ -945,13 +974,97 @@ export function DivisionDocumentLibrary({
                                     <p className="mb-4 text-[14px] leading-6 text-[#4B5563]">{selectedDocument.description}</p>
                                 ) : null}
 
-                                {selectedDocumentHref && selectedDocumentCanPreview ? (
+                                <div className="mb-5 grid gap-3 sm:grid-cols-2">
+                                    <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#6B7280]">Kategori</p>
+                                        <p className="mt-2 text-[14px] font-medium text-[#111827]">
+                                            {getInboxCategoryLabel(selectedDocument.category)}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#6B7280]">Sumber</p>
+                                        <p className="mt-2 text-[14px] font-medium text-[#111827]">
+                                            {selectedDocument.source_type === 'upload' ? 'Upload File' : 'Link Eksternal'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#6B7280]">Tanggal Dokumen</p>
+                                        <p className="mt-2 text-[14px] font-medium text-[#111827]">
+                                            {selectedMeetingDate || '-'}
+                                        </p>
+                                    </div>
+                                    <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
+                                        <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#6B7280]">Ukuran File</p>
+                                        <p className="mt-2 text-[14px] font-medium text-[#111827]">
+                                            {formatFileSize(selectedDocument.file_size)}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="mb-5 space-y-4 rounded-2xl border border-[#E5E7EB] bg-white p-5">
+                                    <div>
+                                        <p className="text-[13px] font-medium text-[#374151]">File / Link</p>
+                                        <p className="mt-1 break-all text-[14px] text-[#111827]">
+                                            {selectedDocument.file_name || selectedDocument.external_url || '-'}
+                                        </p>
+                                    </div>
+
+                                    {selectedDocument.meeting_title ? (
+                                        <div>
+                                            <p className="text-[13px] font-medium text-[#374151]">Meeting / Sosialisasi</p>
+                                            <p className="mt-1 text-[14px] text-[#111827]">{selectedDocument.meeting_title}</p>
+                                        </div>
+                                    ) : null}
+
+                                    <div>
+                                        <p className="text-[13px] font-medium text-[#374151]">Audience Label</p>
+                                        <p className="mt-1 text-[14px] text-[#111827]">{selectedDocument.audience_label || '-'}</p>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-[13px] font-medium text-[#374151]">Role Target</p>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {selectedRoleLabels.length ? selectedRoleLabels.map((label) => (
+                                                <span key={label} className="rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-2.5 py-1 text-[12px] text-[#6B7280]">
+                                                    {label}
+                                                </span>
+                                            )) : (
+                                                <span className="text-[14px] text-[#111827]">-</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <p className="text-[13px] font-medium text-[#374151]">Cabang Target</p>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {selectedStationLabels.length ? selectedStationLabels.map((label) => (
+                                                <span key={label} className="rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-2.5 py-1 text-[12px] text-[#6B7280]">
+                                                    {label}
+                                                </span>
+                                            )) : (
+                                                <span className="text-[14px] text-[#111827]">-</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {selectedDocumentHref && selectedDocumentPreview ? (
                                     <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
-                                        <iframe
-                                            src={selectedDocumentHref}
-                                            title={selectedDocument.title}
-                                            className="h-[72vh] w-full"
-                                        />
+                                        {selectedDocumentPreview.kind === 'image' ? (
+                                            <div className="flex max-h-[72vh] items-center justify-center overflow-auto bg-[#F9FAFB] p-4">
+                                                <img
+                                                    src={selectedDocumentPreview.src}
+                                                    alt={selectedDocument.title}
+                                                    className="h-auto max-h-[68vh] w-auto max-w-full rounded-xl object-contain"
+                                                />
+                                            </div>
+                                        ) : (
+                                            <iframe
+                                                src={selectedDocumentPreview.src}
+                                                title={selectedDocument.title}
+                                                className="h-[72vh] w-full"
+                                            />
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 text-center">

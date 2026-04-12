@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import { RefreshCw, Loader2, Search, Filter, ChevronDown, AlertTriangle, Link as LinkIcon, ExternalLink, Copy, X } from 'lucide-react';
+import { RefreshCw, Loader2, Search, Filter, ChevronDown, ChevronUp, AlertTriangle, Link as LinkIcon, ExternalLink, Copy, X } from 'lucide-react';
 
 import { ResponsiveHeader } from '@/components/dashboard/analyst/ResponsiveHeader';
 import { ResponsiveStatsGrid } from '@/components/dashboard/analyst/ResponsiveStatsGrid';
@@ -135,6 +135,10 @@ export function DivisionAnalystDashboard({
   const [osDashboardLink, setOsDashboardLink] = useState<string>('https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314');
   const [showOPDashboardModal, setShowOPDashboardModal] = useState(false);
   const [opDashboardLink, setOpDashboardLink] = useState<string>('https://lookerstudio.google.com/u/0/reporting/06d31553-08c6-42f3-81e6-1bc96356a854/page/tKISF');
+
+  const handleScrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   // Global Filters State
   const [globalFilters, setGlobalFilters] = useState<{
@@ -1315,6 +1319,19 @@ export function DivisionAnalystDashboard({
               availableOptions={availableOptions}
             />
           ))}
+
+        {division.code === 'OP' && (
+          <div className="flex justify-center pt-2">
+            <button
+              type="button"
+              onClick={handleScrollToTop}
+              className="inline-flex items-center gap-2 rounded-2xl border border-[var(--surface-4)] bg-white px-5 py-3 text-sm font-bold text-[var(--text-primary)] shadow-sm transition-all hover:-translate-y-0.5 hover:bg-[var(--surface-2)] active:scale-[0.98]"
+            >
+              <ChevronUp size={18} />
+              <span>Kembali ke Atas</span>
+            </button>
+          </div>
+        )}
 
         {showOPDashboardModal && (
           <div className="fixed inset-0 z-[9999] flex items-center justify-center">

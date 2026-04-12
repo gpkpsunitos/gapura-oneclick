@@ -15,7 +15,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, ExternalLink, Loader2, QrCode, X } from 'lucide-react';
 import type { Report } from '@/types';
 import { SummarySectionCard } from './summary/SummarySectionCard';
 import { SummaryDenseTable, type SummaryDenseColumn } from './summary/SummaryDenseTable';
@@ -129,6 +129,9 @@ const SATISFACTION_LABELS: Record<string, string> = {
   '2': 'Kurang',
   '1': 'Sangat Kurang',
 };
+
+const JOUMPA_LOOKER_URL = 'https://lookerstudio.google.com/reporting/6a7aba44-6bd1-439f-a5d2-8bed4af56448';
+const JOUMPA_LOOKER_QR_URL = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(JOUMPA_LOOKER_URL)}`;
 
 function isExactJoumpaService(report: Report) {
   return normalizeLower(report.service_business_type) === 'joumpa service';
@@ -759,6 +762,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
   const [voiceRecords, setVoiceRecords] = useState<JoumpaRecord[]>([]);
   const [voiceLoading, setVoiceLoading] = useState(true);
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [showLookerModal, setShowLookerModal] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -1196,9 +1200,87 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
                 />
               </SmallChartCard>
             </div>
+
+            <div className="mt-5">
+              <SmallChartCard
+                title="Lihat versi dashboard Looker"
+                subtitle="Buka versi dashboard Looker Studio untuk tampilan eksternal dan akses cepat via QR code."
+              >
+                <div className="flex flex-col gap-4 rounded-[24px] border border-[oklch(0.88_0.01_90_/_0.85)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))] p-5 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="space-y-2">
+                    <p className="text-sm leading-6 text-[var(--text-secondary)]">
+                      Scan QR code atau buka link dashboard Looker Studio untuk melihat versi presentasi Joumpa Service.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowLookerModal(true)}
+                      className="inline-flex items-center gap-2 rounded-2xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+                    >
+                      <QrCode size={18} />
+                      <span>Tampilkan QR & Link</span>
+                    </button>
+                  </div>
+
+                  <a
+                    href={JOUMPA_LOOKER_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--surface-4)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] transition-all hover:bg-[var(--surface-2)]"
+                  >
+                    <ExternalLink size={18} />
+                    <span>Buka Looker</span>
+                  </a>
+                </div>
+              </SmallChartCard>
+            </div>
           </>
         )}
       </SummarySectionCard>
+
+      {showLookerModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-[30px] border border-[oklch(0.88_0.01_90_/_0.85)] bg-white p-6 shadow-[0_32px_80px_-28px_rgba(15,23,42,0.45)]">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-black tracking-[-0.03em] text-[var(--text-primary)]">
+                  Versi Dashboard Looker
+                </h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+                  Scan QR code di bawah ini atau buka langsung dashboard Looker Studio.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowLookerModal(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-2xl text-[var(--text-secondary)] transition hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+                aria-label="Tutup popup Looker"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="mt-5 flex justify-center">
+              <div className="rounded-[28px] border border-[var(--surface-4)] bg-white p-4 shadow-sm">
+                <img
+                  src={JOUMPA_LOOKER_QR_URL}
+                  alt="QR code dashboard Looker Joumpa Service"
+                  className="h-64 w-64 rounded-2xl"
+                />
+              </div>
+            </div>
+
+            <a
+              href={JOUMPA_LOOKER_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 flex items-center justify-between gap-3 rounded-[22px] border border-[var(--surface-4)] bg-[var(--surface-1)] px-4 py-3 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--surface-2)]"
+            >
+              <span className="truncate">{JOUMPA_LOOKER_URL}</span>
+              <ExternalLink size={18} className="shrink-0" />
+            </a>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

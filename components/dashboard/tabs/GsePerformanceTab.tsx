@@ -432,25 +432,29 @@ function MiniPieChart({
   const total = data.reduce((sum, item) => sum + item.total, 0);
 
   return (
-    <div className="h-[280px]">
-      <ResponsiveContainer width="100%" height="100%">
-        <PieChart>
-          <Pie
-            data={data}
-            dataKey="total"
-            nameKey="label"
-            outerRadius={110}
-            label={({ percent }) => `${Math.round((percent || 0) * 100)}%`}
-            labelLine={false}
-          >
-            {data.map((entry, index) => (
-              <Cell key={entry.id} fill={colors[index % colors.length]} />
-            ))}
-          </Pie>
-          <Tooltip formatter={(value: number) => [`${value}`, 'Total']} />
-        </PieChart>
-      </ResponsiveContainer>
-      <div className="mt-3 flex flex-wrap gap-3 text-xs text-[var(--text-secondary)]">
+    <div className="flex min-h-[320px] flex-col">
+      <div className="h-[248px] min-h-[248px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart margin={{ top: 8, right: 28, bottom: 8, left: 28 }}>
+            <Pie
+              data={data}
+              dataKey="total"
+              nameKey="label"
+              cx="50%"
+              cy="52%"
+              outerRadius={96}
+              label={({ percent }) => `${Math.round((percent || 0) * 100)}%`}
+              labelLine={false}
+            >
+              {data.map((entry, index) => (
+                <Cell key={entry.id} fill={colors[index % colors.length]} />
+              ))}
+            </Pie>
+            <Tooltip formatter={(value: number) => [`${value}`, 'Total']} />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-xs text-[var(--text-secondary)]">
         {data.map((entry, index) => (
           <div key={entry.id} className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} />

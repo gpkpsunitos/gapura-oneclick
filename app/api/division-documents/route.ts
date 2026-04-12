@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import {
+    canViewAudienceScopedItem,
     canManageDivisionDocuments,
     getWorkspaceUser,
     normalizeRole,
@@ -16,49 +17,47 @@ const VALID_DIVISIONS = ['HC', 'HT'] as const;
 const VALID_CATEGORIES = ['SAM_HANDBOOK', 'EDARAN_DIREKSI', 'MATERI_SOSIALISASI', 'TRAINING_MATERIAL'] as const;
 const VALID_VISIBILITY = ['all', 'stations', 'roles', 'targeted'] as const;
 
+interface DivisionDocumentRow {
+    id: string;
+    division: DivisionDocumentDivision;
+    category: DivisionDocumentCategory;
+    title: string;
+    description?: string | null;
+    meeting_title?: string | null;
+    meeting_date?: string | null;
+    audience_label?: string | null;
+    meeting_event_id?: string | null;
+    source_type: 'upload' | 'link';
+    file_url?: string | null;
+    file_name?: string | null;
+    file_size?: number | null;
+    mime_type?: string | null;
+    external_url?: string | null;
+    visibility_scope: DivisionDocumentVisibilityScope;
+    audience_station_ids?: string[] | null;
+    audience_roles?: string[] | null;
+    created_by: string;
+    updated_by?: string | null;
+    created_at: string;
+    updated_at: string;
+    created_by_user?: { full_name?: string | null } | Array<{ full_name?: string | null }> | null;
+}
+
 function isValidDivision(value: string): value is DivisionDocumentDivision {
-    return VALID_DIVISIONS.includes(value as any);
-}
-
-function matchesAudienceByStation(
-    user: NonNullable<Awaited<ReturnType<typeof getWorkspaceUser>>>,
-    document: DivisionDocument
-) {
-    if (!document.audience_station_ids.length) return false;
-    return Boolean(user.station_id) && document.audience_station_ids.includes(String(user.station_id));
-}
-
-function matchesAudienceByRole(
-    user: NonNullable<Awaited<ReturnType<typeof getWorkspaceUser>>>,
-    document: DivisionDocument
-) {
-    if (!document.audience_roles.length) return false;
-    return document.audience_roles.includes(normalizeRole(user.role));
+    return VALID_DIVISIONS.some((item) => item === value);
 }
 
 function canViewDocument(user: NonNullable<Awaited<ReturnType<typeof getWorkspaceUser>>>, document: DivisionDocument) {
     if (canManageDivisionDocuments(user.role, document.division)) return true;
-
-    if (document.visibility_scope === 'all') return true;
-    if (document.visibility_scope === 'stations') {
-        return matchesAudienceByStation(user, document);
-    }
-    if (document.visibility_scope === 'roles') {
-        return matchesAudienceByRole(user, document);
-    }
-    if (document.visibility_scope === 'targeted') {
-        const matchesStation = document.audience_station_ids.length
-            ? matchesAudienceByStation(user, document)
-            : true;
-        const matchesRole = document.audience_roles.length
-            ? matchesAudienceByRole(user, document)
-            : true;
-        return matchesStation && matchesRole;
-    }
-    return false;
+    return canViewAudienceScopedItem(
+        user,
+        document.visibility_scope,
+        document.audience_station_ids,
+        document.audience_roles
+    );
 }
 
-function mapDocument(row: any): DivisionDocument {
+function mapDocument(row: DivisionDocumentRow): DivisionDocument {
     const creator = Array.isArray(row.created_by_user) ? row.created_by_user[0] : row.created_by_user;
     return {
         id: row.id,
@@ -152,10 +151,10 @@ export async function POST(request: Request) {
             ? body.audience_roles.map((role: string) => normalizeRole(role)).filter(Boolean)
             : [];
 
-        if (!VALID_CATEGORIES.includes(category as any)) {
+        if (!VALID_CATEGORIES.some((item) => item === category)) {
             return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
         }
-        if (!VALID_VISIBILITY.includes(visibilityScope as any)) {
+        if (!VALID_VISIBILITY.some((item) => item === visibilityScope)) {
             return NextResponse.json({ error: 'Invalid visibility scope' }, { status: 400 });
         }
         if (!['upload', 'link'].includes(sourceType)) {

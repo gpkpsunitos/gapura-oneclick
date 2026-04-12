@@ -71,6 +71,11 @@ const ROLE_OPTIONS = [
     { value: 'ANALYST', label: 'Analyst' },
 ];
 
+const AUDIENCE_ROLE_OPTIONS = [
+    { value: 'MANAGER_CABANG', label: 'GM/EGM Cabang' },
+    { value: 'STAFF_CABANG', label: 'Staff Cabang' },
+] as const;
+
 function createInitialForm(): HCDocumentFormState {
     return {
         category: 'SAM_HANDBOOK',
@@ -92,7 +97,9 @@ function createInitialForm(): HCDocumentFormState {
 }
 
 function getDocumentHref(document: DivisionDocument) {
-    return document.source_type === 'upload' ? document.file_url : document.external_url;
+    return document.source_type === 'upload'
+        ? `/api/division-documents/${document.id}`
+        : document.external_url;
 }
 
 function formatLongDate(value?: string | null) {
@@ -121,6 +128,13 @@ function formatShortDate(value?: string | null) {
         month: 'short',
         year: 'numeric',
     }).format(date);
+}
+
+function formatFileSize(value?: number | null) {
+    if (!value || value <= 0) return '-';
+    if (value < 1024) return `${value} B`;
+    if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 function getCategoryLabel(category: DivisionDocumentCategory) {
@@ -334,33 +348,31 @@ export function HCDocumentManagementPage() {
         setIsUploadOpen(true);
     }, []);
 
-    const handleRoleToggle = useCallback((role: string) => {
-        setForm((current) => {
-            const hasRole = current.audience_roles.includes(role);
-            const nextRoles = hasRole
-                ? current.audience_roles.filter((item) => item !== role)
-                : [...current.audience_roles, role];
+    const handleRoleSelect = useCallback((role: string) => {
+        setForm((current) => ({
+            ...current,
+            visibility_scope: current.audience_station_ids.length > 0 ? 'targeted' : 'roles',
+            audience_roles: [role],
+        }));
+    }, []);
 
-            const nextVisibilityScope: DivisionDocumentVisibilityScope = nextRoles.length === 0
-                ? (current.audience_station_ids.length > 0 ? 'stations' : 'all')
-                : (current.audience_station_ids.length > 0 ? 'targeted' : 'roles');
+    const handleStationToggle = useCallback((stationId: string) => {
+        setForm((current) => {
+            const hasStation = current.audience_station_ids.includes(stationId);
+            const nextStations = hasStation
+                ? current.audience_station_ids.filter((item) => item !== stationId)
+                : [...current.audience_station_ids, stationId];
+
+            const nextVisibilityScope: DivisionDocumentVisibilityScope = current.audience_roles.length > 0
+                ? (nextStations.length > 0 ? 'targeted' : 'roles')
+                : (nextStations.length > 0 ? 'stations' : 'all');
 
             return {
                 ...current,
-                audience_roles: nextRoles,
+                audience_station_ids: nextStations,
                 visibility_scope: nextVisibilityScope,
             };
         });
-    }, []);
-
-    const handleAllAudience = useCallback(() => {
-        setForm((current) => ({
-            ...current,
-            visibility_scope: 'all',
-            audience_roles: [],
-            audience_station_ids: [],
-            audience_label: '',
-        }));
     }, []);
 
     const handleFileSelection = useCallback((nextFile: File | null) => {
@@ -372,6 +384,20 @@ export function HCDocumentManagementPage() {
             file_name: nextFile.name,
             file_size: nextFile.size,
             mime_type: nextFile.type,
+        }));
+    }, []);
+
+    const handleSourceTypeChange = useCallback((sourceType: 'upload' | 'link') => {
+        setFile(null);
+        setIsDragActive(false);
+        setForm((current) => ({
+            ...current,
+            source_type: sourceType,
+            external_url: sourceType === 'link' ? current.external_url : '',
+            file_url: sourceType === 'upload' ? current.file_url : '',
+            file_name: sourceType === 'upload' ? current.file_name : '',
+            file_size: sourceType === 'upload' ? current.file_size : 0,
+            mime_type: sourceType === 'upload' ? current.mime_type : '',
         }));
     }, []);
 
@@ -753,6 +779,36 @@ export function HCDocumentManagementPage() {
                                 <p className="text-[14px] leading-6 text-[#4B5563]">{selectedDocument.description}</p>
                             ) : null}
 
+                            <section className="grid gap-3 sm:grid-cols-2">
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-3">
+                                    <p className="text-[12px] font-medium uppercase tracking-wide text-[#6B7280]">Kategori</p>
+                                    <p className="mt-1 text-[14px] font-medium text-[#111111]">
+                                        {getCategoryLabel(selectedDocument.category)}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-3">
+                                    <p className="text-[12px] font-medium uppercase tracking-wide text-[#6B7280]">Sumber Dokumen</p>
+                                    <p className="mt-1 text-[14px] font-medium text-[#111111]">
+                                        {selectedDocument.source_type === 'upload' ? 'Upload File' : 'Link Eksternal'}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-3">
+                                    <p className="text-[12px] font-medium uppercase tracking-wide text-[#6B7280]">Tanggal Dokumen</p>
+                                    <p className="mt-1 text-[14px] font-medium text-[#111111]">
+                                        {formatLongDate(selectedDocument.meeting_date)}
+                                    </p>
+                                </div>
+
+                                <div className="rounded-lg border border-[#E5E7EB] bg-[#F9FAFB] p-3">
+                                    <p className="text-[12px] font-medium uppercase tracking-wide text-[#6B7280]">Ukuran File</p>
+                                    <p className="mt-1 text-[14px] font-medium text-[#111111]">
+                                        {formatFileSize(selectedDocument.file_size)}
+                                    </p>
+                                </div>
+                            </section>
+
                             <section className="space-y-3">
                                 <div>
                                     <p className="text-[13px] font-medium text-[#374151]">File</p>
@@ -779,13 +835,6 @@ export function HCDocumentManagementPage() {
                                 </div>
 
                                 <div>
-                                    <p className="text-[13px] font-medium text-[#374151]">Tanggal dokumen</p>
-                                    <p className="mt-1 text-[14px] text-[#111111]">
-                                        {formatLongDate(selectedDocument.meeting_date)}
-                                    </p>
-                                </div>
-
-                                <div>
                                     <p className="text-[13px] font-medium text-[#374151]">Dibuat oleh</p>
                                     <p className="mt-1 text-[14px] text-[#111111]">
                                         {selectedDocument.created_by_name || '-'}
@@ -806,6 +855,42 @@ export function HCDocumentManagementPage() {
                                         ))}
                                     </div>
                                 </div>
+
+                                {selectedDocument.audience_roles.length > 0 ? (
+                                    <div>
+                                        <p className="text-[13px] font-medium text-[#374151]">Role Target</p>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {getRoleLabels(selectedDocument.audience_roles).map((role) => (
+                                                <span
+                                                    key={role}
+                                                    className="rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-2.5 py-1 text-[12px] text-[#6B7280]"
+                                                >
+                                                    {role}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
+
+                                {selectedDocument.audience_station_ids.length > 0 ? (
+                                    <div>
+                                        <p className="text-[13px] font-medium text-[#374151]">Cabang Target</p>
+                                        <div className="mt-2 flex flex-wrap gap-2">
+                                            {selectedDocument.audience_station_ids.map((stationId) => {
+                                                const station = stations.find((item) => item.id === stationId);
+                                                const label = station ? `${station.code} - ${station.name}` : stationId;
+                                                return (
+                                                    <span
+                                                        key={stationId}
+                                                        className="rounded-full border border-[#E5E7EB] bg-[#F9FAFB] px-2.5 py-1 text-[12px] text-[#6B7280]"
+                                                    >
+                                                        {label}
+                                                    </span>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : null}
 
                                 {selectedDocument.meeting_title ? (
                                     <div>
@@ -843,9 +928,9 @@ export function HCDocumentManagementPage() {
             ) : null}
 
             {isUploadOpen ? (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4">
-                    <div className="w-full max-w-[520px] rounded-2xl border border-[#E5E7EB] bg-white shadow-2xl">
-                        <div className="flex items-start justify-between gap-4 border-b border-[#E5E7EB] px-6 py-5">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 sm:p-6">
+                    <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-[640px] flex-col overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white shadow-2xl sm:max-h-[calc(100vh-3rem)]">
+                        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-[#E5E7EB] px-6 py-5">
                             <div>
                                 <h2 className="text-[18px] font-semibold text-[#111111]">
                                     {editing ? 'Edit Dokumen' : 'Tambah Dokumen'}
@@ -861,8 +946,9 @@ export function HCDocumentManagementPage() {
                             </button>
                         </div>
 
-                        <form onSubmit={submit} className="space-y-5 px-6 py-5">
-                            <div>
+                        <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col">
+                            <div className="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
+                                <div>
                                 <label className="mb-2 block text-[13px] font-medium text-[#374151]">Kategori*</label>
                                 <select
                                     value={form.category}
@@ -896,6 +982,36 @@ export function HCDocumentManagementPage() {
                                     rows={3}
                                     className="w-full rounded-md border border-[#E5E7EB] bg-white px-3 py-2.5 text-[14px] text-[#111111] outline-none transition focus:border-[#009688]"
                                 />
+                            </div>
+
+                            <div>
+                                <label className="mb-2 block text-[13px] font-medium text-[#374151]">Sumber Dokumen*</label>
+                                <div className="flex flex-wrap gap-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSourceTypeChange('upload')}
+                                        className={cn(
+                                            'inline-flex h-10 items-center rounded-lg px-4 text-[13px] font-medium transition',
+                                            form.source_type === 'upload'
+                                                ? 'bg-[#009688] text-white shadow-sm'
+                                                : 'bg-white text-[#4B5563] hover:bg-[#F3F4F6]'
+                                        )}
+                                    >
+                                        Upload File
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSourceTypeChange('link')}
+                                        className={cn(
+                                            'inline-flex h-10 items-center rounded-lg px-4 text-[13px] font-medium transition',
+                                            form.source_type === 'link'
+                                                ? 'bg-[#009688] text-white shadow-sm'
+                                                : 'bg-white text-[#4B5563] hover:bg-[#F3F4F6]'
+                                        )}
+                                    >
+                                        Gunakan Link
+                                    </button>
+                                </div>
                             </div>
 
                             <div>
@@ -971,25 +1087,13 @@ export function HCDocumentManagementPage() {
                             <div>
                                 <label className="mb-2 block text-[13px] font-medium text-[#374151]">Audience / Role Target*</label>
                                 <div className="flex flex-wrap gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleAllAudience}
-                                        className={cn(
-                                            'rounded-full border px-3 py-1.5 text-[13px] font-medium transition',
-                                            form.visibility_scope === 'all' && form.audience_station_ids.length === 0
-                                                ? 'border-[#009688] bg-[#E0F2F1] text-[#00796B]'
-                                                : 'border-[#E5E7EB] bg-white text-[#4B5563] hover:bg-[#F9FAFB]'
-                                        )}
-                                    >
-                                        Semua
-                                    </button>
-                                    {ROLE_OPTIONS.map((role) => {
+                                    {AUDIENCE_ROLE_OPTIONS.map((role) => {
                                         const active = form.audience_roles.includes(role.value);
                                         return (
                                             <button
                                                 key={role.value}
                                                 type="button"
-                                                onClick={() => handleRoleToggle(role.value)}
+                                                onClick={() => handleRoleSelect(role.value)}
                                                 className={cn(
                                                     'rounded-full border px-3 py-1.5 text-[13px] font-medium transition',
                                                     active
@@ -1002,10 +1106,33 @@ export function HCDocumentManagementPage() {
                                         );
                                     })}
                                 </div>
-                                {form.audience_station_ids.length > 0 ? (
-                                    <p className="mt-2 text-[12px] text-[#6B7280]">
-                                        Target cabang yang sudah tersimpan akan tetap dipertahankan.
-                                    </p>
+
+                                {form.audience_roles.length > 0 ? (
+                                    <div className="mt-4 space-y-3">
+                                        <p className="text-[12px] font-medium text-[#6B7280]">Pilih cabang target</p>
+                                        <div className="max-h-44 overflow-y-auto rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] p-3">
+                                            <div className="flex flex-wrap gap-2">
+                                                {stations.map((station) => {
+                                                    const active = form.audience_station_ids.includes(station.id);
+                                                    return (
+                                                        <button
+                                                            key={station.id}
+                                                            type="button"
+                                                            onClick={() => handleStationToggle(station.id)}
+                                                            className={cn(
+                                                                'rounded-full border px-3 py-1.5 text-[13px] font-medium transition',
+                                                                active
+                                                                    ? 'border-[#009688] bg-[#E0F2F1] text-[#00796B]'
+                                                                    : 'border-[#E5E7EB] bg-white text-[#4B5563] hover:bg-[#F3F4F6]'
+                                                            )}
+                                                        >
+                                                            {station.code}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
                                 ) : null}
                             </div>
 
@@ -1033,7 +1160,9 @@ export function HCDocumentManagementPage() {
                                 )}
                             </div>
 
-                            <div className="flex items-center justify-end gap-2 border-t border-[#E5E7EB] pt-4">
+                            </div>
+
+                            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-[#E5E7EB] bg-white px-6 py-4">
                                 <button
                                     type="button"
                                     onClick={resetComposer}

@@ -70,12 +70,31 @@ function getDocumentHref(document: DivisionDocument) {
     return document.source_type === 'upload' ? document.file_url : document.external_url;
 }
 
-function canPreviewDocument(document: DivisionDocument) {
+type DocumentPreviewConfig =
+    | { kind: 'iframe'; src: string }
+    | { kind: 'image'; src: string };
+
+function getDocumentPreviewConfig(document: DivisionDocument): DocumentPreviewConfig | null {
     const href = getDocumentHref(document);
-    if (!href) return false;
+    if (!href) return null;
 
     const descriptor = `${document.mime_type || ''} ${document.file_name || ''} ${href}`.toLowerCase();
-    return descriptor.includes('pdf');
+    if (descriptor.includes('pdf')) {
+        return { kind: 'iframe', src: href };
+    }
+
+    if (/\.(png|jpe?g|gif|webp|bmp|svg)(\?|$)/i.test(descriptor) || /image\/(png|jpeg|jpg|gif|webp|bmp|svg\+xml)/i.test(descriptor)) {
+        return { kind: 'image', src: href };
+    }
+
+    if (/\.(doc|docx|xls|xlsx|ppt|pptx)(\?|$)/i.test(descriptor) || /(word|excel|powerpoint|officedocument|msword|ms-excel|ms-powerpoint)/i.test(descriptor)) {
+        return {
+            kind: 'iframe',
+            src: `https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(href)}`,
+        };
+    }
+
+    return null;
 }
 
 function getMaterialAudienceLabel(document: DivisionDocument) {
@@ -160,7 +179,7 @@ export function HCWorkspaceDashboard() {
     }, [materialDocuments]);
 
     const selectedMaterialHref = selectedMaterial ? getDocumentHref(selectedMaterial) : null;
-    const selectedMaterialCanPreview = selectedMaterial ? canPreviewDocument(selectedMaterial) : false;
+    const selectedMaterialPreview = selectedMaterial ? getDocumentPreviewConfig(selectedMaterial) : null;
 
     return (
         <Sheet open={Boolean(selectedMaterial)} onOpenChange={(open) => !open && setSelectedMaterial(null)}>
@@ -351,13 +370,23 @@ export function HCWorkspaceDashboard() {
                                 <p className="mb-4 text-[14px] leading-6 text-[#4B5563]">{selectedMaterial.description}</p>
                             ) : null}
 
-                            {selectedMaterialHref && selectedMaterialCanPreview ? (
+                            {selectedMaterialHref && selectedMaterialPreview ? (
                                 <div className="overflow-hidden rounded-2xl border border-[#E5E7EB] bg-white">
-                                    <iframe
-                                        src={selectedMaterialHref}
-                                        title={selectedMaterial.title}
-                                        className="h-[72vh] w-full"
-                                    />
+                                    {selectedMaterialPreview.kind === 'image' ? (
+                                        <div className="flex max-h-[72vh] items-center justify-center overflow-auto bg-[#F9FAFB] p-4">
+                                            <img
+                                                src={selectedMaterialPreview.src}
+                                                alt={selectedMaterial.title}
+                                                className="h-auto max-h-[68vh] w-auto max-w-full rounded-xl object-contain"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <iframe
+                                            src={selectedMaterialPreview.src}
+                                            title={selectedMaterial.title}
+                                            className="h-[72vh] w-full"
+                                        />
+                                    )}
                                 </div>
                             ) : (
                                 <div className="flex min-h-[360px] items-center justify-center rounded-2xl border border-dashed border-[#E5E7EB] bg-white px-6 text-center">

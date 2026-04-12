@@ -25,6 +25,9 @@ import {
   YAxis,
 } from 'recharts';
 import type { Report } from '@/types';
+import { ComparisonTable } from '@/components/charts/ComparisonTable';
+import { MonthlyTrendChart } from '@/components/charts/MonthlyTrendChart';
+import { calculateComparisonData } from '@/lib/utils/comparison-utils';
 import { SummarySectionCard } from './summary/SummarySectionCard';
 import { SummaryDenseTable } from './summary/SummaryDenseTable';
 import { SummaryDetailArchive } from './summary/SummaryDetailArchive';
@@ -61,9 +64,17 @@ const MATRIX_MODES = [
 
 type MatrixMode = (typeof MATRIX_MODES)[number]['id'];
 
+const SCHEMA_TABS = [
+  { id: 'category_area', label: 'Category Area' },
+  { id: 'identification_root', label: 'Identification of Root' },
+] as const;
+
+type SchemaTab = (typeof SCHEMA_TABS)[number]['id'];
+
 export function SummaryReportTab({ reports }: SummaryReportTabProps) {
   const deferredReports = useDeferredValue(reports);
   const [matrixMode, setMatrixMode] = useState<MatrixMode>('branch');
+  const [schemaTab, setSchemaTab] = useState<SchemaTab>('category_area');
 
   const kpis = useMemo<SummaryKpiItem[]>(() => {
     const branches = new Set(deferredReports.map((report) => report.stations?.code || report.branch).filter(Boolean));
@@ -294,11 +305,111 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
     });
   }, [deferredReports]);
 
+  const comparisonData = useMemo(() => calculateComparisonData(deferredReports), [deferredReports]);
+
   const activeMatrix = matrixMode === 'branch' ? matrices.branch : matrices.airline;
   const totalCategoryCount = categoryData.reduce((sum, item) => sum + item.value, 0);
 
   return (
     <div className="space-y-6">
+      <SummarySectionCard
+        title="Global Workbook Schema"
+        subtitle=""
+        toolbar={
+          <div className="inline-flex rounded-full border border-[oklch(0.9_0.01_90_/_0.85)] bg-white/85 p-1">
+            {SCHEMA_TABS.map((tab) => {
+              const active = schemaTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setSchemaTab(tab.id)}
+                  className={`rounded-full px-4 py-2 text-[0.72rem] font-black uppercase tracking-[0.18em] transition-all ${
+                    active
+                      ? 'bg-[var(--brand-emerald-500)] text-white shadow-[0_10px_24px_-16px_oklch(0.65_0.18_160_/_0.7)]'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+        }
+      >
+        {schemaTab === 'category_area' ? (
+          <div className="grid grid-cols-1 gap-5">
+            <SummaryMiniPanel icon={<Shapes size={18} />} title="Report Category Distribution" subtitle="">
+              <SummaryDenseTable
+                data={categoryData.map((row) => ({ name: row.name, value: row.value }))}
+                rowKey={(row) => row.name}
+                itemsPerPage={10}
+                initialSort={{ columnId: 'value', direction: 'desc' }}
+                columns={[
+                  { id: 'name', header: 'Report Category', accessor: (row) => <span className="block break-words">{row.name}</span>, sortValue: (row) => row.name },
+                  { id: 'value', header: 'Grand Total', accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.value}</span>, sortValue: (row) => row.value, align: 'right' },
+                ]}
+              />
+            </SummaryMiniPanel>
+            <SummaryMiniPanel icon={<Building2 size={18} />} title="Category by Landside Area / Terminal Area" subtitle="">
+              <SummaryDenseTable
+                data={areaPanels.landside}
+                rowKey={(row) => row.id}
+                itemsPerPage={10}
+                initialSort={{ columnId: 'total', direction: 'desc' }}
+                columns={[
+                  { id: 'classification', header: 'Airlines Report', accessor: (row) => <span className="block break-words">{row.classification}</span>, sortValue: (row) => row.classification },
+                  { id: 'category', header: 'Category', accessor: (row) => <span className="block break-words">{row.category}</span>, sortValue: (row) => row.category },
+                  { id: 'total', header: 'Grand Total', accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.total}</span>, sortValue: (row) => row.total, align: 'right' },
+                ]}
+              />
+            </SummaryMiniPanel>
+            <SummaryMiniPanel icon={<Building2 size={18} />} title="Category by Airside / General Area" subtitle="">
+              <SummaryDenseTable
+                data={[...areaPanels.airside, ...areaPanels.general]}
+                rowKey={(row) => row.id}
+                itemsPerPage={10}
+                initialSort={{ columnId: 'total', direction: 'desc' }}
+                columns={[
+                  { id: 'classification', header: 'Airlines Report', accessor: (row) => <span className="block break-words">{row.classification}</span>, sortValue: (row) => row.classification },
+                  { id: 'category', header: 'Category', accessor: (row) => <span className="block break-words">{row.category}</span>, sortValue: (row) => row.category },
+                  { id: 'total', header: 'Grand Total', accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.total}</span>, sortValue: (row) => row.total, align: 'right' },
+                ]}
+              />
+            </SummaryMiniPanel>
+          </div>
+        ) : null}
+
+        {schemaTab === 'identification_root' ? (
+          <div className="grid grid-cols-1 gap-5">
+            <SummaryMiniPanel icon={<AlertCircle size={18} />} title="Primary Indicators of Root" subtitle="">
+              <SummaryDenseTable
+                data={caseClassificationRows}
+                rowKey={(row) => row.id}
+                itemsPerPage={10}
+                initialSort={{ columnId: 'value', direction: 'desc' }}
+                columns={[
+                  { id: 'name', header: 'Case Classification', accessor: (row) => <span className="block break-words">{row.name}</span>, sortValue: (row) => row.name },
+                  { id: 'value', header: 'Total', accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.value}</span>, sortValue: (row) => row.value, align: 'right' },
+                ]}
+              />
+            </SummaryMiniPanel>
+            <SummaryMiniPanel icon={<Sparkles size={18} />} title="Root Cause Result" subtitle="">
+              <SummaryDenseTable
+                data={rootCauseRows}
+                rowKey={(row) => row.id}
+                itemsPerPage={10}
+                initialSort={{ columnId: 'value', direction: 'desc' }}
+                columns={[
+                  { id: 'name', header: 'Identification of Root', accessor: (row) => <span className="block break-words">{row.name}</span>, sortValue: (row) => row.name },
+                  { id: 'value', header: 'Total', accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.value}</span>, sortValue: (row) => row.value, align: 'right' },
+                ]}
+              />
+            </SummaryMiniPanel>
+          </div>
+        ) : null}
+      </SummarySectionCard>
+
       <SummarySectionCard
         title="Overview"
         subtitle=""
@@ -581,6 +692,59 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
               rows={areaPanels.general}
             />
           </div>
+        </div>
+      </SummarySectionCard>
+
+      <SummarySectionCard
+        title="MoM & YoY Comparison"
+        subtitle="Month-over-Month and Year-over-Year"
+      >
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+            {comparisonData.branchMoM.length > 0 && comparisonData.branchMetrics.length > 0 ? (
+              <SummaryMiniPanel
+                icon={<Building2 size={18} />}
+                title="Perbandingan MoM per Stasiun"
+                subtitle=""
+              >
+                <div className="space-y-4">
+                  <MonthlyTrendChart
+                    title="Top Branches"
+                    subtitle="Volume laporan per cabang teratas"
+                    data={comparisonData.branchMoM}
+                    dataKeys={comparisonData.topBranches}
+                    metrics={comparisonData.branchMetrics}
+                    height="h-[320px]"
+                  />
+                  <ComparisonTable
+                    title="Detail MoM & YoY per Stasiun (Top 5)"
+                    metrics={comparisonData.branchMetrics}
+                  />
+                </div>
+              </SummaryMiniPanel>
+            ) : null}
+
+            {comparisonData.airlineMoM.length > 0 && comparisonData.airlineMetrics.length > 0 ? (
+              <SummaryMiniPanel
+                icon={<Plane size={18} />}
+                title="Perbandingan MoM per Maskapai"
+                subtitle=""
+              >
+                <div className="space-y-4">
+                  <MonthlyTrendChart
+                    title="Top Airlines"
+                    subtitle="Volume laporan per maskapai teratas"
+                    data={comparisonData.airlineMoM}
+                    dataKeys={comparisonData.topAirlines}
+                    metrics={comparisonData.airlineMetrics}
+                    height="h-[320px]"
+                  />
+                  <ComparisonTable
+                    title="Detail MoM & YoY per Maskapai (Top 5)"
+                    metrics={comparisonData.airlineMetrics}
+                  />
+                </div>
+              </SummaryMiniPanel>
+            ) : null}
         </div>
       </SummarySectionCard>
 

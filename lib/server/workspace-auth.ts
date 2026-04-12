@@ -65,7 +65,7 @@ export function normalizeRole(role: string | null | undefined): string {
  * ```
  */
 export function isBranchRole(role: string | null | undefined): boolean {
-    return BRANCH_ROLES.includes(normalizeRole(role) as any);
+    return BRANCH_ROLES.some((item) => item === normalizeRole(role));
 }
 
 /**
@@ -80,7 +80,7 @@ export function isBranchRole(role: string | null | undefined): boolean {
  * ```
  */
 export function canManageHCWorkspace(role: string | null | undefined): boolean {
-    return HC_MANAGER_ROLES.includes(normalizeRole(role) as any);
+    return HC_MANAGER_ROLES.some((item) => item === normalizeRole(role));
 }
 
 /**
@@ -114,6 +114,34 @@ export function canManageDivisionDocuments(role: string | null | undefined, divi
     const normalized = normalizeRole(role);
     if (normalized === 'SUPER_ADMIN' || normalized === 'ANALYST') return true;
     return normalized === `DIVISI_${division}` || normalized === `PARTNER_${division}`;
+}
+
+/**
+ * Mengecek apakah user dapat melihat meeting HC berdasarkan target audience.
+ */
+export function canViewAudienceScopedItem(
+    user: Pick<WorkspaceUser, 'role' | 'station_id'>,
+    visibilityScope: 'all' | 'stations' | 'roles' | 'targeted',
+    audienceStationIds: string[],
+    audienceRoles: string[]
+): boolean {
+    const normalizedRole = normalizeRole(user.role);
+
+    if (visibilityScope === 'all') return true;
+
+    const matchesStation = audienceStationIds.length > 0
+        ? Boolean(user.station_id) && audienceStationIds.includes(String(user.station_id))
+        : false;
+    const matchesRole = audienceRoles.length > 0
+        ? audienceRoles.includes(normalizedRole)
+        : false;
+
+    if (visibilityScope === 'stations') return matchesStation;
+    if (visibilityScope === 'roles') return matchesRole;
+
+    const stationAllowed = audienceStationIds.length > 0 ? matchesStation : true;
+    const roleAllowed = audienceRoles.length > 0 ? matchesRole : true;
+    return stationAllowed && roleAllowed;
 }
 
 /**
@@ -166,9 +194,10 @@ export async function getWorkspaceUser(): Promise<WorkspaceUser | null> {
         };
     }
 
-    const station = Array.isArray((userData as any).stations)
-        ? (userData as any).stations[0]
-        : (userData as any).stations;
+    const stationRelation = (userData as { stations?: { id: string; code: string; name: string } | Array<{ id: string; code: string; name: string }> | null }).stations;
+    const station = Array.isArray(stationRelation)
+        ? stationRelation[0]
+        : stationRelation;
 
     return {
         id: String(userData.id),

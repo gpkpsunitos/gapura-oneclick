@@ -172,14 +172,12 @@ export async function POST(request: Request) {
             path: '/',
         });
 
-        const response = NextResponse.json({
+        return NextResponse.json({
             success: true,
             role: targetUser.role,
             userId: targetUser.id,
             redirectPath: `/dashboard/${divisionCode.toLowerCase()}`,
         });
-        response.headers.set('Clear-Site-Data', '"cache", "storage"');
-        return response;
     } catch (error) {
         console.error('Switch division error:', error);
         return NextResponse.json({ error: 'Gagal switch ke akun divisi' }, { status: 500 });

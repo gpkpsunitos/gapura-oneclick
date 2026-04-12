@@ -1,45 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { logoutWithPwaCleanup } from '@/lib/pwa/logout';
 import { 
-    Plane, Shield, Wrench, Gauge, GraduationCap, Users,
-    ArrowRight, Layers
+    Plane, Shield, GraduationCap, Users,
+    ArrowRight, Eye, EyeOff, Layers
 } from 'lucide-react';
 
 const divisionCards = [
     {
         code: 'OP',
-        name: 'Operasi',
+        name: 'Service Operational Monitoring',
         description: 'Laporan operasional penerbangan',
         icon: Plane,
         gradient: 'from-cyan-500 via-cyan-600 to-teal-600',
         hoverShadow: 'hover:shadow-cyan-500/25',
+        divisionLabel: 'Divisi UQ, OP, OT, HT',
     },
     {
         code: 'OS',
-        name: 'Monitoring',
+        name: 'Service Analytics Monitoring',
         description: 'Laporan layanan & monitoring',
         icon: Shield,
         gradient: 'from-emerald-500 via-emerald-600 to-teal-600',
         hoverShadow: 'hover:shadow-emerald-500/25',
-    },
-    {
-        code: 'OT',
-        name: 'Teknik (GSE)',
-        description: 'Laporan peralatan & GSE',
-        icon: Wrench,
-        gradient: 'from-amber-500 via-amber-600 to-orange-600',
-        hoverShadow: 'hover:shadow-amber-500/25',
-    },
-    {
-        code: 'UQ',
-        name: 'Quality',
-        description: 'Laporan kualitas & keselamatan',
-        icon: Gauge,
-        gradient: 'from-pink-500 via-pink-600 to-rose-600',
-        hoverShadow: 'hover:shadow-pink-500/25',
+        divisionLabel: 'Divisi OCS & OS',
     },
     {
         code: 'HC',
@@ -48,21 +35,41 @@ const divisionCards = [
         icon: Users,
         gradient: 'from-violet-500 via-fuchsia-600 to-rose-500',
         hoverShadow: 'hover:shadow-violet-500/25',
+        divisionLabel: 'Divisi HC',
     },
     {
         code: 'HT',
-        name: 'Training',
+        name: 'Performance evaluation',
         description: 'Laporan pelatihan & pengembangan',
         icon: GraduationCap,
         gradient: 'from-sky-500 via-blue-600 to-indigo-600',
         hoverShadow: 'hover:shadow-sky-500/25',
+        divisionLabel: '',
     },
 ];
+
+const DIVISION_PASSWORDS: Partial<Record<string, string>> = {
+    OS: 'Unitosnew2026',
+    HC: 'Unithcnew2026!',
+};
 
 export default function DivisionSelectPage() {
     const [error, setError] = useState<string | null>(null);
     const [switchingCode, setSwitchingCode] = useState<string | null>(null);
+    const [passwordPromptCode, setPasswordPromptCode] = useState<string | null>(null);
+    const [passwordValue, setPasswordValue] = useState('');
+    const [passwordError, setPasswordError] = useState<string | null>(null);
+    const [showPassword, setShowPassword] = useState(false);
+    const [comingSoonCode, setComingSoonCode] = useState<string | null>(null);
     const router = useRouter();
+
+    useEffect(() => {
+        divisionCards.forEach((card) => {
+            if (card.code !== 'HT') {
+                router.prefetch(`/dashboard/${card.code.toLowerCase()}`);
+            }
+        });
+    }, [router]);
 
     const handleSelectDivision = async (code: string) => {
         try {
@@ -82,12 +89,54 @@ export default function DivisionSelectPage() {
                 throw new Error(data?.error || `Gagal switch ke Divisi ${code}`);
             }
 
-            window.location.assign(data?.redirectPath || `/dashboard/${code.toLowerCase()}`);
+            const redirectPath = data?.redirectPath || `/dashboard/${code.toLowerCase()}`;
+            router.replace(redirectPath);
+            router.refresh();
         } catch (err) {
             console.error('Failed to switch division:', err);
             setError(err instanceof Error ? err.message : 'Gagal switch ke akun divisi');
             setSwitchingCode(null);
         }
+    };
+
+    const handleCardClick = (code: string) => {
+        if (code === 'HT') {
+            setError(null);
+            setComingSoonCode(code);
+            return;
+        }
+
+        if (DIVISION_PASSWORDS[code]) {
+            setError(null);
+            setPasswordValue('');
+            setPasswordError(null);
+            setShowPassword(false);
+            setPasswordPromptCode(code);
+            return;
+        }
+
+        void handleSelectDivision(code);
+    };
+
+    const handlePasswordSubmit = async () => {
+        if (!passwordPromptCode) return;
+
+        const expectedPassword = DIVISION_PASSWORDS[passwordPromptCode];
+        if (!expectedPassword) {
+            setPasswordPromptCode(null);
+            return;
+        }
+
+        if (passwordValue !== expectedPassword) {
+            setPasswordError('Password salah.');
+            return;
+        }
+
+        setPasswordError(null);
+        setPasswordPromptCode(null);
+        setPasswordValue('');
+        setShowPassword(false);
+        await handleSelectDivision(passwordPromptCode);
     };
 
     return (
@@ -127,8 +176,8 @@ export default function DivisionSelectPage() {
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
-                                    onClick={() => handleSelectDivision(card.code)}
-                                    disabled={Boolean(switchingCode)}
+                                    onClick={() => handleCardClick(card.code)}
+                                    disabled={Boolean(switchingCode) || Boolean(passwordPromptCode) || Boolean(comingSoonCode)}
                                     className={`
                                         relative group overflow-hidden
                                         bg-white rounded-2xl md:rounded-3xl
@@ -165,14 +214,16 @@ export default function DivisionSelectPage() {
                                             {card.description}
                                         </p>
 
-                                        <div className="mt-4 pt-4 border-t border-gray-100">
-                                            <span className={`
-                                                inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold
-                                                bg-gradient-to-r ${card.gradient} bg-clip-text text-transparent
-                                            `}>
-                                                {isSwitching ? 'Membuka...' : `Divisi ${card.code}`}
-                                            </span>
-                                        </div>
+                                        {card.divisionLabel ? (
+                                            <div className="mt-4 pt-4 border-t border-gray-100">
+                                                <span className={`
+                                                    inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-bold
+                                                    bg-gradient-to-r ${card.gradient} bg-clip-text text-transparent
+                                                `}>
+                                                    {isSwitching ? 'Membuka...' : card.divisionLabel}
+                                                </span>
+                                            </div>
+                                        ) : null}
                                     </div>
                                 </motion.button>
                             );
@@ -182,17 +233,7 @@ export default function DivisionSelectPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: divisionCards.length * 0.1 }}
-                            onClick={async () => {
-                                try {
-                                    const { purgePwaClientState } = await import('@/lib/pwa/client-state');
-                                    purgePwaClientState();
-                                } catch {
-                                    // Ignore cleanup errors
-                                }
-                                document.cookie = 'session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-                                document.cookie = 'auth_bundle=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT';
-                                router.push('/auth/login');
-                            }}
+                            onClick={logoutWithPwaCleanup}
                             className={`
                                 relative group overflow-hidden
                                 bg-white rounded-2xl md:rounded-3xl
@@ -237,6 +278,96 @@ export default function DivisionSelectPage() {
                     Klik kartu divisi untuk melanjutkan
                 </motion.p>
             </div>
+
+            {passwordPromptCode ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-[28px] border border-slate-200 bg-white p-6 shadow-2xl">
+                        <h2 className="text-xl font-bold text-slate-900">Masukkan Password</h2>
+                        <p className="mt-2 text-sm text-slate-500">
+                            Password diperlukan untuk mengakses{' '}
+                            {divisionCards.find((card) => card.code === passwordPromptCode)?.name ?? 'divisi ini'}.
+                        </p>
+
+                        <div className="relative mt-5">
+                            <label htmlFor="division-password" className="mb-2 block text-sm font-medium text-slate-700">
+                                Password
+                            </label>
+                            <input
+                                id="division-password"
+                                type={showPassword ? 'text' : 'password'}
+                                value={passwordValue}
+                                onChange={(event) => {
+                                    setPasswordValue(event.target.value);
+                                    if (passwordError) setPasswordError(null);
+                                }}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                        void handlePasswordSubmit();
+                                    }
+                                }}
+                                autoFocus
+                                className="w-full rounded-2xl border border-slate-200 px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-200/70"
+                                placeholder="Masukkan password"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword((current) => !current)}
+                                className="absolute right-3 top-[46px] inline-flex h-10 w-10 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                                aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                                aria-pressed={showPassword}
+                            >
+                                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                            </button>
+                            {passwordError ? (
+                                <p className="mt-2 text-sm font-medium text-rose-600">{passwordError}</p>
+                            ) : null}
+                        </div>
+
+                        <div className="mt-6 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setPasswordPromptCode(null);
+                                    setPasswordValue('');
+                                    setPasswordError(null);
+                                    setShowPassword(false);
+                                }}
+                                className="rounded-2xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+                            >
+                                Batal
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => void handlePasswordSubmit()}
+                                className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                            >
+                                Lanjutkan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {comingSoonCode ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-sm">
+                    <div className="w-full max-w-sm rounded-[28px] border border-slate-200 bg-white p-6 shadow-2xl">
+                        <h2 className="text-xl font-bold text-slate-900">Coming Soon</h2>
+                        <p className="mt-2 text-sm text-slate-500">
+                            {divisionCards.find((card) => card.code === comingSoonCode)?.name ?? 'Fitur ini'} belum tersedia.
+                        </p>
+
+                        <div className="mt-6 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setComingSoonCode(null)}
+                                className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
+                            >
+                                Tutup
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            ) : null}
         </div>
     );
 }

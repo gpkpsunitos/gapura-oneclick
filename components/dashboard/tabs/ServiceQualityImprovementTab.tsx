@@ -13,8 +13,11 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Copy,
+  ExternalLink,
   FileStack,
   Plane,
+  QrCode,
   Shapes,
 } from 'lucide-react';
 import { SummarySectionCard } from './summary/SummarySectionCard';
@@ -40,6 +43,11 @@ const AREA_FILLS = {
   apron: 'oklch(0.62 0.2 25)',
   general: 'oklch(0.68 0.16 205)',
 };
+
+const CUSTOMER_FEEDBACK_LOOKER_URL = 'https://lookerstudio.google.com/reporting/1afa362c-347e-44cd-98b1-0ec29abbb333';
+const OP_INITIAL_IRREGULARITY_LOOKER_URL = 'https://lookerstudio.google.com/reporting/06d31553-08c6-42f3-81e6-1bc96356a854/page/tKISF';
+const CUSTOMER_FEEDBACK_LOOKER_QR = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(CUSTOMER_FEEDBACK_LOOKER_URL)}`;
+const OP_INITIAL_IRREGULARITY_LOOKER_QR = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(OP_INITIAL_IRREGULARITY_LOOKER_URL)}`;
 
 function heatValue(val: number, max: number) {
   if (!val) return 'transparent';
@@ -711,6 +719,19 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         <SummaryDetailArchive rows={detailRows} />
       </SummarySectionCard>
 
+      <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <LookerQrCard
+          title="Customer Feedback Service Dashboard Lookers Version"
+          url={CUSTOMER_FEEDBACK_LOOKER_URL}
+          qrUrl={CUSTOMER_FEEDBACK_LOOKER_QR}
+        />
+        <LookerQrCard
+          title="Initial Irregularity Report Dashboard Lookers OP Version"
+          url={OP_INITIAL_IRREGULARITY_LOOKER_URL}
+          qrUrl={OP_INITIAL_IRREGULARITY_LOOKER_QR}
+        />
+      </div>
+
     </div>
   );
 }
@@ -766,6 +787,128 @@ function SqiKpiGrid({ items }: { items: SummaryKpiItem[] }) {
         </div>
       ))}
     </div>
+  );
+}
+
+function LookerQrCard({
+  title,
+  url,
+  qrUrl,
+}: {
+  title: string;
+  url: string;
+  qrUrl: string;
+}) {
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <>
+      <SummarySectionCard title={title} subtitle="">
+        <div className="flex h-full flex-col gap-5 rounded-[24px] border border-[oklch(0.9_0.01_90_/_0.75)] bg-white/80 p-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-3">
+            <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-[oklch(0.65_0.18_160_/_0.12)] text-[var(--brand-emerald-700)]">
+              <QrCode size={20} />
+            </div>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block break-all text-sm leading-6 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            >
+              {url}
+            </a>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-2xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+            >
+              <ExternalLink size={18} />
+              <span>Buka Dashboard</span>
+            </a>
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="ml-2 inline-flex items-center gap-2 rounded-2xl border border-[var(--surface-4)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] transition-all hover:bg-[var(--surface-2)] active:scale-[0.98]"
+            >
+              <Copy size={18} />
+              <span>{copied ? 'Link Tersalin' : 'Salin Link'}</span>
+            </button>
+          </div>
+
+          <div className="flex justify-center sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setShowQrModal(true)}
+              className="rounded-[24px] border border-[var(--surface-4)] bg-white p-3 shadow-sm transition hover:bg-[var(--surface-2)]"
+              aria-label={`Tampilkan QR code ${title}`}
+            >
+              <img
+                src={qrUrl}
+                alt={`QR code ${title}`}
+                className="h-36 w-36 rounded-2xl object-contain"
+              />
+            </button>
+          </div>
+        </div>
+      </SummarySectionCard>
+
+      {showQrModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+          <button
+            type="button"
+            className="absolute inset-0"
+            onClick={() => setShowQrModal(false)}
+            aria-label="Tutup popup QR"
+          />
+          <div className="relative z-10 w-full max-w-md rounded-[30px] border border-[oklch(0.88_0.01_90_/_0.85)] bg-white p-6 shadow-[0_32px_80px_-28px_rgba(15,23,42,0.45)]">
+            <h3 className="text-xl font-black tracking-[-0.03em] text-[var(--text-primary)]">{title}</h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+              Scan QR code atau buka dashboard Lookers secara langsung.
+            </p>
+
+            <div className="mt-5 flex justify-center">
+              <div className="rounded-[28px] border border-[var(--surface-4)] bg-white p-4 shadow-sm">
+                <img
+                  src={qrUrl}
+                  alt={`QR code ${title}`}
+                  className="h-64 w-64 rounded-2xl object-contain"
+                />
+              </div>
+            </div>
+
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center gap-2 rounded-2xl bg-[var(--text-primary)] px-4 py-2.5 text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+            >
+              <ExternalLink size={18} />
+              <span>Buka Dashboard</span>
+            </a>
+            <button
+              type="button"
+              onClick={handleCopyLink}
+              className="mt-3 inline-flex items-center gap-2 rounded-2xl border border-[var(--surface-4)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] transition-all hover:bg-[var(--surface-2)] active:scale-[0.98]"
+            >
+              <Copy size={18} />
+              <span>{copied ? 'Link Tersalin' : 'Salin Link'}</span>
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
 

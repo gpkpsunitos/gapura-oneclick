@@ -139,6 +139,13 @@ interface CategoryCountItem {
     value: number;
 }
 
+interface StatusCountItem {
+    closed: number;
+    open: number;
+    onProgress: number;
+    total: number;
+}
+
 export interface AnalystChartsProps {
     readonly analytics: AnalyticsData | null;
     readonly caseCategoryData: readonly CaseCategoryItem[];
@@ -528,6 +535,161 @@ function DetailReportTable({ data }: { data: Report[] }) {
                     </div>
                 </div>
             )}
+        </div>
+    );
+}
+
+function normalizeStatusKey(status: string | undefined | null): keyof StatusCountItem {
+    const normalized = String(status || '').trim().toUpperCase();
+    if (normalized === 'CLOSED') return 'closed';
+    if (normalized === 'OPEN') return 'open';
+    return 'onProgress';
+}
+
+function formatStatusValue(value: number) {
+    return value > 0 ? value.toLocaleString() : '-';
+}
+
+function StatusHeatmapTable({
+    title,
+    firstColumnLabel,
+    rows,
+}: {
+    title: string;
+    firstColumnLabel: string;
+    rows: Array<{ label: string } & StatusCountItem>;
+}) {
+    const maxClosed = Math.max(...rows.map((row) => row.closed), 1);
+    const maxOpen = Math.max(...rows.map((row) => row.open), 1);
+    const maxOnProgress = Math.max(...rows.map((row) => row.onProgress), 1);
+    const maxTotal = Math.max(...rows.map((row) => row.total), 1);
+    const totals = rows.reduce(
+        (acc, row) => ({
+            closed: acc.closed + row.closed,
+            open: acc.open + row.open,
+            onProgress: acc.onProgress + row.onProgress,
+            total: acc.total + row.total,
+        }),
+        { closed: 0, open: 0, onProgress: 0, total: 0 } satisfies StatusCountItem
+    );
+
+    return (
+        <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden">
+            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">{title}</h3>
+            <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Status / Record Count</p>
+            <div className="overflow-x-auto">
+                <div className="max-h-[220px] overflow-y-auto">
+                    <table className="w-full text-xs min-w-[360px]">
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-slate-100 text-black border-b border-gray-300">
+                                <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">{firstColumnLabel}</th>
+                                <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Closed</th>
+                                <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Open</th>
+                                <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">On Progress</th>
+                                <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Grand total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.map((row) => {
+                                const closedColor = heatColor(row.closed, maxClosed);
+                                const openColor = heatColor(row.open, maxOpen);
+                                const onProgressColor = heatColor(row.onProgress, maxOnProgress);
+                                const totalColor = heatColor(row.total, maxTotal);
+                                return (
+                                    <tr key={row.label} className="border-b border-gray-100 hover:bg-gray-50">
+                                        <td className="py-1.5 px-2 font-medium text-gray-800 whitespace-nowrap">{row.label}</td>
+                                        <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: closedColor.bg, color: closedColor.fg }}>{formatStatusValue(row.closed)}</td>
+                                        <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: openColor.bg, color: openColor.fg }}>{formatStatusValue(row.open)}</td>
+                                        <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: onProgressColor.bg, color: onProgressColor.fg }}>{formatStatusValue(row.onProgress)}</td>
+                                        <td className="py-1.5 px-2 text-center font-bold" style={{ backgroundColor: totalColor.bg, color: totalColor.fg }}>{row.total}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+                <table className="w-full text-xs min-w-[360px] border-t-2 border-gray-300">
+                    <tbody>
+                        <tr className="bg-gray-100 font-bold">
+                            <td className="py-1.5 px-2 text-gray-800">Grand total</td>
+                            <td className="py-1.5 px-2 text-center text-gray-800">{totals.closed}</td>
+                            <td className="py-1.5 px-2 text-center text-gray-800">{totals.open}</td>
+                            <td className="py-1.5 px-2 text-center text-gray-800">{totals.onProgress}</td>
+                            <td className="py-1.5 px-2 text-center text-gray-800">{totals.total}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
+function DetailedStatusTable({ rows }: { rows: Array<{ branch: string; airline: string } & StatusCountItem> }) {
+    const maxClosed = Math.max(...rows.map((row) => row.closed), 1);
+    const maxOpen = Math.max(...rows.map((row) => row.open), 1);
+    const maxOnProgress = Math.max(...rows.map((row) => row.onProgress), 1);
+    const maxTotal = Math.max(...rows.map((row) => row.total), 1);
+    const totals = rows.reduce(
+        (acc, row) => ({
+            closed: acc.closed + row.closed,
+            open: acc.open + row.open,
+            onProgress: acc.onProgress + row.onProgress,
+            total: acc.total + row.total,
+        }),
+        { closed: 0, open: 0, onProgress: 0, total: 0 } satisfies StatusCountItem
+    );
+
+    return (
+        <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden">
+            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Detail Report Status</h3>
+            <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Status / Record Count</p>
+            <div className="overflow-x-auto">
+                <div className="max-h-[220px] overflow-y-auto">
+                    <table className="w-full text-xs min-w-[430px]">
+                        <thead className="sticky top-0 z-10">
+                            <tr className="bg-slate-100 text-black border-b border-gray-300">
+                                <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Branch</th>
+                                <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Airlines</th>
+                                <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Closed</th>
+                                <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Open</th>
+                                <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">On Progress</th>
+                                <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Grand total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {rows.map((row, index) => {
+                                const prev = rows[index - 1];
+                                const showBranch = !prev || prev.branch !== row.branch;
+                                const closedColor = heatColor(row.closed, maxClosed);
+                                const openColor = heatColor(row.open, maxOpen);
+                                const onProgressColor = heatColor(row.onProgress, maxOnProgress);
+                                const totalColor = heatColor(row.total, maxTotal);
+                                return (
+                                    <tr key={`${row.branch}-${row.airline}`} className="border-b border-gray-100 hover:bg-gray-50">
+                                        <td className="py-1.5 px-2 font-medium text-gray-800 whitespace-nowrap">{showBranch ? row.branch : ''}</td>
+                                        <td className="py-1.5 px-2 text-gray-800 whitespace-nowrap">{row.airline}</td>
+                                        <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: closedColor.bg, color: closedColor.fg }}>{formatStatusValue(row.closed)}</td>
+                                        <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: openColor.bg, color: openColor.fg }}>{formatStatusValue(row.open)}</td>
+                                        <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: onProgressColor.bg, color: onProgressColor.fg }}>{formatStatusValue(row.onProgress)}</td>
+                                        <td className="py-1.5 px-2 text-center font-bold" style={{ backgroundColor: totalColor.bg, color: totalColor.fg }}>{row.total}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+                <table className="w-full text-xs min-w-[430px] border-t-2 border-gray-300">
+                    <tbody>
+                        <tr className="bg-gray-100 font-bold">
+                            <td className="py-1.5 px-2 text-gray-800" colSpan={2}>Grand total</td>
+                            <td className="py-1.5 px-2 text-center text-gray-800">{totals.closed}</td>
+                            <td className="py-1.5 px-2 text-center text-gray-800">{totals.open}</td>
+                            <td className="py-1.5 px-2 text-center text-gray-800">{totals.onProgress}</td>
+                            <td className="py-1.5 px-2 text-center text-gray-800">{totals.total}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 }
@@ -1279,6 +1441,80 @@ export default function AnalystCharts({
             .sort((a, b) => b.value - a.value);
     }, [cgoReports]);
 
+    const cgoStatusByBranch = useMemo(() => {
+        const map = new Map<string, StatusCountItem>();
+        cgoReports.forEach((report) => {
+            const branch = String(report.stations?.code || report.branch || report.station_code || 'Unknown').trim() || 'Unknown';
+            const current = map.get(branch) || { closed: 0, open: 0, onProgress: 0, total: 0 };
+            const key = normalizeStatusKey(report.status);
+            current[key] += 1;
+            current.total += 1;
+            map.set(branch, current);
+        });
+        return Array.from(map.entries()).map(([label, value]) => ({ label, ...value })).sort((a, b) => b.total - a.total);
+    }, [cgoReports]);
+
+    const cgoStatusByAirline = useMemo(() => {
+        const map = new Map<string, StatusCountItem>();
+        cgoReports.forEach((report) => {
+            const airline = String(report.airlines || report.airline || 'Unknown').trim() || 'Unknown';
+            const current = map.get(airline) || { closed: 0, open: 0, onProgress: 0, total: 0 };
+            const key = normalizeStatusKey(report.status);
+            current[key] += 1;
+            current.total += 1;
+            map.set(airline, current);
+        });
+        return Array.from(map.entries()).map(([label, value]) => ({ label, ...value })).sort((a, b) => b.total - a.total).slice(0, 10);
+    }, [cgoReports]);
+
+    const cgoDetailedStatusRows = useMemo(() => {
+        const branchMap = new Map<string, Map<string, StatusCountItem>>();
+        cgoReports.forEach((report) => {
+            const branch = String(report.stations?.code || report.branch || report.station_code || 'Unknown').trim() || 'Unknown';
+            const airline = String(report.airlines || report.airline || 'Unknown').trim() || 'Unknown';
+            if (!branchMap.has(branch)) branchMap.set(branch, new Map());
+            const airlineMap = branchMap.get(branch)!;
+            const current = airlineMap.get(airline) || { closed: 0, open: 0, onProgress: 0, total: 0 };
+            const key = normalizeStatusKey(report.status);
+            current[key] += 1;
+            current.total += 1;
+            airlineMap.set(airline, current);
+        });
+        return Array.from(branchMap.entries())
+            .sort((a, b) => Array.from(b[1].values()).reduce((sum, row) => sum + row.total, 0) - Array.from(a[1].values()).reduce((sum, row) => sum + row.total, 0))
+            .flatMap(([branch, airlines]) => Array.from(airlines.entries()).map(([airline, counts]) => ({ branch, airline, ...counts })).sort((a, b) => b.total - a.total));
+    }, [cgoReports]);
+
+    const cgoRootCauseRows = useMemo(() => {
+        const map = new Map<string, { branch: string; airlines: string; area: string; category: string; root: string; total: number }>();
+        cgoReports.forEach((report) => {
+            const row = {
+                branch: String(report.stations?.code || report.branch || '-').trim() || '-',
+                airlines: String(report.airlines || report.airline || '-').trim() || '-',
+                area: report.terminal_area_category ? 'Terminal Area' : report.apron_area_category ? 'Apron Area' : report.general_category ? 'General Service' : String(report.area || '-'),
+                category: String(report.terminal_area_category || report.apron_area_category || report.general_category || report.remarks_case || report.case_classification || '-').trim() || '-',
+                root: String(report.root_caused || report.identification_of_root || report.root_cause || '-').trim() || '-',
+            };
+            if (row.category === '-' && row.root === '-') return;
+            const key = `${row.branch}|${row.airlines}|${row.area}|${row.category}|${row.root}`;
+            const current = map.get(key) || { ...row, total: 0 };
+            current.total += 1;
+            map.set(key, current);
+        });
+        return Array.from(map.values()).sort((a, b) => b.total - a.total);
+    }, [cgoReports]);
+
+    const cgoCaseClassificationData = useMemo(() => {
+        const map: Record<string, number> = {};
+        cgoReports.forEach((r) => {
+            const value = String(r.case_classification || r.remarks_case || '').trim();
+            if (value) map[value] = (map[value] || 0) + 1;
+        });
+        return Object.entries(map)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value);
+    }, [cgoReports]);
+
     return (
         <div className="space-y-6">
             {/* Global Filters Section */}
@@ -1384,7 +1620,656 @@ export default function AnalystCharts({
             )}
             {activeTab === 'delay' && <div className="p-12 text-center text-[var(--text-muted)] border border-dashed rounded-2xl border-[oklch(1_0_0_/_0.2)] bg-[oklch(1_0_0_/_0.1)]">Delay Code Report Breakdown - Blank Canvas</div>}
             {activeTab === 'gse' && <GsePerformanceTab reports={filteredReportsForCalc as Report[]} />}
-            {activeTab === 'cgo_cargo' && <div className="p-12 text-center text-[var(--text-muted)] border border-dashed rounded-2xl border-[oklch(1_0_0_/_0.2)] bg-[oklch(1_0_0_/_0.1)]">CGO Cargo Report - Blank Canvas</div>}
+            {activeTab === 'cgo_cargo' && (
+            <>
+            <PresentationSlide
+                title="CGO - Status Analytics"
+                subtitle="Status analytics dari sheet CGO pada GOOGLE_SHEET_ID"
+                icon={Activity}
+            >
+                {cgoReports.length === 0 ? (
+                    <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Tidak ada data CGO untuk periode ini</div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                            <DetailedStatusTable rows={cgoDetailedStatusRows} />
+                            <StatusHeatmapTable title="Report Status by Branch" firstColumnLabel="Branch" rows={cgoStatusByBranch} />
+                            <StatusHeatmapTable title="Report Status by Airlines" firstColumnLabel="Airlines" rows={cgoStatusByAirline} />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Landside Area Category</h3>
+                                <CategoryBarList data={cgoTerminalAreaCategoryData} color="oklch(0.65 0.18 160)" />
+                            </div>
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Airside Area Category</h3>
+                                <CategoryBarList data={cgoApronAreaCategoryData} color="oklch(0.65 0.18 160)" />
+                            </div>
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">General Service Category</h3>
+                                <CategoryBarList data={cgoGeneralCategoryData} color="oklch(0.65 0.18 160)" />
+                            </div>
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Root Cause Identification</h3>
+                                <div className="overflow-x-auto">
+                                    <div className="max-h-[220px] overflow-y-auto">
+                                        <table className="w-full text-xs min-w-[540px]">
+                                            <thead className="sticky top-0 z-10">
+                                                <tr className="bg-slate-100 text-black border-b border-gray-300">
+                                                    <th className="text-left py-2 px-2 font-black uppercase tracking-widest text-[8px]">Branch</th>
+                                                    <th className="text-left py-2 px-2 font-black uppercase tracking-widest text-[8px]">Airlines</th>
+                                                    <th className="text-left py-2 px-2 font-black uppercase tracking-widest text-[8px]">Area</th>
+                                                    <th className="text-left py-2 px-2 font-black uppercase tracking-widest text-[8px]">Category</th>
+                                                    <th className="text-left py-2 px-2 font-black uppercase tracking-widest text-[8px]">Root</th>
+                                                    <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[8px]">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {cgoRootCauseRows.map((row, index) => {
+                                                    const totalColor = heatColor(row.total, Math.max(...cgoRootCauseRows.map((item) => item.total), 1));
+                                                    return (
+                                                        <tr key={`${row.branch}-${row.airlines}-${row.category}-${index}`} className="border-b border-gray-100 hover:bg-gray-50">
+                                                            <td className="py-1.5 px-2 text-gray-800 whitespace-nowrap">{row.branch}</td>
+                                                            <td className="py-1.5 px-2 text-gray-800 whitespace-nowrap">{row.airlines}</td>
+                                                            <td className="py-1.5 px-2 text-gray-700">{row.area}</td>
+                                                            <td className="py-1.5 px-2 text-gray-700 max-w-[180px]"><p className="line-clamp-2">{row.category}</p></td>
+                                                            <td className="py-1.5 px-2 text-gray-700 max-w-[200px]"><p className="line-clamp-2">{row.root}</p></td>
+                                                            <td className="py-1.5 px-2 text-center font-bold" style={{ backgroundColor: totalColor.bg, color: totalColor.fg }}>{row.total}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Detail Report Landside & Airside</h3>
+                            <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Data laporan CGO diurutkan berdasarkan tanggal</p>
+                            <DetailReportTable
+                                data={[...cgoReports].sort((a, b) => {
+                                    const dA = a.date_of_event ? new Date(a.date_of_event).getTime() : 0;
+                                    const dB = b.date_of_event ? new Date(b.date_of_event).getTime() : 0;
+                                    return dB - dA;
+                                })}
+                            />
+                        </div>
+                    </div>
+                )}
+            </PresentationSlide>
+            <PresentationSlide
+                title="CGO - Report Category"
+                subtitle="Report category dari sheet CGO pada GOOGLE_SHEET_ID"
+                icon={BarChart3}
+            >
+                {cgoReports.length === 0 ? (
+                    <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
+                        Tidak ada data CGO untuk periode ini
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                             <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Report by Case Category</h3>
+                                <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                                    <div style={{ height: Math.max(200, cgoCaseCategoryData.length * 50) }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={cgoCaseCategoryData} layout="vertical" margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                                                <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                                                <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                <YAxis type="category" dataKey="name" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar dataKey="value" name="Count" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                                                    {cgoCaseCategoryData.map((entry, idx) => (
+                                                        <Cell key={`cgo-cat-${idx}`} fill={entry.color} />
+                                                    ))}
+                                                    <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+
+                             <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Branch Reporting</h3>
+                                <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                                    <div style={{ height: Math.max(200, cgoBranchData.length * 50) }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={cgoBranchData} layout="vertical" margin={{ top: 4, right: 40, left: 20, bottom: 4 }} barCategoryGap="30%">
+                                                <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                                                <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                <YAxis type="category" dataKey="branch" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={100} interval={0} />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar dataKey="count" name="Laporan" fill={REFERENCE_COLORS.irregularity} radius={[0, 4, 4, 0]} maxBarSize={20}>
+                                                    <LabelList dataKey="count" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+
+                             <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Airlines Report</h3>
+                                <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                                    <div style={{ height: Math.max(200, cgoAirlinesData.length * 50) }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={cgoAirlinesData} layout="vertical" margin={{ top: 4, right: 40, left: 20, bottom: 4 }} barCategoryGap="30%">
+                                                <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                                                <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                <YAxis type="category" dataKey="airline" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={100} interval={0} />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar dataKey="count" name="Laporan" fill={REFERENCE_COLORS.complaint} radius={[0, 4, 4, 0]} maxBarSize={16}>
+                                                    <LabelList dataKey="count" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+
+                             <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Monthly Report</h3>
+                                <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                                    <div style={{ height: Math.max(200, cgoMonthlyData.length * 50) }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={cgoMonthlyData} layout="vertical" margin={{ top: 4, right: 40, left: 20, bottom: 4 }} barCategoryGap="30%">
+                                                <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                                                <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                <YAxis type="category" dataKey="month" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={100} interval={0} />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar dataKey="count" name="Laporan" fill={CHART_PALETTE[2]} radius={[0, 4, 4, 0]} maxBarSize={16}>
+                                                    <LabelList dataKey="count" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                             <div className="bg-white rounded-xl border border-slate-200/70 shadow-sm p-5 flex flex-col">
+                                <h3 className="font-semibold text-[13px] tracking-tight text-slate-900 mb-3">Category by Area</h3>
+                                <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                                    <div style={{ height: Math.max(220, cgoCategoryByAreaData.length * 50) }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={cgoCategoryByAreaData} layout="vertical" margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                                                <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                                                <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                <YAxis type="category" dataKey="name" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar dataKey="value" name="Count" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                                                    {cgoCategoryByAreaData.map((entry, idx) => (
+                                                        <Cell key={`cgo-area-${idx}`} fill={entry.color} />
+                                                    ))}
+                                                    <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Case Category by Branch</h3>
+                                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Report Category / Record Count</p>
+                                {(() => {
+                                    const maxC = Math.max(...cgoPivotByBranch.map(r => r.complaint), 1);
+                                    const maxI = Math.max(...cgoPivotByBranch.map(r => r.irregularity), 1);
+                                    const maxCo = Math.max(...cgoPivotByBranch.map(r => r.compliment), 1);
+                                    const maxTot = Math.max(...cgoPivotByBranch.map(r => r.total), 1);
+                                    return (
+                                        <div className="overflow-x-auto">
+                                            <div className="max-h-[188px] overflow-y-auto">
+                                                <table className="w-full text-xs min-w-[320px]">
+                                                    <thead className="sticky top-0 z-10">
+                                                        <tr className="bg-slate-100 text-black border-b border-gray-300">
+                                                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px] w-32">Reporting Br...</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Complaint</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Irregularity</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Compliment</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Grand total</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {cgoPivotByBranch.map(row => {
+                                                            const cC = heatColor(row.complaint, maxC);
+                                                            const iC = heatColor(row.irregularity, maxI);
+                                                            const coC = heatColor(row.compliment, maxCo);
+                                                            const tC = heatColor(row.total, maxTot);
+                                                            return (
+                                                                <tr key={row.branch} className="border-b border-gray-100 hover:bg-gray-50">
+                                                                    <td className="py-1.5 px-2 font-medium text-gray-800">{row.branch}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: cC.bg, color: cC.fg }}>{row.complaint || '-'}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: iC.bg, color: iC.fg }}>{row.irregularity || '-'}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: coC.bg, color: coC.fg }}>{row.compliment || '-'}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-bold" style={{ backgroundColor: tC.bg, color: tC.fg }}>{row.total}</td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <table className="w-full text-xs min-w-[320px] border-t-2 border-gray-300"><tbody><tr className="bg-gray-100 font-bold"><td className="py-1.5 px-2 text-gray-800">Grand total</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByBranch.reduce((s, r) => s + r.complaint, 0)}</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByBranch.reduce((s, r) => s + r.irregularity, 0)}</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByBranch.reduce((s, r) => s + r.compliment, 0)}</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByBranch.reduce((s, r) => s + r.total, 0)}</td></tr></tbody></table>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Case Category by Airlines</h3>
+                                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Report Category / Record Count</p>
+                                {(() => {
+                                    const maxC = Math.max(...cgoPivotByAirlines.map(r => r.complaint), 1);
+                                    const maxI = Math.max(...cgoPivotByAirlines.map(r => r.irregularity), 1);
+                                    const maxCo = Math.max(...cgoPivotByAirlines.map(r => r.compliment), 1);
+                                    const maxTot = Math.max(...cgoPivotByAirlines.map(r => r.total), 1);
+                                    return (
+                                        <div className="overflow-x-auto">
+                                            <div className="max-h-[188px] overflow-y-auto">
+                                                <table className="w-full text-xs min-w-[340px]">
+                                                    <thead className="sticky top-0 z-10">
+                                                        <tr className="bg-slate-100 text-black border-b border-gray-300">
+                                                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px] w-32">Airlines</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Complaint</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Irregularity</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Compliment</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Grand total</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {cgoPivotByAirlines.map(row => {
+                                                            const cC = heatColor(row.complaint, maxC);
+                                                            const iC = heatColor(row.irregularity, maxI);
+                                                            const coC = heatColor(row.compliment, maxCo);
+                                                            const tC = heatColor(row.total, maxTot);
+                                                            return (
+                                                                <tr key={row.airline} className="border-b border-gray-100 hover:bg-gray-50">
+                                                                    <td className="py-1.5 px-2 font-medium text-gray-800 whitespace-nowrap">{row.airline}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: cC.bg, color: cC.fg }}>{row.complaint || '-'}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: iC.bg, color: iC.fg }}>{row.irregularity || '-'}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: coC.bg, color: coC.fg }}>{row.compliment || '-'}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-bold" style={{ backgroundColor: tC.bg, color: tC.fg }}>{row.total}</td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <table className="w-full text-xs min-w-[340px] border-t-2 border-gray-300"><tbody><tr className="bg-gray-100 font-bold"><td className="py-1.5 px-2 text-gray-800">Grand total</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByAirlines.reduce((s, r) => s + r.complaint, 0)}</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByAirlines.reduce((s, r) => s + r.irregularity, 0)}</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByAirlines.reduce((s, r) => s + r.compliment, 0)}</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByAirlines.reduce((s, r) => s + r.total, 0)}</td></tr></tbody></table>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </PresentationSlide>
+
+            <PresentationSlide
+                title="CGO - Report Category"
+                subtitle="Report category breakdown dari sheet CGO"
+                icon={BarChart3}
+            >
+                {cgoReports.length === 0 ? (
+                    <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
+                        Tidak ada data CGO untuk periode ini
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Report by Case Category</h3>
+                                <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                                    <div style={{ height: Math.max(200, cgoCaseCategoryData.length * 50) }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={cgoCaseCategoryData} layout="vertical" margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                                                <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                                                <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                <YAxis type="category" dataKey="name" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar dataKey="value" name="Count" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                                                    {cgoCaseCategoryData.map((entry, idx) => (
+                                                        <Cell key={`cgo-report-cat-${idx}`} fill={entry.color} />
+                                                    ))}
+                                                    <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Branch Reporting</h3>
+                                <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                                    <div style={{ height: Math.max(200, cgoBranchData.length * 50) }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={cgoBranchData} layout="vertical" margin={{ top: 4, right: 40, left: 20, bottom: 4 }} barCategoryGap="30%">
+                                                <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                                                <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                <YAxis type="category" dataKey="branch" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={100} interval={0} />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar dataKey="count" name="Laporan" fill={REFERENCE_COLORS.irregularity} radius={[0, 4, 4, 0]} maxBarSize={20}>
+                                                    <LabelList dataKey="count" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Airlines Report</h3>
+                                <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                                    <div style={{ height: Math.max(200, cgoAirlinesData.length * 50) }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={cgoAirlinesData} layout="vertical" margin={{ top: 4, right: 40, left: 20, bottom: 4 }} barCategoryGap="30%">
+                                                <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                                                <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                <YAxis type="category" dataKey="airline" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar dataKey="count" name="Laporan" fill={REFERENCE_COLORS.irregularity} radius={[0, 4, 4, 0]} maxBarSize={20}>
+                                                    <LabelList dataKey="count" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Monthly Report</h3>
+                                <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                                    <div style={{ height: Math.max(200, cgoMonthlyData.length * 50) }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={cgoMonthlyData} layout="vertical" margin={{ top: 4, right: 40, left: 20, bottom: 4 }} barCategoryGap="30%">
+                                                <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                                                <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                <YAxis type="category" dataKey="month" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={100} interval={0} />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar dataKey="count" name="Laporan" fill={REFERENCE_COLORS.irregularity} radius={[0, 4, 4, 0]} maxBarSize={20}>
+                                                    <LabelList dataKey="count" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Category by Area</h3>
+                                <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                                    <div style={{ height: Math.max(220, cgoCategoryByAreaData.length * 50) }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={cgoCategoryByAreaData} layout="vertical" margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                                                <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                                                <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                <YAxis type="category" dataKey="name" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar dataKey="value" name="Count" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                                                    {cgoCategoryByAreaData.map((entry, idx) => (
+                                                        <Cell key={`cgo-report-area-${idx}`} fill={entry.color} />
+                                                    ))}
+                                                    <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Case Category by Branch</h3>
+                                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Report Category / Record Count</p>
+                                {(() => {
+                                    const maxC = Math.max(...cgoPivotByBranch.map(r => r.complaint), 1);
+                                    const maxI = Math.max(...cgoPivotByBranch.map(r => r.irregularity), 1);
+                                    const maxCo = Math.max(...cgoPivotByBranch.map(r => r.compliment), 1);
+                                    const maxTot = Math.max(...cgoPivotByBranch.map(r => r.total), 1);
+                                    return (
+                                        <div className="overflow-x-auto">
+                                            <div className="max-h-[188px] overflow-y-auto">
+                                                <table className="w-full text-xs min-w-[320px]">
+                                                    <thead className="sticky top-0 z-10">
+                                                        <tr className="bg-slate-100 text-black border-b border-gray-300">
+                                                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px] w-32">Reporting Br...</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Complaint</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Irregularity</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Compliment</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Grand total</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {cgoPivotByBranch.map(row => {
+                                                            const cC = heatColor(row.complaint, maxC);
+                                                            const iC = heatColor(row.irregularity, maxI);
+                                                            const coC = heatColor(row.compliment, maxCo);
+                                                            const tC = heatColor(row.total, maxTot);
+                                                            return (
+                                                                <tr key={row.branch} className="border-b border-gray-100 hover:bg-gray-50">
+                                                                    <td className="py-1.5 px-2 font-medium text-gray-800">{row.branch}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: cC.bg, color: cC.fg }}>{row.complaint || '-'}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: iC.bg, color: iC.fg }}>{row.irregularity || '-'}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: coC.bg, color: coC.fg }}>{row.compliment || '-'}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-bold" style={{ backgroundColor: tC.bg, color: tC.fg }}>{row.total}</td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <table className="w-full text-xs min-w-[320px] border-t-2 border-gray-300"><tbody><tr className="bg-gray-100 font-bold"><td className="py-1.5 px-2 text-gray-800">Grand total</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByBranch.reduce((s, r) => s + r.complaint, 0)}</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByBranch.reduce((s, r) => s + r.irregularity, 0)}</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByBranch.reduce((s, r) => s + r.compliment, 0)}</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByBranch.reduce((s, r) => s + r.total, 0)}</td></tr></tbody></table>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Case Category by Airlines</h3>
+                                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Report Category / Record Count</p>
+                                {(() => {
+                                    const maxC = Math.max(...cgoPivotByAirlines.map(r => r.complaint), 1);
+                                    const maxI = Math.max(...cgoPivotByAirlines.map(r => r.irregularity), 1);
+                                    const maxCo = Math.max(...cgoPivotByAirlines.map(r => r.compliment), 1);
+                                    const maxTot = Math.max(...cgoPivotByAirlines.map(r => r.total), 1);
+                                    return (
+                                        <div className="overflow-x-auto">
+                                            <div className="max-h-[188px] overflow-y-auto">
+                                                <table className="w-full text-xs min-w-[340px]">
+                                                    <thead className="sticky top-0 z-10">
+                                                        <tr className="bg-slate-100 text-black border-b border-gray-300">
+                                                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px] w-32">Airlines</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Complaint</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Irregularity</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Compliment</th>
+                                                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Grand total</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {cgoPivotByAirlines.map(row => {
+                                                            const cC = heatColor(row.complaint, maxC);
+                                                            const iC = heatColor(row.irregularity, maxI);
+                                                            const coC = heatColor(row.compliment, maxCo);
+                                                            const tC = heatColor(row.total, maxTot);
+                                                            return (
+                                                                <tr key={row.airline} className="border-b border-gray-100 hover:bg-gray-50">
+                                                                    <td className="py-1.5 px-2 font-medium text-gray-800 whitespace-nowrap">{row.airline}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: cC.bg, color: cC.fg }}>{row.complaint || '-'}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: iC.bg, color: iC.fg }}>{row.irregularity || '-'}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: coC.bg, color: coC.fg }}>{row.compliment || '-'}</td>
+                                                                    <td className="py-1.5 px-2 text-center font-bold" style={{ backgroundColor: tC.bg, color: tC.fg }}>{row.total}</td>
+                                                                </tr>
+                                                            );
+                                                        })}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <table className="w-full text-xs min-w-[340px] border-t-2 border-gray-300"><tbody><tr className="bg-gray-100 font-bold"><td className="py-1.5 px-2 text-gray-800">Grand total</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByAirlines.reduce((s, r) => s + r.complaint, 0)}</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByAirlines.reduce((s, r) => s + r.irregularity, 0)}</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByAirlines.reduce((s, r) => s + r.compliment, 0)}</td><td className="py-1.5 px-2 text-center text-gray-800">{cgoPivotByAirlines.reduce((s, r) => s + r.total, 0)}</td></tr></tbody></table>
+                                        </div>
+                                    );
+                                })()}
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">HUB Report</h3>
+                                <div className="h-[220px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                                    <div style={{ height: Math.max(200, cgoHubData.length * 42) }}>
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={cgoHubData} layout="vertical" margin={{ top: 4, right: 28, left: 10, bottom: 4 }} barCategoryGap="26%">
+                                                <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                                                <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                <YAxis type="category" dataKey="name" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={72} interval={0} />
+                                                <Tooltip content={<CustomTooltip />} />
+                                                <Bar dataKey="value" name="Laporan" fill="oklch(0.67 0.16 145)" radius={[0, 4, 4, 0]} maxBarSize={18}>
+                                                    <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                                                </Bar>
+                                            </BarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Identification of Root</h3>
+                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Case Classification</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
+                                <CategoryBarList data={cgoCaseClassificationData} color="oklch(0.65 0.18 160)" />
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Landside Area Category</h3>
+                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Terminal Area</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
+                                <CategoryBarList data={cgoTerminalAreaCategoryData} color="oklch(0.65 0.18 160)" />
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Airside Area Category</h3>
+                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Apron Area</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
+                                <CategoryBarList data={cgoApronAreaCategoryData} color="oklch(0.65 0.18 160)" />
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">General Service Category</h3>
+                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">General Category</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
+                                <CategoryBarList data={cgoGeneralCategoryData} color="oklch(0.65 0.18 160)" />
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </PresentationSlide>
+
+            <PresentationSlide title="CGO - Detail Report" subtitle="Detail laporan area dan kategori CGO" icon={MapPin}>
+                {cgoReports.length === 0 ? (
+                    <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Tidak ada data CGO untuk periode ini</div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Case Report by Area</h3>
+                                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Area Report / Branch by Airlines</p>
+                                {cgoCaseReportByArea.length === 0 ? <p className="text-xs text-gray-400 text-center py-6">Tidak ada data</p> : (
+                                    <div className="overflow-x-auto">
+                                        <div className="max-h-[188px] overflow-y-auto">
+                                            <table className="w-full text-xs min-w-[320px]">
+                                                <thead className="sticky top-0 z-10"><tr className="bg-slate-100 text-black border-b border-gray-300"><th className="text-left py-2 px-2 font-black uppercase tracking-widest text-[8px]">Branch</th><th className="text-left py-2 px-2 font-black uppercase tracking-widest text-[8px]">Airlines</th><th className="text-center py-2 px-1 font-black uppercase tracking-widest text-[8px]">Terminal<br/>Area</th><th className="text-center py-2 px-1 font-black uppercase tracking-widest text-[8px]">Apron<br/>Area</th><th className="text-center py-2 px-1 font-black uppercase tracking-widest text-[8px]">General</th><th className="text-center py-2 px-1 font-black uppercase tracking-widest text-[8px]">Grand<br/>total</th></tr></thead>
+                                                <tbody>
+                                                    {(() => {
+                                                        const allRows = cgoCaseReportByArea.flatMap(b => b.airlines);
+                                                        const maxT = Math.max(...allRows.map(a => a.terminal), 1);
+                                                        const maxA = Math.max(...allRows.map(a => a.apron), 1);
+                                                        const maxG = Math.max(...allRows.map(a => a.general), 1);
+                                                        const maxTotal = Math.max(...allRows.map(a => a.total), 1);
+                                                        return cgoCaseReportByArea.flatMap((branchRow) =>
+                                                            branchRow.airlines.map((airline, aIdx) => {
+                                                                const tC = heatColor(airline.terminal, maxT);
+                                                                const aC = heatColor(airline.apron, maxA);
+                                                                const gC = heatColor(airline.general, maxG);
+                                                                const totC = heatColor(airline.total, maxTotal);
+                                                                return (
+                                                                    <tr key={`${branchRow.branch}-${airline.name}`} className={`border-b border-gray-100 hover:bg-gray-50${aIdx === 0 ? ' border-t border-t-gray-300' : ''}`}>
+                                                                        <td className="py-1.5 px-1.5 font-bold text-gray-800 border-r border-gray-100 whitespace-nowrap">{aIdx === 0 ? branchRow.branch : ''}</td>
+                                                                        <td className="py-1.5 px-1.5 text-gray-700 whitespace-nowrap">{airline.name}</td>
+                                                                        <td className="py-1.5 px-1.5 text-center font-medium" style={{ backgroundColor: tC.bg, color: tC.fg }}>{airline.terminal || '-'}</td>
+                                                                        <td className="py-1.5 px-1.5 text-center font-medium" style={{ backgroundColor: aC.bg, color: aC.fg }}>{airline.apron || '-'}</td>
+                                                                        <td className="py-1.5 px-1.5 text-center font-medium" style={{ backgroundColor: gC.bg, color: gC.fg }}>{airline.general || '-'}</td>
+                                                                        <td className="py-1.5 px-1.5 text-center font-bold" style={{ backgroundColor: totC.bg, color: totC.fg }}>{airline.total}</td>
+                                                                    </tr>
+                                                                );
+                                                            })
+                                                        );
+                                                    })()}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <table className="w-full text-xs min-w-[320px] border-t-2 border-gray-300"><tbody><tr className="bg-gray-100 font-bold"><td className="py-1.5 px-1.5 text-gray-800" colSpan={2}>Grand total</td><td className="py-1.5 px-1.5 text-center text-gray-800">{cgoCaseReportByArea.reduce((s, b) => s + b.totalTerminal, 0)}</td><td className="py-1.5 px-1.5 text-center text-gray-800">{cgoCaseReportByArea.reduce((s, b) => s + b.totalApron, 0)}</td><td className="py-1.5 px-1.5 text-center text-gray-800">{cgoCaseReportByArea.reduce((s, b) => s + b.totalGeneral, 0)}</td><td className="py-1.5 px-1.5 text-center text-gray-800">{cgoCaseReportByArea.reduce((s, b) => s + b.grandTotal, 0)}</td></tr></tbody></table>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Terminal Area Category</h3>
+                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Category</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
+                                <CategoryBarList data={cgoTerminalAreaCategoryData} color="oklch(0.65 0.18 160)" />
+                            </div>
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Apron Area Category</h3>
+                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Category</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
+                                <CategoryBarList data={cgoApronAreaCategoryData} color="oklch(0.6 0.14 240)" />
+                            </div>
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">General Category</h3>
+                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Category</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
+                                <CategoryBarList data={cgoGeneralCategoryData} color="oklch(0.8 0.15 80)" />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                             <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">HUB Report</h3>
+                                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Distribusi laporan berdasarkan HUB</p>
+                                {cgoHubData.length === 0 ? <p className="text-xs text-gray-400 text-center py-6">Tidak ada data HUB</p> : (
+                                    <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                                        <div style={{ height: Math.max(220, cgoHubData.length * 50) }}>
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart data={cgoHubData} layout="vertical" margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                                                    <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                                                    <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                                                    <YAxis type="category" dataKey="name" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                                                    <Tooltip content={<CustomTooltip />} />
+                                                    <Bar dataKey="value" name="Count" fill="oklch(0.6 0.2 280)" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                                                        <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                                                    </Bar>
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Detail Report Landside & Airside</h3>
+                                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Data laporan CGO diurutkan berdasarkan tanggal</p>
+                                <DetailReportTable data={[...cgoReports].sort((a, b) => {
+                                    const dA = a.date_of_event ? new Date(a.date_of_event).getTime() : 0;
+                                    const dB = b.date_of_event ? new Date(b.date_of_event).getTime() : 0;
+                                    return dB - dA;
+                                })} />
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </PresentationSlide>
+            </>
+            )}
         </div>
     );
 }

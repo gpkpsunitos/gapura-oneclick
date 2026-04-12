@@ -21,6 +21,7 @@ import {
     Calendar,
     Layers,
     BookOpen,
+    type LucideIcon,
 } from 'lucide-react';
 
 /**
@@ -33,7 +34,7 @@ export interface NavItemConfig {
     /** Label tampilan untuk item menu */
     label: string;
     /** Icon komponen untuk ditampilkan di sebelah label */
-    icon: any;
+    icon: LucideIcon;
     /** Jumlah badge opsional untuk ditampilkan (misalnya jumlah notifikasi) */
     count?: number;
     /** Flag jika link adalah external (membuka di tab baru) */
@@ -82,6 +83,18 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
                 { href: '/dashboard/employee', label: 'Laporan Saya', icon: FileText },
                 { href: '/dashboard/employee/new', label: 'Buat Laporan', icon: Plane },
                 { href: '/dashboard/employee/quick-access', label: 'Quick Access', icon: ChevronRight },
+                { href: '/dashboard/employee/hc-leave', label: 'Ajukan Cuti / Izin', icon: Users },
+                { href: '/dashboard/employee/hc-documents', label: 'Edaran HC', icon: BookOpen },
+            ]
+        }
+    ],
+    /** Konfigurasi navigasi untuk role STAFF_CABANG (tanpa Quick Access) */
+    'STAFF_CABANG': [
+        {
+            title: 'Workspace',
+            items: [
+                { href: '/dashboard/employee', label: 'Laporan Saya', icon: FileText },
+                { href: '/dashboard/employee/new', label: 'Buat Laporan', icon: Plane },
                 { href: '/dashboard/employee/hc-leave', label: 'Ajukan Cuti / Izin', icon: Users },
                 { href: '/dashboard/employee/hc-documents', label: 'Edaran HC', icon: BookOpen },
             ]
@@ -143,10 +156,9 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
     /** Konfigurasi navigasi untuk role OP (Operations) */
     'OP': [
         {
-            title: 'Divisi Operasi',
+            title: 'Operational Dashboard',
             items: [
-                { href: '/dashboard/op', label: 'OP Dashboard', icon: LayoutDashboard },
-                { href: '/dashboard/op/dispatched', label: 'Laporan Divisi', icon: Inbox },
+                { href: '/dashboard/op', label: 'Dashboard', icon: LayoutDashboard },
                 { href: '/dashboard/op/reports', label: 'Semua Laporan', icon: ClipboardList },
             ]
         }
@@ -260,7 +272,6 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             title: 'Schedule',
             items: [
                 { href: '/dashboard/analyst/calendar', label: 'Event Calendar', icon: Calendar },
-                { href: '/dashboard/analyst/meeting-calendar', label: 'Meeting Calendar', icon: Calendar },
             ]
         }
     ]
@@ -283,12 +294,13 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
  * const links = LINKS_CONFIG[configKey];
  * ```
  */
-export const GET_LINKS_KEY = (role: string, pathname?: string): string => {
+export const GET_LINKS_KEY = (role: string): string => {
     const r = (role || '').toUpperCase();
 
     if (r.includes('SUPER') || r === 'ADMIN') return 'ANALYST';  // merged with Analyst
     if (r === 'ANALYST') return 'ANALYST';
     if (r === 'MANAGER_CABANG') return 'MANAGER';
+    if (r === 'STAFF_CABANG') return 'STAFF_CABANG';
 
     if (r === 'DIVISI_ESKALASI') {
         return 'DIVISI_ESKALASI';

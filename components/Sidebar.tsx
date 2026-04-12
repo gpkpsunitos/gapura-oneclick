@@ -56,8 +56,8 @@ const ROLE_DISPLAY: Record<string, string> = {
     PARTNER_OS: 'Unit Service',
     DIVISI_UQ: 'Divisi UQ',
     PARTNER_UQ: 'Divisi UQ',
-    DIVISI_OP: 'Divisi OP',
-    PARTNER_OP: 'Divisi OP',
+    DIVISI_OP: 'Operational Service',
+    PARTNER_OP: 'Operational Service',
     DIVISI_OT: 'Divisi OT',
     PARTNER_OT: 'Divisi OT',
     DIVISI_HT: 'Divisi HT',
@@ -269,7 +269,7 @@ export default function Sidebar({ role }: { role: string }) {
         }>;
     } | null>(null);
 
-    const configKey = GET_LINKS_KEY(role || '', pathname);
+    const configKey = GET_LINKS_KEY(role || '');
     const groups = LINKS_CONFIG[configKey];
 
     const handleLogout = () => {
