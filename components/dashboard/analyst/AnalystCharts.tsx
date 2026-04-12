@@ -539,6 +539,82 @@ function DetailReportTable({ data }: { data: Report[] }) {
     );
 }
 
+function CGODetailReportTable({ data }: { data: Report[] }) {
+    const [page, setPage] = useState(0);
+    const totalPages = Math.ceil(data.length / DETAIL_PAGE_SIZE);
+    const pageItems = data.slice(page * DETAIL_PAGE_SIZE, (page + 1) * DETAIL_PAGE_SIZE);
+    const startIdx = page * DETAIL_PAGE_SIZE + 1;
+    const endIdx = Math.min((page + 1) * DETAIL_PAGE_SIZE, data.length);
+
+    if (data.length === 0) {
+        return <p className="text-xs text-gray-400 text-center py-4">Tidak ada data</p>;
+    }
+
+    return (
+        <div>
+            <div className="overflow-x-auto">
+                <div className="max-h-[340px] overflow-y-auto">
+                    <table className="w-full text-xs min-w-[1200px]">
+                        <thead className="sticky top-0 z-10 bg-white">
+                            <tr className="border-b border-gray-200">
+                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700 whitespace-nowrap">Date</th>
+                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700 whitespace-nowrap">Category</th>
+                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700 whitespace-nowrap">Branch</th>
+                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700 whitespace-nowrap">Airlines</th>
+                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700 whitespace-nowrap">Flight</th>
+                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700">Report</th>
+                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700">Root Caused</th>
+                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700">Action Taken</th>
+                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700">Preventive Action</th>
+                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700 whitespace-nowrap">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {pageItems.map((r, idx) => {
+                                const date = r.date_of_event
+                                    ? new Date(r.date_of_event).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+                                    : '-';
+                                const branch = r.stations?.code || r.branch || '-';
+                                return (
+                                    <tr key={`${r.id || idx}-${idx}`} className="border-b border-gray-100 hover:bg-gray-50 align-top">
+                                        <td className="py-1.5 px-2 whitespace-nowrap text-gray-700">{date}</td>
+                                        <td className="py-1.5 px-2 whitespace-nowrap text-gray-700">{r.category || r.main_category || '-'}</td>
+                                        <td className="py-1.5 px-2 whitespace-nowrap font-medium text-gray-800">{branch}</td>
+                                        <td className="py-1.5 px-2 whitespace-nowrap text-gray-700">{r.airlines || '-'}</td>
+                                        <td className="py-1.5 px-2 whitespace-nowrap text-gray-700">{(r as any).flight_number || (r as any).flight || '-'}</td>
+                                        <td className="py-1.5 px-2 text-gray-700 min-w-[260px]"><p className="whitespace-pre-wrap break-words leading-snug">{(r as any).description || (r as any).report || '-'}</p></td>
+                                        <td className="py-1.5 px-2 text-gray-700 min-w-[260px]"><p className="whitespace-pre-wrap break-words leading-snug">{(r as any).root_caused || (r as any).identification_of_root || (r as any).root_cause || '-'}</p></td>
+                                        <td className="py-1.5 px-2 text-gray-700 min-w-[220px]"><p className="whitespace-pre-wrap break-words leading-snug">{(r as any).action_taken || '-'}</p></td>
+                                        <td className="py-1.5 px-2 text-gray-700 min-w-[220px]"><p className="whitespace-pre-wrap break-words leading-snug">{(r as any).preventive_action || '-'}</p></td>
+                                        <td className="py-1.5 px-2 whitespace-nowrap text-gray-700 font-medium">{r.status || '-'}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {totalPages > 1 && (
+                <div className="flex items-center justify-end gap-2 mt-3">
+                    <span className="text-[10px] text-gray-500">
+                        {startIdx}-{endIdx} / {data.length}
+                    </span>
+                    <button className="p-0.5 rounded hover:bg-gray-100 disabled:opacity-30" disabled={page === 0} onClick={() => setPage((p) => p - 1)}>
+                        <svg className="w-3.5 h-3.5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <button className="p-0.5 rounded hover:bg-gray-100 disabled:opacity-30" disabled={page >= totalPages - 1} onClick={() => setPage((p) => p + 1)}>
+                        <svg className="w-3.5 h-3.5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function normalizeStatusKey(status: string | undefined | null): keyof StatusCountItem {
     const normalized = String(status || '').trim().toUpperCase();
     if (normalized === 'CLOSED') return 'closed';
@@ -1515,6 +1591,17 @@ export default function AnalystCharts({
             .sort((a, b) => b.value - a.value);
     }, [cgoReports]);
 
+    const cgoIdentificationOfRootData = useMemo(() => {
+        const map: Record<string, number> = {};
+        cgoReports.forEach((r) => {
+            const value = String((r as any).identification_of_root || (r as any).root_caused || (r as any).root_cause || '').trim();
+            if (value) map[value] = (map[value] || 0) + 1;
+        });
+        return Object.entries(map)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value);
+    }, [cgoReports]);
+
     return (
         <div className="space-y-6">
             {/* Global Filters Section */}
@@ -2172,9 +2259,9 @@ export default function AnalystCharts({
                     <div className="flex items-center justify-center py-16 text-gray-400 text-sm">Tidak ada data CGO untuk periode ini</div>
                 ) : (
                     <div className="grid grid-cols-1 gap-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden">
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Case Report by Area</h3>
+                        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden xl:col-span-5">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Total Area Report</h3>
                                 <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Area Report / Branch by Airlines</p>
                                 {cgoCaseReportByArea.length === 0 ? <p className="text-xs text-gray-400 text-center py-6">Tidak ada data</p> : (
                                     <div className="overflow-x-auto">
@@ -2215,55 +2302,83 @@ export default function AnalystCharts({
                                 )}
                             </div>
 
-                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Terminal Area Category</h3>
-                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Category</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl xl:col-span-2">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Landside Area Report</h3>
+                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Terminal Area</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
                                 <CategoryBarList data={cgoTerminalAreaCategoryData} color="oklch(0.65 0.18 160)" />
                             </div>
-                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Apron Area Category</h3>
-                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Category</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
-                                <CategoryBarList data={cgoApronAreaCategoryData} color="oklch(0.6 0.14 240)" />
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl xl:col-span-2">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Airside Area Report</h3>
+                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Apron Area</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
+                                <CategoryBarList data={cgoApronAreaCategoryData} color="oklch(0.65 0.18 160)" />
                             </div>
-                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">General Category</h3>
-                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Category</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
-                                <CategoryBarList data={cgoGeneralCategoryData} color="oklch(0.8 0.15 80)" />
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl xl:col-span-3">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">General Service Report</h3>
+                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">General Service</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
+                                <CategoryBarList data={cgoGeneralCategoryData} color="oklch(0.65 0.18 160)" />
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                             <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col">
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">HUB Report</h3>
-                                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Distribusi laporan berdasarkan HUB</p>
-                                {cgoHubData.length === 0 ? <p className="text-xs text-gray-400 text-center py-6">Tidak ada data HUB</p> : (
-                                    <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
-                                        <div style={{ height: Math.max(220, cgoHubData.length * 50) }}>
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart data={cgoHubData} layout="vertical" margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
-                                                    <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
-                                                    <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
-                                                    <YAxis type="category" dataKey="name" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
-                                                    <Tooltip content={<CustomTooltip />} />
-                                                    <Bar dataKey="value" name="Count" fill="oklch(0.6 0.2 280)" radius={[0, 4, 4, 0]} maxBarSize={28}>
-                                                        <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
-                                                    </Bar>
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        </div>
-                                    </div>
+                        <div className="grid grid-cols-1 xl:grid-cols-12 gap-4">
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl xl:col-span-2">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Primary Indicators of Root</h3>
+                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Case Classification</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
+                                <CategoryBarList data={cgoCaseClassificationData} color="oklch(0.65 0.18 160)" />
+                            </div>
+
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl xl:col-span-2">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Root Cause Result</h3>
+                                <div className="flex items-center justify-between mb-3"><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Identification of Root</span><span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span></div>
+                                {cgoIdentificationOfRootData.length === 0 ? (
+                                    <div className="flex items-center justify-center h-[220px] text-sm text-gray-400">No data</div>
+                                ) : (
+                                    <CategoryBarList data={cgoIdentificationOfRootData} color="oklch(0.65 0.18 160)" />
                                 )}
                             </div>
 
-                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Detail Report Landside & Airside</h3>
-                                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Data laporan CGO diurutkan berdasarkan tanggal</p>
-                                <DetailReportTable data={[...cgoReports].sort((a, b) => {
-                                    const dA = a.date_of_event ? new Date(a.date_of_event).getTime() : 0;
-                                    const dB = b.date_of_event ? new Date(b.date_of_event).getTime() : 0;
-                                    return dB - dA;
-                                })} />
+                            <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden xl:col-span-8">
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Detail Root Cause Summary</h3>
+                                <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Branch, airlines, case classification, dan identification of root</p>
+                                <div className="overflow-x-auto">
+                                    <div className="max-h-[270px] overflow-y-auto">
+                                        <table className="w-full text-xs min-w-[760px]">
+                                            <thead className="sticky top-0 z-10">
+                                                <tr className="bg-slate-100 text-black border-b border-gray-300">
+                                                    <th className="text-left py-2 px-2 font-black uppercase tracking-widest text-[8px]">Branch</th>
+                                                    <th className="text-left py-2 px-2 font-black uppercase tracking-widest text-[8px]">Airlines</th>
+                                                    <th className="text-left py-2 px-2 font-black uppercase tracking-widest text-[8px]">Case Classification</th>
+                                                    <th className="text-left py-2 px-2 font-black uppercase tracking-widest text-[8px]">Identification of Root</th>
+                                                    <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[8px]">Total</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {cgoRootCauseRows.map((row, index) => {
+                                                    const totalColor = heatColor(row.total, Math.max(...cgoRootCauseRows.map((item) => item.total), 1));
+                                                    return (
+                                                        <tr key={`${row.branch}-${row.airlines}-${row.category}-${index}`} className="border-b border-gray-100 hover:bg-gray-50">
+                                                            <td className="py-1.5 px-2 text-gray-800 whitespace-nowrap">{row.branch}</td>
+                                                            <td className="py-1.5 px-2 text-gray-800 whitespace-nowrap">{row.airlines}</td>
+                                                            <td className="py-1.5 px-2 text-gray-700 max-w-[220px]"><p className="line-clamp-2">{row.category}</p></td>
+                                                            <td className="py-1.5 px-2 text-gray-700 max-w-[240px]"><p className="line-clamp-2">{row.root}</p></td>
+                                                            <td className="py-1.5 px-2 text-center font-bold" style={{ backgroundColor: totalColor.bg, color: totalColor.fg }}>{row.total}</td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+
+                        <div className="card-glass p-6 group transition-all duration-500 hover:shadow-2xl">
+                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Detail Report CGO Cargo</h3>
+                            <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Data laporan cargo dari sheet CGO diurutkan berdasarkan tanggal</p>
+                            <CGODetailReportTable data={[...cgoReports].sort((a, b) => {
+                                const dA = a.date_of_event ? new Date(a.date_of_event).getTime() : 0;
+                                const dB = b.date_of_event ? new Date(b.date_of_event).getTime() : 0;
+                                return dB - dA;
+                            })} />
                         </div>
                     </div>
                 )}
