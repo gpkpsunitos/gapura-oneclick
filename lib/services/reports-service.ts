@@ -105,6 +105,9 @@ const PROP_TO_HEADER: Partial<Record<keyof Report, string[]>> = {
   issue_caused: ['Issue Caused', 'Issue_Caused', 'Masalah Penyebab'],
   breakdown_caused: ['Breakdown Caused', 'Breakdown_Caused', 'Breakdown Penyebab'],
   remarks_case: ['Remarks Case', 'Remarks_Case'],
+  gse_available_requirement: ['GSE Available & Requirement', 'GSE Available Requirement', 'GSE_Available_Requirement'],
+  gse_requirement: ['GSE Requirement', 'GSE_Requirement'],
+  case_category: ['Case Category', 'Case_Category'],
   
   // Triage Columns
   primary_tag: ['Primary Tag', 'Primary_Tag', 'Area Category', 'Area_Category'],
@@ -165,6 +168,9 @@ const WRITE_MAPPING: Record<string, string> = {
   issue_caused: 'Issue Caused',
   breakdown_caused: 'Breakdown Caused',
   remarks_case: 'Remarks Case',
+  gse_available_requirement: 'GSE Available & Requirement',
+  gse_requirement: 'GSE Requirement',
+  case_category: 'Case Category',
   service_business_type: 'Service Business Type',
 
   // Triage Write Mappings

@@ -309,6 +309,12 @@ export interface Report {
     service_business_type?: string;
     /** Remarks Case */
     remarks_case?: string;
+    /** GSE Available & Requirement */
+    gse_available_requirement?: string;
+    /** GSE Requirement */
+    gse_requirement?: string;
+    /** Case Category */
+    case_category?: string;
     /** Kategori keluhan ketidakteraturan */
     irregularity_complain_category?: string;
     /** Kode cabang */

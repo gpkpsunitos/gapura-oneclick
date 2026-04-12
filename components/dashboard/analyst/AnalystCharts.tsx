@@ -27,6 +27,7 @@ import { ExecutiveSummaryTables } from '@/components/dashboard/analyst/Executive
 import { SummaryReportTab } from '@/components/dashboard/tabs/SummaryReportTab';
 import { ServiceQualityImprovementTab } from '@/components/dashboard/tabs/ServiceQualityImprovementTab';
 import { JoumpaServiceTab } from '@/components/dashboard/tabs/JoumpaServiceTab';
+import { GsePerformanceTab } from '@/components/dashboard/tabs/GsePerformanceTab';
 import type { ComparisonData, ComparisonMetric } from '@/types';
 import { calculateComparisonData } from '@/lib/utils/comparison-utils';
 
@@ -1382,7 +1383,7 @@ export default function AnalystCharts({
                 />
             )}
             {activeTab === 'delay' && <div className="p-12 text-center text-[var(--text-muted)] border border-dashed rounded-2xl border-[oklch(1_0_0_/_0.2)] bg-[oklch(1_0_0_/_0.1)]">Delay Code Report Breakdown - Blank Canvas</div>}
-            {activeTab === 'gse' && <div className="p-12 text-center text-[var(--text-muted)] border border-dashed rounded-2xl border-[oklch(1_0_0_/_0.2)] bg-[oklch(1_0_0_/_0.1)]">GSE Performance - Blank Canvas</div>}
+            {activeTab === 'gse' && <GsePerformanceTab reports={filteredReportsForCalc as Report[]} />}
             {activeTab === 'cgo_cargo' && <div className="p-12 text-center text-[var(--text-muted)] border border-dashed rounded-2xl border-[oklch(1_0_0_/_0.2)] bg-[oklch(1_0_0_/_0.1)]">CGO Cargo Report - Blank Canvas</div>}
         </div>
     );
