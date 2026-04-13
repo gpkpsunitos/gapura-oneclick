@@ -57,6 +57,24 @@ const OSAnalystCharts = dynamic(
   }
 );
 
+const OPAnalystCharts = dynamic(
+  () => import('@/components/dashboard/analyst/OPAnalystCharts'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="min-h-[40vh] flex items-center justify-center">
+        <div
+          className="w-8 h-8 rounded-full border-4 animate-spin"
+          style={{
+            borderColor: 'var(--surface-4)',
+            borderTopColor: 'var(--brand-primary)',
+          }}
+        />
+      </div>
+    ),
+  }
+);
+
 
 interface DivisionAnalystDashboardProps {
   division: DivisionConfig;
@@ -1277,6 +1295,34 @@ export function DivisionAnalystDashboard({
               monthlyComparisonData={monthlyComparisonData}
               hubDistributionData={hubDistributionData}
               resolutionByBranchData={resolutionByBranchData}
+              filteredReports={filteredReports}
+              caseReportByAreaData={caseReportByAreaData}
+              terminalAreaCategoryData={terminalAreaCategoryData}
+              apronAreaCategoryData={apronAreaCategoryData}
+              generalCategoryData={generalCategoryData}
+              caseClassificationData={caseClassificationData}
+              comparisonData={comparisonData}
+              onDrilldown={(url) => router.push(url)}
+              drilldownUrl={drilldownUrl}
+              globalFilters={globalFilters}
+              setGlobalFilters={setGlobalFilters}
+              availableOptions={availableOptions}
+            />
+          ) : division.code === 'OP' ? (
+            <OPAnalystCharts
+              analytics={analytics}
+              caseCategoryData={caseCategoryData}
+              branchReportData={branchReportData}
+              monthlyReportData={monthlyReportData}
+              categoryByAreaData={categoryByAreaData}
+              categoryByBranchData={categoryByBranchData}
+              areaSubCategoryData={areaSubCategoryData}
+              categoryByAirlinesData={categoryByAirlinesData}
+              topReportersData={topReportersData}
+              monthlyComparisonData={monthlyComparisonData}
+              hubDistributionData={hubDistributionData}
+              resolutionByBranchData={resolutionByBranchData}
+              allReports={reports}
               filteredReports={filteredReports}
               caseReportByAreaData={caseReportByAreaData}
               terminalAreaCategoryData={terminalAreaCategoryData}

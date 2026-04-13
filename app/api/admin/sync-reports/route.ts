@@ -20,18 +20,14 @@ export async function POST(request: NextRequest) {
     const cookieStore = await cookies();
     const session = cookieStore.get('session')?.value;
     
-    // Check for service role authorization (for cron jobs/internal scripts)
     const authHeader = request.headers.get('authorization');
-    const isServiceRole = authHeader === `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`;
-    
-    // Check for Vercel Cron authorization
     const isVercelCron = request.headers.get('x-vercel-cron') === 'true' || 
                          authHeader === `Bearer ${process.env.CRON_SECRET}`;
     
     // Allow in development mode without auth
     const isDevelopment = nodeEnv === 'development';
     
-    console.log('[SYNC API] isDevelopment:', isDevelopment, 'hasSession:', !!session, 'isServiceRole:', isServiceRole, 'isVercelCron:', isVercelCron);
+    console.log('[SYNC API] isDevelopment:', isDevelopment, 'hasSession:', !!session, 'isVercelCron:', isVercelCron);
     
     let payload = null;
     
@@ -39,8 +35,8 @@ export async function POST(request: NextRequest) {
       payload = await verifySession(session);
     }
     
-    // Allow if: service role, Vercel cron, authorized user, or in development mode
-    if (!isServiceRole && !isVercelCron && !isAuthorized(payload) && !isDevelopment) {
+    // Allow if: Vercel cron, authorized user, or in development mode
+    if (!isVercelCron && !isAuthorized(payload) && !isDevelopment) {
       console.log('[SYNC API] Access denied');
       return NextResponse.json({ 
         error: 'Forbidden: Only admins and analysts can trigger sync' 
@@ -85,10 +81,6 @@ export async function GET(request: NextRequest) {
     const cookieStore = await cookies();
     const session = cookieStore.get('session')?.value;
     
-    // Check for service role authorization
-    const authHeader = request.headers.get('authorization');
-    const isServiceRole = authHeader === `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`;
-    
     // Allow in development mode without auth
     const isDevelopment = process.env.NODE_ENV === 'development';
     
@@ -98,8 +90,8 @@ export async function GET(request: NextRequest) {
       payload = await verifySession(session);
     }
     
-    // Allow if: service role, authenticated user, or in development mode
-    if (!isServiceRole && !payload && !isDevelopment) {
+    // Allow if: authorized user or in development mode
+    if (!isAuthorized(payload) && !isDevelopment) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

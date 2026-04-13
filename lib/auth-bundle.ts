@@ -1,3 +1,5 @@
+import { createHmac, timingSafeEqual } from 'crypto';
+
 export interface AuthBundle {
     active_uid: string;
     origin_uid: string;
@@ -22,13 +24,49 @@ export function normalizeDivisionCode(value: unknown): string | null {
     return DIVISION_ROLE_CANDIDATES[normalized] ? normalized : null;
 }
 
+function getAuthBundleSecret(): string | null {
+    return process.env.JWT_SECRET || null;
+}
+
+function signBundlePayload(payload: string): string | null {
+    const secret = getAuthBundleSecret();
+    if (!secret) {
+        console.error('[AUTH_BUNDLE] JWT_SECRET is not configured; refusing to trust auth bundle cookies.');
+        return null;
+    }
+
+    return createHmac('sha256', secret).update(payload).digest('base64url');
+}
+
 export function parseAuthBundle(raw: string | null | undefined): AuthBundle | null {
     if (!raw) {
         return null;
     }
 
     try {
-        const parsed = JSON.parse(raw) as Partial<AuthBundle> | null;
+        const separatorIndex = raw.lastIndexOf('.');
+        if (separatorIndex <= 0 || separatorIndex === raw.length - 1) {
+            return null;
+        }
+
+        const payload = raw.slice(0, separatorIndex);
+        const providedSignature = raw.slice(separatorIndex + 1);
+        const expectedSignature = signBundlePayload(payload);
+        if (!expectedSignature) {
+            return null;
+        }
+
+        const providedBuffer = Buffer.from(providedSignature);
+        const expectedBuffer = Buffer.from(expectedSignature);
+        if (
+            providedBuffer.length !== expectedBuffer.length ||
+            !timingSafeEqual(providedBuffer, expectedBuffer)
+        ) {
+            console.warn('[AUTH_BUNDLE] Rejected auth bundle with invalid signature.');
+            return null;
+        }
+
+        const parsed = JSON.parse(payload) as Partial<AuthBundle> | null;
         if (!parsed || typeof parsed !== 'object') {
             return null;
         }
@@ -60,9 +98,15 @@ export function parseAuthBundle(raw: string | null | undefined): AuthBundle | nu
 }
 
 export function serializeAuthBundle(bundle: AuthBundle): string {
-    return JSON.stringify({
+    const payload = JSON.stringify({
         active_uid: bundle.active_uid,
         origin_uid: bundle.origin_uid,
         sessions: bundle.sessions,
     });
+    const signature = signBundlePayload(payload);
+    if (!signature) {
+        throw new Error('Unable to sign auth bundle');
+    }
+
+    return `${payload}.${signature}`;
 }

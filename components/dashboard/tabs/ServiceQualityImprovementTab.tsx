@@ -125,7 +125,9 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     const compliments = reports.filter(r => r.category === 'Compliment').length;
     const open = reports.filter(r => r.status === 'OPEN').length;
     const closed = reports.filter(r => r.status === 'CLOSED').length;
-    return { total: reports.length, branches: branches.size, airlines: airlines.size, complaints, compliments, open, closed };
+    const onProgress = reports.filter(r => r.status === 'ON PROGRESS').length;
+    const resolutionRate = reports.length > 0 ? (closed / reports.length) * 100 : 0;
+    return { total: reports.length, branches: branches.size, airlines: airlines.size, complaints, compliments, open, closed, onProgress, resolutionRate };
   }, [reports]);
 
   // 2. Report Category (Pie) — oklch fills
@@ -162,22 +164,21 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     ].filter(d => d.value > 0);
   }, [reports]);
 
-  // 3. Monthly Report (Bar)
+  // 3. Monthly Report (Bar) — proper chronological sort across years
   const monthlyData = useMemo(() => {
-    const counts: Record<string, number> = {};
+    const counts: Record<string, { label: string; sortKey: string; val: number }> = {};
     reports.forEach(r => {
       const d = new Date(r.date_of_event || r.created_at);
       if (!isNaN(d.getTime())) {
-        const key = d.toLocaleString('en-US', { month: 'long' });
-        counts[key] = (counts[key] || 0) + 1;
+        const label = d.toLocaleString('en-US', { month: 'short', year: 'numeric' });
+        const sortKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        if (!counts[sortKey]) counts[sortKey] = { label, sortKey, val: 0 };
+        counts[sortKey].val++;
       }
     });
-    return Object.entries(counts)
-      .map(([month, val]) => ({ month, val }))
-      .sort((a, b) => {
-        const m = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        return m.indexOf(b.month) - m.indexOf(a.month);
-      });
+    return Object.values(counts)
+      .sort((a, b) => b.sortKey.localeCompare(a.sortKey))
+      .map(({ label, val }) => ({ month: label, val }));
   }, [reports]);
 
   // Remarks Case Distribution (Bar)
@@ -324,9 +325,11 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     { key: 'branches', label: 'Branch', value: kpis.branches, description: '', tone: 'volume' },
     { key: 'airlines', label: 'Airlines', value: kpis.airlines, description: '', tone: 'volume' },
     { key: 'complaints', label: 'Complaint', value: kpis.complaints, description: '', tone: 'mix' },
-    { key: 'compliments', label: 'Compliment Report', value: kpis.compliments, description: '', tone: 'mix' },
-    { key: 'open', label: 'Report Open', value: kpis.open, description: '', tone: 'workflow' },
-    { key: 'closed', label: 'Report Closed', value: kpis.closed, description: '', tone: 'workflow' },
+    { key: 'compliments', label: 'Compliment', value: kpis.compliments, description: '', tone: 'mix' },
+    { key: 'open', label: 'Open', value: kpis.open, description: '', tone: 'workflow' },
+    { key: 'onProgress', label: 'On Progress', value: kpis.onProgress, description: '', tone: 'workflow' },
+    { key: 'closed', label: 'Closed', value: kpis.closed, description: '', tone: 'workflow' },
+    { key: 'resolutionRate', label: 'Resolution', value: kpis.resolutionRate, description: '', tone: 'workflow' },
   ];
 
   const tooltipStyle = {
@@ -354,19 +357,27 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           {/* Left column: Monthly + Remarks Case + Pie */}
           <div className="md:col-span-3 flex flex-col gap-5">
             {/* Monthly Report */}
-            <SqiMiniPanel icon={<BarChart3 size={18} />} title="Monthly Report" subtitle="">
+            <SqiMiniPanel icon={<BarChart3 size={18} />} title="Monthly Report" subtitle="" accent="oklch(0.65 0.18 160)">
               <div className="h-[200px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart layout="vertical" data={monthlyData} margin={{ top: 10, right: 25, left: -10, bottom: 0 }}>
+                  <BarChart layout="vertical" data={monthlyData} margin={{ top: 6, right: 25, left: 12, bottom: 0 }} barCategoryGap={6}>
                     <CartesianGrid strokeDasharray="4 4" horizontal={false} stroke="oklch(0.92 0.01 90 / 0.9)" />
                     <XAxis type="number" hide />
-                    <YAxis dataKey="month" type="category" width={72} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700 }} />
+                    <YAxis
+                      dataKey="month"
+                      type="category"
+                      width={88}
+                      interval={0}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700 }}
+                    />
                     <Tooltip
                       formatter={(value: number) => [`${value} reports`, 'Volume']}
                       contentStyle={tooltipStyle}
                       cursor={{ fill: 'oklch(0.95 0.01 90 / 0.5)' }}
                     />
-                    <Bar dataKey="val" fill="oklch(0.65 0.18 160)" barSize={20} radius={[0, 12, 12, 0]}>
+                    <Bar dataKey="val" fill="oklch(0.65 0.18 160)" barSize={18} radius={[0, 12, 12, 0]}>
                       <LabelList dataKey="val" position="right" className="fill-[var(--text-primary)] text-[11px] font-black" />
                     </Bar>
                   </BarChart>
@@ -375,8 +386,9 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
             </SqiMiniPanel>
 
             {/* Remarks Case Distribution */}
-            <SqiMiniPanel icon={<BarChart3 size={18} />} title="Remarks Case Distribution" subtitle="">
+            <SqiMiniPanel icon={<BarChart3 size={18} />} title="Remarks Case Distribution" subtitle="" accent="oklch(0.6 0.14 240)">
               <div className="h-[240px] w-full">
+
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart layout="vertical" data={remarksCaseData.slice(0, 5)} margin={{ top: 10, right: 25, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="4 4" horizontal={false} stroke="oklch(0.92 0.01 90 / 0.9)" />
@@ -387,16 +399,21 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                       contentStyle={tooltipStyle}
                       cursor={{ fill: 'oklch(0.95 0.01 90 / 0.5)' }}
                     />
-                    <Bar dataKey="val" fill="oklch(0.65 0.18 160)" barSize={16} radius={[0, 12, 12, 0]}>
+                    <Bar dataKey="val" fill="oklch(0.6 0.14 240)" barSize={16} radius={[0, 12, 12, 0]}>
                       <LabelList dataKey="val" position="right" className="fill-[var(--text-primary)] text-[11px] font-black" />
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
               </div>
+              {remarksCaseData.length > 5 && (
+                <p className="mt-2 text-center text-[0.68rem] font-semibold text-[var(--text-muted)]">
+                  Top 5 of {remarksCaseData.length} categories
+                </p>
+              )}
             </SqiMiniPanel>
 
             {/* Report Category Pie */}
-            <SqiMiniPanel icon={<Shapes size={18} />} title="Report Category" subtitle="">
+            <SqiMiniPanel icon={<Shapes size={18} />} title="Report Category" subtitle="" accent="oklch(0.7 0.2 330)">
               <div className="flex h-full min-h-0 flex-col gap-4">
                 <div className="h-[220px] w-full shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
@@ -435,7 +452,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
 
           {/* Right column: Pivot Table */}
           <div className="md:col-span-9 flex flex-col">
-            <SqiMiniPanel icon={<Plane size={18} />} title="Report Category by Airlines" subtitle="Remarks Case / Record Count">
+            <SqiMiniPanel icon={<Plane size={18} />} title="Report Category by Airlines" subtitle="Remarks Case / Record Count" accent="oklch(0.55 0.14 240)">
               <PaginatedTable
                 data={rcByAirlines}
                 itemsPerPage={15}
@@ -468,9 +485,9 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
       </SummarySectionCard>
 
       {/* ══════ Landside Root Cause Section ══════ */}
-      <SummarySectionCard title="Landside Area Root Cause" subtitle="">
+      <SummarySectionCard title="Landside Area Root Cause" subtitle="Aggregated root cause identification for Landside / Terminal Area reports">
         <div className="space-y-5">
-          <SqiMiniPanel icon={<Building2 size={18} />} title="Landside Area" subtitle="">
+          <SqiMiniPanel icon={<Building2 size={18} />} title="Landside Area" subtitle="" accent="oklch(0.65 0.18 160)">
             <div className="flex-1 min-h-0">
               <PaginatedTable
                 data={landsideRootIds}
@@ -494,39 +511,13 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
               />
             </div>
           </SqiMiniPanel>
-
-          <SqiMiniPanel icon={<AlertCircle size={18} />} title="Landside Area – Detail Root Cause Identification" subtitle="">
-            <div className="flex-1 min-h-0">
-              <PaginatedTable
-                data={reports.filter(r => !!r.terminal_area_category || String(r.area).toLowerCase().includes('terminal'))}
-                itemsPerPage={10}
-                headers={[{ label: 'Branch' }, { label: 'Airlines' }, { label: 'Category' }, { label: 'Area' }, { label: 'Issue Caused' }, { label: 'Root Caused' }, { label: 'Total ▼' }]}
-                renderRow={(row: any, i: number) => (
-                  <tr key={i} className="transition-colors hover:bg-[var(--surface-2)]/80">
-                    <td className={cellBreak}>{row.stations?.code || row.branch}</td>
-                    <td className={cellBreak}>{row.airlines || row.airline}</td>
-                    <td className={cellBreak}>{row.category}</td>
-                    <td className={cellBreak}>{row.area}</td>
-                    <td className={cellBreak}>{row.issue_caused || '-'}</td>
-                    <td className={cellBreak}>{row.root_caused || row.identification_of_root}</td>
-                    <td className={`${cellBase} w-[80px]`}>
-                      <div className="flex items-center gap-2">
-                        <span className="w-5 font-mono font-black text-[var(--brand-emerald-700)]">1</span>
-                        <div className="h-2.5 w-full rounded-full bg-[oklch(0.65_0.18_160)]" />
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              />
-            </div>
-          </SqiMiniPanel>
         </div>
       </SummarySectionCard>
 
       {/* ══════ Case Classification + Heatmaps ══════ */}
       <SummarySectionCard title="Breakdown of Identified Causes" subtitle="">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <SqiMiniPanel icon={<AlertCircle size={18} />} title="Case Classification" subtitle="">
+          <SqiMiniPanel icon={<AlertCircle size={18} />} title="Case Classification" subtitle="" accent="oklch(0.6 0.18 25)">
             <div className="flex-1 min-h-0">
               <PaginatedTable
                 data={caseClassificationData}
@@ -553,20 +544,19 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
 
           <div className="flex flex-col gap-5">
             {/* Branch Heatmap */}
-            <SqiMiniPanel icon={<Building2 size={18} />} title="Breakdown by Branch" subtitle="">
+            <SqiMiniPanel icon={<Building2 size={18} />} title="Breakdown by Branch" subtitle="" accent="oklch(0.55 0.14 240)">
               <div className="flex-1 min-h-0 max-h-[200px] overflow-auto">
                 <PaginatedTable
                   data={heatmapData.branchRc.data}
                   itemsPerPage={5}
                   headers={[{ label: 'Identification of Root' }, ...heatmapData.branchRc.cols.map(c => ({ label: c }))]}
                   renderRow={(row: any, i: number) => {
-                    const vals = heatmapData.branchRc.cols.map(c => row[c] || 0);
-                    const rowMax = Math.max(...vals, 1);
+                    const colMaxes = heatmapData.branchRc.cols.map(c => Math.max(...heatmapData.branchRc.data.map((r: any) => r[c] || 0), 1));
                     return (
                       <tr key={i} className="transition-colors hover:bg-[var(--surface-2)]/80">
                         <td className={`${cellBreak}`} title={row.cls}>{row.cls}</td>
-                        {heatmapData.branchRc.cols.map(c => (
-                          <td key={c} className={`${cellBase} text-center`} style={{ backgroundColor: heatValue(row[c] || 0, rowMax) }}>
+                        {heatmapData.branchRc.cols.map((c, idx) => (
+                          <td key={c} className={`${cellBase} text-center`} style={{ backgroundColor: heatValue(row[c] || 0, colMaxes[idx]) }}>
                             {(row[c] || 0) === 0 ? '–' : row[c]}
                           </td>
                         ))}
@@ -578,7 +568,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
             </SqiMiniPanel>
 
             {/* Airline Heatmap */}
-            <SqiMiniPanel icon={<Plane size={18} />} title="Breakdown by Airlines" subtitle="">
+            <SqiMiniPanel icon={<Plane size={18} />} title="Breakdown by Airlines" subtitle="" accent="oklch(0.7 0.2 330)">
               <div className="flex-1 min-h-0 max-h-[200px] overflow-auto">
                 <PaginatedTable
                   data={heatmapData.airlineRc.data}
@@ -586,13 +576,12 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                   headers={[{ label: 'Identification of Root' }, ...heatmapData.airlineRc.cols.slice(0, 5).map(c => ({ label: c }))]}
                   renderRow={(row: any, i: number) => {
                     const renderedCols = heatmapData.airlineRc.cols.slice(0, 5);
-                    const vals = renderedCols.map(c => row[c] || 0);
-                    const rowMax = Math.max(...vals, 1);
+                    const colMaxes = renderedCols.map(c => Math.max(...heatmapData.airlineRc.data.map((r: any) => r[c] || 0), 1));
                     return (
                       <tr key={i} className="transition-colors hover:bg-[var(--surface-2)]/80">
                         <td className={cellBreak} title={row.cls}>{row.cls}</td>
-                        {renderedCols.map(c => (
-                          <td key={c} className={`${cellBase} text-center`} style={{ backgroundColor: heatValue(row[c] || 0, rowMax) }}>
+                        {renderedCols.map((c, idx) => (
+                          <td key={c} className={`${cellBase} text-center`} style={{ backgroundColor: heatValue(row[c] || 0, colMaxes[idx]) }}>
                             {(row[c] || 0) === 0 ? '–' : row[c]}
                           </td>
                         ))}
@@ -610,11 +599,11 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
       <SummarySectionCard title="Area Breakdown" subtitle="">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           {[
-            { title: 'Landside Area', labelCol: 'Terminal Area', data: areaData.land },
-            { title: 'Airside Area', labelCol: 'Apron Area', data: areaData.apron },
-            { title: 'General Service', labelCol: 'General Service', data: areaData.general },
+            { title: 'Landside Area', labelCol: 'Terminal Area', data: areaData.land, accent: 'oklch(0.65 0.18 160)' },
+            { title: 'Airside Area', labelCol: 'Apron Area', data: areaData.apron, accent: 'oklch(0.6 0.18 25)' },
+            { title: 'General Service', labelCol: 'General Service', data: areaData.general, accent: 'oklch(0.68 0.16 205)' },
           ].map((area, idx) => (
-            <SqiMiniPanel key={idx} icon={<Building2 size={18} />} title={area.title} subtitle="">
+            <SqiMiniPanel key={idx} icon={<Building2 size={18} />} title={area.title} subtitle="" accent={area.accent}>
               <div className="flex-1 min-h-0">
                 <PaginatedTable
                   data={area.data}
@@ -648,11 +637,39 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
 
           <div className="md:col-span-3">
-            <SqiMiniPanel icon={<Shapes size={18} />} title="Report Category" subtitle="">
+            <SqiMiniPanel icon={<Shapes size={18} />} title="Report Category" subtitle="" accent="oklch(0.7 0.2 330)">
               <div className="flex-1">
                 <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
-                    <Pie data={reportCategoryAreaData} dataKey="value" nameKey="name" innerRadius={40} outerRadius={65} strokeWidth={0} paddingAngle={2}>
+                    <Pie
+                      data={reportCategoryAreaData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={40}
+                      outerRadius={65}
+                      strokeWidth={0}
+                      paddingAngle={2}
+                      labelLine={{ stroke: 'oklch(0.68 0.12 180 / 0.9)', strokeWidth: 1.25 }}
+                      label={({ cx, cy, midAngle, outerRadius, name, value }) => {
+                        const RADIAN = Math.PI / 180;
+                        const radius = (outerRadius || 0) + 16;
+                        const x = (cx || 0) + radius * Math.cos(-midAngle * RADIAN);
+                        const y = (cy || 0) + radius * Math.sin(-midAngle * RADIAN);
+                        const anchor = x > (cx || 0) ? 'start' : 'end';
+                        return (
+                          <text
+                            x={x}
+                            y={y}
+                            fill="var(--text-primary)"
+                            textAnchor={anchor}
+                            dominantBaseline="central"
+                            style={{ fontSize: 10, fontWeight: 800 }}
+                          >
+                            {`${name}: ${value}`}
+                          </text>
+                        );
+                      }}
+                    >
                       {reportCategoryAreaData.map((e) => <Cell key={e.name} fill={e.fill} />)}
                     </Pie>
                     <Tooltip
@@ -684,7 +701,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           </div>
 
           <div className="md:col-span-9">
-            <SqiMiniPanel icon={<AlertCircle size={18} />} title="Landside Area – Detail Root Cause Identification" subtitle="">
+            <SqiMiniPanel icon={<AlertCircle size={18} />} title="Landside Area – Detail Root Cause Identification" subtitle="" accent="oklch(0.6 0.18 25)">
               <div className="flex-1 min-h-0">
                 <PaginatedTable
                   data={reports.filter(r => !!r.terminal_area_category || String(r.area).toLowerCase().includes('terminal'))}
@@ -699,11 +716,8 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                       <td className={cellBreak}>{row.issue_caused || '-'}</td>
                       <td className={cellBreak}>{row.breakdown_caused || '-'}</td>
                       <td className={cellBreak}>{row.root_caused || row.identification_of_root || '-'}</td>
-                      <td className={`${cellBase} w-[80px]`}>
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 font-mono font-black text-[var(--brand-emerald-700)]">1</span>
-                          <div className="h-2.5 w-full rounded-full bg-[oklch(0.65_0.18_160)]" />
-                        </div>
+                      <td className={`${cellBase} w-[40px] text-center`}>
+                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[oklch(0.65_0.18_160_/_0.12)] text-[0.68rem] font-black text-[var(--brand-emerald-700)]">1</span>
                       </td>
                     </tr>
                   )}
@@ -746,9 +760,9 @@ function SqiKpiGrid({ items }: { items: SummaryKpiItem[] }) {
   ];
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-12">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {groups.map(g => (
-        <div key={g.id} className="sm:col-span-1 xl:col-span-4">
+        <div key={g.id}>
           <div className="rounded-[24px] border border-[oklch(0.9_0.01_90_/_0.75)] bg-white/75 p-4">
             <div className="mb-4 flex items-center gap-2">
               <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[oklch(0.65_0.18_160_/_0.12)] text-[var(--brand-emerald-700)]">
@@ -764,24 +778,36 @@ function SqiKpiGrid({ items }: { items: SummaryKpiItem[] }) {
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              {g.items.map(item => (
-                <div
-                  key={item.key}
-                  className={`rounded-[22px] border px-4 py-3 ${
-                    g.id === 'mix'
-                      ? 'border-[oklch(0.92_0.02_82_/_0.85)] bg-[oklch(0.99_0.01_82_/_0.85)]'
-                      : g.id === 'workflow'
-                      ? 'border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-0)]/95'
-                      : 'border-[var(--brand-emerald-100)] bg-[var(--brand-emerald-50)]/55'
-                  }`}
-                >
-                  <p className="text-[0.65rem] font-black uppercase tracking-[0.22em] text-[var(--text-muted)]">{item.label}</p>
-                  <p className="mt-2 font-mono text-[1.65rem] font-black leading-none text-[var(--brand-emerald-700)]">{item.value.toLocaleString()}</p>
-                  {item.description ? (
-                    <p className="mt-2 text-[0.76rem] leading-5 text-[var(--text-secondary)]">{item.description}</p>
-                  ) : null}
-                </div>
-              ))}
+              {g.items.map(item => {
+                const isRate = item.key === 'resolutionRate';
+                const displayValue = isRate ? `${Number(item.value).toFixed(1)}%` : item.value.toLocaleString();
+                return (
+                  <div
+                    key={item.key}
+                    className={`rounded-[22px] border px-4 py-3 ${
+                      g.id === 'mix'
+                        ? 'border-[oklch(0.92_0.02_82_/_0.85)] bg-[oklch(0.99_0.01_82_/_0.85)]'
+                        : g.id === 'workflow'
+                        ? 'border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-0)]/95'
+                        : 'border-[var(--brand-emerald-100)] bg-[var(--brand-emerald-50)]/55'
+                    }`}
+                  >
+                    <p className="text-[0.65rem] font-black uppercase tracking-[0.22em] text-[var(--text-muted)]">{item.label}</p>
+                    <p className="mt-2 font-mono text-[1.65rem] font-black leading-none text-[var(--brand-emerald-700)]">{displayValue}</p>
+                    {isRate && (
+                      <div className="mt-2 h-1.5 w-full rounded-full bg-[oklch(0_0_0_/_0.06)] overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all duration-700 ease-out"
+                          style={{ width: `${Math.min(100, Math.max(0, Number(item.value)))}%`, backgroundColor: 'oklch(0.55 0.18 145)' }}
+                        />
+                      </div>
+                    )}
+                    {item.description ? (
+                      <p className="mt-2 text-[0.76rem] leading-5 text-[var(--text-secondary)]">{item.description}</p>
+                    ) : null}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -916,17 +942,19 @@ function SqiMiniPanel({
   icon,
   title,
   subtitle,
+  accent = 'oklch(0.65 0.18 160)',
   children,
 }: {
   icon: ReactNode;
   title: string;
   subtitle: string;
+  accent?: string;
   children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-[24px] border border-[oklch(0.9_0.01_90_/_0.72)] bg-white/75 p-4">
+    <div className="flex flex-col overflow-hidden rounded-[24px] border border-[oklch(0.9_0.01_90_/_0.72)] border-t-2 bg-white/75 p-4" style={{ borderTopColor: accent }}>
       <div className="mb-4 flex shrink-0 items-start gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[oklch(0.65_0.18_160_/_0.12)] text-[var(--brand-emerald-700)]">
+        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: accent }}>
           {icon}
         </span>
         <div className="min-w-0 space-y-1">

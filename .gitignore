@@ -53,3 +53,13 @@ supabase/export/schema/schema_definition.json
 # Debug artifacts
 *.original.tsx
 *.original.ts
+
+# Test output screenshots
+/output/
+
+# Legacy AI tool configs (superseded by .kilo)
+.agent/
+.claude/
+
+# Keystore files (not a mobile project)
+*.keystore

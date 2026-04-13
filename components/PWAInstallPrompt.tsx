@@ -9,7 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, X, Smartphone, Share } from 'lucide-react';
+import { Download, X, Smartphone, Share, ExternalLink, Bug } from 'lucide-react';
 
 /**
  * Interface untuk event beforeinstallprompt
@@ -20,6 +20,17 @@ interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   /** Promise yang resolve dengan choice user */
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+type Platform = 'ios' | 'android' | 'desktop' | null;
+
+interface PwaDebugState {
+  beforeInstallPrompt: boolean;
+  serviceWorkerSupported: boolean;
+  serviceWorkerReady: boolean;
+  manifestLinked: boolean;
+  manifestReachable: boolean;
+  environment: string;
 }
 
 /**
@@ -38,7 +49,7 @@ function getInitialInstalledState() {
  * Mendeteksi platform device user
  * @returns Platform device ('ios', 'android', 'desktop', atau null)
  */
-function getInitialPlatform(): 'ios' | 'android' | 'desktop' | null {
+function getInitialPlatform(): Platform {
   if (typeof navigator === 'undefined') {
     return null;
   }
@@ -55,6 +66,62 @@ function getInitialPlatform(): 'ios' | 'android' | 'desktop' | null {
   return 'desktop';
 }
 
+function detectInstallEnvironment(): string {
+  if (typeof navigator === 'undefined') {
+    return 'unknown';
+  }
+
+  const ua = navigator.userAgent.toLowerCase();
+  if (ua.includes('bluestacks')) return 'bluestacks';
+  if (ua.includes('wv')) return 'android-webview';
+  if (ua.includes('emulator')) return 'android-emulator';
+  if (ua.includes('cros')) return 'chromeos';
+  if (ua.includes('edg')) return 'edge';
+  if (ua.includes('chrome')) return 'chromium';
+  if (ua.includes('safari')) return 'safari';
+  return 'browser';
+}
+
+function getBrowserInstallHint(platform: Platform, environment: string) {
+  if (platform === 'ios') {
+    return 'Gunakan tombol Share lalu pilih Add to Home Screen.';
+  }
+
+  if (environment === 'bluestacks') {
+    return 'BlueStacks sering tidak memicu install prompt web standar. Gunakan ikon download/install di toolbar browser kanan atas.';
+  }
+
+  if (environment === 'android-webview') {
+    return 'Browser berbasis WebView biasanya tidak mendukung prompt install. Buka link ini di Chrome penuh agar opsi install tersedia.';
+  }
+
+  return 'Gunakan menu browser atau ikon install di toolbar untuk memasang aplikasi.';
+}
+
+function getInitialDebugState(): PwaDebugState {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined' || typeof document === 'undefined') {
+    return {
+      beforeInstallPrompt: false,
+      serviceWorkerSupported: false,
+      serviceWorkerReady: false,
+      manifestLinked: false,
+      manifestReachable: false,
+      environment: 'unknown',
+    };
+  }
+
+  const manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
+
+  return {
+    beforeInstallPrompt: false,
+    serviceWorkerSupported: 'serviceWorker' in navigator,
+    serviceWorkerReady: false,
+    manifestLinked: Boolean(manifestLink?.href),
+    manifestReachable: false,
+    environment: detectInstallEnvironment(),
+  };
+}
+
 /**
  * Komponen prompt installasi PWA
  * Menampilkan banner install untuk iOS dan Android dengan instrksi yang sesuai
@@ -69,7 +136,9 @@ export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalled, setIsInstalled] = useState(getInitialInstalledState);
-  const [platform] = useState<'ios' | 'android' | 'desktop' | null>(getInitialPlatform);
+  const [platform] = useState<Platform>(getInitialPlatform);
+  const [showBrowserHint, setShowBrowserHint] = useState(false);
+  const [debugState, setDebugState] = useState<PwaDebugState>(getInitialDebugState);
 
   useEffect(() => {
     if (getInitialInstalledState() || getInitialPlatform() === 'desktop') {
@@ -90,9 +159,33 @@ export default function PWAInstallPrompt() {
       setShowPrompt(true);
     }, 10000);
 
+    const manifestLink = document.querySelector('link[rel="manifest"]') as HTMLLinkElement | null;
+    const serviceWorkerSupported = 'serviceWorker' in navigator;
+
+    if (serviceWorkerSupported) {
+      navigator.serviceWorker.ready
+        .then(() => {
+          setDebugState((current) => ({ ...current, serviceWorkerReady: true }));
+        })
+        .catch(() => {
+          setDebugState((current) => ({ ...current, serviceWorkerReady: false }));
+        });
+    }
+
+    if (manifestLink?.href) {
+      fetch(manifestLink.href, { method: 'GET' })
+        .then((response) => {
+          setDebugState((current) => ({ ...current, manifestReachable: response.ok }));
+        })
+        .catch(() => {
+          setDebugState((current) => ({ ...current, manifestReachable: false }));
+        });
+    }
+
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setDebugState((current) => ({ ...current, beforeInstallPrompt: true }));
       setShowPrompt(true);
     };
 
@@ -135,6 +228,9 @@ export default function PWAInstallPrompt() {
     setShowPrompt(false);
     localStorage.setItem('pwa-install-dismissed', Date.now().toString());
   };
+
+  const installHint = getBrowserInstallHint(platform, debugState.environment);
+  const showManualInstallHelp = platform !== 'ios' && !deferredPrompt;
 
   if (isInstalled) return null;
 
@@ -209,11 +305,63 @@ export default function PWAInstallPrompt() {
                 </button>
               )}
 
-              {platform !== 'ios' && !deferredPrompt && (
-                <p className="mt-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                  Jika browser Anda mendukung instalasi, gunakan menu browser lalu pilih opsi install aplikasi.
-                </p>
+              {showManualInstallHelp && (
+                <div className="mt-4 space-y-3">
+                  <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                    {installHint}
+                  </p>
+
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowBrowserHint((current) => !current)}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-50"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Buka menu browser
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowBrowserHint((current) => !current)}
+                      className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-emerald-800 transition-colors hover:bg-emerald-50"
+                    >
+                      <Download className="h-4 w-4" />
+                      Gunakan ikon install
+                    </button>
+                  </div>
+
+                  {showBrowserHint ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                      {debugState.environment === 'bluestacks' ? (
+                        <p>Di BlueStacks, cari ikon download/install di toolbar kanan atas browser. Jika tidak muncul, browser ini kemungkinan tidak mendukung install prompt PWA penuh.</p>
+                      ) : (
+                        <p>Di Android Chromium, buka menu titik tiga browser lalu cari opsi seperti <strong>Install app</strong>, <strong>Add to Home screen</strong>, atau gunakan ikon install di kanan address bar/toolbar bila tersedia.</p>
+                      )}
+                    </div>
+                  ) : null}
+                </div>
               )}
+
+              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                  <Bug className="h-3.5 w-3.5" />
+                  PWA Debug
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${debugState.beforeInstallPrompt ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
+                    BIP: {debugState.beforeInstallPrompt ? 'ready' : 'missing'}
+                  </span>
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${debugState.serviceWorkerReady ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>
+                    SW: {debugState.serviceWorkerSupported ? (debugState.serviceWorkerReady ? 'ready' : 'loading') : 'unsupported'}
+                  </span>
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${debugState.manifestReachable ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>
+                    Manifest: {debugState.manifestLinked ? (debugState.manifestReachable ? 'ok' : 'linked') : 'missing'}
+                  </span>
+                  <span className="rounded-full bg-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
+                    Env: {debugState.environment}
+                  </span>
+                </div>
+              </div>
 
               <button
                 onClick={handleDismiss}

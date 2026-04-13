@@ -33,6 +33,7 @@ import { calculateComparisonData } from '@/lib/utils/comparison-utils';
 import { SummarySectionCard } from './summary/SummarySectionCard';
 import { SummaryDenseTable } from './summary/SummaryDenseTable';
 import { SummaryDetailArchive } from './summary/SummaryDetailArchive';
+import { MonthlyAreaWorkbookTable, type MonthlyAreaWorkbookRow } from './summary/MonthlyAreaWorkbookTable';
 import { SummaryMatrixTable } from './summary/SummaryMatrixTable';
 import type {
   SummaryAirlineRow,
@@ -240,6 +241,27 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
     [deferredReports]
   );
 
+  const workbookTables = useMemo(
+    () => ({
+      landside: aggregateWorkbookRowsByArea(
+        deferredReports,
+        (report) => Boolean(report.terminal_area_category) || String(report.area || '').toLowerCase().includes('terminal'),
+        'terminal_area_category'
+      ),
+      airside: aggregateWorkbookRowsByArea(
+        deferredReports,
+        (report) => Boolean(report.apron_area_category) || String(report.area || '').toLowerCase().includes('apron'),
+        'apron_area_category'
+      ),
+      general: aggregateWorkbookRowsByArea(
+        deferredReports,
+        (report) => Boolean(report.general_category) || String(report.area || '').toLowerCase().includes('general'),
+        'general_category'
+      ),
+    }),
+    [deferredReports]
+  );
+
   const rootCauseAreaPanels = useMemo(
     () => ({
       landside: aggregateRootCauseByArea(
@@ -256,6 +278,20 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
         deferredReports,
         (report) => Boolean(report.general_category && String(report.general_category).trim()),
         'general_category'
+      ),
+    }),
+    [deferredReports]
+  );
+
+  const rootWorkbookTables = useMemo(
+    () => ({
+      primaryIndicators: aggregateRootWorkbookRows(
+        deferredReports,
+        (report) => resolvePrimaryIndicatorLabel(report)
+      ),
+      rootCauseResult: aggregateRootWorkbookRows(
+        deferredReports,
+        (report) => resolveRootCauseResultLabel(report)
       ),
     }),
     [deferredReports]
@@ -416,107 +452,10 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
 
   return (
     <div className="space-y-6">
-      <SummarySectionCard
-        title="Global Workbook Schema"
-        subtitle=""
-        toolbar={
-          <div className="inline-flex rounded-full border border-[oklch(0.9_0.01_90_/_0.85)] bg-white/85 p-1">
-            {SCHEMA_TABS.map((tab) => {
-              const active = schemaTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setSchemaTab(tab.id)}
-                  className={`rounded-full px-4 py-2 text-[0.72rem] font-black uppercase tracking-[0.18em] transition-all ${
-                    active
-                      ? 'bg-[var(--brand-emerald-500)] text-white shadow-[0_10px_24px_-16px_oklch(0.65_0.18_160_/_0.7)]'
-                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-        }
-      >
-        {schemaTab === 'category_area' ? (
-          <div className="grid grid-cols-1 gap-5">
-            <SummaryMiniPanel icon={<Shapes size={18} />} title="Report Category Distribution" subtitle="">
-              <SummaryDenseTable
-                data={categoryData.map((row) => ({ name: row.name, value: row.value }))}
-                rowKey={(row) => row.name}
-                itemsPerPage={10}
-                initialSort={{ columnId: 'value', direction: 'desc' }}
-                columns={[
-                  { id: 'name', header: 'Report Category', accessor: (row) => <span className="block break-words">{row.name}</span>, sortValue: (row) => row.name },
-                  { id: 'value', header: 'Grand Total', accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.value}</span>, sortValue: (row) => row.value, align: 'right' },
-                ]}
-              />
-            </SummaryMiniPanel>
-            <SummaryMiniPanel icon={<Building2 size={18} />} title="Category by Landside Area / Terminal Area" subtitle="">
-              <SummaryDenseTable
-                data={areaPanels.landside}
-                rowKey={(row) => row.id}
-                itemsPerPage={10}
-                initialSort={{ columnId: 'total', direction: 'desc' }}
-                columns={[
-                  { id: 'classification', header: 'Airlines Report', accessor: (row) => <span className="block break-words">{row.classification}</span>, sortValue: (row) => row.classification },
-                  { id: 'category', header: 'Category', accessor: (row) => <span className="block break-words">{row.category}</span>, sortValue: (row) => row.category },
-                  { id: 'total', header: 'Grand Total', accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.total}</span>, sortValue: (row) => row.total, align: 'right' },
-                ]}
-              />
-            </SummaryMiniPanel>
-            <SummaryMiniPanel icon={<Building2 size={18} />} title="Category by Airside / General Area" subtitle="">
-              <SummaryDenseTable
-                data={[...areaPanels.airside, ...areaPanels.general]}
-                rowKey={(row) => row.id}
-                itemsPerPage={10}
-                initialSort={{ columnId: 'total', direction: 'desc' }}
-                columns={[
-                  { id: 'classification', header: 'Airlines Report', accessor: (row) => <span className="block break-words">{row.classification}</span>, sortValue: (row) => row.classification },
-                  { id: 'category', header: 'Category', accessor: (row) => <span className="block break-words">{row.category}</span>, sortValue: (row) => row.category },
-                  { id: 'total', header: 'Grand Total', accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.total}</span>, sortValue: (row) => row.total, align: 'right' },
-                ]}
-              />
-            </SummaryMiniPanel>
-          </div>
-        ) : null}
-
-        {schemaTab === 'identification_root' ? (
-          <div className="grid grid-cols-1 gap-5">
-            <SummaryMiniPanel icon={<AlertCircle size={18} />} title="Primary Indicators of Root" subtitle="">
-              <SummaryDenseTable
-                data={caseClassificationRows}
-                rowKey={(row) => row.id}
-                itemsPerPage={10}
-                initialSort={{ columnId: 'value', direction: 'desc' }}
-                columns={[
-                  { id: 'name', header: 'Case Classification', accessor: (row) => <span className="block break-words">{row.name}</span>, sortValue: (row) => row.name },
-                  { id: 'value', header: 'Total', accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.value}</span>, sortValue: (row) => row.value, align: 'right' },
-                ]}
-              />
-            </SummaryMiniPanel>
-            <SummaryMiniPanel icon={<Sparkles size={18} />} title="Root Cause Result" subtitle="">
-              <SummaryDenseTable
-                data={rootCauseRows}
-                rowKey={(row) => row.id}
-                itemsPerPage={10}
-                initialSort={{ columnId: 'value', direction: 'desc' }}
-                columns={[
-                  { id: 'name', header: 'Identification of Root', accessor: (row) => <span className="block break-words">{row.name}</span>, sortValue: (row) => row.name },
-                  { id: 'value', header: 'Total', accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.value}</span>, sortValue: (row) => row.value, align: 'right' },
-                ]}
-              />
-            </SummaryMiniPanel>
-          </div>
-        ) : null}
-      </SummarySectionCard>
-
+      {/* ── Section 1: Executive Overview ── */}
       <SummarySectionCard
         title="Overview"
-        subtitle=""
+        subtitle="Executive summary — key metrics and current operational snapshot"
       >
         <div className="space-y-6">
           <SummaryKpiGrid items={kpis} />
@@ -712,9 +651,10 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
         </div>
       </SummarySectionCard>
 
+      {/* ── Section 2: Classification & Root Cause ── */}
       <SummarySectionCard
         title="Case Classification and Root Cause Report"
-        subtitle=""
+        subtitle="Classification breakdown and root cause analysis by operational area"
       >
         <div className="space-y-5">
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -799,6 +739,39 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
         </div>
       </SummarySectionCard>
 
+      {/* ── Section 3: Hotspot Matrix ── */}
+      <SummarySectionCard
+        title="Breakdown of Identified Causes by Branch & Airlines"
+        subtitle="Cross-tabulation of case classifications across branches and airlines"
+        toolbar={
+          <div className="inline-flex rounded-full border border-[oklch(0.9_0.01_90_/_0.85)] bg-white/85 p-1">
+            {MATRIX_MODES.map((mode) => {
+              const active = matrixMode === mode.id;
+              return (
+                <button
+                  key={mode.id}
+                  type="button"
+                  onClick={() => setMatrixMode(mode.id)}
+                  className={`rounded-full px-4 py-2 text-[0.72rem] font-black uppercase tracking-[0.18em] transition-all ${
+                    active
+                      ? 'bg-[var(--brand-emerald-500)] text-white shadow-[0_10px_24px_-16px_oklch(0.65_0.18_160_/_0.7)]'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  {mode.label}
+                </button>
+              );
+            })}
+          </div>
+        }
+      >
+        <SummaryMatrixTable
+          data={activeMatrix}
+          columnLabel={matrixMode === 'branch' ? 'branch' : 'airline'}
+        />
+      </SummarySectionCard>
+
+      {/* ── Section 4: Temporal Comparison ── */}
       <SummarySectionCard
         title="MoM & YoY Comparison"
         subtitle="Month-over-Month and Year-over-Year"
@@ -939,40 +912,71 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
         </div>
       </SummarySectionCard>
 
+      {/* ── Section 5: Full Workbook ── */}
       <SummarySectionCard
-        title="Breakdown of Identified Causes by Branch & Airlines"
-        subtitle=""
+        title="Global Workbook Schema"
+        subtitle="Complete 12-month breakdown per area and root cause category"
         toolbar={
           <div className="inline-flex rounded-full border border-[oklch(0.9_0.01_90_/_0.85)] bg-white/85 p-1">
-            {MATRIX_MODES.map((mode) => {
-              const active = matrixMode === mode.id;
+            {SCHEMA_TABS.map((tab) => {
+              const active = schemaTab === tab.id;
               return (
                 <button
-                  key={mode.id}
+                  key={tab.id}
                   type="button"
-                  onClick={() => setMatrixMode(mode.id)}
+                  onClick={() => setSchemaTab(tab.id)}
                   className={`rounded-full px-4 py-2 text-[0.72rem] font-black uppercase tracking-[0.18em] transition-all ${
                     active
                       ? 'bg-[var(--brand-emerald-500)] text-white shadow-[0_10px_24px_-16px_oklch(0.65_0.18_160_/_0.7)]'
                       : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                   }`}
                 >
-                  {mode.label}
+                  {tab.label}
                 </button>
               );
             })}
           </div>
         }
       >
-        <SummaryMatrixTable
-          data={activeMatrix}
-          columnLabel={matrixMode === 'branch' ? 'branch' : 'airline'}
-        />
+        {schemaTab === 'category_area' ? (
+          <div className="grid grid-cols-1 gap-5">
+            <MonthlyAreaWorkbookTable
+              title="Category by Landside Area / Terminal Area"
+              rows={workbookTables.landside}
+            />
+            <MonthlyAreaWorkbookTable
+              title="Category by Airside / Apron Area"
+              rows={workbookTables.airside}
+            />
+            <MonthlyAreaWorkbookTable
+              title="Category by General Service Area"
+              rows={workbookTables.general}
+            />
+          </div>
+        ) : null}
+
+        {schemaTab === 'identification_root' ? (
+          <div className="grid grid-cols-1 gap-5">
+            <MonthlyAreaWorkbookTable
+              title="Airlines Report - Primary Indicators of Root"
+              rows={rootWorkbookTables.primaryIndicators}
+              detailHeader="Primary Indicators of Root"
+              totalDetailLabel="All Primary Indicators"
+            />
+            <MonthlyAreaWorkbookTable
+              title="Airlines Report - Root Cause Result"
+              rows={rootWorkbookTables.rootCauseResult}
+              detailHeader="Root Cause Result"
+              totalDetailLabel="All Root Cause Result"
+            />
+          </div>
+        ) : null}
       </SummarySectionCard>
 
+      {/* ── Section 6: Detailed Root Cause ── */}
       <SummarySectionCard
         title="Detail Root Cause Identification by Area"
-        subtitle=""
+        subtitle="Granular root cause analysis per operational area"
       >
         <div className="space-y-6">
           <div className="space-y-2">
@@ -1034,9 +1038,10 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
         </div>
       </SummarySectionCard>
 
+      {/* ── Section 7: Individual Reports Archive ── */}
       <SummarySectionCard
         title="Detail Report"
-        subtitle=""
+        subtitle="Complete individual report archive"
       >
         <SummaryDetailArchive rows={detailRows} />
       </SummarySectionCard>
@@ -1225,6 +1230,211 @@ function aggregateAreaRows(
   });
 
   return Object.values(buckets).sort((left, right) => right.total - left.total);
+}
+
+function aggregateWorkbookRowsByArea(
+  reports: Report[],
+  filterFn: (report: Report) => boolean,
+  categoryField: keyof Report
+): MonthlyAreaWorkbookRow[] {
+  const buckets: Record<string, MonthlyAreaWorkbookRow> = {};
+
+  reports.filter(filterFn).forEach((report) => {
+    const category = normalizeText(report[categoryField], '');
+    if (!category) return;
+
+    const airline = normalizeText(report.airlines || report.airline || 'Non Airline Case');
+    if (!airline) return;
+
+    const monthIndex = getReportMonthIndex(report);
+    if (monthIndex === null) return;
+
+    const key = `${airline}::${category}`;
+    if (!buckets[key]) {
+      buckets[key] = {
+        id: key,
+        airline,
+        category,
+        months: new Array(12).fill(0),
+        total: 0,
+        improvementPct: null,
+        improvementDirection: null,
+      };
+    }
+
+    buckets[key].months[monthIndex] += 1;
+    buckets[key].total += 1;
+  });
+
+  const latestMonthIndex = getLatestAvailableMonthIndex(reports);
+
+  return Object.values(buckets)
+    .map((row) => {
+      const improvement = calculateMonthImprovement(row.months, latestMonthIndex);
+      return {
+        ...row,
+        improvementPct: improvement.pct,
+        improvementDirection: improvement.direction,
+      };
+    })
+    .sort((left, right) => {
+      if (right.total !== left.total) return right.total - left.total;
+      const airlineCompare = left.airline.localeCompare(right.airline);
+      if (airlineCompare !== 0) return airlineCompare;
+      return left.category.localeCompare(right.category);
+    });
+}
+
+function aggregateRootWorkbookRows(
+  reports: Report[],
+  resolveLabel: (report: Report) => string
+): MonthlyAreaWorkbookRow[] {
+  const buckets: Record<string, MonthlyAreaWorkbookRow> = {};
+
+  reports.forEach((report) => {
+    const airline = normalizeText(report.airlines || report.airline || 'Non Airline Case');
+    if (!airline) return;
+
+    const label = resolveLabel(report);
+    const monthIndex = getReportMonthIndex(report);
+    if (monthIndex === null) return;
+
+    const key = `${airline}::${label}`;
+    if (!buckets[key]) {
+      buckets[key] = {
+        id: key,
+        airline,
+        category: label,
+        months: new Array(12).fill(0),
+        total: 0,
+        improvementPct: null,
+        improvementDirection: null,
+      };
+    }
+
+    buckets[key].months[monthIndex] += 1;
+    buckets[key].total += 1;
+  });
+
+  const latestMonthIndex = getLatestAvailableMonthIndex(reports);
+
+  return Object.values(buckets)
+    .map((row) => {
+      const improvement = calculateMonthImprovement(row.months, latestMonthIndex);
+      return {
+        ...row,
+        improvementPct: improvement.pct,
+        improvementDirection: improvement.direction,
+      };
+    })
+    .sort((left, right) => {
+      if (right.total !== left.total) return right.total - left.total;
+      const airlineCompare = left.airline.localeCompare(right.airline);
+      if (airlineCompare !== 0) return airlineCompare;
+      if (left.category === '(blank)' && right.category !== '(blank)') return -1;
+      if (right.category === '(blank)' && left.category !== '(blank)') return 1;
+      return left.category.localeCompare(right.category);
+    });
+}
+
+function resolvePrimaryIndicatorLabel(report: Report): string {
+  const caseClassification = normalizeWorkbookLabel(report.case_classification);
+  if (caseClassification) return caseClassification;
+
+  const remarksCase = normalizeWorkbookLabel(report.remarks_case);
+  if (remarksCase) return remarksCase;
+
+  return '(blank)';
+}
+
+function resolveRootCauseResultLabel(report: Report): string {
+  const identification = normalizeWorkbookLabel(report.identification_of_root);
+  if (identification) return identification;
+
+  return '(blank)';
+}
+
+function normalizeWorkbookLabel(value: unknown): string {
+  const normalized = normalizeText(value, '');
+  if (!normalized) return '';
+
+  const lower = normalized.toLowerCase();
+  if (lower === '-' || lower === 'nil' || lower === 'n/a' || lower === '#n/a' || lower === '(blank)') {
+    return '';
+  }
+
+  return normalized;
+}
+
+function getReportMonthIndex(report: Report): number | null {
+  const dateSource = report.date_of_event || report.created_at;
+  if (!dateSource) return null;
+
+  if (typeof dateSource === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateSource)) {
+    const [, month] = dateSource.split('-').map(Number);
+    return Number.isFinite(month) ? month - 1 : null;
+  }
+
+  const parsed = new Date(dateSource);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.getUTCMonth();
+}
+
+function getLatestAvailableMonthIndex(reports: Report[]): number | null {
+  let latestTime = Number.NEGATIVE_INFINITY;
+  let latestMonthIndex: number | null = null;
+
+  reports.forEach((report) => {
+    const dateSource = report.date_of_event || report.created_at;
+    if (!dateSource) return;
+
+    let parsed: Date;
+    if (typeof dateSource === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateSource)) {
+      const [year, month, day] = dateSource.split('-').map(Number);
+      parsed = new Date(year, month - 1, day);
+    } else {
+      parsed = new Date(dateSource);
+    }
+
+    if (Number.isNaN(parsed.getTime())) return;
+    if (parsed.getTime() > latestTime) {
+      latestTime = parsed.getTime();
+      latestMonthIndex = parsed.getMonth();
+    }
+  });
+
+  return latestMonthIndex;
+}
+
+function calculateMonthImprovement(
+  months: number[],
+  latestMonthIndex: number | null
+): { pct: number | null; direction: MonthlyAreaWorkbookRow['improvementDirection'] } {
+  if (latestMonthIndex === null) {
+    return { pct: null, direction: null };
+  }
+
+  const current = months[latestMonthIndex] || 0;
+  const previousMonthIndex = latestMonthIndex === 0 ? 11 : latestMonthIndex - 1;
+  const previous = months[previousMonthIndex] || 0;
+
+  if (previous === 0 && current === 0) {
+    return { pct: null, direction: null };
+  }
+
+  if (previous === 0 && current > 0) {
+    return { pct: 100, direction: 'up' };
+  }
+
+  if (current === previous) {
+    return { pct: 0, direction: 'flat' };
+  }
+
+  const pct = Math.abs(((current - previous) / previous) * 100);
+  return {
+    pct,
+    direction: current > previous ? 'up' : 'down',
+  };
 }
 
 function createMatrixData(

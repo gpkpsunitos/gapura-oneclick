@@ -14,10 +14,6 @@ function isAuthorized(payload: SessionLike): boolean {
   return role === 'SUPER_ADMIN' || role === 'ANALYST';
 }
 
-function hasServiceRoleAccess(request: NextRequest): boolean {
-  return request.headers.get('authorization') === `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`;
-}
-
 function hasWebhookSecretAccess(request: NextRequest): boolean {
   const configuredSecret = String(process.env.GOOGLE_SHEETS_WEBHOOK_SECRET || '').trim();
   if (!configuredSecret) return false;
@@ -28,11 +24,10 @@ export async function POST(request: NextRequest) {
   try {
     const session = request.cookies.get('session')?.value;
     const payload = session ? await verifySession(session) : null;
-    const isServiceRole = hasServiceRoleAccess(request);
     const isWebhookSecret = hasWebhookSecretAccess(request);
     const isDevelopment = process.env.NODE_ENV === 'development';
 
-    if (!isServiceRole && !isWebhookSecret && !isAuthorized(payload) && !isDevelopment) {
+    if (!isWebhookSecret && !isAuthorized(payload) && !isDevelopment) {
       return NextResponse.json(
         { success: false, error: 'Forbidden' },
         { status: 403 }

@@ -11,19 +11,15 @@ function isValidEmail(value: string): boolean {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
-// Supports admin session auth and service-role internal calls.
 export async function POST(request: NextRequest) {
     try {
         const session = request.cookies.get('session')?.value;
-        const authHeader = request.headers.get('authorization');
-        const isServiceRole = authHeader === `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`;
-
-        if (!session && !isServiceRole) {
+        if (!session) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const payload = session ? await verifySession(session) : null;
-        if (!isServiceRole && (!payload || !isAuthorized(payload.role))) {
+        const payload = await verifySession(session);
+        if (!payload || !isAuthorized(payload.role)) {
             return NextResponse.json(
                 { error: 'Forbidden: Only admins and analysts can send test emails' },
                 { status: 403 }
@@ -32,8 +28,8 @@ export async function POST(request: NextRequest) {
 
         const body = await request.json().catch(() => ({}));
         const requestedBy =
-            payload?.email ||
-            (isServiceRole ? 'service-role' : 'unknown');
+            payload.email ||
+            'unknown';
         const to = String(body.to || payload?.email || '').trim();
         const subject = body.subject ? String(body.subject).trim() : undefined;
         const text = body.text ? String(body.text) : undefined;

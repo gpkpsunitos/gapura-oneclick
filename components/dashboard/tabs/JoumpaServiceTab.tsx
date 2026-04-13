@@ -491,7 +491,32 @@ function PiePanel({ slices, emptyMessage }: { slices: PieSlice[]; emptyMessage?:
               cy="48%"
               outerRadius={94}
               stroke="none"
-              label={({ value }) => value}
+              labelLine={{ stroke: 'oklch(0.68 0.12 180 / 0.9)', strokeWidth: 1.5 }}
+              label={({ cx, cy, midAngle, outerRadius, name, value }) => {
+                const RADIAN = Math.PI / 180;
+                const radius = (outerRadius || 0) + 10;
+                const rawX = (cx || 0) + radius * Math.cos(-midAngle * RADIAN);
+                const y = (cy || 0) + radius * Math.sin(-midAngle * RADIAN);
+                const isRightSide = rawX > (cx || 0);
+                const anchor = isRightSide ? 'end' : 'start';
+                const x = isRightSide
+                  ? Math.min(rawX + 10, (cx || 0) + 150)
+                  : Math.max(rawX - 10, (cx || 0) - 150);
+                const shortName = String(name).length > 14 ? `${String(name).slice(0, 14)}…` : name;
+
+                return (
+                  <text
+                    x={x}
+                    y={y}
+                    fill="var(--text-primary)"
+                    textAnchor={anchor}
+                    dominantBaseline="central"
+                    style={{ fontSize: 10, fontWeight: 800 }}
+                  >
+                    {`${shortName}: ${value}`}
+                  </text>
+                );
+              }}
             >
               {slices.map((slice) => (
                 <Cell key={slice.name} fill={slice.fill} />
@@ -518,6 +543,42 @@ function PiePanel({ slices, emptyMessage }: { slices: PieSlice[]; emptyMessage?:
       </div>
     </div>
   );
+}
+
+function renderStackedBarLabel(category: string) {
+  const StackedBarLabel = (props: {
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    value?: number | string;
+  }) => {
+    const { x = 0, y = 0, width = 0, height = 0, value } = props;
+    const numericValue = Number(value || 0);
+
+    if (!numericValue || width < 22 || height < 14) return null;
+
+    const compactLabel = category.length > 10 ? `${category.slice(0, 10)}…` : category;
+    const showTextAndValue = width >= 120;
+    const label = showTextAndValue ? `${compactLabel} ${numericValue}` : `${numericValue}`;
+    const textX = showTextAndValue ? x + 10 : x + width / 2;
+    const textAnchor = showTextAndValue ? 'start' : 'middle';
+
+    return (
+      <text
+        x={textX}
+        y={y + height / 2}
+        fill="white"
+        textAnchor={textAnchor}
+        dominantBaseline="middle"
+        style={{ fontSize: 10, fontWeight: 800, pointerEvents: 'none' }}
+      >
+        {label}
+      </text>
+    );
+  };
+  StackedBarLabel.displayName = `StackedBarLabel(${category})`;
+  return StackedBarLabel;
 }
 
 function MatrixTable({
@@ -1144,43 +1205,58 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
             <div className="mt-5">
               <SmallChartCard title="Service Type Report by Category">
                 {voiceServiceTypeCategory.rows.length ? (
-                  <div className="h-[320px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={voiceServiceTypeCategory.rows}
-                        layout="vertical"
-                        margin={{ top: 4, right: 20, left: 120, bottom: 4 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="oklch(0.9 0.01 90 / 0.85)" />
-                        <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
-                        <YAxis
-                          dataKey="serviceType"
-                          type="category"
-                          axisLine={false}
-                          tickLine={false}
-                          width={190}
-                          tick={WrappedYAxisTick}
-                        />
-                        <Tooltip
-                          cursor={{ fill: 'oklch(0.96 0.01 90 / 0.75)' }}
-                          contentStyle={{
-                            borderRadius: 18,
-                            border: '1px solid oklch(0.88 0.01 90 / 0.85)',
-                            background: 'rgba(255,255,255,0.96)',
-                            boxShadow: '0 16px 38px -22px rgba(15, 23, 42, 0.28)',
-                          }}
-                        />
-                        {voiceServiceTypeCategory.categories.map((category, index) => (
-                          <Bar
-                            key={category}
-                            dataKey={category}
-                            stackId="voice"
-                            fill={[CHART_COLORS.emerald, CHART_COLORS.teal, CHART_COLORS.amber, CHART_COLORS.orange, CHART_COLORS.rose][index % 5]}
-                            radius={index === voiceServiceTypeCategory.categories.length - 1 ? [0, 12, 12, 0] : [0, 0, 0, 0]}
+                  <div className="space-y-4">
+                    <div className="h-[320px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={voiceServiceTypeCategory.rows}
+                          layout="vertical"
+                          margin={{ top: 4, right: 20, left: 120, bottom: 4 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="oklch(0.9 0.01 90 / 0.85)" />
+                          <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
+                          <YAxis
+                            dataKey="serviceType"
+                            type="category"
+                            axisLine={false}
+                            tickLine={false}
+                            width={190}
+                            tick={WrappedYAxisTick}
                           />
-                        ))}
-                      </BarChart>
-                    </ResponsiveContainer>
+                          <Tooltip
+                            cursor={{ fill: 'oklch(0.96 0.01 90 / 0.75)' }}
+                            contentStyle={{
+                              borderRadius: 18,
+                              border: '1px solid oklch(0.88 0.01 90 / 0.85)',
+                              background: 'rgba(255,255,255,0.96)',
+                              boxShadow: '0 16px 38px -22px rgba(15, 23, 42, 0.28)',
+                            }}
+                          />
+                          {voiceServiceTypeCategory.categories.map((category, index) => (
+                            <Bar
+                              key={category}
+                              dataKey={category}
+                              stackId="voice"
+                              fill={[CHART_COLORS.emerald, CHART_COLORS.teal, CHART_COLORS.amber, CHART_COLORS.orange, CHART_COLORS.rose][index % 5]}
+                              radius={index === voiceServiceTypeCategory.categories.length - 1 ? [0, 12, 12, 0] : [0, 0, 0, 0]}
+                            >
+                              <LabelList content={renderStackedBarLabel(category)} />
+                            </Bar>
+                          ))}
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-[var(--text-secondary)]">
+                      {voiceServiceTypeCategory.categories.map((category, index) => (
+                        <div key={category} className="flex items-center gap-2">
+                          <span
+                            className="inline-block h-3 w-3 rounded-full"
+                            style={{ backgroundColor: [CHART_COLORS.emerald, CHART_COLORS.teal, CHART_COLORS.amber, CHART_COLORS.orange, CHART_COLORS.rose][index % 5] }}
+                          />
+                          <span>{category}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ) : (
                   <EmptyPanel />

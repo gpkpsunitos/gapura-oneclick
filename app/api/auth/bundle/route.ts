@@ -2,12 +2,23 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { supabase } from '@/lib/supabase';
 import { parseAuthBundle } from '@/lib/auth-bundle';
+import { verifySession } from '@/lib/auth-utils';
 
 export async function GET() {
     try {
         const cookieStore = await cookies();
+        const sessionToken = cookieStore.get('session')?.value;
+        const session = sessionToken ? await verifySession(sessionToken) : null;
+        if (!session) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const bundle = parseAuthBundle(cookieStore.get('auth_bundle')?.value);
         if (!bundle) return NextResponse.json({ active: null, origin: null, accounts: [] });
+        if (bundle.active_uid !== String(session.id) || !bundle.sessions[String(session.id)]) {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
         const uids = Object.keys(bundle.sessions);
 
         if (uids.length === 0) return NextResponse.json({ active: null, origin: bundle.origin_uid, accounts: [] });

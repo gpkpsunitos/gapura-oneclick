@@ -16,6 +16,7 @@
     "sync:verify": "node scripts/verify-no-duplicates.mjs",
     "sync:scheduler": "node scripts/sync-scheduler.mjs",
     "sync:scheduler:dry": "DRY_RUN=1 node scripts/sync-scheduler.mjs",
+    "security:guardrails": "node scripts/security-guardrails.mjs",
     "clean": "rm -rf .next .turbo node_modules/.cache"
   },
   "engines": {

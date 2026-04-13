@@ -69,8 +69,6 @@ const ROLE_DASHBOARDS: Record<string, string> = {
  */
 export default async function proxy(request: NextRequest) {
     const path = request.nextUrl.pathname;
-    const authHeader = request.headers.get('authorization');
-    const isServiceRole = authHeader === `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`;
     const webhookSecret = request.headers.get('x-irrs-webhook-secret');
     const hasGoogleSheetsWebhookSecret = webhookSecret === process.env.GOOGLE_SHEETS_WEBHOOK_SECRET && !!process.env.GOOGLE_SHEETS_WEBHOOK_SECRET;
     
@@ -99,13 +97,11 @@ export default async function proxy(request: NextRequest) {
                              path.startsWith('/api/embed') ||
                              path.startsWith('/api/dashboards/insights') ||
                              path.startsWith('/api/master-data') ||
-                             path.startsWith('/api/ai/') ||
                              // Public report submission & evidence upload
                              path.startsWith('/api/reports/public') ||
                              path.startsWith('/api/uploads/evidence/public') ||
                              (path === '/api/dashboards' && request.method === 'GET') ||
-                             (path === '/api/admin/test-email' && isServiceRole) ||
-                             (isGoogleSheetsWebhook && (hasGoogleSheetsWebhookSecret || isServiceRole || isDevelopment)) ||
+                             (isGoogleSheetsWebhook && (hasGoogleSheetsWebhookSecret || isDevelopment)) ||
                              // Allow sync endpoint in development mode
                              (isSyncEndpoint && isDevelopment);
     const isPublicPath = isAuthPath || isPublicEmbedPath || path === '/';

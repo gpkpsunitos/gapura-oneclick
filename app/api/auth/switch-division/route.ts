@@ -161,6 +161,7 @@ export async function POST(request: Request) {
         cookieStore.set('auth_bundle', serializeAuthBundle(bundle), {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
             maxAge: 60 * 60 * 24,
             path: '/',
         });
@@ -168,6 +169,7 @@ export async function POST(request: Request) {
         cookieStore.set('session', targetToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
             maxAge: 60 * 60 * 24,
             path: '/',
         });

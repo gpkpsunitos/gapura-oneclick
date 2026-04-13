@@ -1,11 +1,13 @@
 'use client';
 
-import { useDeferredValue, useMemo } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   BarChart3,
   Bus,
   ClipboardList,
+  ChevronLeft,
+  ChevronRight,
   Package,
   Wrench,
 } from 'lucide-react';
@@ -117,7 +119,9 @@ const NON_MOTORIZED_REMARK_EXCLUSIONS = [
 
 const PIE_COLORS = ['#27b0c6', '#85c67f', '#d6e92a', '#f97316'];
 const GSE_TYPE_PIE_COLORS = ['#ff9800', '#1f87ad'];
-const GSE_TYPE_LABELS = ['Lack Of GSE Motorized', 'Lack Of GSE Non-Motorized'] as const;
+type GseTypeLabel = 'Lack Of GSE Motorized' | 'Lack Of GSE Non-Motorized';
+const GSE_BRANCH_COL_WIDTH = 120;
+const GSE_AIRLINE_COL_WIDTH = 220;
 
 function normalizeLower(value: unknown) {
   return typeof value === 'string' ? value.trim().toLowerCase() : '';
@@ -129,10 +133,6 @@ function getGseAvailableRequirement(report: Report) {
 
 function getGseRequirement(report: Report) {
   return (report as Report & { gse_requirement?: string }).gse_requirement;
-}
-
-function getCaseCategory(report: Report) {
-  return (report as Report & { case_category?: string }).case_category;
 }
 
 function getMonthKey(report: Report) {
@@ -239,7 +239,7 @@ function aggregateReportCategoryRows(reports: Report[]): MetricRow[] {
 }
 
 function aggregateGseTypeRows(reports: Report[]): MetricRow[] {
-  const buckets: Record<(typeof GSE_TYPE_LABELS)[number], number> = {
+  const buckets: Record<GseTypeLabel, number> = {
     'Lack Of GSE Motorized': 0,
     'Lack Of GSE Non-Motorized': 0,
   };
@@ -606,6 +606,164 @@ function BreakdownTable({
   );
 }
 
+function GsePivotTable({
+  data,
+}: {
+  data: {
+    columns: string[];
+    branchGroups: PivotBranchGroup[];
+    columnTotals: Record<string, number>;
+    grandTotal: number;
+    maxValue: number;
+  };
+}) {
+  const [page, setPage] = useState(0);
+  const itemsPerPage = 3;
+  const totalPages = Math.max(1, Math.ceil(data.branchGroups.length / itemsPerPage));
+  const safePage = Math.min(page, totalPages - 1);
+  const pagedGroups = data.branchGroups.slice(safePage * itemsPerPage, safePage * itemsPerPage + itemsPerPage);
+  const startIndex = data.branchGroups.length === 0 ? 0 : safePage * itemsPerPage + 1;
+  const endIndex = Math.min(data.branchGroups.length, safePage * itemsPerPage + pagedGroups.length);
+
+  return (
+    <div className="overflow-hidden">
+      <div className="relative overflow-x-auto">
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 border-r border-[oklch(0.88_0.02_140)] bg-white"
+          style={{ width: `${GSE_BRANCH_COL_WIDTH + GSE_AIRLINE_COL_WIDTH}px` }}
+        />
+        <div
+          className="pointer-events-none absolute inset-y-0 z-20 w-px bg-[oklch(0.88_0.02_140)]"
+          style={{ left: `${GSE_BRANCH_COL_WIDTH + GSE_AIRLINE_COL_WIDTH}px` }}
+        />
+        <table className="min-w-full border-separate border-spacing-0 text-sm">
+          <thead className="sticky top-0 z-20 bg-[var(--surface-1)]/95 backdrop-blur-xl">
+            <tr>
+              <th
+                rowSpan={2}
+                className="sticky left-0 z-40 border-b border-r bg-[var(--surface-1)] px-4 py-3 text-left text-[0.72rem] font-semibold text-[var(--text-primary)]"
+                style={{ minWidth: `${GSE_BRANCH_COL_WIDTH}px`, width: `${GSE_BRANCH_COL_WIDTH}px`, maxWidth: `${GSE_BRANCH_COL_WIDTH}px` }}
+              >
+                Branch
+              </th>
+              <th
+                rowSpan={2}
+                className="sticky z-40 border-b border-r bg-[var(--surface-1)] px-4 py-3 text-left text-[0.72rem] font-semibold text-[var(--text-primary)]"
+                style={{ left: `${GSE_BRANCH_COL_WIDTH}px`, minWidth: `${GSE_AIRLINE_COL_WIDTH}px`, width: `${GSE_AIRLINE_COL_WIDTH}px`, maxWidth: `${GSE_AIRLINE_COL_WIDTH}px` }}
+              >
+                Airlines
+              </th>
+              <th
+                colSpan={data.columns.length + 1}
+                className="border-b px-4 py-2 text-right text-[0.72rem] font-bold text-[var(--text-primary)]"
+              >
+                Case Classification / Record Count
+              </th>
+            </tr>
+            <tr>
+              {data.columns.map((column) => (
+                <th key={column} className="border-b px-4 py-3 text-center text-[0.72rem] font-semibold leading-tight text-[var(--text-primary)] min-w-[230px]">
+                  {column}
+                </th>
+              ))}
+              <th className="border-b px-4 py-3 text-right text-[0.72rem] font-bold text-[var(--text-primary)] min-w-[120px]">
+                Grand total
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {pagedGroups.map((group) =>
+              group.rows.map((row, rowIndex) => (
+                <tr key={row.id} className="hover:bg-[var(--surface-2)]/50">
+                  {rowIndex === 0 ? (
+                    <td
+                      rowSpan={group.rows.length}
+                      className="sticky left-0 z-30 border-r bg-white px-4 py-3 align-top text-[0.78rem] font-medium text-[var(--text-primary)]"
+                      style={{ minWidth: `${GSE_BRANCH_COL_WIDTH}px`, width: `${GSE_BRANCH_COL_WIDTH}px`, maxWidth: `${GSE_BRANCH_COL_WIDTH}px` }}
+                    >
+                      {group.branch}
+                    </td>
+                  ) : null}
+                  <td
+                    className="sticky z-30 border-r bg-white px-4 py-3 text-[0.78rem] text-[var(--text-primary)]"
+                    style={{ left: `${GSE_BRANCH_COL_WIDTH}px`, minWidth: `${GSE_AIRLINE_COL_WIDTH}px`, width: `${GSE_AIRLINE_COL_WIDTH}px`, maxWidth: `${GSE_AIRLINE_COL_WIDTH}px` }}
+                  >
+                    {row.airline}
+                  </td>
+                  {data.columns.map((column) => {
+                    const value = row.values[column] || 0;
+                    return (
+                      <td
+                        key={column}
+                        className="px-4 py-3 text-right text-[0.8rem] font-medium text-[var(--text-primary)]"
+                        style={{ backgroundColor: value ? heatColor(value, data.maxValue) : 'transparent' }}
+                      >
+                        {value || '-'}
+                      </td>
+                    );
+                  })}
+                  <td className="px-4 py-3 text-right text-[0.82rem] font-bold text-[var(--text-primary)]">{row.total}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+          <tfoot className="sticky bottom-0 z-20 bg-white">
+            <tr>
+              <td
+                className="sticky left-0 z-40 border-r border-t bg-white px-4 py-3 text-[0.8rem] font-bold text-[var(--text-primary)]"
+                style={{ minWidth: `${GSE_BRANCH_COL_WIDTH}px`, width: `${GSE_BRANCH_COL_WIDTH}px`, maxWidth: `${GSE_BRANCH_COL_WIDTH}px` }}
+              >
+                Grand total
+              </td>
+              <td
+                className="sticky z-40 border-r border-t bg-white px-4 py-3 text-[0.8rem] font-bold text-[var(--text-primary)]"
+                style={{ left: `${GSE_BRANCH_COL_WIDTH}px`, minWidth: `${GSE_AIRLINE_COL_WIDTH}px`, width: `${GSE_AIRLINE_COL_WIDTH}px`, maxWidth: `${GSE_AIRLINE_COL_WIDTH}px` }}
+              >
+                All airlines
+              </td>
+              {data.columns.map((column) => (
+                <td key={column} className="border-t px-4 py-3 text-right text-[0.82rem] font-bold text-[var(--text-primary)]">
+                  {data.columnTotals[column] || 0}
+                </td>
+              ))}
+              <td className="border-t px-4 py-3 text-right text-[0.82rem] font-black text-[var(--text-primary)]">
+                {data.grandTotal}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div className="flex items-center justify-between border-t border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-0)]/90 px-4 py-3 text-[0.72rem] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+        <span>
+          {startIndex}-{endIndex} of {data.branchGroups.length}
+        </span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPage((current) => Math.max(0, current - 1))}
+            disabled={safePage === 0}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[oklch(0.9_0.01_90_/_0.9)] bg-white text-[var(--text-secondary)] transition-colors hover:border-[var(--brand-emerald-400)] hover:text-[var(--brand-emerald-700)] disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            <ChevronLeft size={14} />
+          </button>
+          <span className="min-w-[4.5rem] text-center">
+            {safePage + 1}/{totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((current) => Math.min(totalPages - 1, current + 1))}
+            disabled={safePage >= totalPages - 1}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[oklch(0.9_0.01_90_/_0.9)] bg-white text-[var(--text-secondary)] transition-colors hover:border-[var(--brand-emerald-400)] hover:text-[var(--brand-emerald-700)] disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            <ChevronRight size={14} />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
   const deferredReports = useDeferredValue(reports);
 
@@ -744,75 +902,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
         subtitle="Branch and airline pivot against case classification."
         bodyClassName="p-0"
       >
-        <div className="overflow-auto">
-          <table className="min-w-full border-separate border-spacing-0 text-sm">
-            <thead className="sticky top-0 z-10 bg-[var(--surface-1)]/95 backdrop-blur-xl">
-              <tr>
-                <th rowSpan={2} className="border-b px-4 py-3 text-left text-[0.72rem] font-semibold text-[var(--text-primary)]">Branch</th>
-                <th rowSpan={2} className="border-b px-4 py-3 text-left text-[0.72rem] font-semibold text-[var(--text-primary)]">Airlines</th>
-                <th
-                  colSpan={reportCategoryByAirlines.columns.length + 1}
-                  className="border-b px-4 py-2 text-right text-[0.72rem] font-bold text-[var(--text-primary)]"
-                >
-                  Case Classification / Record Count
-                </th>
-              </tr>
-              <tr>
-                {reportCategoryByAirlines.columns.map((column) => (
-                  <th key={column} className="border-b px-4 py-3 text-center text-[0.72rem] font-semibold leading-tight text-[var(--text-primary)] min-w-[230px]">
-                    {column}
-                  </th>
-                ))}
-                <th className="border-b px-4 py-3 text-right text-[0.72rem] font-bold text-[var(--text-primary)] min-w-[120px]">Grand total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {reportCategoryByAirlines.branchGroups.map((group) =>
-                group.rows.map((row, rowIndex) => (
-                  <tr key={row.id} className="hover:bg-[var(--surface-2)]/50">
-                    {rowIndex === 0 ? (
-                      <td
-                        rowSpan={group.rows.length}
-                        className="px-4 py-3 align-top text-[0.78rem] font-medium text-[var(--text-primary)]"
-                      >
-                        {group.branch}
-                      </td>
-                    ) : null}
-                    <td className="px-4 py-3 text-[0.78rem] text-[var(--text-primary)]">{row.airline}</td>
-                    {reportCategoryByAirlines.columns.map((column) => {
-                      const value = row.values[column] || 0;
-                      return (
-                        <td
-                          key={column}
-                          className="px-4 py-3 text-right text-[0.8rem] font-medium text-[var(--text-primary)]"
-                          style={{ backgroundColor: value ? heatColor(value, reportCategoryByAirlines.maxValue) : 'transparent' }}
-                        >
-                          {value || '-'}
-                        </td>
-                      );
-                    })}
-                    <td className="px-4 py-3 text-right text-[0.82rem] font-bold text-[var(--text-primary)]">{row.total}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-            <tfoot className="sticky bottom-0 bg-white">
-              <tr>
-                <td className="border-t px-4 py-3 text-[0.8rem] font-bold text-[var(--text-primary)]" colSpan={2}>
-                  Grand total
-                </td>
-                {reportCategoryByAirlines.columns.map((column) => (
-                  <td key={column} className="border-t px-4 py-3 text-right text-[0.82rem] font-bold text-[var(--text-primary)]">
-                    {reportCategoryByAirlines.columnTotals[column] || 0}
-                  </td>
-                ))}
-                <td className="border-t px-4 py-3 text-right text-[0.82rem] font-black text-[var(--text-primary)]">
-                  {reportCategoryByAirlines.grandTotal}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+        <GsePivotTable data={reportCategoryByAirlines} />
       </SummarySectionCard>
 
       <div className="grid gap-6 xl:grid-cols-2">

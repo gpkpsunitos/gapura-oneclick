@@ -1,16 +1,10 @@
  
-## 🔑 Demo Credentials
+## Demo Access
 
-Gunakan akun berikut untuk pengujian internal. Semua akun menggunakan password yang sama.
+Jangan simpan kredensial aktif, password bersama, API key, atau secret lain di repository.
 
-| Role | Email | Password | Catatan |
-|------|-------|----------|---------|
-| Super Admin | admin@gapura.demo | Gapura123! | Full access |
-| Analyst | analyst.os@gapura.demo | Gapura123! | Analyst OS |
-| Divisi OS | divisi.os@gapura.demo | Gapura123! | Monitoring |
-| Divisi OT | divisi.ot@gapura.demo | Gapura123! | Monitoring |
-| Divisi OP | divisi.op@gapura.demo | Gapura123! | Monitoring |
-| Divisi UQ | divisi.uq@gapura.demo | Gapura123! | ACC & Evidence |
-| Manager Cabang CGK | manager.cgk@gapura.id | Gapura123! | AI Reports + Cabang CGK |
-| Karyawan Cabang | karyawan@gapura.co.id | Gapura123! | Akses Cabang |
+Untuk kebutuhan demo atau QA:
+- Gunakan akun non-produksi yang dibuat lewat seed/provisioning terpisah.
+- Distribusikan kredensial hanya melalui secret manager atau kanal internal yang terproteksi.
+- Rotasi seluruh akun demo secara berkala dan hapus akses yang tidak lagi dipakai.
  
