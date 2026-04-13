@@ -73,7 +73,11 @@ export async function purgePwaClientState() {
     .forEach((key) => localStorage.removeItem(key));
 
   localStorage.removeItem(PWA_AUTH_SCOPE_KEY);
-  sessionStorage.clear();
+
+  // Scoped sessionStorage cleanup — only remove PWA-owned keys
+  Object.keys(sessionStorage)
+    .filter((key) => key.startsWith(PWA_STORAGE_PREFIX) || key.startsWith("gapura:pwa-"))
+    .forEach((key) => sessionStorage.removeItem(key));
 
   // NON-BLOCKING: ServiceWorker, IndexedDB and Cache deletions
   // These are heavy and potentially slow, especially on Safari or if other tabs are open.

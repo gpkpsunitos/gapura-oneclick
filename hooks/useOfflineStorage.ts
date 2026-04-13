@@ -1,8 +1,15 @@
 /**
- * @file
- * Dibuat oleh Claude
- * 
- * File ini berisi hook React untuk manajemen data offline menggunakan IndexedDB
+ * @file useOfflineStorage.ts
+ *
+ * @deprecated Hook ini menggunakan database IndexedDB terpisah (`gapura-offline`)
+ * yang TIDAK diintegrasikan dengan sistem offline queue utama.
+ *
+ * Gunakan API dari `@/lib/pwa/offline-queue` sebagai pengganti:
+ *   - `queueOfflineReport()` — untuk menambahkan laporan ke antrean
+ *   - `processOfflineQueueWithEvents()` — untuk memproses antrean
+ *   - `refreshOfflineQueueSummary()` — untuk mendapatkan ringkasan antrean
+ *
+ * File ini akan dihapus di versi mendatang setelah semua konsumen dimigrasi.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -10,6 +17,7 @@ import { useState, useEffect, useCallback } from 'react';
 /**
  * Data offline untuk disimpan di IndexedDB
  * @interface OfflineData
+ * @deprecated
  */
 interface OfflineData {
   /** ID unik item */
@@ -17,23 +25,22 @@ interface OfflineData {
   /** Tipe data offline */
   type: 'report' | 'upload' | 'update';
   /** Data yang disimpan */
-  data: any;
+  data: any; // eslint-disable-line @typescript-eslint/no-explicit-any
   /** Timestamp pembuatan */
   timestamp: number;
 }
 
 /**
- * Hook untuk manajemen penyimpanan offline menggunakan IndexedDB
- * @returns Object dengan status online, item pending, dan fungsi-fungsi operasi
- * @example
- * ```tsx
- * const { isOnline, pendingCount, saveForLater, syncNow } = useOfflineStorage();
- * 
- * if (!isOnline) {
- *   await saveForLater('report', reportData);
- * } else {
- *   await syncNow();
- * }
+ * @deprecated Gunakan `@/lib/pwa/offline-queue` sebagai pengganti.
+ *
+ * Contoh migrasi:
+ * ```ts
+ * // ❌ Lama
+ * const { saveForLater, pendingCount } = useOfflineStorage();
+ *
+ * // ✅ Baru
+ * import { queueOfflineReport, refreshOfflineQueueSummary } from '@/lib/pwa/offline-queue';
+ * await queueOfflineReport({ kind, endpoint, uploadEndpoint, reportPayload, attachments });
  * ```
  */
 export function useOfflineStorage() {
@@ -89,7 +96,7 @@ export function useOfflineStorage() {
     }
   }, [openDatabase]);
 
-  const saveForLater = useCallback(async (type: OfflineData['type'], data: any) => {
+  const saveForLater = useCallback(async (type: OfflineData['type'], data: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
     try {
       const item: OfflineData = {
         id: `${type}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -113,7 +120,7 @@ export function useOfflineStorage() {
       // Register for background sync
       if ('serviceWorker' in navigator && 'SyncManager' in window) {
         const registration = await navigator.serviceWorker.ready;
-        // @ts-ignore
+        // @ts-ignore — SyncManager type not in standard lib
         await registration.sync.register(`sync-${type}s`);
       }
 
@@ -171,7 +178,7 @@ export function useOfflineStorage() {
       try {
         let endpoint = '';
         let method = 'POST';
-        let body: any = item.data;
+        let body: any = item.data; // eslint-disable-line @typescript-eslint/no-explicit-any
 
         switch (item.type) {
           case 'report':

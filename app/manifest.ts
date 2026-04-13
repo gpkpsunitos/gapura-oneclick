@@ -18,7 +18,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "OneClick",
     short_name: "OneClick",
     description:
-      "Sistem pelaporan dan monitoring operasional OneClick yang dapat diinstal sebagai aplikasi web progresif.",
+      "Sistem pelaporan & monitoring operasional bandara yang cepat dan bisa offline.",
     start_url: "/",
     scope: "/",
     display: "standalone",
@@ -68,6 +68,22 @@ export default function manifest(): MetadataRoute.Manifest {
         label: "Form public report untuk pelaporan cepat dari perangkat mobile.",
         form_factor: "wide",
       },
+      // Narrow (mobile) screenshots — required by Google Play Store / ChromeOS install UX
+      // Buat screenshot mobile 390x844 atau 750x1334 dan taruh di /screenshots/
+      {
+        src: "/screenshots/login-narrow.png",
+        sizes: "750x1334",
+        type: "image/png",
+        label: "Halaman login Gapura di perangkat mobile.",
+        form_factor: "narrow",
+      },
+      {
+        src: "/screenshots/public-report-narrow.png",
+        sizes: "750x1334",
+        type: "image/png",
+        label: "Form pelaporan cepat di perangkat mobile.",
+        form_factor: "narrow",
+      },
     ],
     shortcuts: [
       {
@@ -78,6 +94,7 @@ export default function manifest(): MetadataRoute.Manifest {
           {
             src: "/icons/pwa-192-maskable.png",
             sizes: "192x192",
+            type: "image/png",
           },
         ],
       },

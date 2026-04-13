@@ -19,7 +19,7 @@ export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
     viewportFit: 'cover',
-    themeColor: '#0b9818',
+    themeColor: '#0f766e',
 };
 
 /**
@@ -74,9 +74,10 @@ export const metadata: Metadata = {
         index: true,
         follow: true,
     },
-    verification: {
-        google: 'your-google-verification-code',
-    },
+    // TODO: Tambahkan google verification code setelah daftar Google Search Console
+    // verification: {
+    //     google: 'ACTUAL_VERIFICATION_CODE',
+    // },
 };
 
 /**
