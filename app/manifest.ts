@@ -1,8 +1,9 @@
 /**
  * @file
  * Dibuat oleh Claude
- * 
- * File ini berisi konfigurasi PWA manifest untuk aplikasi OneClick
+ *
+ * File ini berisi konfigurasi PWA manifest untuk aplikasi OneClick.
+ * Mengikuti standar Google Play Protect dan Web App Manifest spec.
  */
 
 import type { MetadataRoute } from "next";
@@ -21,10 +22,13 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     scope: "/",
     display: "standalone",
+    orientation: "any",
     background_color: "#f6fbf8",
     theme_color: "#0f766e",
     lang: "id",
+    dir: "ltr",
     categories: ["business", "productivity", "utilities"],
+    prefer_related_applications: false,
     icons: [
       {
         src: "/icons/pwa-192.png",
@@ -55,12 +59,27 @@ export default function manifest(): MetadataRoute.Manifest {
         sizes: "1440x1080",
         type: "image/png",
         label: "Halaman login Gapura untuk akses cepat dari layar utama.",
+        form_factor: "wide",
       },
       {
         src: "/screenshots/public-report-install.png",
         sizes: "1440x1080",
         type: "image/png",
         label: "Form public report untuk pelaporan cepat dari perangkat mobile.",
+        form_factor: "wide",
+      },
+    ],
+    shortcuts: [
+      {
+        name: "Laporkan Insiden",
+        short_name: "Lapor",
+        url: "/auth/public-report",
+        icons: [
+          {
+            src: "/icons/pwa-192-maskable.png",
+            sizes: "192x192",
+          },
+        ],
       },
     ],
   };

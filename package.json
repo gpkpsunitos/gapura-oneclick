@@ -5,7 +5,8 @@
   "scripts": {
     "check:node": "node scripts/check-node-version.js",
     "dev": "npm run check:node && MallocNanoZone= NODE_OPTIONS='--max-old-space-size=4096' next dev",
-    "build": "npm run check:node && MallocNanoZone= NODE_OPTIONS='--max-old-space-size=4096' next build",
+    "build:sw": "node scripts/build-sw.mjs",
+    "build": "npm run check:node && npm run build:sw && MallocNanoZone= NODE_OPTIONS='--max-old-space-size=4096' next build",
     "start": "npm run check:node && next start",
     "lint": "eslint",
     "debug:sheets": "node scripts/debug-sheets.mjs",
@@ -78,6 +79,7 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "baseline-browser-mapping": "^2.9.19",
     "dotenv": "^17.3.1",
+    "esbuild": "^0.28.0",
     "eslint": "^9",
     "eslint-config-next": "16.0.8",
     "node-polyfill-webpack-plugin": "^4.0.0",
