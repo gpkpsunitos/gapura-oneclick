@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabase-admin';
 import { hashPassword } from '@/lib/auth-utils';
+import { checkRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
 
 /**
  * Menangani request POST untuk registrasi pengguna baru
@@ -33,6 +34,12 @@ import { hashPassword } from '@/lib/auth-utils';
  */
 export async function POST(request: Request) {
     try {
+        const clientIp = getClientIpFromRequest(request);
+        const rateLimit = checkRateLimit(`register:${clientIp}`, 3, 60 * 60_000);
+        if (!rateLimit.success) {
+            return NextResponse.json({ error: 'Terlalu banyak registrasi. Coba lagi nanti.' }, { status: 429 });
+        }
+
         const body = await request.json();
         const { 
             email, 
@@ -92,9 +99,15 @@ export async function POST(request: Request) {
         }
 
         // Password validation
-        if (password.length < 6) {
+        if (password.length < 8) {
             return NextResponse.json(
-                { error: 'Password minimal 6 karakter' },
+                { error: 'Password minimal 8 karakter' },
+                { status: 400 }
+            );
+        }
+        if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
+            return NextResponse.json(
+                { error: 'Password harus mengandung huruf besar, huruf kecil, dan angka' },
                 { status: 400 }
             );
         }

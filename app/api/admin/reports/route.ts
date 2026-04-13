@@ -120,30 +120,27 @@ export async function GET(request: Request) {
 // PATCH to update report status
 export async function PATCH(request: Request) {
     try {
+        const cookieStore = await cookies();
+        const token = cookieStore.get('session')?.value ?? null;
+        if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const session = await verifySession(token);
+        if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
         const body = await request.json();
-        const { reportId, action, userId, notes, resolution_evidence_url } = body;
+        const { reportId, action, notes, resolution_evidence_url } = body;
 
         if (!reportId || !action) {
             return NextResponse.json({ error: 'reportId dan action wajib diisi' }, { status: 400 });
         }
 
-        // Get current report
         const report = await reportsService.getReportById(reportId);
 
         if (!report) {
             return NextResponse.json({ error: 'Laporan tidak ditemukan' }, { status: 404 });
         }
 
-        // Get user role
-        let userRole = body.userRole;
-        if (!userRole && userId) {
-            const { data: user } = await supabase
-                .from('users')
-                .select('role')
-                .eq('id', userId)
-                .single();
-            userRole = user?.role;
-        }
+        const userRole = session.role;
+        const userId = session.id;
 
         if (!userRole) {
             return NextResponse.json({ error: 'Role pengguna tidak ditemukan' }, { status: 400 });

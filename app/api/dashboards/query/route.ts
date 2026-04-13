@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let canViewAll = true;
-    let userStationCode: string | null = null;
+    const canViewAll = ['SUPER_ADMIN', 'ANALYST', 'DIVISI_ESKALASI'].includes(payload.role);
+    const userStationCode = canViewAll ? null : payload.station_id || null;
 
     // Parse and Normalize
     const body = await request.json();

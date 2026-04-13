@@ -12,7 +12,7 @@ export async function GET(request: Request) {
         const cookieStore = await cookies();
         const token = cookieStore.get('session')?.value;
 
-        const demoEnabled = process.env.DEMO_MODE === 'true';
+        const demoEnabled = process.env.DEMO_MODE === 'true' && process.env.NODE_ENV !== 'production';
         const isDemo = demoEnabled && (request.headers.get('x-demo') === 'true');
 
         if (!token) {

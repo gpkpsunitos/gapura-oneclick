@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
+import { verifySession } from '@/lib/auth-utils';
 import { supabase } from '@/lib/supabase';
 import { reportsService } from '@/lib/services/reports-service';
 import { Report } from '@/types';
@@ -6,6 +8,14 @@ import { REPORT_STATUS } from '@/lib/constants/report-status';
 
 export async function GET(request: Request) {
     try {
+        const cookieStore = await cookies();
+        const token = cookieStore.get('session')?.value ?? null;
+        if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        const session = await verifySession(token);
+        if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (session.role !== 'SUPER_ADMIN' && session.role !== 'ANALYST') {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
         const { searchParams } = new URL(request.url);
         const period = searchParams.get('period');
         const from = searchParams.get('from');

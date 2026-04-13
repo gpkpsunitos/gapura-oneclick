@@ -12,6 +12,7 @@ import { verifyPassword, signSession, registerSession } from '@/lib/auth-utils';
 import { serializeAuthBundle } from '@/lib/auth-bundle';
 import { logSecurityEvent } from '@/lib/security/event-service';
 import { getClientIp } from '@/lib/security/utils';
+import { checkRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
 
 /**
  * Menangani request GET dengan redirect ke halaman login
@@ -38,9 +39,26 @@ export async function GET(request: Request) {
  */
 export async function POST(request: Request) {
     try {
+        const clientIp = getClientIpFromRequest(request);
+        const rateLimit = checkRateLimit(`login:${clientIp}`, 5, 15 * 60_000);
+        if (!rateLimit.success) {
+            return NextResponse.json(
+                { error: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.' },
+                { status: 429, headers: { 'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)) } }
+            );
+        }
+
         const body = await request.json();
         const email = (body.email || '').trim().toLowerCase();
         const password = body.password;
+
+        const emailRateLimit = checkRateLimit(`login:${email}`, 10, 15 * 60_000);
+        if (!emailRateLimit.success) {
+            return NextResponse.json(
+                { error: 'Terlalu banyak percobaan login. Coba lagi dalam 15 menit.' },
+                { status: 429 }
+            );
+        }
 
         if (!email || !password) {
             return NextResponse.json(

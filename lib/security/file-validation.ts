@@ -15,7 +15,6 @@ const IMAGE_SIGNATURES: { mime: string; bytes: number[]; offset: number }[] = [
     { mime: 'image/bmp', bytes: [0x42, 0x4D], offset: 0 }, // BM
     { mime: 'image/tiff', bytes: [0x49, 0x49, 0x2A, 0x00], offset: 0 }, // TIFF little-endian
     { mime: 'image/tiff', bytes: [0x4D, 0x4D, 0x00, 0x2A], offset: 0 }, // TIFF big-endian
-    { mime: 'image/svg+xml', bytes: [0x3C, 0x73, 0x76, 0x67], offset: 0 }, // <svg
 ];
 
 // Video file signatures
@@ -88,9 +87,8 @@ export function validateFileMimeType(buffer: Buffer, claimedType: string): { val
         if (claimedType === 'image/webp' && detected === 'image/webp') {
             return { valid: true, detected };
         }
-        // SVG is a special case - detected via text content
         if (claimedType === 'image/svg+xml') {
-            return { valid: true, detected };
+            return { valid: false, detected };
         }
         return { valid: isImage, detected };
     }

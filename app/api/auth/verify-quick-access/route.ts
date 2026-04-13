@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { timingSafeEqual } from 'crypto';
+import { checkRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
 
 // Server-side password verification for quick access protected items
 // This replaces the insecure client-side NEXT_PUBLIC_QUICK_ACCESS_PASSWORD approach
@@ -7,6 +8,12 @@ const QUICK_ACCESS_PASSWORD = process.env.QUICK_ACCESS_PASSWORD;
 
 export async function POST(request: Request) {
     try {
+        const clientIp = getClientIpFromRequest(request);
+        const rateLimit = checkRateLimit(`quick-access:${clientIp}`, 5, 60_000);
+        if (!rateLimit.success) {
+            return NextResponse.json({ error: 'Terlalu banyak permintaan. Coba lagi dalam 1 menit.' }, { status: 429 });
+        }
+
         if (!QUICK_ACCESS_PASSWORD) {
             console.error('[QUICK_ACCESS] QUICK_ACCESS_PASSWORD env var is not set');
             return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });

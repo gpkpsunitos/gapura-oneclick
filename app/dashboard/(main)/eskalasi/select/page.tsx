@@ -48,10 +48,7 @@ const divisionCards = [
     },
 ];
 
-const DIVISION_PASSWORDS: Partial<Record<string, string>> = {
-    OS: 'Unitosnew2026',
-    HC: 'Unithcnew2026!',
-};
+const PASSWORD_PROTECTED_DIVISIONS = new Set(['OS', 'HC']);
 
 export default function DivisionSelectPage() {
     const [error, setError] = useState<string | null>(null);
@@ -106,7 +103,7 @@ export default function DivisionSelectPage() {
             return;
         }
 
-        if (DIVISION_PASSWORDS[code]) {
+        if (PASSWORD_PROTECTED_DIVISIONS.has(code)) {
             setError(null);
             setPasswordValue('');
             setPasswordError(null);
@@ -121,22 +118,28 @@ export default function DivisionSelectPage() {
     const handlePasswordSubmit = async () => {
         if (!passwordPromptCode) return;
 
-        const expectedPassword = DIVISION_PASSWORDS[passwordPromptCode];
-        if (!expectedPassword) {
+        try {
+            const res = await fetch('/api/auth/verify-division-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ divisionCode: passwordPromptCode, password: passwordValue }),
+            });
+
+            const data = await res.json() as { valid?: boolean; error?: string };
+
+            if (!res.ok || !data.valid) {
+                setPasswordError(data?.error || 'Password salah.');
+                return;
+            }
+
+            setPasswordError(null);
             setPasswordPromptCode(null);
-            return;
+            setPasswordValue('');
+            setShowPassword(false);
+            await handleSelectDivision(passwordPromptCode);
+        } catch {
+            setPasswordError('Gagal verifikasi password. Coba lagi.');
         }
-
-        if (passwordValue !== expectedPassword) {
-            setPasswordError('Password salah.');
-            return;
-        }
-
-        setPasswordError(null);
-        setPasswordPromptCode(null);
-        setPasswordValue('');
-        setShowPassword(false);
-        await handleSelectDivision(passwordPromptCode);
     };
 
     return (

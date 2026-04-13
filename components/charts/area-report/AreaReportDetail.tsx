@@ -426,7 +426,7 @@ function DataTable({ data }: { data: AreaReportRecord[] }) {
               <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
                 {columns.map(col => (
                   col === 'Evidence' ? (
-                    <td key={col} className="px-4 py-2.5 text-gray-700" dangerouslySetInnerHTML={{ __html: row[col] as string || '-' }} />
+                    <td key={col} className="px-4 py-2.5 text-gray-700">{row[col] as string || '-'}</td>
                   ) : (
                     <td key={col} className="px-4 py-2.5 text-gray-700">{row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'}</td>
                   )

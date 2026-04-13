@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { cookies } from 'next/headers';
+import { verifySession } from '@/lib/auth-utils';
 import {
   normalizeQuery,
   normalizeVisualization,
@@ -154,6 +156,12 @@ function setMemoryCache(
 
 export async function POST(req: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('session')?.value ?? null;
+    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const session = await verifySession(token);
+    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
     const body: InsightRequest = await req.json();
     const { chartTitle, chartType, tileId, totalRows } = body;
 
