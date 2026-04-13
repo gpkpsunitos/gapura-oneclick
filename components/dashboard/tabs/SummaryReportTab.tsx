@@ -467,7 +467,7 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
                 title="Category Distribution"
                 subtitle=""
               >
-                <div className="h-[280px]">
+                <div className="h-[220px] sm:h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -539,7 +539,7 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
                 title="Monthly Trend"
                 subtitle=""
               >
-                <div className="h-[380px]">
+                <div className="h-[280px] sm:h-[380px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={monthlyData}
@@ -587,7 +587,7 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
               title="Airline Category Breakdown"
               subtitle=""
             >
-              <div className="h-[460px] min-h-0">
+              <div className="h-[340px] sm:h-[460px] min-h-0">
                 <SummaryDenseTable
                   data={airlineRows}
                   rowKey={(row) => row.id}

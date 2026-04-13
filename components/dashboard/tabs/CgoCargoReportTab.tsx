@@ -260,7 +260,7 @@ function CGODetailReportTable({ data }: { data: Report[] }) {
   return (
     <div>
       <div className="overflow-x-auto">
-        <div className="max-h-[340px] overflow-y-auto">
+        <div className="max-h-[260px] sm:max-h-[340px] overflow-y-auto">
           <table className="w-full text-xs min-w-[1200px]">
             <thead className="sticky top-0 z-10 bg-white">
               <tr className="border-b border-gray-200">
@@ -353,7 +353,7 @@ function StatusHeatmapTable({
       <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">{title}</h3>
       <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Status / Record Count</p>
       <div className="overflow-x-auto">
-        <div className="max-h-[220px] overflow-y-auto">
+        <div className="max-h-[180px] sm:max-h-[220px] overflow-y-auto">
           <table className="w-full text-xs min-w-[360px]">
             <thead className="sticky top-0 z-10">
               <tr className="bg-slate-100 text-black border-b border-gray-300">
@@ -419,7 +419,7 @@ function DetailedStatusTable({ rows }: { rows: Array<{ branch: string; airline: 
       <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Detail Report Status</h3>
       <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Status / Record Count</p>
       <div className="overflow-x-auto">
-        <div className="max-h-[220px] overflow-y-auto">
+        <div className="max-h-[180px] sm:max-h-[220px] overflow-y-auto">
           <table className="w-full text-xs min-w-[430px]">
             <thead className="sticky top-0 z-10">
               <tr className="bg-slate-100 text-black border-b border-gray-300">

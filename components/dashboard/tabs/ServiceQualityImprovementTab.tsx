@@ -358,7 +358,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <div className="md:col-span-3 flex flex-col gap-5">
             {/* Monthly Report */}
             <SqiMiniPanel icon={<BarChart3 size={18} />} title="Monthly Report" subtitle="" accent="oklch(0.65 0.18 160)">
-              <div className="h-[200px] w-full">
+              <div className="h-[160px] sm:h-[200px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart layout="vertical" data={monthlyData} margin={{ top: 6, right: 25, left: 12, bottom: 0 }} barCategoryGap={6}>
                     <CartesianGrid strokeDasharray="4 4" horizontal={false} stroke="oklch(0.92 0.01 90 / 0.9)" />
@@ -387,7 +387,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
 
             {/* Remarks Case Distribution */}
             <SqiMiniPanel icon={<BarChart3 size={18} />} title="Remarks Case Distribution" subtitle="" accent="oklch(0.6 0.14 240)">
-              <div className="h-[240px] w-full">
+              <div className="h-[180px] sm:h-[240px] w-full">
 
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart layout="vertical" data={remarksCaseData.slice(0, 5)} margin={{ top: 10, right: 25, left: -10, bottom: 0 }}>
@@ -415,7 +415,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
             {/* Report Category Pie */}
             <SqiMiniPanel icon={<Shapes size={18} />} title="Report Category" subtitle="" accent="oklch(0.7 0.2 330)">
               <div className="flex h-full min-h-0 flex-col gap-4">
-                <div className="h-[220px] w-full shrink-0">
+                <div className="h-[180px] sm:h-[220px] w-full shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie data={reportCategoryData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2}>

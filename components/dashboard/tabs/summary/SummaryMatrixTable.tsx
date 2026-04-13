@@ -11,7 +11,7 @@ interface SummaryMatrixTableProps {
 export function SummaryMatrixTable({ data, columnLabel }: SummaryMatrixTableProps) {
   return (
     <div className="overflow-hidden rounded-[22px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-white/50">
-      <div className="max-h-[560px] overflow-auto">
+      <div className="max-h-[380px] sm:max-h-[560px] overflow-auto">
         <table className="min-w-full border-separate border-spacing-0 text-sm">
           <thead className="sticky top-0 z-10">
             <tr>

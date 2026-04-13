@@ -480,7 +480,7 @@ function PiePanel({ slices, emptyMessage }: { slices: PieSlice[]; emptyMessage?:
 
   return (
     <div className="space-y-4">
-      <div className="h-[280px]">
+      <div className="h-[220px] sm:h-[280px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -600,7 +600,7 @@ function MatrixTable({
 
   return (
     <div className="overflow-hidden rounded-[22px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-white/50">
-      <div className="max-h-[560px] overflow-auto">
+      <div className="max-h-[400px] sm:max-h-[560px] overflow-auto">
         <table className="border-separate border-spacing-0 text-sm" style={{ minWidth: secondaryLabel ? primaryWidth + secondaryWidth + data.columns.length * columnMinWidth + 120 : primaryWidth + data.columns.length * columnMinWidth + 120 }}>
           <thead className="sticky top-0 z-10">
             <tr>
@@ -711,7 +711,7 @@ function BreakdownIdentifiedCausesTable({ data }: { data: MatrixData }) {
 
   return (
     <div className="overflow-hidden rounded-[22px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-white/50">
-      <div className="max-h-[620px] overflow-auto">
+      <div className="max-h-[420px] sm:max-h-[620px] overflow-auto">
         <table className="min-w-full border-separate border-spacing-0 text-sm">
           <thead className="sticky top-0 z-10 bg-white">
             <tr>
@@ -1206,7 +1206,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
               <SmallChartCard title="Service Type Report by Category">
                 {voiceServiceTypeCategory.rows.length ? (
                   <div className="space-y-4">
-                    <div className="h-[320px]">
+                    <div className="h-[240px] sm:h-[320px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart
                           data={voiceServiceTypeCategory.rows}

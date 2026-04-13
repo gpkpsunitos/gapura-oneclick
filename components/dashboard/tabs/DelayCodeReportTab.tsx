@@ -170,7 +170,7 @@ function MiniBarChart({ title, rows }: { title: string; rows: MetricRow[] }) {
   return (
     <div className="rounded-[24px] border border-[oklch(0.9_0.01_90_/_0.75)] bg-white/70 p-4">
       <div className="mb-4 text-[0.72rem] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]">{title}</div>
-      <div className="h-[260px]">
+      <div className="h-[200px] sm:h-[260px]">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={rows.slice(0, 8)} layout="vertical" margin={{ top: 8, right: 12, left: 8, bottom: 8 }}>
             <CartesianGrid horizontal={false} stroke="oklch(0.92 0.01 90 / 0.9)" strokeDasharray="4 4" />
@@ -337,7 +337,7 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
                 <Radar size={15} />
                 Source Split
               </div>
-              <div className="h-[280px]">
+              <div className="h-[220px] sm:h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie data={sourceRows} dataKey="total" nameKey="label" innerRadius={68} outerRadius={98} strokeWidth={0}>

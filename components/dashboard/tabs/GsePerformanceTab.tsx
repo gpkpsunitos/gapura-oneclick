@@ -394,7 +394,7 @@ function aggregateGroupedDetailRows(reports: Report[]): GroupedDetailRow[] {
 
 function MiniBarChart({ data, dataKey = 'total', yKey = 'label' }: { data: MetricRow[]; dataKey?: string; yKey?: string }) {
   return (
-    <div className="h-[280px]">
+    <div className="h-[220px] sm:h-[280px]">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={data.slice(0, 8)} layout="vertical" margin={{ top: 8, right: 18, left: 10, bottom: 8 }}>
           <CartesianGrid stroke="oklch(0.92 0.01 90 / 0.7)" horizontal={false} />
@@ -432,8 +432,8 @@ function MiniPieChart({
   const total = data.reduce((sum, item) => sum + item.total, 0);
 
   return (
-    <div className="flex min-h-[320px] flex-col">
-      <div className="h-[248px] min-h-[248px]">
+    <div className="flex min-h-[260px] sm:min-h-[320px] flex-col">
+      <div className="h-[200px] sm:h-[248px] min-h-[200px] sm:min-h-[248px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart margin={{ top: 8, right: 28, bottom: 8, left: 28 }}>
             <Pie

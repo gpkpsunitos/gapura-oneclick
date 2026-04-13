@@ -1305,11 +1305,12 @@ export default function AnalystCharts({
     return (
         <div className="space-y-6">
             {/* Global Filters Section */}
-            <div className="relative z-50 bg-[oklch(1_0_0_/_0.4)] backdrop-blur-2xl border border-[oklch(1_0_0_/_0.1)] shadow-inner-rim rounded-2xl mb-6">
-                <div className="flex justify-between items-center px-6 py-4 border-b border-[oklch(1_0_0_/_0.05)]">
-                    <h3 className="text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
-                        <Filter size={16} className="text-[var(--brand-emerald-500)]" />
-                        Global Dashboard Filter
+            <div className="relative z-50 bg-[oklch(1_0_0_/_0.4)] backdrop-blur-2xl border border-[oklch(1_0_0_/_0.1)] shadow-inner-rim rounded-2xl mb-4 sm:mb-6">
+                <div className="flex justify-between items-center px-4 sm:px-6 py-3 sm:py-4 border-b border-[oklch(1_0_0_/_0.05)]">
+                    <h3 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
+                        <Filter size={14} className="text-[var(--brand-emerald-500)] sm:w-4 sm:h-4" />
+                        <span className="hidden sm:inline">Global Dashboard Filter</span>
+                        <span className="sm:hidden">Filters</span>
                     </h3>
                     <button
                         onClick={() => setIsGlobalFilterCollapsed(!isGlobalFilterCollapsed)}
@@ -1334,7 +1335,7 @@ export default function AnalystCharts({
                             exit={{ height: 0, opacity: 0, overflow: 'hidden' }}
                             transition={{ duration: 0.3, ease: 'easeInOut' }}
                         >
-                            <div className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-[var(--surface-0)]/30 rounded-b-2xl">
+                            <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 bg-[var(--surface-0)]/30 rounded-b-2xl">
                                 <PrismMultiSelect
                                     label="Hub"
                                     placeholder="Semua Hub..."
@@ -1370,14 +1371,14 @@ export default function AnalystCharts({
             </div>
 
             {/* Tab Bar - PRISM Floating Capsule */}
-            <div className="flex justify-center sticky top-0 z-40 py-2">
-                <div className="flex p-1.5 rounded-2xl bg-[oklch(1_0_0_/_0.4)] backdrop-blur-2xl border border-[oklch(1_0_0_/_0.1)] shadow-inner-rim max-w-full overflow-x-auto no-scrollbar">
+            <div className="flex justify-center sticky top-0 z-40 py-1 sm:py-2">
+                <div className="flex p-1 sm:p-1.5 rounded-2xl bg-[oklch(1_0_0_/_0.4)] backdrop-blur-2xl border border-[oklch(1_0_0_/_0.1)] shadow-inner-rim max-w-full overflow-x-auto no-scrollbar">
                     {TABS.map((tab) => (
                         <button
                             key={tab}
                             onClick={() => setActiveTab(tab)}
                             className={cn(
-                                'px-6 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest transition-all duration-500 whitespace-nowrap relative flex items-center gap-2',
+                                'px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-wider sm:tracking-widest transition-all duration-500 whitespace-nowrap relative flex items-center gap-1 sm:gap-2',
                                 activeTab === tab
                                     ? 'text-black'
                                     : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[oklch(1_0_0_/_0.1)]'

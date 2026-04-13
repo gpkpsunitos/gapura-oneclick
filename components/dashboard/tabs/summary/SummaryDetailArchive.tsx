@@ -33,15 +33,15 @@ export function SummaryDetailArchive({
   };
 
   return (
-    <div className="overflow-hidden rounded-[22px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-white/50">
+    <div className="overflow-hidden rounded-[16px] sm:rounded-[22px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-white/50">
       <div className="overflow-auto">
-        <table className="min-w-full border-separate border-spacing-0 text-sm">
+        <table className="min-w-full border-separate border-spacing-0 text-xs sm:text-sm">
           <thead className="sticky top-0 z-20 bg-[var(--surface-1)]/95 backdrop-blur-xl">
             <tr>
               {['Date', 'Branch', 'Airline', 'Flight', 'Category', 'Breakdown / Root', 'Status', 'Details'].map((label, index) => (
                 <th
                   key={label}
-                  className={`border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)]/95 px-4 py-3 text-left text-[0.65rem] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] ${index === 7 ? 'text-right' : ''}`}
+                  className={`border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)]/95 px-2 sm:px-4 py-2 sm:py-3 text-left text-[0.6rem] sm:text-[0.65rem] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] text-[var(--text-secondary)] ${index === 7 ? 'text-right' : ''}`}
                 >
                   {label}
                 </th>
@@ -133,7 +133,7 @@ export function SummaryDetailArchive({
         </table>
       </div>
 
-      <div className="flex items-center justify-between border-t border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-0)]/90 px-4 py-3 text-[0.72rem] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+      <div className="flex items-center justify-between border-t border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-0)]/90 px-2 sm:px-4 py-2 sm:py-3 text-[0.68rem] sm:text-[0.72rem] font-bold uppercase tracking-[0.15em] sm:tracking-[0.18em] text-[var(--text-muted)]">
         <span>
           {startIndex}-{endIndex} of {sortedRows.length}
         </span>
