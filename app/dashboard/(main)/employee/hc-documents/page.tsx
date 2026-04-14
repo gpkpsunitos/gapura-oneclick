@@ -1,12 +1,11 @@
-import { DivisionDocumentLibrary } from '@/components/workspace/DivisionDocumentLibrary';
+import { HCEdaranTable } from '@/components/hc/HCEdaranTable';
 
 export default function EmployeeHCDocumentsPage() {
     return (
-        <DivisionDocumentLibrary
-            division="HC"
-            experience="inbox"
+        <HCEdaranTable
+            mode="read"
             title="Edaran HC"
-            description="Buka dokumen HC yang relevan untuk Anda."
+            description="Daftar kegiatan HC beserta link dokumentasinya."
         />
     );
 }

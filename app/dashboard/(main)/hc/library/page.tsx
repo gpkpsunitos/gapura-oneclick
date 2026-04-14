@@ -6,7 +6,7 @@
  * menampilkan manajemen dan akses dokumen untuk divisi HC.
  */
 
-import { HCDocumentManagementPage } from '@/components/hc/HCDocumentManagementPage';
+import { HCEdaranTable } from '@/components/hc/HCEdaranTable';
 
 /**
  * Komponen halaman library dokumen Divisi HC (Human Capital)
@@ -14,5 +14,11 @@ import { HCDocumentManagementPage } from '@/components/hc/HCDocumentManagementPa
  * @returns {JSX.Element} Tampilan halaman library dokumen Divisi HC
  */
 export default function HCLibraryPage() {
-    return <HCDocumentManagementPage />;
+    return (
+        <HCEdaranTable
+            mode="manage"
+            title="Edaran HC"
+            description="Kelola daftar kegiatan HC dan tautan dokumentasinya."
+        />
+    );
 }

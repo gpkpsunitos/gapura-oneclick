@@ -138,6 +138,13 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
                 { href: '/dashboard/os/dispatched', label: 'Laporan Divisi', icon: Inbox },
                 { href: '/dashboard/os/reports', label: 'Semua Laporan', icon: ClipboardList },
             ]
+        },
+        {
+            title: 'Schedule',
+            items: [
+                { href: '/dashboard/os/calendar', label: 'Event Calendar', icon: Calendar },
+                { href: '/dashboard/os/meetings', label: 'Meeting Calendar', icon: Calendar },
+            ]
         }
     ],
 
@@ -274,6 +281,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             title: 'Schedule',
             items: [
                 { href: '/dashboard/analyst/calendar', label: 'Event Calendar', icon: Calendar },
+                { href: '/dashboard/analyst/meetings', label: 'Meeting Calendar', icon: Calendar },
             ]
         }
     ]
