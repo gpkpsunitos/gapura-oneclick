@@ -40,6 +40,10 @@ interface ResponsiveHeaderProps {
   exporting: 'excel' | 'pdf' | null;
   divisionDashboardLabel?: string;
   onOpenDivisionDashboard?: () => void;
+  divisionDashboardActions?: Array<{
+    label: string;
+    onClick: () => void;
+  }>;
   onSwitchDivision?: () => void;
   eyebrow?: string;
   title?: string;
@@ -62,6 +66,7 @@ export function ResponsiveHeader({
   exporting,
   divisionDashboardLabel,
   onOpenDivisionDashboard,
+  divisionDashboardActions,
   onSwitchDivision,
   eyebrow,
   title,
@@ -121,13 +126,19 @@ export function ResponsiveHeader({
       onClick: onFilterClick,
     });
   }
-  if (onOpenDivisionDashboard && divisionDashboardLabel) {
+  const dashboardActions =
+    divisionDashboardActions && divisionDashboardActions.length > 0
+      ? divisionDashboardActions
+      : onOpenDivisionDashboard && divisionDashboardLabel
+        ? [{ label: divisionDashboardLabel, onClick: onOpenDivisionDashboard }]
+        : [];
+  dashboardActions.forEach((action) => {
     mobileMenuActions.push({
-      label: divisionDashboardLabel,
+      label: action.label,
       icon: <LayoutDashboard className="w-4 h-4" />,
-      onClick: onOpenDivisionDashboard,
+      onClick: action.onClick,
     });
-  }
+  });
   if (onSwitchDivision) {
     mobileMenuActions.push({
       label: 'Ganti Divisi',
@@ -363,20 +374,25 @@ export function ResponsiveHeader({
     </Button>
   );
 
-  const divisionDashboardButton =
-    onOpenDivisionDashboard && divisionDashboardLabel ? (
-      <Button
-        onClick={onOpenDivisionDashboard}
-        className={cn(
-          'items-center gap-2 min-h-[48px] px-5 rounded-2xl border-0 transition-all duration-300 font-display font-bold',
-          isExecutiveVariant
-            ? 'inline-flex bg-white/85 text-[var(--text-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] border border-slate-200/80 hover:bg-white hover:-translate-y-0.5 active:scale-95'
-            : 'hidden xl:inline-flex bg-gradient-to-br from-teal-700 to-cyan-700 text-white shadow-lg shadow-teal-600/20 hover:shadow-xl hover:shadow-teal-600/30 hover:-translate-y-0.5 active:scale-95'
-        )}
-      >
-        <LayoutDashboard size={16} className={isExecutiveVariant ? 'text-cyan-700' : undefined} />
-        <span className={cn(!isExecutiveVariant && 'hidden 2xl:inline tracking-tight')}>{divisionDashboardLabel}</span>
-      </Button>
+  const divisionDashboardButtons =
+    dashboardActions.length > 0 ? (
+      <>
+        {dashboardActions.map((action) => (
+          <Button
+            key={action.label}
+            onClick={action.onClick}
+            className={cn(
+              'items-center gap-2 min-h-[48px] px-5 rounded-2xl border-0 transition-all duration-300 font-display font-bold',
+              isExecutiveVariant
+                ? 'inline-flex bg-white/85 text-[var(--text-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] border border-slate-200/80 hover:bg-white hover:-translate-y-0.5 active:scale-95'
+                : 'hidden xl:inline-flex bg-gradient-to-br from-teal-700 to-cyan-700 text-white shadow-lg shadow-teal-600/20 hover:shadow-xl hover:shadow-teal-600/30 hover:-translate-y-0.5 active:scale-95'
+            )}
+          >
+            <LayoutDashboard size={16} className={isExecutiveVariant ? 'text-cyan-700' : undefined} />
+            <span className={cn(!isExecutiveVariant && 'hidden 2xl:inline tracking-tight')}>{action.label}</span>
+          </Button>
+        ))}
+      </>
     ) : null;
 
   const executiveOverflowMenu =
@@ -430,7 +446,7 @@ export function ResponsiveHeader({
               </div>
 
               <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
-                {divisionDashboardButton}
+                {divisionDashboardButtons}
                 {refreshButton}
                 {executiveOverflowMenu}
                 {createReportButton}

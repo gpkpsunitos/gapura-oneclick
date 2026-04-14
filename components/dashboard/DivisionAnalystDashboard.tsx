@@ -153,6 +153,8 @@ export function DivisionAnalystDashboard({
   const [osDashboardLink, setOsDashboardLink] = useState<string>('https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314');
   const [showOPDashboardModal, setShowOPDashboardModal] = useState(false);
   const [opDashboardLink, setOpDashboardLink] = useState<string>('https://lookerstudio.google.com/u/0/reporting/06d31553-08c6-42f3-81e6-1bc96356a854/page/tKISF');
+  const [showServiceDashboardModal, setShowServiceDashboardModal] = useState(false);
+  const [serviceDashboardLink, setServiceDashboardLink] = useState<string>('https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314');
 
   const handleScrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -219,6 +221,13 @@ export function DivisionAnalystDashboard({
     try {
       const saved = typeof window !== 'undefined' ? localStorage.getItem('op_dashboard_link') : null;
       if (saved) setOpDashboardLink(saved);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    try {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('service_dashboard_link') : null;
+      if (saved) setServiceDashboardLink(saved);
     } catch {}
   }, []);
 
@@ -1020,8 +1029,20 @@ export function DivisionAnalystDashboard({
             onExportExcel={exportToExcel}
             onExportPDF={exportToPDF}
             exporting={exporting}
-            divisionDashboardLabel={division.code === 'OP' ? 'Dashboard OP' : undefined}
-            onOpenDivisionDashboard={division.code === 'OP' ? () => setShowOPDashboardModal(true) : undefined}
+            divisionDashboardActions={
+              division.code === 'OP'
+                ? [
+                    {
+                      label: 'Dashboard operation lookers version',
+                      onClick: () => setShowOPDashboardModal(true),
+                    },
+                    {
+                      label: 'Dashboard Service Lookers Version',
+                      onClick: () => setShowServiceDashboardModal(true),
+                    },
+                  ]
+                : undefined
+            }
             onSwitchDivision={() => router.push('/dashboard/eskalasi/select')}
             variant={isOpDivision ? 'op-executive' : 'default'}
             eyebrow={isOpDivision ? 'Divisi OP' : undefined}
@@ -1385,14 +1406,14 @@ export function DivisionAnalystDashboard({
             <div className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 animate-scale-in border border-[var(--surface-3)]">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
-                  <LinkIcon size={18} /> Dashboard OP
+                  <LinkIcon size={18} /> Dashboard operation lookers version
                 </h3>
                 <button onClick={() => setShowOPDashboardModal(false)} className="p-2 hover:bg-[var(--surface-2)] rounded-xl transition-colors">
                   <X size={18} />
                 </button>
               </div>
               <p className="text-[13px] text-[var(--text-secondary)] mb-4">
-                Ubah, salin, atau buka tautan Dashboard OP (Google Looker Studio).
+                Ubah, salin, atau buka tautan Dashboard operation lookers version (Google Looker Studio).
               </p>
               <div className="space-y-3">
                 <label className="block text-[11px] font-bold text-[var(--text-muted)]">Link Dashboard</label>
@@ -1437,6 +1458,75 @@ export function DivisionAnalystDashboard({
                     onClick={() => {
                       const saved = typeof window !== 'undefined' ? localStorage.getItem('op_dashboard_link') : null;
                       setOpDashboardLink(saved || 'https://lookerstudio.google.com/u/0/reporting/06d31553-08c6-42f3-81e6-1bc96356a854/page/tKISF');
+                    }}
+                    className="flex-1 py-3.5 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-[13px]"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {showServiceDashboardModal && (
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowServiceDashboardModal(false)} />
+            <div className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 animate-scale-in border border-[var(--surface-3)]">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
+                  <LinkIcon size={18} /> Dashboard Service Lookers Version
+                </h3>
+                <button onClick={() => setShowServiceDashboardModal(false)} className="p-2 hover:bg-[var(--surface-2)] rounded-xl transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+              <p className="text-[13px] text-[var(--text-secondary)] mb-4">
+                Ubah, salin, atau buka tautan Dashboard Service Lookers Version (Google Looker Studio).
+              </p>
+              <div className="space-y-3">
+                <label className="block text-[11px] font-bold text-[var(--text-muted)]">Link Dashboard</label>
+                <input
+                  type="text"
+                  value={serviceDashboardLink}
+                  onChange={(e) => setServiceDashboardLink(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none transition-all text-sm"
+                  placeholder="https://lookerstudio.google.com/..."
+                />
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(serviceDashboardLink);
+                      } catch {}
+                    }}
+                    className="flex-1 py-3.5 bg-[var(--surface-2)] text-[var(--text-primary)] font-semibold rounded-xl hover:bg-[var(--surface-3)] transition-all text-[13px] flex items-center justify-center gap-2"
+                  >
+                    <Copy size={16} /> Salin Link
+                  </button>
+                  <button
+                    onClick={() => window.open(serviceDashboardLink, '_blank')}
+                    className="flex-1 py-3.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 active:scale-[0.98] transition-all text-[13px] flex items-center justify-center gap-2"
+                  >
+                    <ExternalLink size={16} /> Buka
+                  </button>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      try {
+                        localStorage.setItem('service_dashboard_link', serviceDashboardLink);
+                      } catch {}
+                      setShowServiceDashboardModal(false);
+                    }}
+                    className="flex-1 py-3.5 bg-[var(--brand-primary)] text-white font-bold rounded-xl hover:bg-[var(--brand-primary-hover,#2563eb)] active:scale-[0.98] transition-all text-[13px]"
+                  >
+                    Simpan
+                  </button>
+                  <button
+                    onClick={() => {
+                      const saved = typeof window !== 'undefined' ? localStorage.getItem('service_dashboard_link') : null;
+                      setServiceDashboardLink(saved || 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314');
                     }}
                     className="flex-1 py-3.5 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-[13px]"
                   >
