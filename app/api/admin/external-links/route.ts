@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { DEFAULT_EXTERNAL_LINKS, getDefaultLinksArray, type ExternalLinkEntry } from '@/lib/external-links';
+import { DEFAULT_EXTERNAL_LINKS, type ExternalLinkEntry } from '@/lib/external-links';
+import { getDefaultLinksArray } from '@/lib/external-links-server';
 
 async function requireSuperAdmin() {
   const cookieStore = await cookies();

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getExternalLinks } from '@/lib/external-links';
+import { getExternalLinks } from '@/lib/external-links-server';
+import { DEFAULT_EXTERNAL_LINKS } from '@/lib/external-links';
 
 /**
  * GET /api/external-links
@@ -10,7 +11,6 @@ export async function GET() {
     const links = await getExternalLinks();
     return NextResponse.json({ links });
   } catch {
-    const { DEFAULT_EXTERNAL_LINKS } = await import('@/lib/external-links');
     return NextResponse.json({ links: DEFAULT_EXTERNAL_LINKS });
   }
 }
