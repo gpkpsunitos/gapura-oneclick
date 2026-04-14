@@ -11,6 +11,7 @@ import '@fontsource/bricolage-grotesque/latin.css';
 import '@fontsource/jetbrains-mono/latin.css';
 
 import Providers from '@/components/Providers';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 /**
  * Konfigurasi viewport untuk responsivitas
@@ -97,6 +98,7 @@ export default function RootLayout({
                 <Providers>
                     {children}
                 </Providers>
+                <SpeedInsights />
             </body>
         </html>
     );
