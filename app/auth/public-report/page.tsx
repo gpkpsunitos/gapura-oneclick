@@ -142,8 +142,9 @@ const CATEGORIES: QuickAccessCategory[] = [
     color: 'oklch(0.62 0.22 28)',
     span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
     passwordProtected: true,
-    redirectUrl: 'https://linktr.ee/HSSE_GP',
-    externalRedirect: true,
+    qrLinks: [
+      { label: 'HSSE Report Form', url: 'https://forms.office.com/pages/responsepage.aspx?id=UN958i0U-k6wuwHqZRjbWCdrrO6qSgFPtKjbarMtEydUN0ZaM0tJODFONktURkpZUE45TFpNQ1hJOC4u&origin=lprLink&route=shorturl' }
+    ]
   },
   {
     id: 'Handbook',
