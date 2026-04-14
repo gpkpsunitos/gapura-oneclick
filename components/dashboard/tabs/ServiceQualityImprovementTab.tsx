@@ -293,33 +293,32 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
 
       {/* ══════ Report by Staff Joumpa ══════ */}
       <SummarySectionCard title="Report by Staff Joumpa" subtitle="Joumpa Handling Report based on Staff feedback">
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
+        {/* Row 1: Monthly + Remarks Case + Report Category — same line */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-4">
 
-          {/* Left column: Monthly + Remarks Case + Pie */}
-          <div className="md:col-span-3 flex flex-col gap-5">
-            {/* Monthly Report */}
-            <ChartCard title="Monthly Report" accent="oklch(0.65 0.18 160)">
-              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
-                <div style={{ height: Math.max(200, monthlyData.length * 50) }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart layout="vertical" data={monthlyData} margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
-                      <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
-                      <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
-                      <YAxis type="category" dataKey="month" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="val" name="Count" fill="oklch(0.65 0.18 160)" radius={[0, 4, 4, 0]} maxBarSize={28}>
-                        <LabelList dataKey="val" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+          {/* Monthly Report */}
+          <ChartCard title="Monthly Report" accent="oklch(0.65 0.18 160)">
+            <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+              <div style={{ height: Math.max(200, monthlyData.length * 50) }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart layout="vertical" data={monthlyData} margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                    <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                    <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="month" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={88} interval={0} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Bar dataKey="val" name="Count" fill="oklch(0.65 0.18 160)" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                      <LabelList dataKey="val" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
               </div>
-            </ChartCard>
+            </div>
+          </ChartCard>
 
-            {/* Remarks Case Distribution */}
-            <ChartCard title="Remarks Case Distribution" accent="oklch(0.6 0.14 240)">
-              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
-                <div style={{ height: Math.max(200, remarksCaseData.length * 50) }}>
+          {/* Remarks Case Distribution */}
+          <ChartCard title="Remarks Case Distribution" accent="oklch(0.6 0.14 240)">
+            <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+              <div style={{ height: Math.max(200, remarksCaseData.length * 50) }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart layout="vertical" data={remarksCaseData} margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
                       <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
@@ -368,68 +367,65 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                 </div>
               </div>
             </ChartCard>
-          </div>
-
-          {/* Right column: Pivot Table */}
-          <div className="md:col-span-9 flex flex-col">
-            <HeatmapTableCard title="Report Category by Airlines" subtitle="Remarks Case / Record Count" accent="oklch(0.55 0.14 240)">
-              {(() => {
-                const renderedCols = remarksCaseCols.slice(0, 5);
-                const colMax = renderedCols.map(c => Math.max(...rcByAirlines.map((r: any) => r[c] || 0), 1));
-                const grandTotals = renderedCols.map(c => rcByAirlines.reduce((s: number, r: any) => s + (r[c] || 0), 0));
-                const grandTotalAll = rcByAirlines.reduce((s: number, r: any) => s + r.total, 0);
-                return (
-                  <div className="overflow-x-auto">
-                    <div className="max-h-[240px] overflow-y-auto">
-                      <table className="w-full text-xs min-w-[340px]">
-                        <thead className="sticky top-0 z-10">
-                          <tr className="bg-slate-100 text-black border-b border-gray-300">
-                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Branch</th>
-                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Airlines</th>
-                            {renderedCols.map(c => (
-                              <th key={c} className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">{c}</th>
-                            ))}
-                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Grand Total</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rcByAirlines.map((row: any, i: number) => (
-                            <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-                              <td className="py-1.5 px-2 font-medium text-gray-800 whitespace-nowrap">{row.branch}</td>
-                              <td className="py-1.5 px-2 text-gray-800">{row.airlines}</td>
-                              {renderedCols.map((c, idx) => {
-                                const v = row[c] || 0;
-                                const color = heatColor(v, colMax[idx]);
-                                return (
-                                  <td key={c} className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: color.bg, color: color.fg }}>
-                                    {v || '-'}
-                                  </td>
-                                );
-                              })}
-                              <td className="py-1.5 px-2 text-center font-bold">{row.total}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                    <table className="w-full text-xs min-w-[340px] border-t-2 border-gray-300">
-                      <tbody>
-                        <tr className="bg-gray-100 font-bold">
-                          <td className="py-1.5 px-2 text-gray-800">Grand total</td>
-                          <td className="py-1.5 px-2 text-gray-800"></td>
-                          {renderedCols.map((c, idx) => (
-                            <td key={c} className="py-1.5 px-2 text-center text-gray-800">{grandTotals[idx]}</td>
-                          ))}
-                          <td className="py-1.5 px-2 text-center text-gray-800">{grandTotalAll}</td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                );
-              })()}
-            </HeatmapTableCard>
-          </div>
         </div>
+
+        {/* Row 2: Report Category by Airlines — full width */}
+        <HeatmapTableCard title="Report Category by Airlines" subtitle="Remarks Case / Record Count" accent="oklch(0.55 0.14 240)">
+          {(() => {
+            const renderedCols = remarksCaseCols.slice(0, 5);
+            const colMax = renderedCols.map(c => Math.max(...rcByAirlines.map((r: any) => r[c] || 0), 1));
+            const grandTotals = renderedCols.map(c => rcByAirlines.reduce((s: number, r: any) => s + (r[c] || 0), 0));
+            const grandTotalAll = rcByAirlines.reduce((s: number, r: any) => s + r.total, 0);
+            return (
+              <div className="overflow-x-auto">
+                <div className="max-h-[240px] overflow-y-auto">
+                  <table className="w-full text-xs min-w-[340px]">
+                    <thead className="sticky top-0 z-10">
+                      <tr className="bg-slate-100 text-black border-b border-gray-300">
+                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Branch</th>
+                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Airlines</th>
+                        {renderedCols.map(c => (
+                          <th key={c} className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">{c}</th>
+                        ))}
+                        <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Grand Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rcByAirlines.map((row: any, i: number) => (
+                        <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-1.5 px-2 font-medium text-gray-800 whitespace-nowrap">{row.branch}</td>
+                          <td className="py-1.5 px-2 text-gray-800">{row.airlines}</td>
+                          {renderedCols.map((c, idx) => {
+                            const v = row[c] || 0;
+                            const color = heatColor(v, colMax[idx]);
+                            return (
+                              <td key={c} className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: color.bg, color: color.fg }}>
+                                {v || '-'}
+                              </td>
+                            );
+                          })}
+                          <td className="py-1.5 px-2 text-center font-bold">{row.total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <table className="w-full text-xs min-w-[340px] border-t-2 border-gray-300">
+                  <tbody>
+                    <tr className="bg-gray-100 font-bold">
+                      <td className="py-1.5 px-2 text-gray-800">Grand total</td>
+                      <td className="py-1.5 px-2 text-gray-800"></td>
+                      {renderedCols.map((c, idx) => (
+                        <td key={c} className="py-1.5 px-2 text-center text-gray-800">{grandTotals[idx]}</td>
+                      ))}
+                      <td className="py-1.5 px-2 text-center text-gray-800">{grandTotalAll}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            );
+          })()}
+        </HeatmapTableCard>
       </SummarySectionCard>
 
       {/* ══════ Landslide Root Cause Section ══════ */}
@@ -621,10 +617,10 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
             </ChartCard>
           </div>
 
-          <div className="md:col-span-9">
-            <HeatmapTableCard title="Landside Area - Detail Root Cause Identification" accent="oklch(0.6 0.18 25)">
-              <div className="overflow-x-auto">
-                <div className="max-h-[240px] overflow-y-auto">
+          <div className="md:col-span-9 h-full">
+            <HeatmapTableCard title="Landside Area - Detail Root Cause Identification" accent="oklch(0.6 0.18 25)" className="h-full flex flex-col">
+              <div className="overflow-x-auto flex-1 min-h-0">
+                <div className="h-full overflow-y-auto">
                   <table className="w-full text-xs min-w-[760px]">
                     <thead className="sticky top-0 z-10">
                       <tr className="bg-slate-100 text-black border-b border-gray-300">
