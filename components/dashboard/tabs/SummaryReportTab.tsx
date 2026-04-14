@@ -41,6 +41,8 @@ import {
   KpiCard,
   CategoryBarList,
   REFERENCE_COLORS,
+  renderPieLabel,
+  PIE_LABEL_LINE_PROPS,
 } from './shared/chart-ui';
 import type {
   SummaryAirlineRow,
@@ -490,6 +492,8 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
                       outerRadius={98}
                       strokeWidth={0}
                       paddingAngle={2}
+                      label={renderPieLabel}
+                      labelLine={PIE_LABEL_LINE_PROPS}
                     >
                       {categoryData.map((entry) => (
                         <Cell key={entry.name} fill={entry.fill} />

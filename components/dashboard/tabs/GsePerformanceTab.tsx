@@ -35,6 +35,8 @@ import {
   heatColor,
   StatusBadge,
   CHART_PALETTE,
+  renderPieLabel,
+  PIE_LABEL_LINE_PROPS,
 } from './shared/chart-ui';
 
 interface GsePerformanceTabProps {
@@ -738,7 +740,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
           <div className="h-[220px] sm:h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={reportCategoryRows} dataKey="total" nameKey="label" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2}>
+                <Pie data={reportCategoryRows} dataKey="total" nameKey="label" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2} label={renderPieLabel} labelLine={PIE_LABEL_LINE_PROPS}>
                   {reportCategoryRows.map((entry, i) => (
                     <Cell key={entry.id} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                   ))}
@@ -771,7 +773,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
           <div className="h-[220px] sm:h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
-                <Pie data={reportCategoryByGseTypeRows} dataKey="total" nameKey="label" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2}>
+                <Pie data={reportCategoryByGseTypeRows} dataKey="total" nameKey="label" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2} label={renderPieLabel} labelLine={PIE_LABEL_LINE_PROPS}>
                   {reportCategoryByGseTypeRows.map((entry, i) => (
                     <Cell key={entry.id} fill={GSE_TYPE_PIE_COLORS[i % GSE_TYPE_PIE_COLORS.length]} />
                   ))}

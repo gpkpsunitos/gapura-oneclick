@@ -26,6 +26,8 @@ import {
   ResponsiveContainer,
   heatColor,
   CategoryBarList,
+  renderPieLabel,
+  PIE_LABEL_LINE_PROPS,
 } from './shared/chart-ui';
 
 interface JoumpaServiceTabProps {
@@ -766,7 +768,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
                 <div className="h-[220px] sm:h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={operationalDistribution} dataKey="value" nameKey="name" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2}>
+                      <Pie data={operationalDistribution} dataKey="value" nameKey="name" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2} label={renderPieLabel} labelLine={PIE_LABEL_LINE_PROPS}>
                         {operationalDistribution.map((e) => <Cell key={e.name} fill={e.fill} />)}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
@@ -1079,7 +1081,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
                     <div className="h-[220px] sm:h-[280px]">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
-                          <Pie data={voiceCategoryDistribution} dataKey="value" nameKey="name" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2}>
+                          <Pie data={voiceCategoryDistribution} dataKey="value" nameKey="name" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2} label={renderPieLabel} labelLine={PIE_LABEL_LINE_PROPS}>
                             {voiceCategoryDistribution.map((e) => <Cell key={e.name} fill={e.fill} />)}
                           </Pie>
                           <Tooltip content={<CustomTooltip />} />

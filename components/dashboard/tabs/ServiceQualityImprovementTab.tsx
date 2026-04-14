@@ -30,6 +30,8 @@ import {
   heatColor,
   CategoryBarList,
   KpiCard,
+  renderPieLabel,
+  PIE_LABEL_LINE_PROPS,
 } from './shared/chart-ui';
 
 interface ServiceQualityImprovementTabProps {
@@ -340,7 +342,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                 <div className="h-[180px] sm:h-[220px] w-full shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={reportCategoryData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2}>
+                      <Pie data={reportCategoryData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2} label={renderPieLabel} labelLine={PIE_LABEL_LINE_PROPS}>
                         {reportCategoryData.map((e) => <Cell key={e.name} fill={e.fill} />)}
                       </Pie>
                       <Tooltip content={<CustomTooltip />} />
@@ -589,6 +591,8 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                       outerRadius={65}
                       strokeWidth={0}
                       paddingAngle={2}
+                      label={renderPieLabel}
+                      labelLine={PIE_LABEL_LINE_PROPS}
                     >
                       {reportCategoryAreaData.map((e) => <Cell key={e.name} fill={e.fill} />)}
                     </Pie>
@@ -618,42 +622,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           </div>
 
           <div className="md:col-span-9 h-full">
-            <HeatmapTableCard title="Landside Area - Detail Root Cause Identification" accent="oklch(0.6 0.18 25)" className="h-full flex flex-col">
-              <div className="overflow-x-auto flex-1 min-h-0">
-                <div className="h-full overflow-y-auto">
-                  <table className="w-full text-xs min-w-[760px]">
-                    <thead className="sticky top-0 z-10">
-                      <tr className="bg-slate-100 text-black border-b border-gray-300">
-                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Branch</th>
-                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Airlines</th>
-                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Category</th>
-                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Area</th>
-                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Issue Caused</th>
-                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Breakdown Caused</th>
-                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Root Caused</th>
-                        <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {landsideDetailData.map((row: any, i: number) => (
-                        <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-1.5 px-2 text-gray-800 whitespace-nowrap">{row.stations?.code || row.branch || '-'}</td>
-                          <td className="py-1.5 px-2 text-gray-700 whitespace-nowrap">{row.airlines || row.airline || '-'}</td>
-                          <td className="py-1.5 px-2 text-gray-700">{row.category || '-'}</td>
-                          <td className="py-1.5 px-2 text-gray-700">{row.area || '-'}</td>
-                          <td className="py-1.5 px-2 text-gray-700">{row.issue_caused || '-'}</td>
-                          <td className="py-1.5 px-2 text-gray-700">{row.breakdown_caused || '-'}</td>
-                          <td className="py-1.5 px-2 text-gray-700">{row.root_caused || row.identification_of_root || '-'}</td>
-                          <td className="py-1.5 px-2 text-center">
-                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[oklch(0.65_0.18_160_/_0.15)] text-[10px] font-black text-gray-700">1</span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </HeatmapTableCard>
+            <LandsideDetailTable data={landsideDetailData} />
           </div>
         </div>
       </SummarySectionCard>
@@ -681,6 +650,80 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
 }
 
 /* ─── Reusable Sub-Components (matching Summary Report design) ─── */
+
+function LandsideDetailTable({ data }: { data: any[] }) {
+  const PAGE_SIZE = 4;
+  const [page, setPage] = useState(0);
+  const totalPages = Math.ceil(data.length / PAGE_SIZE);
+  const pageItems = data.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const startIdx = data.length === 0 ? 0 : page * PAGE_SIZE + 1;
+  const endIdx = Math.min((page + 1) * PAGE_SIZE, data.length);
+
+  if (data.length === 0) {
+    return (
+      <HeatmapTableCard title="Landside Area - Detail Root Cause Identification" accent="oklch(0.6 0.18 25)">
+        <p className="text-xs text-gray-400 text-center py-4">Tidak ada data</p>
+      </HeatmapTableCard>
+    );
+  }
+
+  return (
+    <HeatmapTableCard title="Landside Area - Detail Root Cause Identification" accent="oklch(0.6 0.18 25)" className="h-full flex flex-col">
+      <div className="overflow-x-auto flex-1 min-h-0">
+        <table className="w-full text-xs min-w-[760px]">
+          <thead className="sticky top-0 z-10">
+            <tr className="bg-slate-100 text-black border-b border-gray-300">
+              <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Branch</th>
+              <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Airlines</th>
+              <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Category</th>
+              <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Area</th>
+              <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Issue Caused</th>
+              <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Breakdown Caused</th>
+              <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Root Caused</th>
+              <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pageItems.map((row: any, i: number) => (
+              <tr key={`${page}-${i}`} className="border-b border-gray-100 hover:bg-gray-50">
+                <td className="py-1.5 px-2 text-gray-800 whitespace-nowrap">{row.stations?.code || row.branch || '-'}</td>
+                <td className="py-1.5 px-2 text-gray-700 whitespace-nowrap">{row.airlines || row.airline || '-'}</td>
+                <td className="py-1.5 px-2 text-gray-700">{row.category || '-'}</td>
+                <td className="py-1.5 px-2 text-gray-700">{row.area || '-'}</td>
+                <td className="py-1.5 px-2 text-gray-700">{row.issue_caused || '-'}</td>
+                <td className="py-1.5 px-2 text-gray-700">{row.breakdown_caused || '-'}</td>
+                <td className="py-1.5 px-2 text-gray-700">{row.root_caused || row.identification_of_root || '-'}</td>
+                <td className="py-1.5 px-2 text-center">
+                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[oklch(0.65_0.18_160_/_0.15)] text-[10px] font-black text-gray-700">1</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-3">
+          <span className="text-[10px] text-gray-500">
+            {startIdx}&ndash;{endIdx} / {data.length} records
+          </span>
+          <div className="flex items-center gap-2">
+            <button className="p-1 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+              <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <span className="text-[10px] font-semibold text-gray-600 tabular-nums">Page {page + 1} / {totalPages}</span>
+            <button className="p-1 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+              <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+    </HeatmapTableCard>
+  );
+}
 
 function LookerQrCard({
   title,

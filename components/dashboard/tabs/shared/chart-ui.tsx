@@ -336,6 +336,66 @@ export function KpiCard({
   );
 }
 
+// ── Donut/Pie Slice Label ────────────────────────────────────────────────────
+
+export function renderPieLabel({
+  cx,
+  cy,
+  midAngle,
+  outerRadius,
+  name,
+  value,
+  percent,
+}: {
+  cx?: number | string;
+  cy?: number | string;
+  midAngle?: number;
+  outerRadius?: number | string;
+  name?: string;
+  value?: number;
+  percent?: number;
+}) {
+  const RADIAN = Math.PI / 180;
+  const cxNum = Number(cx || 0);
+  const cyNum = Number(cy || 0);
+  const radius = Number(outerRadius || 0) + 18;
+  const x = cxNum + radius * Math.cos(-(midAngle || 0) * RADIAN);
+  const y = cyNum + radius * Math.sin(-(midAngle || 0) * RADIAN);
+  const anchor = x > cxNum ? 'start' : 'end';
+  const shortName = String(name || '').length > 16 ? `${String(name || '').slice(0, 16)}…` : name || '';
+  const pct = percent != null ? Math.round(percent * 100) : 0;
+
+  return (
+    <g>
+      <text
+        x={x}
+        y={y - 6}
+        fill="var(--text-primary)"
+        textAnchor={anchor}
+        dominantBaseline="central"
+        style={{ fontSize: 10, fontWeight: 800 }}
+      >
+        {shortName}
+      </text>
+      <text
+        x={x}
+        y={y + 7}
+        fill="var(--text-muted)"
+        textAnchor={anchor}
+        dominantBaseline="central"
+        style={{ fontSize: 9, fontWeight: 700 }}
+      >
+        {`${value} (${pct}%)`}
+      </text>
+    </g>
+  );
+}
+
+export const PIE_LABEL_LINE_PROPS = {
+  stroke: 'oklch(0.68 0.12 180 / 0.7)',
+  strokeWidth: 1,
+};
+
 // ── Detail Report Table ─────────────────────────────────────────────────────
 
 const DETAIL_PAGE_SIZE = 10;
