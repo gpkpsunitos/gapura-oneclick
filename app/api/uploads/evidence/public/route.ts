@@ -3,41 +3,35 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { randomUUID } from 'crypto';
 import { compressToExactSize } from '@/lib/image-compression';
 import { validateImageFile } from '@/lib/security/file-validation';
+import { checkRateLimit, checkDbRateLimit, getClientIpFromRequest, verifyUploadToken } from '@/lib/security/rate-limit';
 
-const uploadAttempts = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW = 60 * 1000;
 const MAX_UPLOADS_PER_WINDOW = 5;
-const MAX_CACHE_ENTRIES = 1000;
-
-function checkRateLimit(ip: string): boolean {
-    const now = Date.now();
-    if (uploadAttempts.size > MAX_CACHE_ENTRIES) {
-        for (const [key, entry] of uploadAttempts) {
-            if (now > entry.resetAt) uploadAttempts.delete(key);
-        }
-        if (uploadAttempts.size > MAX_CACHE_ENTRIES) {
-            const keys = Array.from(uploadAttempts.keys()).slice(0, uploadAttempts.size - MAX_CACHE_ENTRIES + 100);
-            keys.forEach(key => uploadAttempts.delete(key));
-        }
-    }
-
-    const entry = uploadAttempts.get(ip);
-    if (!entry || now > entry.resetAt) {
-        uploadAttempts.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-        return true;
-    }
-    entry.count++;
-    return entry.count <= MAX_UPLOADS_PER_WINDOW;
-}
+const RATE_LIMIT_WINDOW = 60 * 1000;
 
 export async function POST(request: Request) {
   try {
-    // Rate limiting by IP
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
-        || request.headers.get('x-real-ip') 
-        || 'unknown';
-    
-    if (!checkRateLimit(ip)) {
+    // 1. Verify signed upload token
+    const uploadToken = request.headers.get('x-upload-token');
+    if (!uploadToken || !verifyUploadToken(uploadToken)) {
+        return NextResponse.json(
+            { error: 'Invalid or expired upload token. Request a new token from /api/uploads/evidence/token' },
+            { status: 403 }
+        );
+    }
+
+    // 2. In-memory rate limit (fast, first layer)
+    const ip = getClientIpFromRequest(request);
+    const memRl = checkRateLimit(`upload:${ip}`, MAX_UPLOADS_PER_WINDOW, RATE_LIMIT_WINDOW);
+    if (!memRl.success) {
+        return NextResponse.json(
+            { error: 'Too many uploads. Please try again later.' },
+            { status: 429 }
+        );
+    }
+
+    // 3. Database-backed rate limit (persistent across serverless instances)
+    const dbRl = await checkDbRateLimit(`upload:${ip}`, MAX_UPLOADS_PER_WINDOW, RATE_LIMIT_WINDOW);
+    if (!dbRl.success) {
         return NextResponse.json(
             { error: 'Too many uploads. Please try again later.' },
             { status: 429 }
@@ -73,7 +67,6 @@ export async function POST(request: Request) {
     // Server-side magic byte validation
     const validation = validateImageFile(buffer, file.type);
     if (!validation.valid) {
-        console.warn(`[PUBLIC UPLOAD] File validation failed: ${validation.error}`);
         return NextResponse.json({ error: 'Invalid image file' }, { status: 400 });
     }
 
@@ -84,7 +77,6 @@ export async function POST(request: Request) {
       const result = await compressToExactSize(buffer, 5);
       compressedBuffer = result.buffer;
       contentType = 'image/webp';
-      console.log(`[PUBLIC UPLOAD] Compressed from ${result.originalSize}B to ${result.size}B`);
     } catch (error) {
       console.error('[PUBLIC UPLOAD] Compression failed:', error);
       return NextResponse.json({ error: 'Image processing failed' }, { status: 400 });
@@ -108,9 +100,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to get public URL' }, { status: 500 });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      url: publicUrl, 
+    return NextResponse.json({
+      success: true,
+      url: publicUrl,
       path,
       originalSize: file.size,
       compressedSize: compressedBuffer.length

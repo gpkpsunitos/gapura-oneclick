@@ -1,18 +1,16 @@
 'use client';
 
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState } from 'react';
 import type { Report } from '@/types';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LabelList,
+  BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, LabelList,
   PieChart, Pie, Cell,
 } from 'recharts';
 import {
   AlertCircle,
-  BarChart3,
-  Building2,
+  Activity,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
+  Clock,
   Copy,
   ExternalLink,
   FileStack,
@@ -21,9 +19,18 @@ import {
   Shapes,
 } from 'lucide-react';
 import { SummarySectionCard } from './summary/SummarySectionCard';
-import { SummaryDenseTable } from './summary/SummaryDenseTable';
 import { SummaryDetailArchive } from './summary/SummaryDetailArchive';
-import type { SummaryKpiItem, SummaryDetailRow } from './summary/types';
+import type { SummaryDetailRow } from './summary/types';
+import {
+  ChartCard,
+  HeatmapTableCard,
+  CustomTooltip,
+  WrappedYAxisTick,
+  ResponsiveContainer,
+  heatColor,
+  CategoryBarList,
+  KpiCard,
+} from './shared/chart-ui';
 
 interface ServiceQualityImprovementTabProps {
   reports: Report[];
@@ -48,70 +55,6 @@ const CUSTOMER_FEEDBACK_LOOKER_URL = 'https://lookerstudio.google.com/reporting/
 const OP_INITIAL_IRREGULARITY_LOOKER_URL = 'https://lookerstudio.google.com/reporting/06d31553-08c6-42f3-81e6-1bc96356a854/page/tKISF';
 const CUSTOMER_FEEDBACK_LOOKER_QR = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(CUSTOMER_FEEDBACK_LOOKER_URL)}`;
 const OP_INITIAL_IRREGULARITY_LOOKER_QR = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(OP_INITIAL_IRREGULARITY_LOOKER_URL)}`;
-
-function heatValue(val: number, max: number) {
-  if (!val) return 'transparent';
-  const ratio = Math.max(0.1, val / max);
-  return `oklch(0.75 0.18 160 / ${ratio})`;
-}
-
-/* ─── PaginatedTable (restyled to match SummaryDenseTable) ─── */
-
-function PaginatedTable({ data, renderRow, headers, itemsPerPage = 10 }: any) {
-  const [page, setPage] = useState(0);
-  const totalPages = Math.ceil(data.length / itemsPerPage);
-  const pageData = data.slice(page * itemsPerPage, (page + 1) * itemsPerPage);
-  const startIdx = page * itemsPerPage + 1;
-  const endIdx = Math.min((page + 1) * itemsPerPage, data.length);
-
-  return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[22px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-white/50">
-      <div className="min-h-0 flex-1 overflow-auto">
-        <table className="min-w-full border-separate border-spacing-0 text-sm">
-          <thead className="sticky top-0 z-20 bg-[var(--surface-1)]/95 backdrop-blur-xl">
-            <tr>
-              {headers.map((h: any, i: number) => (
-                <th
-                  key={i}
-                  className={`border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)]/95 px-4 py-3 text-[0.65rem] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)] whitespace-nowrap ${h.className || ''}`}
-                >
-                  {h.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {pageData.map((row: any, i: number) => renderRow(row, i))}
-          </tbody>
-        </table>
-      </div>
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-0)]/90 px-4 py-3 text-[0.72rem] font-bold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-          <span>{startIdx}–{endIdx} of {data.length}</span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPage(p => Math.max(0, p - 1))}
-              disabled={page === 0}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[oklch(0.9_0.01_90_/_0.9)] bg-white text-[var(--text-secondary)] transition-colors hover:border-[var(--brand-emerald-400)] hover:text-[var(--brand-emerald-700)] disabled:cursor-not-allowed disabled:opacity-35"
-            >
-              <ChevronLeft size={14} />
-            </button>
-            <span className="min-w-[4.5rem] text-center">{page + 1}/{totalPages}</span>
-            <button
-              type="button"
-              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
-              disabled={page >= totalPages - 1}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[oklch(0.9_0.01_90_/_0.9)] bg-white text-[var(--text-secondary)] transition-colors hover:border-[var(--brand-emerald-400)] hover:text-[var(--brand-emerald-700)] disabled:cursor-not-allowed disabled:opacity-35"
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
 
 /* ─── Main Component ─── */
 
@@ -319,35 +262,33 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     });
   }, [reports]);
 
-  // ── KPI items for grid ──
-  const kpiItems: SummaryKpiItem[] = [
-    { key: 'total', label: 'Reports', value: kpis.total, description: '', tone: 'volume' },
-    { key: 'branches', label: 'Branch', value: kpis.branches, description: '', tone: 'volume' },
-    { key: 'airlines', label: 'Airlines', value: kpis.airlines, description: '', tone: 'volume' },
-    { key: 'complaints', label: 'Complaint', value: kpis.complaints, description: '', tone: 'mix' },
-    { key: 'compliments', label: 'Compliment', value: kpis.compliments, description: '', tone: 'mix' },
-    { key: 'open', label: 'Open', value: kpis.open, description: '', tone: 'workflow' },
-    { key: 'onProgress', label: 'On Progress', value: kpis.onProgress, description: '', tone: 'workflow' },
-    { key: 'closed', label: 'Closed', value: kpis.closed, description: '', tone: 'workflow' },
-    { key: 'resolutionRate', label: 'Resolution', value: kpis.resolutionRate, description: '', tone: 'workflow' },
-  ];
-
-  const tooltipStyle = {
-    borderRadius: '16px',
-    borderColor: 'oklch(0.9 0.01 90 / 0.9)',
-    background: 'oklch(0.99 0.005 90 / 0.95)',
-  };
-
-  /* ── shared cell class helpers ── */
-  const cellBase = 'px-4 py-3 text-[0.82rem] text-[var(--text-primary)] align-top';
-  const cellBreak = `${cellBase} break-words`;
+  // Landside detail data for table
+  const landsideDetailData = useMemo(() => {
+    return reports.filter(r => !!r.terminal_area_category || String(r.area).toLowerCase().includes('terminal'));
+  }, [reports]);
 
   return (
     <div className="space-y-6">
 
       {/* ══════ KPI Strip ══════ */}
       <SummarySectionCard title="Overview" subtitle="">
-        <SqiKpiGrid items={kpiItems} />
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+          <KpiCard label="Total Reports" value={kpis.total} icon={FileStack} accent="oklch(0.55 0.14 240)" />
+          <KpiCard label="Branches" value={kpis.branches} icon={Shapes} accent="oklch(0.65 0.18 160)" />
+          <KpiCard label="Airlines" value={kpis.airlines} icon={Plane} accent="oklch(0.6 0.14 240)" />
+          <KpiCard label="Complaints" value={kpis.complaints} icon={AlertCircle} accent="oklch(0.6 0.18 25)" />
+          <KpiCard label="Compliments" value={kpis.compliments} icon={CheckCircle2} accent="oklch(0.68 0.16 205)" />
+          <KpiCard label="Open" value={kpis.open} icon={AlertCircle} accent="oklch(0.6 0.18 25)" />
+          <KpiCard label="On Progress" value={kpis.onProgress} icon={Clock} accent="oklch(0.72 0.16 80)" />
+          <KpiCard label="Closed" value={kpis.closed} icon={CheckCircle2} accent="oklch(0.55 0.18 145)" />
+          <KpiCard
+            label="Resolution Rate"
+            value={`${kpis.resolutionRate.toFixed(1)}%`}
+            icon={Activity}
+            accent="oklch(0.5 0.18 160)"
+            progress={kpis.resolutionRate}
+          />
+        </div>
       </SummarySectionCard>
 
       {/* ══════ Report by Staff Joumpa ══════ */}
@@ -357,63 +298,45 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           {/* Left column: Monthly + Remarks Case + Pie */}
           <div className="md:col-span-3 flex flex-col gap-5">
             {/* Monthly Report */}
-            <SqiMiniPanel icon={<BarChart3 size={18} />} title="Monthly Report" subtitle="" accent="oklch(0.65 0.18 160)">
-              <div className="h-[160px] sm:h-[200px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart layout="vertical" data={monthlyData} margin={{ top: 6, right: 25, left: 12, bottom: 0 }} barCategoryGap={6}>
-                    <CartesianGrid strokeDasharray="4 4" horizontal={false} stroke="oklch(0.92 0.01 90 / 0.9)" />
-                    <XAxis type="number" hide />
-                    <YAxis
-                      dataKey="month"
-                      type="category"
-                      width={88}
-                      interval={0}
-                      axisLine={false}
-                      tickLine={false}
-                      tick={{ fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700 }}
-                    />
-                    <Tooltip
-                      formatter={(value: number) => [`${value} reports`, 'Volume']}
-                      contentStyle={tooltipStyle}
-                      cursor={{ fill: 'oklch(0.95 0.01 90 / 0.5)' }}
-                    />
-                    <Bar dataKey="val" fill="oklch(0.65 0.18 160)" barSize={18} radius={[0, 12, 12, 0]}>
-                      <LabelList dataKey="val" position="right" className="fill-[var(--text-primary)] text-[11px] font-black" />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+            <ChartCard title="Monthly Report" accent="oklch(0.65 0.18 160)">
+              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                <div style={{ height: Math.max(200, monthlyData.length * 50) }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart layout="vertical" data={monthlyData} margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                      <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                      <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="month" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="val" name="Count" fill="oklch(0.65 0.18 160)" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                        <LabelList dataKey="val" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-            </SqiMiniPanel>
+            </ChartCard>
 
             {/* Remarks Case Distribution */}
-            <SqiMiniPanel icon={<BarChart3 size={18} />} title="Remarks Case Distribution" subtitle="" accent="oklch(0.6 0.14 240)">
-              <div className="h-[180px] sm:h-[240px] w-full">
-
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart layout="vertical" data={remarksCaseData.slice(0, 5)} margin={{ top: 10, right: 25, left: -10, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="4 4" horizontal={false} stroke="oklch(0.92 0.01 90 / 0.9)" />
-                    <XAxis type="number" hide />
-                    <YAxis dataKey="name" type="category" width={80} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: 'var(--text-secondary)', fontWeight: 700 }} />
-                    <Tooltip
-                      formatter={(value: number) => [`${value} reports`, 'Volume']}
-                      contentStyle={tooltipStyle}
-                      cursor={{ fill: 'oklch(0.95 0.01 90 / 0.5)' }}
-                    />
-                    <Bar dataKey="val" fill="oklch(0.6 0.14 240)" barSize={16} radius={[0, 12, 12, 0]}>
-                      <LabelList dataKey="val" position="right" className="fill-[var(--text-primary)] text-[11px] font-black" />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+            <ChartCard title="Remarks Case Distribution" accent="oklch(0.6 0.14 240)">
+              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                <div style={{ height: Math.max(200, remarksCaseData.length * 50) }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart layout="vertical" data={remarksCaseData} margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                      <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                      <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="name" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="val" name="Count" fill="oklch(0.6 0.14 240)" radius={[0, 4, 4, 0]} maxBarSize={28}>
+                        <LabelList dataKey="val" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
-              {remarksCaseData.length > 5 && (
-                <p className="mt-2 text-center text-[0.68rem] font-semibold text-[var(--text-muted)]">
-                  Top 5 of {remarksCaseData.length} categories
-                </p>
-              )}
-            </SqiMiniPanel>
+            </ChartCard>
 
             {/* Report Category Pie */}
-            <SqiMiniPanel icon={<Shapes size={18} />} title="Report Category" subtitle="" accent="oklch(0.7 0.2 330)">
+            <ChartCard title="Report Category" accent="oklch(0.7 0.2 330)">
               <div className="flex h-full min-h-0 flex-col gap-4">
                 <div className="h-[180px] sm:h-[220px] w-full shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
@@ -421,10 +344,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                       <Pie data={reportCategoryData} dataKey="value" nameKey="name" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2}>
                         {reportCategoryData.map((e) => <Cell key={e.name} fill={e.fill} />)}
                       </Pie>
-                      <Tooltip
-                        formatter={(value: number, _name: string, entry: { payload?: { name?: string } }) => [`${value} reports`, entry?.payload?.name || '']}
-                        contentStyle={tooltipStyle}
-                      />
+                      <Tooltip content={<CustomTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -447,150 +367,165 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                   })}
                 </div>
               </div>
-            </SqiMiniPanel>
+            </ChartCard>
           </div>
 
           {/* Right column: Pivot Table */}
           <div className="md:col-span-9 flex flex-col">
-            <SqiMiniPanel icon={<Plane size={18} />} title="Report Category by Airlines" subtitle="Remarks Case / Record Count" accent="oklch(0.55 0.14 240)">
-              <PaginatedTable
-                data={rcByAirlines}
-                itemsPerPage={15}
-                headers={[
-                  { label: 'Branch' }, { label: 'Airlines' },
-                  ...remarksCaseCols.slice(0, 5).map(c => ({ label: c })),
-                  { label: 'Grand Total', className: 'text-right' }
-                ]}
-                renderRow={(row: any, i: number) => {
-                  const renderedCols = remarksCaseCols.slice(0, 5);
-                  let gtotal = 0;
-                  const colMax = renderedCols.map(c => Math.max(...rcByAirlines.map((r: any) => r[c] || 0), 1));
-                  return (
-                    <tr key={i} className="transition-colors hover:bg-[var(--surface-2)]/80">
-                      <td className={`${cellBreak} font-mono font-semibold`}>{row.branch}</td>
-                      <td className={cellBreak}>{row.airlines}</td>
-                      {renderedCols.map((c, idx) => {
-                        const v = row[c] || 0;
-                        gtotal += v;
-                        return <td key={idx} className={`${cellBase} text-right`} style={{ backgroundColor: heatValue(v, colMax[idx]) }}>{v || '–'}</td>;
-                      })}
-                      <td className={`${cellBase} text-right font-mono font-black text-[var(--brand-emerald-700)]`}>{row.total}</td>
-                    </tr>
-                  );
-                }}
-              />
-            </SqiMiniPanel>
+            <HeatmapTableCard title="Report Category by Airlines" subtitle="Remarks Case / Record Count" accent="oklch(0.55 0.14 240)">
+              {(() => {
+                const renderedCols = remarksCaseCols.slice(0, 5);
+                const colMax = renderedCols.map(c => Math.max(...rcByAirlines.map((r: any) => r[c] || 0), 1));
+                const grandTotals = renderedCols.map(c => rcByAirlines.reduce((s: number, r: any) => s + (r[c] || 0), 0));
+                const grandTotalAll = rcByAirlines.reduce((s: number, r: any) => s + r.total, 0);
+                return (
+                  <div className="overflow-x-auto">
+                    <div className="max-h-[240px] overflow-y-auto">
+                      <table className="w-full text-xs min-w-[340px]">
+                        <thead className="sticky top-0 z-10">
+                          <tr className="bg-slate-100 text-black border-b border-gray-300">
+                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Branch</th>
+                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Airlines</th>
+                            {renderedCols.map(c => (
+                              <th key={c} className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">{c}</th>
+                            ))}
+                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Grand Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {rcByAirlines.map((row: any, i: number) => (
+                            <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-1.5 px-2 font-medium text-gray-800 whitespace-nowrap">{row.branch}</td>
+                              <td className="py-1.5 px-2 text-gray-800">{row.airlines}</td>
+                              {renderedCols.map((c, idx) => {
+                                const v = row[c] || 0;
+                                const color = heatColor(v, colMax[idx]);
+                                return (
+                                  <td key={c} className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: color.bg, color: color.fg }}>
+                                    {v || '-'}
+                                  </td>
+                                );
+                              })}
+                              <td className="py-1.5 px-2 text-center font-bold">{row.total}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <table className="w-full text-xs min-w-[340px] border-t-2 border-gray-300">
+                      <tbody>
+                        <tr className="bg-gray-100 font-bold">
+                          <td className="py-1.5 px-2 text-gray-800">Grand total</td>
+                          <td className="py-1.5 px-2 text-gray-800"></td>
+                          {renderedCols.map((c, idx) => (
+                            <td key={c} className="py-1.5 px-2 text-center text-gray-800">{grandTotals[idx]}</td>
+                          ))}
+                          <td className="py-1.5 px-2 text-center text-gray-800">{grandTotalAll}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
+            </HeatmapTableCard>
           </div>
         </div>
       </SummarySectionCard>
 
-      {/* ══════ Landside Root Cause Section ══════ */}
+      {/* ══════ Landslide Root Cause Section ══════ */}
       <SummarySectionCard title="Landside Area Root Cause" subtitle="Aggregated root cause identification for Landside / Terminal Area reports">
         <div className="space-y-5">
-          <SqiMiniPanel icon={<Building2 size={18} />} title="Landside Area" subtitle="" accent="oklch(0.65 0.18 160)">
-            <div className="flex-1 min-h-0">
-              <PaginatedTable
-                data={landsideRootIds}
-                itemsPerPage={10}
-                headers={[{ label: 'Identification of Root' }, { label: 'Total ▼' }]}
-                renderRow={(row: any, i: number) => {
-                  const maxTotal = landsideRootIds[0]?.value || 1;
-                  const pWidth = (row.value / maxTotal) * 100;
-                  return (
-                    <tr key={i} className="transition-colors hover:bg-[var(--surface-2)]/80">
-                      <td className={cellBreak}>{row.name}</td>
-                      <td className={`${cellBase} w-[120px]`}>
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 font-mono font-black text-[var(--brand-emerald-700)]">{row.value}</span>
-                          <div className="flex-1 h-2.5 rounded-full" style={{ backgroundColor: 'oklch(0.65 0.18 160)', width: `${pWidth}%` }} />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }}
-              />
-            </div>
-          </SqiMiniPanel>
+          <ChartCard title="Landside Area" accent="oklch(0.65 0.18 160)">
+            <CategoryBarList data={landsideRootIds.map(d => ({ name: d.name, value: d.value }))} color="oklch(0.65 0.18 160)" />
+          </ChartCard>
         </div>
       </SummarySectionCard>
 
       {/* ══════ Case Classification + Heatmaps ══════ */}
       <SummarySectionCard title="Breakdown of Identified Causes" subtitle="">
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          <SqiMiniPanel icon={<AlertCircle size={18} />} title="Case Classification" subtitle="" accent="oklch(0.6 0.18 25)">
-            <div className="flex-1 min-h-0">
-              <PaginatedTable
-                data={caseClassificationData}
-                itemsPerPage={15}
-                headers={[{ label: 'Case Classification' }, { label: 'Total ▼' }]}
-                renderRow={(row: any, i: number) => {
-                  const maxTotal = caseClassificationData[0]?.value || 1;
-                  const pWidth = (row.value / maxTotal) * 100;
-                  return (
-                    <tr key={i} className="transition-colors hover:bg-[var(--surface-2)]/80">
-                      <td className={cellBreak}>{row.name}</td>
-                      <td className={`${cellBase} w-[100px]`}>
-                        <div className="flex items-center gap-2">
-                          <span className="w-5 font-mono font-black text-[var(--brand-emerald-700)]">{row.value}</span>
-                          <div className="flex-1 h-2.5 rounded-full" style={{ backgroundColor: 'oklch(0.65 0.18 160)', width: `${pWidth}%` }} />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                }}
-              />
-            </div>
-          </SqiMiniPanel>
+          <ChartCard title="Case Classification" accent="oklch(0.6 0.18 25)">
+            <CategoryBarList data={caseClassificationData.map(d => ({ name: d.name, value: d.value }))} color="oklch(0.6 0.18 25)" />
+          </ChartCard>
 
           <div className="flex flex-col gap-5">
             {/* Branch Heatmap */}
-            <SqiMiniPanel icon={<Building2 size={18} />} title="Breakdown by Branch" subtitle="" accent="oklch(0.55 0.14 240)">
-              <div className="flex-1 min-h-0 max-h-[200px] overflow-auto">
-                <PaginatedTable
-                  data={heatmapData.branchRc.data}
-                  itemsPerPage={5}
-                  headers={[{ label: 'Identification of Root' }, ...heatmapData.branchRc.cols.map(c => ({ label: c }))]}
-                  renderRow={(row: any, i: number) => {
-                    const colMaxes = heatmapData.branchRc.cols.map(c => Math.max(...heatmapData.branchRc.data.map((r: any) => r[c] || 0), 1));
-                    return (
-                      <tr key={i} className="transition-colors hover:bg-[var(--surface-2)]/80">
-                        <td className={`${cellBreak}`} title={row.cls}>{row.cls}</td>
-                        {heatmapData.branchRc.cols.map((c, idx) => (
-                          <td key={c} className={`${cellBase} text-center`} style={{ backgroundColor: heatValue(row[c] || 0, colMaxes[idx]) }}>
-                            {(row[c] || 0) === 0 ? '–' : row[c]}
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  }}
-                />
-              </div>
-            </SqiMiniPanel>
+            <HeatmapTableCard title="Breakdown by Branch" accent="oklch(0.55 0.14 240)">
+              {(() => {
+                const cols = heatmapData.branchRc.cols;
+                const colMaxes = cols.map(c => Math.max(...heatmapData.branchRc.data.map((r: any) => r[c] || 0), 1));
+                return (
+                  <div className="overflow-x-auto">
+                    <div className="max-h-[220px] overflow-y-auto">
+                      <table className="w-full text-xs min-w-[340px]">
+                        <thead className="sticky top-0 z-10">
+                          <tr className="bg-slate-100 text-black border-b border-gray-300">
+                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Identification of Root</th>
+                            {cols.map(c => (
+                              <th key={c} className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">{c}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {heatmapData.branchRc.data.map((row: any, i: number) => (
+                            <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-1.5 px-2 font-medium text-gray-800" title={row.cls}>{row.cls}</td>
+                              {cols.map((c, idx) => {
+                                const color = heatColor(row[c] || 0, colMaxes[idx]);
+                                return (
+                                  <td key={c} className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: color.bg, color: color.fg }}>
+                                    {(row[c] || 0) === 0 ? '-' : row[c]}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+            </HeatmapTableCard>
 
             {/* Airline Heatmap */}
-            <SqiMiniPanel icon={<Plane size={18} />} title="Breakdown by Airlines" subtitle="" accent="oklch(0.7 0.2 330)">
-              <div className="flex-1 min-h-0 max-h-[200px] overflow-auto">
-                <PaginatedTable
-                  data={heatmapData.airlineRc.data}
-                  itemsPerPage={5}
-                  headers={[{ label: 'Identification of Root' }, ...heatmapData.airlineRc.cols.slice(0, 5).map(c => ({ label: c }))]}
-                  renderRow={(row: any, i: number) => {
-                    const renderedCols = heatmapData.airlineRc.cols.slice(0, 5);
-                    const colMaxes = renderedCols.map(c => Math.max(...heatmapData.airlineRc.data.map((r: any) => r[c] || 0), 1));
-                    return (
-                      <tr key={i} className="transition-colors hover:bg-[var(--surface-2)]/80">
-                        <td className={cellBreak} title={row.cls}>{row.cls}</td>
-                        {renderedCols.map((c, idx) => (
-                          <td key={c} className={`${cellBase} text-center`} style={{ backgroundColor: heatValue(row[c] || 0, colMaxes[idx]) }}>
-                            {(row[c] || 0) === 0 ? '–' : row[c]}
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  }}
-                />
-              </div>
-            </SqiMiniPanel>
+            <HeatmapTableCard title="Breakdown by Airlines" accent="oklch(0.7 0.2 330)">
+              {(() => {
+                const renderedCols = heatmapData.airlineRc.cols.slice(0, 5);
+                const colMaxes = renderedCols.map(c => Math.max(...heatmapData.airlineRc.data.map((r: any) => r[c] || 0), 1));
+                return (
+                  <div className="overflow-x-auto">
+                    <div className="max-h-[220px] overflow-y-auto">
+                      <table className="w-full text-xs min-w-[340px]">
+                        <thead className="sticky top-0 z-10">
+                          <tr className="bg-slate-100 text-black border-b border-gray-300">
+                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Identification of Root</th>
+                            {renderedCols.map(c => (
+                              <th key={c} className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">{c}</th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {heatmapData.airlineRc.data.map((row: any, i: number) => (
+                            <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-1.5 px-2 font-medium text-gray-800" title={row.cls}>{row.cls}</td>
+                              {renderedCols.map((c, idx) => {
+                                const color = heatColor(row[c] || 0, colMaxes[idx]);
+                                return (
+                                  <td key={c} className="py-1.5 px-2 text-center font-medium" style={{ backgroundColor: color.bg, color: color.fg }}>
+                                    {(row[c] || 0) === 0 ? '-' : row[c]}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+            </HeatmapTableCard>
           </div>
         </div>
       </SummarySectionCard>
@@ -603,31 +538,40 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
             { title: 'Airside Area', labelCol: 'Apron Area', data: areaData.apron, accent: 'oklch(0.6 0.18 25)' },
             { title: 'General Service', labelCol: 'General Service', data: areaData.general, accent: 'oklch(0.68 0.16 205)' },
           ].map((area, idx) => (
-            <SqiMiniPanel key={idx} icon={<Building2 size={18} />} title={area.title} subtitle="" accent={area.accent}>
-              <div className="flex-1 min-h-0">
-                <PaginatedTable
-                  data={area.data}
-                  itemsPerPage={10}
-                  headers={[{ label: area.labelCol }, { label: 'Case Classification' }, { label: 'Total ▼' }]}
-                  renderRow={(row: any, i: number) => {
-                    const maxTotal = area.data[0]?.total || 1;
-                    const pWidth = (row.total / maxTotal) * 100;
-                    return (
-                      <tr key={i} className="transition-colors hover:bg-[var(--surface-2)]/80">
-                        <td className={cellBreak} title={row.cat}>{row.cat}</td>
-                        <td className={cellBreak} title={row.class}>{row.class}</td>
-                        <td className={`${cellBase} w-[80px]`}>
-                          <div className="flex items-center gap-2">
-                            <span className="w-5 font-mono font-black text-[var(--brand-emerald-700)]">{row.total}</span>
-                            <div className="flex-1 h-3 rounded-full" style={{ backgroundColor: 'oklch(0.65 0.18 160)', width: `${pWidth}%` }} />
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  }}
-                />
-              </div>
-            </SqiMiniPanel>
+            <HeatmapTableCard key={idx} title={area.title} accent={area.accent}>
+              {(() => {
+                const maxTotal = area.data[0]?.total || 1;
+                return (
+                  <div className="overflow-x-auto">
+                    <div className="max-h-[220px] overflow-y-auto">
+                      <table className="w-full text-xs min-w-[340px]">
+                        <thead className="sticky top-0 z-10">
+                          <tr className="bg-slate-100 text-black border-b border-gray-300">
+                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">{area.labelCol}</th>
+                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Case Classification</th>
+                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {area.data.map((row: any, i: number) => {
+                            const color = heatColor(row.total, maxTotal);
+                            return (
+                              <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                                <td className="py-1.5 px-2 font-medium text-gray-800" title={row.cat}>{row.cat}</td>
+                                <td className="py-1.5 px-2 text-gray-700" title={row.class}>{row.class}</td>
+                                <td className="py-1.5 px-2 text-center font-bold" style={{ backgroundColor: color.bg, color: color.fg }}>
+                                  {row.total}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                );
+              })()}
+            </HeatmapTableCard>
           ))}
         </div>
       </SummarySectionCard>
@@ -637,7 +581,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         <div className="grid grid-cols-1 gap-5 md:grid-cols-12">
 
           <div className="md:col-span-3">
-            <SqiMiniPanel icon={<Shapes size={18} />} title="Report Category" subtitle="" accent="oklch(0.7 0.2 330)">
+            <ChartCard title="Report Category" accent="oklch(0.7 0.2 330)">
               <div className="flex-1">
                 <ResponsiveContainer width="100%" height={180}>
                   <PieChart>
@@ -649,33 +593,10 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                       outerRadius={65}
                       strokeWidth={0}
                       paddingAngle={2}
-                      labelLine={{ stroke: 'oklch(0.68 0.12 180 / 0.9)', strokeWidth: 1.25 }}
-                      label={({ cx, cy, midAngle, outerRadius, name, value }) => {
-                        const RADIAN = Math.PI / 180;
-                        const radius = (outerRadius || 0) + 16;
-                        const x = (cx || 0) + radius * Math.cos(-midAngle * RADIAN);
-                        const y = (cy || 0) + radius * Math.sin(-midAngle * RADIAN);
-                        const anchor = x > (cx || 0) ? 'start' : 'end';
-                        return (
-                          <text
-                            x={x}
-                            y={y}
-                            fill="var(--text-primary)"
-                            textAnchor={anchor}
-                            dominantBaseline="central"
-                            style={{ fontSize: 10, fontWeight: 800 }}
-                          >
-                            {`${name}: ${value}`}
-                          </text>
-                        );
-                      }}
                     >
                       {reportCategoryAreaData.map((e) => <Cell key={e.name} fill={e.fill} />)}
                     </Pie>
-                    <Tooltip
-                      formatter={(value: number, _name: string, entry: { payload?: { name?: string } }) => [`${value} reports`, entry?.payload?.name || '']}
-                      contentStyle={tooltipStyle}
-                    />
+                    <Tooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
                 <div className="grid gap-2">
@@ -697,33 +618,46 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                   })}
                 </div>
               </div>
-            </SqiMiniPanel>
+            </ChartCard>
           </div>
 
           <div className="md:col-span-9">
-            <SqiMiniPanel icon={<AlertCircle size={18} />} title="Landside Area – Detail Root Cause Identification" subtitle="" accent="oklch(0.6 0.18 25)">
-              <div className="flex-1 min-h-0">
-                <PaginatedTable
-                  data={reports.filter(r => !!r.terminal_area_category || String(r.area).toLowerCase().includes('terminal'))}
-                  itemsPerPage={6}
-                  headers={[{ label: 'Branch' }, { label: 'Airlines' }, { label: 'Category' }, { label: 'Area' }, { label: 'Issue Caused' }, { label: 'Breakdown Caused' }, { label: 'Root Caused' }, { label: 'Total ▼' }]}
-                  renderRow={(row: any, i: number) => (
-                    <tr key={i} className="transition-colors hover:bg-[var(--surface-2)]/80">
-                      <td className={cellBreak}>{row.stations?.code || row.branch || '-'}</td>
-                      <td className={cellBreak}>{row.airlines || row.airline || '-'}</td>
-                      <td className={cellBreak}>{row.category || '-'}</td>
-                      <td className={cellBreak}>{row.area || '-'}</td>
-                      <td className={cellBreak}>{row.issue_caused || '-'}</td>
-                      <td className={cellBreak}>{row.breakdown_caused || '-'}</td>
-                      <td className={cellBreak}>{row.root_caused || row.identification_of_root || '-'}</td>
-                      <td className={`${cellBase} w-[40px] text-center`}>
-                        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[oklch(0.65_0.18_160_/_0.12)] text-[0.68rem] font-black text-[var(--brand-emerald-700)]">1</span>
-                      </td>
-                    </tr>
-                  )}
-                />
+            <HeatmapTableCard title="Landside Area - Detail Root Cause Identification" accent="oklch(0.6 0.18 25)">
+              <div className="overflow-x-auto">
+                <div className="max-h-[240px] overflow-y-auto">
+                  <table className="w-full text-xs min-w-[760px]">
+                    <thead className="sticky top-0 z-10">
+                      <tr className="bg-slate-100 text-black border-b border-gray-300">
+                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Branch</th>
+                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Airlines</th>
+                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Category</th>
+                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Area</th>
+                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Issue Caused</th>
+                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Breakdown Caused</th>
+                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Root Caused</th>
+                        <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {landsideDetailData.map((row: any, i: number) => (
+                        <tr key={i} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-1.5 px-2 text-gray-800 whitespace-nowrap">{row.stations?.code || row.branch || '-'}</td>
+                          <td className="py-1.5 px-2 text-gray-700 whitespace-nowrap">{row.airlines || row.airline || '-'}</td>
+                          <td className="py-1.5 px-2 text-gray-700">{row.category || '-'}</td>
+                          <td className="py-1.5 px-2 text-gray-700">{row.area || '-'}</td>
+                          <td className="py-1.5 px-2 text-gray-700">{row.issue_caused || '-'}</td>
+                          <td className="py-1.5 px-2 text-gray-700">{row.breakdown_caused || '-'}</td>
+                          <td className="py-1.5 px-2 text-gray-700">{row.root_caused || row.identification_of_root || '-'}</td>
+                          <td className="py-1.5 px-2 text-center">
+                            <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[oklch(0.65_0.18_160_/_0.15)] text-[10px] font-black text-gray-700">1</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </SqiMiniPanel>
+            </HeatmapTableCard>
           </div>
         </div>
       </SummarySectionCard>
@@ -751,70 +685,6 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
 }
 
 /* ─── Reusable Sub-Components (matching Summary Report design) ─── */
-
-function SqiKpiGrid({ items }: { items: SummaryKpiItem[] }) {
-  const groups = [
-    { id: 'volume', title: 'Volume', icon: <FileStack size={16} />, items: items.filter(i => i.tone === 'volume') },
-    { id: 'mix', title: 'Case Mix', icon: <Shapes size={16} />, items: items.filter(i => i.tone === 'mix') },
-    { id: 'workflow', title: 'Workflow', icon: <CheckCircle2 size={16} />, items: items.filter(i => i.tone === 'workflow') },
-  ];
-
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {groups.map(g => (
-        <div key={g.id}>
-          <div className="rounded-[24px] border border-[oklch(0.9_0.01_90_/_0.75)] bg-white/75 p-4">
-            <div className="mb-4 flex items-center gap-2">
-              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[oklch(0.65_0.18_160_/_0.12)] text-[var(--brand-emerald-700)]">
-                {g.icon}
-              </span>
-              <div>
-                <p className="text-[0.65rem] font-black uppercase tracking-[0.24em] text-[var(--brand-emerald-700)]">
-                  {g.title}
-                </p>
-                <p className="text-sm text-[var(--text-secondary)]">
-                  {g.id === 'workflow' ? 'Closure state' : g.id === 'mix' ? 'Current category balance' : 'Current data footprint'}
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {g.items.map(item => {
-                const isRate = item.key === 'resolutionRate';
-                const displayValue = isRate ? `${Number(item.value).toFixed(1)}%` : item.value.toLocaleString();
-                return (
-                  <div
-                    key={item.key}
-                    className={`rounded-[22px] border px-4 py-3 ${
-                      g.id === 'mix'
-                        ? 'border-[oklch(0.92_0.02_82_/_0.85)] bg-[oklch(0.99_0.01_82_/_0.85)]'
-                        : g.id === 'workflow'
-                        ? 'border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-0)]/95'
-                        : 'border-[var(--brand-emerald-100)] bg-[var(--brand-emerald-50)]/55'
-                    }`}
-                  >
-                    <p className="text-[0.65rem] font-black uppercase tracking-[0.22em] text-[var(--text-muted)]">{item.label}</p>
-                    <p className="mt-2 font-mono text-[1.65rem] font-black leading-none text-[var(--brand-emerald-700)]">{displayValue}</p>
-                    {isRate && (
-                      <div className="mt-2 h-1.5 w-full rounded-full bg-[oklch(0_0_0_/_0.06)] overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-700 ease-out"
-                          style={{ width: `${Math.min(100, Math.max(0, Number(item.value)))}%`, backgroundColor: 'oklch(0.55 0.18 145)' }}
-                        />
-                      </div>
-                    )}
-                    {item.description ? (
-                      <p className="mt-2 text-[0.76rem] leading-5 text-[var(--text-secondary)]">{item.description}</p>
-                    ) : null}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 function LookerQrCard({
   title,
@@ -935,36 +805,5 @@ function LookerQrCard({
         </div>
       ) : null}
     </>
-  );
-}
-
-function SqiMiniPanel({
-  icon,
-  title,
-  subtitle,
-  accent = 'oklch(0.65 0.18 160)',
-  children,
-}: {
-  icon: ReactNode;
-  title: string;
-  subtitle: string;
-  accent?: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex flex-col overflow-hidden rounded-[24px] border border-[oklch(0.9_0.01_90_/_0.72)] border-t-2 bg-white/75 p-4" style={{ borderTopColor: accent }}>
-      <div className="mb-4 flex shrink-0 items-start gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-white" style={{ backgroundColor: accent }}>
-          {icon}
-        </span>
-        <div className="min-w-0 space-y-1">
-          <h3 className="break-words font-display text-[1.02rem] font-black tracking-[-0.03em] text-[var(--text-primary)]">
-            {title}
-          </h3>
-          {subtitle ? <p className="break-words text-sm leading-6 text-[var(--text-secondary)]">{subtitle}</p> : null}
-        </div>
-      </div>
-      <div className="min-h-0 flex-1">{children}</div>
-    </div>
   );
 }

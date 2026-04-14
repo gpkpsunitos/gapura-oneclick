@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { SyncService } from '@/lib/services/sync-service';
+import { logSecurityAudit } from '@/lib/security/audit-logger';
 
-type SessionLike = { role?: unknown } | null | undefined;
+type SessionLike = { role?: unknown; id?: unknown; email?: unknown } | null | undefined;
 
 function isAuthorized(payload: SessionLike): boolean {
   if (!payload) return false;
@@ -13,37 +14,32 @@ function isAuthorized(payload: SessionLike): boolean {
 
 export async function POST(request: NextRequest) {
   try {
-    // Debug logging
     const nodeEnv = process.env.NODE_ENV;
-    console.log('[SYNC API] NODE_ENV:', nodeEnv);
-    
+    const isDevelopment = nodeEnv === 'development';
+
+    if (isDevelopment) {
+      console.log('[SYNC API] Development mode active');
+    }
+
     const cookieStore = await cookies();
     const session = cookieStore.get('session')?.value;
-    
+
     const authHeader = request.headers.get('authorization');
-    const isVercelCron = request.headers.get('x-vercel-cron') === 'true' || 
+    const isVercelCron = request.headers.get('x-vercel-cron') === 'true' ||
                          authHeader === `Bearer ${process.env.CRON_SECRET}`;
-    
-    // Allow in development mode without auth
-    const isDevelopment = nodeEnv === 'development';
-    
-    console.log('[SYNC API] isDevelopment:', isDevelopment, 'hasSession:', !!session, 'isVercelCron:', isVercelCron);
-    
+
     let payload = null;
-    
+
     if (session) {
       payload = await verifySession(session);
     }
-    
+
     // Allow if: Vercel cron, authorized user, or in development mode
     if (!isVercelCron && !isAuthorized(payload) && !isDevelopment) {
-      console.log('[SYNC API] Access denied');
-      return NextResponse.json({ 
-        error: 'Forbidden: Only admins and analysts can trigger sync' 
+      return NextResponse.json({
+        error: 'Forbidden: Only admins and analysts can trigger sync'
       }, { status: 403 });
     }
-
-    console.log('[SYNC API] Access granted, starting sync...');
 
     const body = await request.json().catch(() => ({}));
     const { action } = body;
@@ -59,6 +55,15 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await SyncService.syncReportsFromSheets('admin-sync-api');
+
+    await logSecurityAudit({
+      actorId: payload ? String(payload.id) : (isVercelCron ? 'vercel-cron' : 'system'),
+      action: 'SYNC_REPORTS',
+      entityType: 'Report',
+      newValue: { success: result.success, inserted: result.inserted, updated: result.updated, deleted: result.deleted },
+      ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim(),
+      userAgent: request.headers.get('user-agent'),
+    }).catch(() => {});
     
     return NextResponse.json(result, {
       status: result.success ? 200 : 500,

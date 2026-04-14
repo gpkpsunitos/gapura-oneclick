@@ -3,52 +3,85 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 
 export async function GET() {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+
+    if (!isDevelopment) {
+        // In production, only SUPER_ADMIN can access inspect
+        const cookieStore = await cookies();
+        const token = cookieStore.get('session')?.value;
+
+        if (!token) {
+            // Return 404 to avoid revealing endpoint existence
+            return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        }
+
+        try {
+            const payload = await verifySession(token);
+            if (!payload) {
+                return NextResponse.json({ error: 'Not found' }, { status: 404 });
+            }
+
+            const role = String(payload.role).trim().toUpperCase();
+            if (role !== 'SUPER_ADMIN') {
+                return NextResponse.json({ error: 'Not found' }, { status: 404 });
+            }
+
+            return NextResponse.json({
+                success: true,
+                payload
+            }, {
+                headers: { 'Cache-Control': 'no-store, max-age=0' },
+            });
+        } catch {
+            return NextResponse.json({ error: 'Not found' }, { status: 404 });
+        }
+    }
+
+    // Development mode: allow any authenticated user
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
     const authBundle = cookieStore.get('auth_bundle')?.value;
 
     if (!token) {
-        return NextResponse.json({ 
-            success: false, 
+        return NextResponse.json({
+            success: false,
             error: 'No session token found in cookies',
-            hasBundle: !!authBundle 
+            hasBundle: !!authBundle
         });
     }
 
     try {
         const payload = await verifySession(token);
         if (payload) {
-            // Only allow SUPER_ADMIN and ANALYST to inspect sessions
             const role = String(payload.role).trim().toUpperCase();
             if (role !== 'SUPER_ADMIN' && role !== 'ANALYST') {
-                return NextResponse.json({ 
-                    success: true, 
-                    payload: { 
-                        id: payload.id, 
+                return NextResponse.json({
+                    success: true,
+                    payload: {
+                        id: payload.id,
                         role: payload.role,
-                        email: payload.email 
-                    } 
+                        email: payload.email
+                    }
                 }, {
                     headers: { 'Cache-Control': 'no-store, max-age=0' },
                 });
             }
-            return NextResponse.json({ 
-                success: true, 
-                payload 
+            return NextResponse.json({
+                success: true,
+                payload
             }, {
                 headers: { 'Cache-Control': 'no-store, max-age=0' },
             });
         } else {
-            return NextResponse.json({ 
-                success: false, 
-                error: 'Session invalid or expired.' 
+            return NextResponse.json({
+                success: false,
+                error: 'Session invalid or expired.'
             });
         }
     } catch {
-        // Never expose stack traces or internal error details
-        return NextResponse.json({ 
-            success: false, 
-            error: 'Session verification failed.' 
+        return NextResponse.json({
+            success: false,
+            error: 'Session verification failed.'
         }, { status: 500 });
     }
 }

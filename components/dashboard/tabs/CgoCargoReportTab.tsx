@@ -1,9 +1,8 @@
 'use client';
 
-import { useMemo, useState, type ComponentProps } from 'react';
+import { useMemo, useState } from 'react';
 import {
   BarChart, Bar, Cell, LabelList, CartesianGrid, XAxis, YAxis, Tooltip,
-  ResponsiveContainer as RechartsResponsiveContainer,
 } from 'recharts';
 import {
   CheckCircle2,
@@ -15,6 +14,21 @@ import {
 } from 'lucide-react';
 import type { Report } from '@/types';
 import { SummarySectionCard } from './summary/SummarySectionCard';
+import {
+  ChartCard,
+  HeatmapTableCard,
+  CustomTooltip,
+  WrappedYAxisTick,
+  ResponsiveContainer,
+  CategoryBarList,
+  heatColor,
+  formatStatusValue,
+  normalizeStatusKey,
+  StatusBadge,
+  KpiCard,
+  REFERENCE_COLORS,
+  CHART_PALETTE,
+} from './shared/chart-ui';
 
 // ── Interfaces ────────────────────────────────────────────────────────────────
 
@@ -42,207 +56,7 @@ interface CaseReportByAreaBranchItem {
   grandTotal: number;
 }
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: Array<{
-    name?: string;
-    value?: number;
-    color?: string;
-    fill?: string;
-    dataKey?: string;
-    payload?: Record<string, unknown>;
-  }>;
-  label?: string;
-}
-
-// ── Shared Constants ──────────────────────────────────────────────────────────
-
-const REFERENCE_COLORS = {
-  irregularity: 'oklch(0.65 0.18 160)',
-  complaint: 'oklch(0.6 0.14 240)',
-  compliment: 'oklch(0.8 0.15 80)',
-  trend: 'oklch(0.65 0.18 160)',
-  neutral: 'oklch(0.55 0.02 250)',
-};
-
-const CHART_PALETTE = [
-  'oklch(0.65 0.18 160)',
-  'oklch(0.6 0.14 240)',
-  'oklch(0.7 0.2 330)',
-  'oklch(0.8 0.15 80)',
-  'oklch(0.6 0.2 25)',
-  'oklch(0.75 0.1 190)',
-];
-
-// ── Shared Helpers ────────────────────────────────────────────────────────────
-
-function ResponsiveContainer(props: ComponentProps<typeof RechartsResponsiveContainer>) {
-  return (
-    <RechartsResponsiveContainer
-      {...props}
-      minWidth={props.minWidth ?? 1}
-      minHeight={props.minHeight ?? 1}
-    />
-  );
-}
-
-const WrappedYAxisTick = (props: any) => {
-  const { x, y, payload } = props;
-  const words = String(payload.value).split(/\s+/);
-  const lines: string[] = [];
-  let currentLine = '';
-  const maxLineLength = 20;
-
-  words.forEach((word: string) => {
-    if ((currentLine + word).length > maxLineLength) {
-      if (currentLine) lines.push(currentLine.trim());
-      currentLine = word + ' ';
-    } else {
-      currentLine += word + ' ';
-    }
-  });
-  if (currentLine) lines.push(currentLine.trim());
-
-  return (
-    <g transform={`translate(${x},${y})`}>
-      {lines.map((line, i) => (
-        <text
-          key={i}
-          x={-12}
-          y={i * 11}
-          dy={-((lines.length - 1) * 5.5)}
-          textAnchor="end"
-          fill="var(--text-primary)"
-          fontSize={10}
-          fontWeight={700}
-          className="tracking-tighter"
-        >
-          {line}
-        </text>
-      ))}
-    </g>
-  );
-};
-
-function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-[oklch(1_0_0_/_0.8)] backdrop-blur-xl p-4 border border-[oklch(1_0_0_/_0.1)] shadow-2xl rounded-2xl min-w-[140px] animate-scale-in">
-      {label && <p className="text-[11px] font-black uppercase tracking-widest text-[var(--text-muted)] mb-3 border-b border-[oklch(0_0_0_/_0.05)] pb-1.5">{label}</p>}
-      <div className="space-y-2">
-        {payload.map((entry, idx) => (
-          <div key={idx} className="flex items-center justify-between gap-6">
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-2.5 h-2.5 rounded-full shadow-sm"
-                style={{ backgroundColor: entry.fill || entry.color || '#10b981' }}
-              />
-              <span className="text-[11px] font-bold text-[var(--text-secondary)]">
-                {entry.name || 'Value'}
-              </span>
-            </div>
-            <span className="text-[11px] font-black text-[var(--text-primary)]">
-              {typeof entry.value === 'number' ? entry.value.toLocaleString() : entry.value}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function heatColor(value: number, max: number): { bg: string; fg: string } {
-  if (value === 0 || max === 0) return { bg: 'transparent', fg: 'var(--text-muted)' };
-  const ratio = Math.min(1, Math.max(0, value / max));
-  const l = 0.95 - (0.45 * ratio);
-  const c = 0.03 + (0.17 * ratio);
-  const h = 160;
-  return {
-    bg: `oklch(${l} ${c} ${h})`,
-    fg: l < 0.65 ? '#ffffff' : '#0f172a',
-  };
-}
-
-function normalizeStatusKey(status: string | undefined | null): keyof StatusCountItem {
-  const normalized = String(status || '').trim().toUpperCase();
-  if (normalized === 'CLOSED') return 'closed';
-  if (normalized === 'OPEN') return 'open';
-  return 'onProgress';
-}
-
-function formatStatusValue(value: number) {
-  return value > 0 ? value.toLocaleString() : '-';
-}
-
 // ── Local Sub-Components ─────────────────────────────────────────────────────
-
-const PAGE_SIZE = 5;
-
-function CategoryBarList({ data, color = '#4ade80', title }: { data: readonly { name: string; value: number }[]; color?: string; title?: string }) {
-  const [page, setPage] = useState(0);
-  const totalPages = Math.ceil(data.length / PAGE_SIZE);
-  const pageItems = data.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const maxValue = data[0]?.value || 1;
-  const startIdx = page * PAGE_SIZE + 1;
-  const endIdx = Math.min((page + 1) * PAGE_SIZE, data.length);
-
-  return (
-    <div>
-      {title && <h3 className="font-semibold text-[13px] tracking-tight text-slate-900 mb-3">{title}</h3>}
-      <div className="space-y-2">
-        {pageItems.map((item) => (
-          <div key={item.name} className="flex items-center gap-2">
-            <span className="text-[11px] font-medium text-slate-600 w-[140px] shrink-0 whitespace-normal break-words leading-tight" title={item.name}>
-              {item.name}
-            </span>
-            <div className="flex-1 flex items-center gap-1.5">
-              <div className="flex-1 bg-slate-100 rounded-sm h-3.5 overflow-hidden">
-                <div
-                  className="h-full rounded-sm transition-all duration-300"
-                  style={{
-                    width: `${(item.value / maxValue) * 100}%`,
-                    backgroundColor: color,
-                  }}
-                />
-              </div>
-              <span className="text-[11px] font-semibold text-slate-700 w-7 text-right shrink-0">
-                {item.value}
-              </span>
-            </div>
-          </div>
-        ))}
-        {data.length === 0 && (
-          <p className="text-xs text-gray-400 text-center py-4">Tidak ada data</p>
-        )}
-      </div>
-      {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2 mt-3">
-          <span className="text-[10px] text-gray-500">
-            {startIdx}-{endIdx} / {data.length}
-          </span>
-          <button
-            className="p-0.5 rounded hover:bg-gray-100 disabled:opacity-30"
-            disabled={page === 0}
-            onClick={() => setPage((p) => p - 1)}
-          >
-            <svg className="w-3.5 h-3.5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button
-            className="p-0.5 rounded hover:bg-gray-100 disabled:opacity-30"
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage((p) => p + 1)}
-          >
-            <svg className="w-3.5 h-3.5 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 const DETAIL_PAGE_SIZE = 10;
 
@@ -464,66 +278,6 @@ function DetailedStatusTable({ rows }: { rows: Array<{ branch: string; airline: 
             </tr>
           </tbody>
         </table>
-      </div>
-    </div>
-  );
-}
-
-// ── Status Badge ──────────────────────────────────────────────────────────────
-
-const STATUS_BADGE: Record<string, { bg: string; fg: string; label: string }> = {
-  CLOSED: { bg: 'oklch(0.92 0.08 145 / 0.9)', fg: 'oklch(0.38 0.12 145)', label: 'Closed' },
-  OPEN: { bg: 'oklch(0.93 0.07 25 / 0.9)', fg: 'oklch(0.45 0.14 25)', label: 'Open' },
-  'ON PROGRESS': { bg: 'oklch(0.94 0.07 80 / 0.9)', fg: 'oklch(0.42 0.12 80)', label: 'On Progress' },
-};
-
-function StatusBadge({ status }: { status: string | undefined }) {
-  const key = String(status || '').trim().toUpperCase();
-  const cfg = STATUS_BADGE[key] || STATUS_BADGE['ON PROGRESS'];
-  return (
-    <span
-      className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide whitespace-nowrap"
-      style={{ backgroundColor: cfg.bg, color: cfg.fg }}
-    >
-      {cfg.label}
-    </span>
-  );
-}
-
-// ── KPI Card ─────────────────────────────────────────────────────────────────
-
-function KpiCard({
-  label,
-  value,
-  icon: Icon,
-  accent,
-  progress,
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ElementType;
-  accent: string;
-  progress?: number; // 0–100
-}) {
-  return (
-    <div className="card-glass p-5 group transition-all duration-500 hover:shadow-2xl flex items-center gap-4">
-      <div
-        className="flex items-center justify-center w-10 h-10 rounded-xl shrink-0"
-        style={{ backgroundColor: accent }}
-      >
-        <Icon className="w-5 h-5 text-white" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">{label}</p>
-        <p className="text-xl font-black tracking-tight text-[var(--text-primary)]">{value}</p>
-        {progress !== undefined && (
-          <div className="mt-1.5 h-1.5 w-full rounded-full bg-[oklch(0_0_0_/_0.06)] overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
-              style={{ width: `${Math.min(100, Math.max(0, progress))}%`, backgroundColor: accent }}
-            />
-          </div>
-        )}
       </div>
     </div>
   );

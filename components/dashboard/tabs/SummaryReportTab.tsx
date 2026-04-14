@@ -1,18 +1,17 @@
 'use client';
 
-import { useDeferredValue, useMemo, useState, type ReactNode } from 'react';
+import { useDeferredValue, useMemo, useState } from 'react';
 import {
   AlertCircle,
-  BarChart3,
   Building2,
   CalendarDays,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Clock,
   FileStack,
   Plane,
   Shapes,
-  Sparkles,
 } from 'lucide-react';
 import {
   Bar,
@@ -22,7 +21,6 @@ import {
   LabelList,
   Pie,
   PieChart,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -35,6 +33,15 @@ import { SummaryDenseTable } from './summary/SummaryDenseTable';
 import { SummaryDetailArchive } from './summary/SummaryDetailArchive';
 import { MonthlyAreaWorkbookTable, type MonthlyAreaWorkbookRow } from './summary/MonthlyAreaWorkbookTable';
 import { SummaryMatrixTable } from './summary/SummaryMatrixTable';
+import {
+  ChartCard,
+  CustomTooltip,
+  WrappedYAxisTick,
+  ResponsiveContainer,
+  KpiCard,
+  CategoryBarList,
+  REFERENCE_COLORS,
+} from './shared/chart-ui';
 import type {
   SummaryAirlineRow,
   SummaryAreaRow,
@@ -458,196 +465,165 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
         subtitle="Executive summary — key metrics and current operational snapshot"
       >
         <div className="space-y-6">
-          <SummaryKpiGrid items={kpis} />
+          {/* KPI Row — CGO-style KpiCard grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3">
+            <KpiCard label="Total Reports" value={kpis.find((k) => k.key === 'total')?.value ?? 0} icon={FileStack} accent="oklch(0.55 0.14 240)" />
+            <KpiCard label="Branches" value={kpis.find((k) => k.key === 'branches')?.value ?? 0} icon={Building2} accent="oklch(0.65 0.18 160)" />
+            <KpiCard label="Airlines" value={kpis.find((k) => k.key === 'airlines')?.value ?? 0} icon={Plane} accent="oklch(0.6 0.14 240)" />
+            <KpiCard label="Complaints" value={kpis.find((k) => k.key === 'complaints')?.value ?? 0} icon={AlertCircle} accent="oklch(0.6 0.18 25)" />
+            <KpiCard label="Compliments" value={kpis.find((k) => k.key === 'compliments')?.value ?? 0} icon={Shapes} accent="oklch(0.8 0.15 80)" />
+            <KpiCard label="Report Open" value={kpis.find((k) => k.key === 'open')?.value ?? 0} icon={Clock} accent="oklch(0.72 0.16 80)" />
+            <KpiCard label="Report Closed" value={kpis.find((k) => k.key === 'closed')?.value ?? 0} icon={CheckCircle2} accent="oklch(0.55 0.18 145)" />
+          </div>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <div>
-              <SummaryMiniPanel
-                icon={<Shapes size={18} />}
-                title="Category Distribution"
-                subtitle=""
-              >
-                <div className="h-[220px] sm:h-[280px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={categoryData}
-                        dataKey="value"
-                        nameKey="name"
-                        innerRadius={72}
-                        outerRadius={98}
-                        strokeWidth={0}
-                        paddingAngle={2}
-                      >
-                        {categoryData.map((entry) => (
-                          <Cell key={entry.name} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        formatter={(value: number, _name: string, entry: { payload?: { name?: string } }) => [`${value} reports`, entry?.payload?.name || '']}
-                        contentStyle={{
-                          borderRadius: '16px',
-                          borderColor: 'oklch(0.9 0.01 90 / 0.9)',
-                          background: 'oklch(0.99 0.005 90 / 0.95)',
-                        }}
-                      />
-                      <text
-                        x="50%"
-                        y="48%"
-                        textAnchor="middle"
-                        className="fill-[var(--text-muted)] text-[11px] font-black uppercase tracking-[0.24em]"
-                      >
-                        TOTAL
-                      </text>
-                      <text
-                        x="50%"
-                        y="57%"
-                        textAnchor="middle"
-                        className="fill-[var(--text-primary)] text-[28px] font-black"
-                      >
-                        {totalCategoryCount}
-                      </text>
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {categoryData.map((item) => {
-                    const share = totalCategoryCount > 0 ? Math.round((item.value / totalCategoryCount) * 100) : 0;
+            {/* Category Distribution — Pie Chart */}
+            <ChartCard title="Category Distribution" accent="oklch(0.65 0.18 160)">
+              <div className="h-[220px] sm:h-[280px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      dataKey="value"
+                      nameKey="name"
+                      innerRadius={72}
+                      outerRadius={98}
+                      strokeWidth={0}
+                      paddingAngle={2}
+                    >
+                      {categoryData.map((entry) => (
+                        <Cell key={entry.name} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <text
+                      x="50%"
+                      y="48%"
+                      textAnchor="middle"
+                      className="fill-[var(--text-muted)] text-[11px] font-black uppercase tracking-[0.24em]"
+                    >
+                      TOTAL
+                    </text>
+                    <text
+                      x="50%"
+                      y="57%"
+                      textAnchor="middle"
+                      className="fill-[var(--text-primary)] text-[28px] font-black"
+                    >
+                      {totalCategoryCount}
+                    </text>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {categoryData.map((item) => {
+                  const share = totalCategoryCount > 0 ? Math.round((item.value / totalCategoryCount) * 100) : 0;
 
-                    return (
-                      <div key={item.name} className="rounded-2xl border border-[oklch(0.9_0.01_90_/_0.75)] bg-white/80 px-3 py-2.5">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
-                          <span className="min-w-0 break-words text-[0.74rem] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">
-                            {item.name}
-                          </span>
-                        </div>
-                        <div className="mt-2 flex items-end justify-between">
-                          <span className="font-mono text-lg font-black text-[var(--text-primary)]">{item.value}</span>
-                          <span className="text-[0.72rem] font-semibold text-[var(--text-muted)]">{share}%</span>
-                        </div>
+                  return (
+                    <div key={item.name} className="rounded-2xl border border-[oklch(0.9_0.01_90_/_0.75)] bg-white/80 px-3 py-2.5">
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
+                        <span className="min-w-0 break-words text-[0.74rem] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">
+                          {item.name}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
-              </SummaryMiniPanel>
-            </div>
+                      <div className="mt-2 flex items-end justify-between">
+                        <span className="font-mono text-lg font-black text-[var(--text-primary)]">{item.value}</span>
+                        <span className="text-[0.72rem] font-semibold text-[var(--text-muted)]">{share}%</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ChartCard>
 
-            <div>
-              <SummaryMiniPanel
-                icon={<BarChart3 size={18} />}
-                title="Monthly Trend"
-                subtitle=""
-              >
-                <div className="h-[280px] sm:h-[380px]">
+            {/* Monthly Trend — Bar Chart (CGO style) */}
+            <ChartCard title="Monthly Trend" accent="oklch(0.6 0.14 240)">
+              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                <div style={{ height: Math.max(200, monthlyData.length * 50) }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
                       data={monthlyData}
                       layout="vertical"
-                      margin={{ top: 8, right: 36, left: 18, bottom: 8 }}
+                      margin={{ top: 4, right: 40, left: 40, bottom: 4 }}
+                      barCategoryGap="30%"
                     >
-                      <CartesianGrid horizontal={false} stroke="oklch(0.92 0.01 90 / 0.9)" strokeDasharray="4 4" />
-                      <XAxis type="number" hide />
-                      <YAxis
-                        type="category"
-                        dataKey="shortMonth"
-                        width={72}
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 10, fill: 'var(--text-secondary)', fontWeight: 700 }}
-                      />
-                      <Tooltip
-                        formatter={(value: number) => [`${value} reports`, 'Volume']}
-                        labelFormatter={(_, payload) => payload?.[0]?.payload?.month || ''}
-                        contentStyle={{
-                          borderRadius: '16px',
-                          borderColor: 'oklch(0.9 0.01 90 / 0.9)',
-                          background: 'oklch(0.99 0.005 90 / 0.95)',
-                        }}
-                      />
-                      <Bar dataKey="value" fill="oklch(0.65 0.18 160)" barSize={20} radius={[0, 12, 12, 0]}>
-                        <LabelList
-                          dataKey="value"
-                          position="right"
-                          offset={10}
-                          className="fill-[var(--text-primary)] text-[11px] font-black"
-                        />
+                      <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                      <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="shortMonth" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="value" name="Count" fill={REFERENCE_COLORS.irregularity} radius={[0, 4, 4, 0]} maxBarSize={28}>
+                        <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              </SummaryMiniPanel>
-            </div>
-
-          </div>
-
-          <div>
-            <SummaryMiniPanel
-              icon={<Plane size={18} />}
-              title="Airline Category Breakdown"
-              subtitle=""
-            >
-              <div className="h-[340px] sm:h-[460px] min-h-0">
-                <SummaryDenseTable
-                  data={airlineRows}
-                  rowKey={(row) => row.id}
-                  itemsPerPage={7}
-                  initialSort={{ columnId: 'total', direction: 'desc' }}
-                  columns={[
-                    {
-                      id: 'branch',
-                      header: 'Branch',
-                      accessor: (row) => <span className="font-mono font-bold">{row.branch}</span>,
-                      sortValue: (row) => row.branch,
-                      minWidth: '88px',
-                    },
-                    {
-                      id: 'airline',
-                      header: 'Airline',
-                      accessor: (row) => <span title={row.airline}>{row.airline}</span>,
-                      sortValue: (row) => row.airline,
-                      minWidth: '180px',
-                    },
-                    {
-                      id: 'accident',
-                      header: 'Accident / Incident',
-                      accessor: (row) => row.accident || '–',
-                      sortValue: (row) => row.accident,
-                      align: 'right',
-                    },
-                    {
-                      id: 'complaint',
-                      header: 'Complaint',
-                      accessor: (row) => row.complaint || '–',
-                      sortValue: (row) => row.complaint,
-                      align: 'right',
-                    },
-                    {
-                      id: 'irregularity',
-                      header: 'Irregularity',
-                      accessor: (row) => row.irregularity || '–',
-                      sortValue: (row) => row.irregularity,
-                      align: 'right',
-                    },
-                    {
-                      id: 'compliment',
-                      header: 'Compliment',
-                      accessor: (row) => row.compliment || '–',
-                      sortValue: (row) => row.compliment,
-                      align: 'right',
-                    },
-                    {
-                      id: 'total',
-                      header: 'Total',
-                      accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.total}</span>,
-                      sortValue: (row) => row.total,
-                      align: 'right',
-                    },
-                  ]}
-                />
               </div>
-            </SummaryMiniPanel>
+            </ChartCard>
           </div>
+
+          {/* Airline Category Breakdown — DenseTable wrapped in ChartCard */}
+          <ChartCard title="Airline Category Breakdown" accent="oklch(0.6 0.2 25)">
+            <div className="h-[340px] sm:h-[460px] min-h-0">
+              <SummaryDenseTable
+                data={airlineRows}
+                rowKey={(row) => row.id}
+                itemsPerPage={7}
+                initialSort={{ columnId: 'total', direction: 'desc' }}
+                columns={[
+                  {
+                    id: 'branch',
+                    header: 'Branch',
+                    accessor: (row) => <span className="font-mono font-bold">{row.branch}</span>,
+                    sortValue: (row) => row.branch,
+                    minWidth: '88px',
+                  },
+                  {
+                    id: 'airline',
+                    header: 'Airline',
+                    accessor: (row) => <span title={row.airline}>{row.airline}</span>,
+                    sortValue: (row) => row.airline,
+                    minWidth: '180px',
+                  },
+                  {
+                    id: 'accident',
+                    header: 'Accident / Incident',
+                    accessor: (row) => row.accident || '\u2013',
+                    sortValue: (row) => row.accident,
+                    align: 'right',
+                  },
+                  {
+                    id: 'complaint',
+                    header: 'Complaint',
+                    accessor: (row) => row.complaint || '\u2013',
+                    sortValue: (row) => row.complaint,
+                    align: 'right',
+                  },
+                  {
+                    id: 'irregularity',
+                    header: 'Irregularity',
+                    accessor: (row) => row.irregularity || '\u2013',
+                    sortValue: (row) => row.irregularity,
+                    align: 'right',
+                  },
+                  {
+                    id: 'compliment',
+                    header: 'Compliment',
+                    accessor: (row) => row.compliment || '\u2013',
+                    sortValue: (row) => row.compliment,
+                    align: 'right',
+                  },
+                  {
+                    id: 'total',
+                    header: 'Total',
+                    accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.total}</span>,
+                    sortValue: (row) => row.total,
+                    align: 'right',
+                  },
+                ]}
+              />
+            </div>
+          </ChartCard>
         </div>
       </SummarySectionCard>
 
@@ -658,81 +634,42 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
       >
         <div className="space-y-5">
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            <SummaryMiniPanel
-              icon={<AlertCircle size={18} />}
-              title="Case Classification"
-              subtitle=""
-            >
-              <div className="min-h-0 flex-1">
-                <SummaryDenseTable
-                  data={caseClassificationRows}
-                  rowKey={(row) => row.id}
-                  itemsPerPage={10}
-                  initialSort={{ columnId: 'value', direction: 'desc' }}
-                  columns={[
-                    {
-                      id: 'name',
-                      header: 'Case Classification',
-                      accessor: (row) => <span className="block max-w-[200px] break-words">{row.name}</span>,
-                      sortValue: (row) => row.name,
-                    },
-                    {
-                      id: 'value',
-                      header: 'Total',
-                      accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.value}</span>,
-                      sortValue: (row) => row.value,
-                      align: 'right',
-                    },
-                  ]}
-                />
+            {/* Case Classification — wrapped in card-glass with CategoryBarList */}
+            <ChartCard title="Case Classification" accent="oklch(0.65 0.18 160)">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Classification</span>
+                <span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span>
               </div>
-            </SummaryMiniPanel>
+              <CategoryBarList data={caseClassificationRows} color="oklch(0.65 0.18 160)" />
+            </ChartCard>
 
-            <SummaryMiniPanel
-              icon={<Sparkles size={18} />}
-              title="Root Cause Identification"
-              subtitle=""
-            >
-              <div className="min-h-0 flex-1">
-                <SummaryDenseTable
-                  data={rootCauseRows}
-                  rowKey={(row) => row.id}
-                  itemsPerPage={10}
-                  initialSort={{ columnId: 'value', direction: 'desc' }}
-                  columns={[
-                    {
-                      id: 'name',
-                      header: 'Identification Of Root',
-                      accessor: (row) => <span className="block max-w-[200px] break-words">{row.name}</span>,
-                      sortValue: (row) => row.name,
-                    },
-                    {
-                      id: 'value',
-                      header: 'Total',
-                      accessor: (row) => <span className="font-mono font-black text-[var(--brand-emerald-700)]">{row.value}</span>,
-                      sortValue: (row) => row.value,
-                      align: 'right',
-                    },
-                  ]}
-                />
+            {/* Root Cause Identification — wrapped in card-glass with CategoryBarList */}
+            <ChartCard title="Root Cause Identification" accent="oklch(0.6 0.2 25)">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Root Cause</span>
+                <span className="text-[9px] text-[var(--text-muted)] font-black uppercase tracking-widest">Total</span>
               </div>
-            </SummaryMiniPanel>
+              <CategoryBarList data={rootCauseRows} color="oklch(0.65 0.18 160)" />
+            </ChartCard>
           </div>
 
           <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
             <AreaBreakdownPanel
               title="Landside Area"
               subtitle=""
+              accent="oklch(0.65 0.18 160)"
               rows={areaPanels.landside}
             />
             <AreaBreakdownPanel
               title="Airside Area"
               subtitle=""
+              accent="oklch(0.6 0.14 240)"
               rows={areaPanels.airside}
             />
             <AreaBreakdownPanel
               title="General Service"
               subtitle=""
+              accent="oklch(0.8 0.15 80)"
               rows={areaPanels.general}
             />
           </div>
@@ -811,7 +748,7 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
                         className="h-[42px] w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-xs font-bold text-slate-700 outline-none transition-colors focus:border-sky-500"
                       />
                     </div>
-                    <span className="px-1 text-[10px] font-bold text-slate-400">→</span>
+                    <span className="px-1 text-[10px] font-bold text-slate-400">&rarr;</span>
                     <div className="relative min-w-[180px] flex-1">
                       <CalendarDays size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                       <input
@@ -1049,106 +986,19 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
   );
 }
 
-function SummaryKpiGrid({ items }: { items: SummaryKpiItem[] }) {
-  const groups = [
-    { id: 'volume', title: 'Volume', icon: <FileStack size={16} />, items: items.filter((item) => item.tone === 'volume') },
-    { id: 'mix', title: 'Case Mix', icon: <Shapes size={16} />, items: items.filter((item) => item.tone === 'mix') },
-    { id: 'workflow', title: 'Workflow', icon: <CheckCircle2 size={16} />, items: items.filter((item) => item.tone === 'workflow') },
-  ];
-
-  return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-12">
-      {groups.map((group) => (
-        <div key={group.id} className="sm:col-span-1 xl:col-span-4">
-          <div className="rounded-[24px] border border-[oklch(0.9_0.01_90_/_0.75)] bg-white/75 p-4">
-            <div className="mb-4 flex items-center gap-2">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-[oklch(0.65_0.18_160_/_0.12)] text-[var(--brand-emerald-700)]">
-                {group.icon}
-              </span>
-              <div>
-                <p className="text-[0.65rem] font-black uppercase tracking-[0.24em] text-[var(--brand-emerald-700)]">
-                  {group.title}
-                </p>
-                <p className="text-sm text-[var(--text-secondary)]">
-                  {group.id === 'workflow' ? 'Closure state' : group.id === 'mix' ? 'Current category balance' : 'Current data footprint'}
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              {group.items.map((item) => (
-                <div
-                  key={item.key}
-                  className={`rounded-[22px] border px-4 py-3 ${
-                    group.id === 'mix'
-                      ? 'border-[oklch(0.92_0.02_82_/_0.85)] bg-[oklch(0.99_0.01_82_/_0.85)]'
-                      : group.id === 'workflow'
-                      ? 'border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-0)]/95'
-                      : 'border-[var(--brand-emerald-100)] bg-[var(--brand-emerald-50)]/55'
-                  }`}
-                >
-                  <p className="text-[0.65rem] font-black uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                    {item.label}
-                  </p>
-                  <p className="mt-2 font-mono text-[1.65rem] font-black leading-none text-[var(--brand-emerald-700)]">
-                    {item.value.toLocaleString()}
-                  </p>
-                  {item.description ? (
-                    <p className="mt-2 text-[0.76rem] leading-5 text-[var(--text-secondary)]">{item.description}</p>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SummaryMiniPanel({
-  icon,
-  title,
-  subtitle,
-  children,
-}: {
-  icon: ReactNode;
-  title: string;
-  subtitle: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex h-full flex-col overflow-hidden rounded-[24px] border border-[oklch(0.9_0.01_90_/_0.72)] bg-white/75 p-4">
-      <div className="mb-4 flex shrink-0 items-center gap-3">
-        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[oklch(0.65_0.18_160_/_0.12)] text-[var(--brand-emerald-700)]">
-          {icon}
-        </span>
-        <div className="space-y-1">
-          <h3 className="font-display text-[1.02rem] font-black tracking-[-0.03em] text-[var(--text-primary)]">
-            {title}
-          </h3>
-          {subtitle ? <p className="text-sm leading-6 text-[var(--text-secondary)]">{subtitle}</p> : null}
-        </div>
-      </div>
-      <div className="min-h-0 flex-1">{children}</div>
-    </div>
-  );
-}
-
 function AreaBreakdownPanel({
   title,
   subtitle,
+  accent,
   rows,
 }: {
   title: string;
   subtitle: string;
+  accent: string;
   rows: SummaryAreaRow[];
 }) {
   return (
-    <SummaryMiniPanel
-      icon={<Building2 size={18} />}
-      title={title}
-      subtitle={subtitle}
-    >
+    <ChartCard title={title} accent={accent}>
       <div className="min-h-0 flex-1">
         <SummaryDenseTable
           data={rows}
@@ -1178,7 +1028,7 @@ function AreaBreakdownPanel({
           ]}
         />
       </div>
-    </SummaryMiniPanel>
+    </ChartCard>
   );
 }
 

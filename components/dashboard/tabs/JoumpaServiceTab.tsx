@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import type { ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -10,7 +9,6 @@ import {
   LabelList,
   Pie,
   PieChart,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -19,7 +17,16 @@ import { AlertCircle, ExternalLink, Loader2, QrCode, X } from 'lucide-react';
 import type { Report } from '@/types';
 import { SummarySectionCard } from './summary/SummarySectionCard';
 import { SummaryDenseTable, type SummaryDenseColumn } from './summary/SummaryDenseTable';
-import { heatColor, normalizeText } from './summary/summary-utils';
+import { normalizeText } from './summary/summary-utils';
+import {
+  ChartCard,
+  HeatmapTableCard,
+  CustomTooltip,
+  WrappedYAxisTick,
+  ResponsiveContainer,
+  heatColor,
+  CategoryBarList,
+} from './shared/chart-ui';
 
 interface JoumpaServiceTabProps {
   allReports: Report[];
@@ -114,12 +121,12 @@ interface VoiceTypeRow {
 }
 
 const CHART_COLORS = {
-  emerald: 'oklch(0.67 0.16 150)',
-  teal: 'oklch(0.68 0.14 205)',
-  amber: 'oklch(0.79 0.16 88)',
-  orange: 'oklch(0.7 0.18 45)',
-  rose: 'oklch(0.69 0.18 20)',
-  indigo: 'oklch(0.58 0.12 255)',
+  emerald: 'oklch(0.65 0.18 160)',
+  teal: 'oklch(0.55 0.14 240)',
+  amber: 'oklch(0.8 0.15 80)',
+  orange: 'oklch(0.6 0.2 25)',
+  rose: 'oklch(0.7 0.2 330)',
+  indigo: 'oklch(0.75 0.1 190)',
 };
 
 const SATISFACTION_LABELS: Record<string, string> = {
@@ -301,7 +308,7 @@ function buildMatrixData<T>(
 }
 
 function metricColumns<T extends { label: string; value: number }>(
-  valueHeader = 'Total ▼',
+  valueHeader = 'Total \u25BC',
   labelHeader = 'Category'
 ): SummaryDenseColumn<T>[] {
   return [
@@ -334,217 +341,6 @@ function metricColumns<T extends { label: string; value: number }>(
   ];
 }
 
-function WrappedYAxisTick(props: {
-  x?: number | string;
-  y?: number | string;
-  payload?: { value?: string | number };
-}) {
-  const x = typeof props.x === 'number' ? props.x : Number(props.x || 0);
-  const y = typeof props.y === 'number' ? props.y : Number(props.y || 0);
-  const label = String(props.payload?.value || '');
-  const words = label.split(/\s+/);
-  const lines: string[] = [];
-  let currentLine = '';
-  const maxLineLength = 24;
-
-  words.forEach((word) => {
-    if (`${currentLine} ${word}`.trim().length > maxLineLength) {
-      if (currentLine) lines.push(currentLine.trim());
-      currentLine = word;
-      return;
-    }
-    currentLine = `${currentLine} ${word}`.trim();
-  });
-
-  if (currentLine) lines.push(currentLine);
-
-  return (
-    <g transform={`translate(${x},${y})`}>
-      {lines.slice(0, 3).map((line, index) => (
-        <text
-          key={`${line}-${index}`}
-          x={-10}
-          y={index * 11}
-          dy={-((Math.min(lines.length, 3) - 1) * 5.5)}
-          textAnchor="end"
-          fill="var(--text-secondary)"
-          fontSize={10}
-          fontWeight={600}
-        >
-          {line}
-        </text>
-      ))}
-    </g>
-  );
-}
-
-function SmallChartCard({
-  title,
-  subtitle,
-  children,
-  className = '',
-}: {
-  title: string;
-  subtitle?: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={`overflow-hidden rounded-[22px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-white/55 ${className}`}>
-      <div className="border-b border-[oklch(0.9_0.01_90_/_0.7)] px-5 py-4">
-        <h3 className="font-display text-lg font-black tracking-[-0.03em] text-[var(--text-primary)]">{title}</h3>
-        {subtitle ? <p className="mt-1 text-sm leading-6 text-[var(--text-secondary)]">{subtitle}</p> : null}
-      </div>
-      <div className="p-5">{children}</div>
-    </div>
-  );
-}
-
-function EmptyPanel({ message = 'No data available for the current filter.' }: { message?: string }) {
-  return (
-    <div className="flex min-h-[220px] items-center justify-center rounded-[18px] border border-dashed border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-0)]/75 px-6 py-10 text-center text-sm text-[var(--text-muted)]">
-      {message}
-    </div>
-  );
-}
-
-function LoadingPanel({ message }: { message: string }) {
-  return (
-    <div className="flex min-h-[220px] items-center justify-center gap-3 rounded-[18px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-[var(--surface-0)]/75 px-6 py-10 text-sm text-[var(--text-secondary)]">
-      <Loader2 className="h-4 w-4 animate-spin" />
-      <span>{message}</span>
-    </div>
-  );
-}
-
-function ErrorPanel({ message }: { message: string }) {
-  return (
-    <div className="flex min-h-[220px] items-center justify-center gap-3 rounded-[18px] border border-red-200 bg-red-50 px-6 py-10 text-sm text-red-700">
-      <AlertCircle className="h-4 w-4" />
-      <span>{message}</span>
-    </div>
-  );
-}
-
-function HorizontalBarPanel({
-  rows,
-  color,
-  emptyMessage,
-  height = 280,
-  yAxisWidth = 130,
-  leftMargin = 60,
-}: {
-  rows: MetricRow[];
-  color: string;
-  emptyMessage?: string;
-  height?: number;
-  yAxisWidth?: number;
-  leftMargin?: number;
-}) {
-  if (!rows.length) return <EmptyPanel message={emptyMessage} />;
-
-  return (
-    <div style={{ height: Math.max(height, rows.length * 52 + 44) }}>
-      <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 20, left: leftMargin, bottom: 4 }}>
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="oklch(0.9 0.01 90 / 0.85)" />
-          <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
-          <YAxis
-            dataKey="label"
-            type="category"
-            axisLine={false}
-            tickLine={false}
-            width={yAxisWidth}
-            tick={WrappedYAxisTick}
-          />
-          <Tooltip
-            cursor={{ fill: 'oklch(0.96 0.01 90 / 0.75)' }}
-            contentStyle={{
-              borderRadius: 18,
-              border: '1px solid oklch(0.88 0.01 90 / 0.85)',
-              background: 'rgba(255,255,255,0.96)',
-              boxShadow: '0 16px 38px -22px rgba(15, 23, 42, 0.28)',
-            }}
-          />
-          <Bar dataKey="value" fill={color} radius={[0, 14, 14, 0]} barSize={26}>
-            <LabelList dataKey="value" position="right" fill="var(--text-primary)" fontSize={11} fontWeight={700} />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-    </div>
-  );
-}
-
-function PiePanel({ slices, emptyMessage }: { slices: PieSlice[]; emptyMessage?: string }) {
-  if (!slices.length) return <EmptyPanel message={emptyMessage} />;
-
-  return (
-    <div className="space-y-4">
-      <div className="h-[220px] sm:h-[280px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={slices}
-              dataKey="value"
-              nameKey="name"
-              cx="50%"
-              cy="48%"
-              outerRadius={94}
-              stroke="none"
-              labelLine={{ stroke: 'oklch(0.68 0.12 180 / 0.9)', strokeWidth: 1.5 }}
-              label={({ cx, cy, midAngle, outerRadius, name, value }) => {
-                const RADIAN = Math.PI / 180;
-                const radius = (outerRadius || 0) + 10;
-                const rawX = (cx || 0) + radius * Math.cos(-midAngle * RADIAN);
-                const y = (cy || 0) + radius * Math.sin(-midAngle * RADIAN);
-                const isRightSide = rawX > (cx || 0);
-                const anchor = isRightSide ? 'end' : 'start';
-                const x = isRightSide
-                  ? Math.min(rawX + 10, (cx || 0) + 150)
-                  : Math.max(rawX - 10, (cx || 0) - 150);
-                const shortName = String(name).length > 14 ? `${String(name).slice(0, 14)}…` : name;
-
-                return (
-                  <text
-                    x={x}
-                    y={y}
-                    fill="var(--text-primary)"
-                    textAnchor={anchor}
-                    dominantBaseline="central"
-                    style={{ fontSize: 10, fontWeight: 800 }}
-                  >
-                    {`${shortName}: ${value}`}
-                  </text>
-                );
-              }}
-            >
-              {slices.map((slice) => (
-                <Cell key={slice.name} fill={slice.fill} />
-              ))}
-            </Pie>
-            <Tooltip
-              contentStyle={{
-                borderRadius: 18,
-                border: '1px solid oklch(0.88 0.01 90 / 0.85)',
-                background: 'rgba(255,255,255,0.96)',
-                boxShadow: '0 16px 38px -22px rgba(15, 23, 42, 0.28)',
-              }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 text-sm text-[var(--text-secondary)]">
-        {slices.map((slice) => (
-          <div key={slice.name} className="flex items-center gap-2">
-            <span className="inline-block h-3 w-3 rounded-full" style={{ backgroundColor: slice.fill }} />
-            <span>{slice.name}</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function renderStackedBarLabel(category: string) {
   const StackedBarLabel = (props: {
     x?: number;
@@ -558,7 +354,7 @@ function renderStackedBarLabel(category: string) {
 
     if (!numericValue || width < 22 || height < 14) return null;
 
-    const compactLabel = category.length > 10 ? `${category.slice(0, 10)}…` : category;
+    const compactLabel = category.length > 10 ? `${category.slice(0, 10)}\u2026` : category;
     const showTextAndValue = width >= 120;
     const label = showTextAndValue ? `${compactLabel} ${numericValue}` : `${numericValue}`;
     const textX = showTextAndValue ? x + 10 : x + width / 2;
@@ -581,230 +377,28 @@ function renderStackedBarLabel(category: string) {
   return StackedBarLabel;
 }
 
-function MatrixTable({
-  data,
-  rowLabel,
-  secondaryLabel,
-  columnMinWidth = 120,
-  primaryWidth = 100,
-  secondaryWidth = 180,
-}: {
-  data: MatrixData;
-  rowLabel: string;
-  secondaryLabel?: string;
-  columnMinWidth?: number;
-  primaryWidth?: number;
-  secondaryWidth?: number;
-}) {
-  if (!data.rows.length) return <EmptyPanel />;
-
+function EmptyPanel({ message = 'No data available for the current filter.' }: { message?: string }) {
   return (
-    <div className="overflow-hidden rounded-[22px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-white/50">
-      <div className="max-h-[400px] sm:max-h-[560px] overflow-auto">
-        <table className="border-separate border-spacing-0 text-sm" style={{ minWidth: secondaryLabel ? primaryWidth + secondaryWidth + data.columns.length * columnMinWidth + 120 : primaryWidth + data.columns.length * columnMinWidth + 120 }}>
-          <thead className="sticky top-0 z-10">
-            <tr>
-              <th
-                className="sticky left-0 z-30 border-b border-r border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)] px-4 py-3 text-left text-[0.65rem] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]"
-                style={{ minWidth: primaryWidth }}
-              >
-                {rowLabel}
-              </th>
-              {secondaryLabel ? (
-                <th
-                  className="sticky z-30 border-b border-r border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)] px-4 py-3 text-left text-[0.65rem] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]"
-                  style={{ left: primaryWidth, minWidth: secondaryWidth }}
-                >
-                  {secondaryLabel}
-                </th>
-              ) : null}
-              {data.columns.map((column) => (
-                <th
-                  key={column}
-                  className="border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)] px-3 py-3 text-center text-[0.65rem] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]"
-                  style={{ minWidth: columnMinWidth }}
-                >
-                  {column}
-                </th>
-              ))}
-              <th className="sticky right-0 z-30 min-w-[92px] border-b border-l border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)] px-4 py-3 text-right text-[0.65rem] font-black uppercase tracking-[0.2em] text-[var(--text-secondary)]">
-                Total
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {data.rows.map((row) => (
-              <tr key={row.id} className="hover:bg-[var(--surface-2)]/60">
-                <td
-                  className="sticky left-0 z-[5] border-b border-r border-[oklch(0.9_0.01_90_/_0.55)] bg-white px-4 py-3 text-sm font-semibold text-[var(--text-primary)]"
-                  style={{ minWidth: primaryWidth }}
-                >
-                  {row.primary}
-                </td>
-                {secondaryLabel ? (
-                  <td
-                    className="sticky z-[5] border-b border-r border-[oklch(0.9_0.01_90_/_0.55)] bg-white px-4 py-3 text-sm text-[var(--text-primary)]"
-                    style={{ left: primaryWidth, minWidth: secondaryWidth }}
-                  >
-                    {row.secondary || '–'}
-                  </td>
-                ) : null}
-                {data.columns.map((column) => {
-                  const value = row.values[column] || 0;
-                  return (
-                    <td
-                      key={`${row.id}-${column}`}
-                      className="border-b border-[oklch(0.9_0.01_90_/_0.5)] px-3 py-3 text-center font-mono text-[0.82rem] font-semibold text-[var(--text-primary)]"
-                      style={{ background: value > 0 ? heatColor(value, Math.max(data.maxValue, 1)) : 'oklch(0.98 0.005 90)' }}
-                    >
-                      {value > 0 ? value : '–'}
-                    </td>
-                  );
-                })}
-                <td className="sticky right-0 z-[5] border-b border-l border-[oklch(0.9_0.01_90_/_0.55)] bg-white px-4 py-3 text-right font-mono text-[0.82rem] font-black text-[var(--brand-emerald-700)]">
-                  {row.total}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr className="bg-[var(--surface-0)]/90">
-              <td
-                colSpan={secondaryLabel ? 2 : 1}
-                className="border-t border-[oklch(0.9_0.01_90_/_0.85)] px-4 py-3 text-left text-[0.72rem] font-black uppercase tracking-[0.18em] text-[var(--text-secondary)]"
-              >
-                Grand Total
-              </td>
-              {data.columns.map((column) => (
-                <td
-                  key={`total-${column}`}
-                  className="border-t border-[oklch(0.9_0.01_90_/_0.85)] px-3 py-3 text-center font-mono text-[0.82rem] font-black text-[var(--text-primary)]"
-                >
-                  {data.columnTotals[column] || 0}
-                </td>
-              ))}
-              <td className="border-t border-[oklch(0.9_0.01_90_/_0.85)] px-4 py-3 text-right font-mono text-[0.82rem] font-black text-[var(--brand-emerald-700)]">
-                {data.grandTotal}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <p className="text-sm text-[var(--text-muted)]">{message}</p>
     </div>
   );
 }
 
-function BreakdownIdentifiedCausesTable({ data }: { data: MatrixData }) {
-  if (!data.rows.length) return <EmptyPanel />;
-
-  const rows: BreakdownTableRow[] = data.rows.map((row) => {
-    const [branch = '-', airline = '-'] = String(row.secondary || '').split(' / ');
-    return {
-      id: row.id,
-      serviceType: row.primary,
-      branch,
-      airline,
-      values: row.values,
-      total: row.total,
-    };
-  });
-
+function LoadingPanel({ message }: { message: string }) {
   return (
-    <div className="overflow-hidden rounded-[22px] border border-[oklch(0.9_0.01_90_/_0.7)] bg-white/50">
-      <div className="max-h-[420px] sm:max-h-[620px] overflow-auto">
-        <table className="min-w-full border-separate border-spacing-0 text-sm">
-          <thead className="sticky top-0 z-10 bg-white">
-            <tr>
-              <th colSpan={3} className="border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-white px-4 py-3" />
-              <th
-                colSpan={data.columns.length + 1}
-                className="border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-[var(--surface-1)] px-4 py-3 text-right text-[0.72rem] font-black uppercase tracking-[0.16em] text-[var(--text-primary)]"
-              >
-                Category Report / Record Count
-              </th>
-            </tr>
-            <tr>
-              <th className="min-w-[210px] border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-white px-4 py-3 text-left text-[0.72rem] font-black uppercase tracking-[0.16em] text-[var(--text-secondary)]">
-                Joumpa Service Type
-              </th>
-              <th className="min-w-[110px] border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-white px-4 py-3 text-left text-[0.72rem] font-black uppercase tracking-[0.16em] text-[var(--text-secondary)]">
-                Branch
-              </th>
-              <th className="min-w-[170px] border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-white px-4 py-3 text-left text-[0.72rem] font-black uppercase tracking-[0.16em] text-[var(--text-secondary)]">
-                Airlines
-              </th>
-              {data.columns.map((column) => (
-                <th
-                  key={column}
-                  className="min-w-[116px] border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-white px-3 py-3 text-center text-[0.72rem] font-black text-[var(--text-secondary)]"
-                >
-                  {column}
-                </th>
-              ))}
-              <th className="min-w-[96px] border-b border-[oklch(0.9_0.01_90_/_0.85)] bg-white px-4 py-3 text-right text-[0.72rem] font-black text-[var(--text-secondary)]">
-                Grand total
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => {
-              const previous = rows[index - 1];
-              const showServiceType = !previous || previous.serviceType !== row.serviceType;
-              const showBranch = showServiceType || previous.branch !== row.branch;
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <Loader2 className="h-5 w-5 animate-spin text-[var(--text-muted)] mb-3" />
+      <p className="text-sm text-[var(--text-secondary)]">{message}</p>
+    </div>
+  );
+}
 
-              return (
-                <tr key={row.id} className="hover:bg-[var(--surface-2)]/40">
-                  <td className="border-b border-[oklch(0.9_0.01_90_/_0.45)] px-4 py-3 align-top text-[0.95rem] font-medium text-[var(--text-primary)]">
-                    {showServiceType ? row.serviceType : ''}
-                  </td>
-                  <td className="border-b border-[oklch(0.9_0.01_90_/_0.45)] px-4 py-3 align-top text-[0.95rem] text-[var(--text-primary)]">
-                    {showBranch ? row.branch : ''}
-                  </td>
-                  <td className="border-b border-[oklch(0.9_0.01_90_/_0.45)] px-4 py-3 align-top text-[0.95rem] text-[var(--text-primary)]">
-                    {row.airline}
-                  </td>
-                  {data.columns.map((column) => {
-                    const value = row.values[column] || 0;
-                    return (
-                      <td
-                        key={`${row.id}-${column}`}
-                        className="border-b border-[oklch(0.9_0.01_90_/_0.45)] px-3 py-3 text-center font-mono text-[0.82rem] font-semibold text-[var(--text-primary)]"
-                        style={{ background: value > 0 ? heatColor(value, Math.max(data.maxValue, 1)) : 'transparent' }}
-                      >
-                        {value > 0 ? value : '-'}
-                      </td>
-                    );
-                  })}
-                  <td className="border-b border-[oklch(0.9_0.01_90_/_0.45)] px-4 py-3 text-right font-mono text-[0.9rem] font-black text-[var(--text-primary)]">
-                    {row.total}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-          <tfoot>
-            <tr className="bg-white">
-              <td
-                colSpan={3}
-                className="border-t border-[oklch(0.9_0.01_90_/_0.85)] px-4 py-3 text-left text-[0.72rem] font-black text-[var(--text-secondary)]"
-              >
-                Grand total
-              </td>
-              {data.columns.map((column) => (
-                <td
-                  key={`grand-${column}`}
-                  className="border-t border-[oklch(0.9_0.01_90_/_0.85)] px-3 py-3 text-center font-mono text-[0.82rem] font-black text-[var(--text-primary)]"
-                >
-                  {data.columnTotals[column] || 0}
-                </td>
-              ))}
-              <td className="border-t border-[oklch(0.9_0.01_90_/_0.85)] px-4 py-3 text-right font-mono text-[0.9rem] font-black text-[var(--brand-emerald-700)]">
-                {data.grandTotal}
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
+function ErrorPanel({ message }: { message: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 text-center">
+      <AlertCircle className="h-5 w-5 text-red-500 mb-3" />
+      <p className="text-sm text-red-700">{message}</p>
     </div>
   );
 }
@@ -1063,7 +657,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
     { id: 'area', header: 'Area', accessor: (row) => row.area, sortValue: (row) => row.area, minWidth: '120px' },
     { id: 'issue', header: 'Issue Caused', accessor: (row) => row.issueCaused, sortValue: (row) => row.issueCaused, minWidth: '200px' },
     { id: 'root', header: 'Root Caused', accessor: (row) => row.rootCaused, sortValue: (row) => row.rootCaused, minWidth: '240px' },
-    { id: 'total', header: 'Total ▼', accessor: (row) => row.total, sortValue: (row) => row.total, align: 'right', minWidth: '80px' },
+    { id: 'total', header: 'Total \u25BC', accessor: (row) => row.total, sortValue: (row) => row.total, align: 'right', minWidth: '80px' },
   ], []);
 
   const voiceDetailColumns = useMemo<SummaryDenseColumn<VoiceDetailRow>[]>(() => [
@@ -1080,71 +674,243 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
     { id: 'satisfaction', header: 'Satisfaction', accessor: (row) => row.satisfaction, sortValue: (row) => row.satisfaction, minWidth: '120px' },
   ], []);
 
+  // ── Matrix max helpers for heatmap coloring ──────────────────────────────────
+  const operationalAirlineMaxTotal = useMemo(
+    () => Math.max(...operationalAirlineMatrix.rows.map((r) => r.total), 1),
+    [operationalAirlineMatrix]
+  );
+
+  const voiceBreakdownMaxTotal = useMemo(
+    () => Math.max(...voiceBreakdownMatrix.rows.map((r) => r.total), 1),
+    [voiceBreakdownMatrix]
+  );
+
+  const voiceBreakdownRows = useMemo(() => {
+    if (!voiceBreakdownMatrix.rows.length) return [];
+    return voiceBreakdownMatrix.rows.map((row) => {
+      const [branch = '-', airline = '-'] = String(row.secondary || '').split(' / ');
+      return {
+        id: row.id,
+        serviceType: row.primary,
+        branch,
+        airline,
+        values: row.values,
+        total: row.total,
+      } as BreakdownTableRow;
+    });
+  }, [voiceBreakdownMatrix]);
+
   return (
     <div className="space-y-8 pb-10">
-      <div className="space-y-3 px-1">
-        <h1 className="font-display text-3xl font-black tracking-[-0.04em] text-[var(--text-primary)] sm:text-[2.5rem]">
-          Joumpa Service
-        </h1>
-      </div>
 
+      {/* ═══════════════════════════════════════════════════════════════════════
+          SECTION 1 — Operational Feedback Report
+          ═══════════════════════════════════════════════════════════════════ */}
       <SummarySectionCard
         title="Operational Feedback Report"
         subtitle="Rekap laporan operasional bersumber dari staf internal maupun eksternal serta laporan operasional airline sebagai customer."
       >
-        <div className="grid gap-5 xl:grid-cols-3">
-          <SmallChartCard
-            title="Total Report per Month"
-            subtitle="Frekuensi jumlah laporan yang tercatat pada masing-masing bulan dalam periode pelaporan."
-          >
-            <HorizontalBarPanel rows={operationalMonthly} color={CHART_COLORS.emerald} />
-          </SmallChartCard>
-          <SmallChartCard
-            title="Reportby Category"
-            subtitle="Jumlah laporan berdasarkan kategori temuan dalam periode pelaporan."
-          >
-            <HorizontalBarPanel rows={operationalRemarks} color={CHART_COLORS.teal} />
-          </SmallChartCard>
-          <SmallChartCard
-            title="Category Distribution of Report"
-            subtitle="Distribusi laporan berdasarkan klasifikasi kejadian operasional dalam periode pelaporan."
-          >
-            <PiePanel slices={operationalDistribution} />
-          </SmallChartCard>
+        <div className="grid gap-4 xl:grid-cols-3">
+          {/* Total Report per Month — Bar Chart */}
+          <ChartCard title="Total Report per Month" accent="oklch(0.65 0.18 160)">
+            {operationalMonthly.length === 0 ? (
+              <EmptyPanel />
+            ) : (
+              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                <div style={{ height: Math.max(200, operationalMonthly.length * 50) }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={operationalMonthly} layout="vertical" margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                      <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                      <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="label" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="value" name="Count" fill={CHART_COLORS.emerald} radius={[0, 4, 4, 0]} maxBarSize={28}>
+                        <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </ChartCard>
+
+          {/* Report by Category — Bar Chart */}
+          <ChartCard title="Report by Category" accent="oklch(0.55 0.14 240)">
+            {operationalRemarks.length === 0 ? (
+              <EmptyPanel />
+            ) : (
+              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                <div style={{ height: Math.max(200, operationalRemarks.length * 50) }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={operationalRemarks} layout="vertical" margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                      <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                      <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="label" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="value" name="Count" fill={CHART_COLORS.teal} radius={[0, 4, 4, 0]} maxBarSize={28}>
+                        <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </ChartCard>
+
+          {/* Category Distribution of Report — Pie Chart */}
+          <ChartCard title="Category Distribution of Report" accent="oklch(0.7 0.2 330)">
+            {operationalDistribution.length === 0 ? (
+              <EmptyPanel />
+            ) : (
+              <>
+                <div className="h-[220px] sm:h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={operationalDistribution} dataKey="value" nameKey="name" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2}>
+                        {operationalDistribution.map((e) => <Cell key={e.name} fill={e.fill} />)}
+                      </Pie>
+                      <Tooltip content={<CustomTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2 mt-4">
+                  {operationalDistribution.map((item) => {
+                    const total = operationalDistribution.reduce((s, i) => s + i.value, 0);
+                    const share = total > 0 ? Math.round((item.value / total) * 100) : 0;
+                    return (
+                      <div key={item.name} className="rounded-2xl border border-[oklch(0.9_0.01_90_/_0.75)] bg-white/80 px-3 py-2.5">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                          <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
+                          <span className="min-w-0 break-words text-[0.74rem] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">{item.name}</span>
+                        </div>
+                        <div className="mt-2 flex items-end justify-between">
+                          <span className="font-mono text-lg font-black text-[var(--text-primary)]">{item.value}</span>
+                          <span className="text-[0.72rem] font-semibold text-[var(--text-muted)]">{share}%</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+          </ChartCard>
         </div>
 
-        <div className="mt-5">
-          <SmallChartCard
+        {/* Report Category by Airlines — Heatmap Table */}
+        <div className="mt-4">
+          <HeatmapTableCard
             title="Report Category by Airlines"
             subtitle="Distribusi laporan berdasarkan maskapai dan jenis temuan pada operasional dalam periode pelaporan."
+            accent="oklch(0.55 0.14 240)"
           >
-            <MatrixTable data={operationalAirlineMatrix} rowLabel="Branch" secondaryLabel="Airlines" />
-          </SmallChartCard>
+            {operationalAirlineMatrix.rows.length === 0 ? (
+              <EmptyPanel />
+            ) : (
+              <div className="overflow-x-auto">
+                <div className="max-h-[240px] overflow-y-auto">
+                  <table className="w-full text-xs min-w-[360px]">
+                    <thead className="sticky top-0 z-10">
+                      <tr className="bg-slate-100 text-black border-b border-gray-300">
+                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Branch</th>
+                        <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Airlines</th>
+                        {operationalAirlineMatrix.columns.map((column) => (
+                          <th key={column} className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">{column}</th>
+                        ))}
+                        <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {operationalAirlineMatrix.rows.map((row) => {
+                        const totalColor = heatColor(row.total, operationalAirlineMaxTotal);
+                        return (
+                          <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-1.5 px-2 font-medium text-gray-800 whitespace-nowrap">{row.primary}</td>
+                            <td className="py-1.5 px-2 text-gray-800 whitespace-nowrap">{row.secondary || '-'}</td>
+                            {operationalAirlineMatrix.columns.map((column) => {
+                              const value = row.values[column] || 0;
+                              const color = heatColor(value, operationalAirlineMatrix.maxValue);
+                              return (
+                                <td
+                                  key={`${row.id}-${column}`}
+                                  className="py-1.5 px-2 text-center font-medium"
+                                  style={{ backgroundColor: color.bg, color: color.fg }}
+                                >
+                                  {value || '-'}
+                                </td>
+                              );
+                            })}
+                            <td className="py-1.5 px-2 text-center font-bold" style={{ backgroundColor: totalColor.bg, color: totalColor.fg }}>{row.total}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <table className="w-full text-xs min-w-[360px] border-t-2 border-gray-300">
+                  <tbody>
+                    <tr className="bg-gray-100 font-bold">
+                      <td className="py-1.5 px-2 text-gray-800" colSpan={2}>Grand total</td>
+                      {operationalAirlineMatrix.columns.map((column) => (
+                        <td key={`total-${column}`} className="py-1.5 px-2 text-center text-gray-800">
+                          {operationalAirlineMatrix.columnTotals[column] || 0}
+                        </td>
+                      ))}
+                      <td className="py-1.5 px-2 text-center text-gray-800">{operationalAirlineMatrix.grandTotal}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </HeatmapTableCard>
         </div>
       </SummarySectionCard>
 
+      {/* ═══════════════════════════════════════════════════════════════════════
+          SECTION 2 — Compliment From Operational Feedback Report
+          ═══════════════════════════════════════════════════════════════════ */}
       <SummarySectionCard
         title="Compliment From Operational Feedback Report"
         subtitle="Apresiasi terhadap kualitas pelaksanaan prosedur operasional dan efektivitas service handling sebagai dasar identifikasi elemen kinerja yang perlu dipertahankan"
       >
-        <div className="grid gap-5 xl:grid-cols-[0.9fr,1.1fr]">
-          <SmallChartCard title="Report by Category">
-            <HorizontalBarPanel rows={complimentRemarks} color={CHART_COLORS.emerald} />
-          </SmallChartCard>
-          <SmallChartCard title="Landside Area">
-            <SummaryDenseTable
-              data={complimentRoots}
-              columns={metricColumns()}
-              rowKey={(row) => row.label}
-              itemsPerPage={7}
-              initialSort={{ columnId: 'value', direction: 'desc' }}
-              emptyMessage="No compliment root identification found."
+        <div className="grid gap-4 xl:grid-cols-[0.9fr,1.1fr]">
+          {/* Report by Category — Bar Chart */}
+          <ChartCard title="Report by Category" accent="oklch(0.65 0.18 160)">
+            {complimentRemarks.length === 0 ? (
+              <EmptyPanel />
+            ) : (
+              <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                <div style={{ height: Math.max(200, complimentRemarks.length * 50) }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={complimentRemarks} layout="vertical" margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                      <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                      <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis type="category" dataKey="label" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="value" name="Count" fill={CHART_COLORS.emerald} radius={[0, 4, 4, 0]} maxBarSize={28}>
+                        <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </ChartCard>
+
+          {/* Landside Area — CategoryBarList */}
+          <ChartCard title="Landside Area" accent="oklch(0.8 0.15 80)">
+            <CategoryBarList
+              data={complimentRoots.map((d) => ({ name: d.label, value: d.value }))}
+              color="oklch(0.8 0.15 80)"
             />
-          </SmallChartCard>
+          </ChartCard>
         </div>
 
-        <div className="mt-5">
-          <SmallChartCard title="Landside Area - Detail Root Cause Identification">
+        {/* Landside Area Detail — SummaryDenseTable */}
+        <div className="mt-4">
+          <HeatmapTableCard
+            title="Landside Area - Detail Root Cause Identification"
+            accent="oklch(0.8 0.15 80)"
+          >
             <SummaryDenseTable
               data={complimentRootDetails}
               columns={complimentRootColumns}
@@ -1153,10 +919,13 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
               initialSort={{ columnId: 'total', direction: 'desc' }}
               emptyMessage="No compliment detail rows found."
             />
-          </SmallChartCard>
+          </HeatmapTableCard>
         </div>
       </SummarySectionCard>
 
+      {/* ═══════════════════════════════════════════════════════════════════════
+          SECTION 3 — Voice of Passenger Report
+          ═══════════════════════════════════════════════════════════════════ */}
       <SummarySectionCard
         title="Voice of Passenger Report"
         subtitle="Rekap Laporan operasional yang disampaikan bersumber langsung dari penumpang dalam periode pelaporan."
@@ -1167,84 +936,214 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
           <ErrorPanel message={voiceError} />
         ) : (
           <>
-            <div className="grid gap-5 xl:grid-cols-2">
-              <SmallChartCard title="Total Report per Month">
-                <HorizontalBarPanel rows={voiceMonthly} color={CHART_COLORS.emerald} height={240} yAxisWidth={92} leftMargin={24} />
-              </SmallChartCard>
-              <SmallChartCard title="Total Report by Report Type">
-                <HorizontalBarPanel rows={voiceReportTypes} color={CHART_COLORS.teal} height={220} yAxisWidth={132} leftMargin={24} />
-              </SmallChartCard>
-            </div>
-
-            <div className="mt-5">
-              <SmallChartCard
-                title="Breakdown of Identified Causes"
-                subtitle="Rows follow Joumpa service type with branch and airline context; columns show category report counts."
-              >
-                <BreakdownIdentifiedCausesTable data={voiceBreakdownMatrix} />
-              </SmallChartCard>
-            </div>
-
-            <div className="mt-5 grid gap-5 xl:grid-cols-2">
-              <SmallChartCard title="Report by Service Type">
-                <SummaryDenseTable
-                  data={voiceServiceTypeRows}
-                  columns={metricColumns('Total ▼', 'Joumpa Service Type')}
-                  rowKey={(row) => row.label}
-                  itemsPerPage={4}
-                  initialSort={{ columnId: 'value', direction: 'desc' }}
-                  emptyMessage="No Joumpa service type rows found."
-                />
-              </SmallChartCard>
-
-              <SmallChartCard title="Category Distribution of Report">
-                <PiePanel slices={voiceCategoryDistribution} />
-              </SmallChartCard>
-            </div>
-
-            <div className="mt-5">
-              <SmallChartCard title="Service Type Report by Category">
-                {voiceServiceTypeCategory.rows.length ? (
-                  <div className="space-y-4">
-                    <div className="h-[240px] sm:h-[320px]">
+            {/* Monthly + Report Type — Bar Charts */}
+            <div className="grid gap-4 xl:grid-cols-2">
+              <ChartCard title="Total Report per Month" accent="oklch(0.65 0.18 160)">
+                {voiceMonthly.length === 0 ? (
+                  <EmptyPanel />
+                ) : (
+                  <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                    <div style={{ height: Math.max(200, voiceMonthly.length * 50) }}>
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart
-                          data={voiceServiceTypeCategory.rows}
-                          layout="vertical"
-                          margin={{ top: 4, right: 20, left: 120, bottom: 4 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="oklch(0.9 0.01 90 / 0.85)" />
-                          <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: 'var(--text-secondary)' }} />
-                          <YAxis
-                            dataKey="serviceType"
-                            type="category"
-                            axisLine={false}
-                            tickLine={false}
-                            width={190}
-                            tick={WrappedYAxisTick}
-                          />
-                          <Tooltip
-                            cursor={{ fill: 'oklch(0.96 0.01 90 / 0.75)' }}
-                            contentStyle={{
-                              borderRadius: 18,
-                              border: '1px solid oklch(0.88 0.01 90 / 0.85)',
-                              background: 'rgba(255,255,255,0.96)',
-                              boxShadow: '0 16px 38px -22px rgba(15, 23, 42, 0.28)',
-                            }}
-                          />
-                          {voiceServiceTypeCategory.categories.map((category, index) => (
-                            <Bar
-                              key={category}
-                              dataKey={category}
-                              stackId="voice"
-                              fill={[CHART_COLORS.emerald, CHART_COLORS.teal, CHART_COLORS.amber, CHART_COLORS.orange, CHART_COLORS.rose][index % 5]}
-                              radius={index === voiceServiceTypeCategory.categories.length - 1 ? [0, 12, 12, 0] : [0, 0, 0, 0]}
-                            >
-                              <LabelList content={renderStackedBarLabel(category)} />
-                            </Bar>
-                          ))}
+                        <BarChart data={voiceMonthly} layout="vertical" margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                          <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                          <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                          <YAxis type="category" dataKey="label" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Bar dataKey="value" name="Count" fill={CHART_COLORS.emerald} radius={[0, 4, 4, 0]} maxBarSize={28}>
+                            <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                          </Bar>
                         </BarChart>
                       </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+              </ChartCard>
+
+              <ChartCard title="Total Report by Report Type" accent="oklch(0.55 0.14 240)">
+                {voiceReportTypes.length === 0 ? (
+                  <EmptyPanel />
+                ) : (
+                  <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                    <div style={{ height: Math.max(200, voiceReportTypes.length * 50) }}>
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={voiceReportTypes} layout="vertical" margin={{ top: 4, right: 40, left: 40, bottom: 4 }} barCategoryGap="30%">
+                          <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                          <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                          <YAxis type="category" dataKey="label" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={110} interval={0} />
+                          <Tooltip content={<CustomTooltip />} />
+                          <Bar dataKey="value" name="Count" fill={CHART_COLORS.teal} radius={[0, 4, 4, 0]} maxBarSize={28}>
+                            <LabelList dataKey="value" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )}
+              </ChartCard>
+            </div>
+
+            {/* Breakdown of Identified Causes — Heatmap Table */}
+            <div className="mt-4">
+              <HeatmapTableCard
+                title="Breakdown of Identified Causes"
+                subtitle="Rows follow Joumpa service type with branch and airline context; columns show category report counts."
+                accent="oklch(0.6 0.2 25)"
+              >
+                {voiceBreakdownRows.length === 0 ? (
+                  <EmptyPanel />
+                ) : (
+                  <div className="overflow-x-auto">
+                    <div className="max-h-[240px] overflow-y-auto">
+                      <table className="w-full text-xs min-w-[360px]">
+                        <thead className="sticky top-0 z-10">
+                          <tr className="bg-slate-100 text-black border-b border-gray-300">
+                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Joumpa Service Type</th>
+                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Branch</th>
+                            <th className="text-left py-2 px-3 font-black uppercase tracking-widest text-[9px]">Airlines</th>
+                            {voiceBreakdownMatrix.columns.map((column) => (
+                              <th key={column} className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">{column}</th>
+                            ))}
+                            <th className="text-center py-2 px-2 font-black uppercase tracking-widest text-[9px]">Grand total</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {voiceBreakdownRows.map((row, index) => {
+                            const previous = voiceBreakdownRows[index - 1];
+                            const showServiceType = !previous || previous.serviceType !== row.serviceType;
+                            const showBranch = showServiceType || previous.branch !== row.branch;
+                            const totalColor = heatColor(row.total, voiceBreakdownMaxTotal);
+                            return (
+                              <tr key={row.id} className="border-b border-gray-100 hover:bg-gray-50">
+                                <td className="py-1.5 px-2 font-medium text-gray-800 whitespace-nowrap">
+                                  {showServiceType ? row.serviceType : ''}
+                                </td>
+                                <td className="py-1.5 px-2 text-gray-800 whitespace-nowrap">
+                                  {showBranch ? row.branch : ''}
+                                </td>
+                                <td className="py-1.5 px-2 text-gray-800 whitespace-nowrap">{row.airline}</td>
+                                {voiceBreakdownMatrix.columns.map((column) => {
+                                  const value = row.values[column] || 0;
+                                  const color = heatColor(value, voiceBreakdownMatrix.maxValue);
+                                  return (
+                                    <td
+                                      key={`${row.id}-${column}`}
+                                      className="py-1.5 px-2 text-center font-medium"
+                                      style={{ backgroundColor: color.bg, color: color.fg }}
+                                    >
+                                      {value || '-'}
+                                    </td>
+                                  );
+                                })}
+                                <td className="py-1.5 px-2 text-center font-bold" style={{ backgroundColor: totalColor.bg, color: totalColor.fg }}>{row.total}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <table className="w-full text-xs min-w-[360px] border-t-2 border-gray-300">
+                      <tbody>
+                        <tr className="bg-gray-100 font-bold">
+                          <td className="py-1.5 px-2 text-gray-800" colSpan={3}>Grand total</td>
+                          {voiceBreakdownMatrix.columns.map((column) => (
+                            <td key={`grand-${column}`} className="py-1.5 px-2 text-center text-gray-800">
+                              {voiceBreakdownMatrix.columnTotals[column] || 0}
+                            </td>
+                          ))}
+                          <td className="py-1.5 px-2 text-center text-gray-800">{voiceBreakdownMatrix.grandTotal}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </HeatmapTableCard>
+            </div>
+
+            {/* Service Type + Category Distribution */}
+            <div className="mt-4 grid gap-4 xl:grid-cols-2">
+              {/* Report by Service Type — CategoryBarList */}
+              <ChartCard title="Report by Service Type" accent="oklch(0.65 0.18 160)">
+                <CategoryBarList
+                  data={voiceServiceTypeRows.map((d) => ({ name: d.label, value: d.value }))}
+                  color="oklch(0.65 0.18 160)"
+                />
+              </ChartCard>
+
+              {/* Category Distribution of Report — Pie Chart */}
+              <ChartCard title="Category Distribution of Report" accent="oklch(0.7 0.2 330)">
+                {voiceCategoryDistribution.length === 0 ? (
+                  <EmptyPanel />
+                ) : (
+                  <>
+                    <div className="h-[220px] sm:h-[280px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie data={voiceCategoryDistribution} dataKey="value" nameKey="name" innerRadius={50} outerRadius={72} strokeWidth={0} paddingAngle={2}>
+                            {voiceCategoryDistribution.map((e) => <Cell key={e.name} fill={e.fill} />)}
+                          </Pie>
+                          <Tooltip content={<CustomTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2 mt-4">
+                      {voiceCategoryDistribution.map((item) => {
+                        const total = voiceCategoryDistribution.reduce((s, i) => s + i.value, 0);
+                        const share = total > 0 ? Math.round((item.value / total) * 100) : 0;
+                        return (
+                          <div key={item.name} className="rounded-2xl border border-[oklch(0.9_0.01_90_/_0.75)] bg-white/80 px-3 py-2.5">
+                            <div className="flex items-center gap-2 overflow-hidden">
+                              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: item.fill }} />
+                              <span className="min-w-0 break-words text-[0.74rem] font-bold uppercase tracking-[0.12em] text-[var(--text-secondary)]">{item.name}</span>
+                            </div>
+                            <div className="mt-2 flex items-end justify-between">
+                              <span className="font-mono text-lg font-black text-[var(--text-primary)]">{item.value}</span>
+                              <span className="text-[0.72rem] font-semibold text-[var(--text-muted)]">{share}%</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </ChartCard>
+            </div>
+
+            {/* Service Type Report by Category — Stacked Bar Chart */}
+            <div className="mt-4">
+              <ChartCard title="Service Type Report by Category" accent="oklch(0.75 0.1 190)">
+                {voiceServiceTypeCategory.rows.length === 0 ? (
+                  <EmptyPanel />
+                ) : (
+                  <div className="space-y-4">
+                    <div className="max-h-[300px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
+                      <div style={{ height: Math.max(200, voiceServiceTypeCategory.rows.length * 50) }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart
+                            data={voiceServiceTypeCategory.rows}
+                            layout="vertical"
+                            margin={{ top: 4, right: 40, left: 40, bottom: 4 }}
+                            barCategoryGap="30%"
+                          >
+                            <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="oklch(0 0 0 / 0.05)" />
+                            <XAxis type="number" tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                            <YAxis type="category" dataKey="serviceType" tick={<WrappedYAxisTick />} axisLine={false} tickLine={false} width={130} interval={0} />
+                            <Tooltip content={<CustomTooltip />} />
+                            {voiceServiceTypeCategory.categories.map((category, index) => (
+                              <Bar
+                                key={category}
+                                dataKey={category}
+                                stackId="voice"
+                                fill={[CHART_COLORS.emerald, CHART_COLORS.teal, CHART_COLORS.amber, CHART_COLORS.orange, CHART_COLORS.rose][index % 5]}
+                                radius={index === voiceServiceTypeCategory.categories.length - 1 ? [0, 4, 4, 0] : [0, 0, 0, 0]}
+                                maxBarSize={28}
+                              >
+                                <LabelList content={renderStackedBarLabel(category)} />
+                              </Bar>
+                            ))}
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
                     </div>
                     <div className="flex flex-wrap gap-x-4 gap-y-2 text-sm text-[var(--text-secondary)]">
                       {voiceServiceTypeCategory.categories.map((category, index) => (
@@ -1258,14 +1157,17 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
                       ))}
                     </div>
                   </div>
-                ) : (
-                  <EmptyPanel />
                 )}
-              </SmallChartCard>
+              </ChartCard>
             </div>
 
-            <div className="mt-5">
-              <SmallChartCard title="Detail Report">
+            {/* Detail Report */}
+            <div className="mt-4">
+              <HeatmapTableCard
+                title="Detail Report"
+                subtitle="Arsip laporan detail voice of passenger Joumpa Service, diurutkan berdasarkan tanggal terbaru."
+                accent="oklch(0.55 0.14 240)"
+              >
                 <SummaryDenseTable
                   data={voiceDetails}
                   columns={voiceDetailColumns}
@@ -1274,13 +1176,15 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
                   initialSort={{ columnId: 'date', direction: 'desc' }}
                   emptyMessage="No Joumpa detail rows found."
                 />
-              </SmallChartCard>
+              </HeatmapTableCard>
             </div>
 
-            <div className="mt-5">
-              <SmallChartCard
+            {/* Looker Dashboard Link */}
+            <div className="mt-4">
+              <ChartCard
                 title="Lihat versi dashboard Looker"
                 subtitle="Buka versi dashboard Looker Studio untuk tampilan eksternal dan akses cepat via QR code."
+                accent="oklch(0.55 0.14 240)"
               >
                 <div className="flex flex-col gap-4 rounded-[24px] border border-[oklch(0.88_0.01_90_/_0.85)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))] p-5 sm:flex-row sm:items-center sm:justify-between">
                   <div className="space-y-2">
@@ -1307,12 +1211,13 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
                     <span>Buka Looker</span>
                   </a>
                 </div>
-              </SmallChartCard>
+              </ChartCard>
             </div>
           </>
         )}
       </SummarySectionCard>
 
+      {/* Looker QR Modal */}
       {showLookerModal ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
           <div className="w-full max-w-md rounded-[30px] border border-[oklch(0.88_0.01_90_/_0.85)] bg-white p-6 shadow-[0_32px_80px_-28px_rgba(15,23,42,0.45)]">

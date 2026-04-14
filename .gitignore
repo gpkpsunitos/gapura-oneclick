@@ -53,6 +53,9 @@ supabase/export/schema/schema_definition.json
 # Debug artifacts
 *.original.tsx
 *.original.ts
+*.bak
+*.bak2
+*page 2*
 
 # Test output screenshots
 /output/
