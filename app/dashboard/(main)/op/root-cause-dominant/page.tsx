@@ -52,6 +52,8 @@ import {
   type SelectedRootCauseBreakdownRow,
   normalizeRootCauseReports,
 } from './root-cause-analytics';
+import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { getLinkUrl } from '@/lib/external-links';
 
 interface RootCauseStatsCategory {
   count: number;
@@ -81,8 +83,6 @@ interface RootCauseCategoryMeta {
   severity_multiplier?: number;
   keyword_count?: number;
 }
-
-const AI_DOCS_URL = 'https://gapura-dev-gapura-ai.hf.space/docs';
 
 function formatPercent(value: number) {
   return `${value.toFixed(1)}%`;
@@ -150,6 +150,8 @@ function extractRootCauseCategories(payload: unknown): RootCauseCategoryMeta[] {
 }
 
 export default function OPRootCauseDominant() {
+  const externalLinks = useExternalLinks();
+  const aiDocsUrl = getLinkUrl(externalLinks, 'ai-docs');
   const searchParams = useSearchParams();
   const esklasiRegex = useMemo(
     () => searchParams.get('esklasi_regex')?.trim() || searchParams.get('esklasiRegex')?.trim() || undefined,
@@ -593,6 +595,7 @@ export default function OPRootCauseDominant() {
             aiTopCategory={aiTopCategory}
             aiGeneratedLabel={aiGeneratedLabel}
             aiSourceSyncLabel={aiSourceSyncLabel}
+            aiDocsUrl={aiDocsUrl}
           />
         </>
       )}
@@ -1266,6 +1269,7 @@ function AiBenchmarkFooter({
   aiTopCategory,
   aiGeneratedLabel,
   aiSourceSyncLabel,
+  aiDocsUrl,
 }: {
   stats: RootCauseStats | null;
   categories: RootCauseCategoryMeta[];
@@ -1276,6 +1280,7 @@ function AiBenchmarkFooter({
   aiTopCategory: { name: string; count: number } | null;
   aiGeneratedLabel: string | null;
   aiSourceSyncLabel: string | null;
+  aiDocsUrl: string;
 }) {
   const sparsePayload = (stats?.total_records || 0) < 10;
 
@@ -1297,7 +1302,7 @@ function AiBenchmarkFooter({
           {aiStatus?.cached ? <HeaderChip tone="slate">Cached</HeaderChip> : null}
           {aiStatus?.stale ? <HeaderChip tone="amber">Stale</HeaderChip> : null}
           <Button type="button" variant="outline" asChild className="h-10 rounded-xl border-amber-200 bg-white px-4 text-sm font-bold text-amber-800 hover:bg-amber-50">
-            <a href={AI_DOCS_URL} target="_blank" rel="noreferrer">
+            <a href={aiDocsUrl} target="_blank" rel="noreferrer">
               AI docs
               <ExternalLink className="h-4 w-4" />
             </a>

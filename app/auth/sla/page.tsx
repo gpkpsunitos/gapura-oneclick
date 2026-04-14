@@ -9,15 +9,17 @@
 
 import GuestNav from '@/components/GuestNav';
 import { ClipboardList, ExternalLink } from 'lucide-react';
-
-const LANDSIDE_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSdMQgVrgWaPagVy7WEB94iVfC5rJmrxw5-J1Tn6jAJ77cD9Uw/closedform';
-const AIRSIDE_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSeTpTECPvbI_mPquwTq2egIbiJ2_pQ3LEowH-1pv2Mo3SVWEA/viewform';
+import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { getLinkUrl } from '@/lib/external-links';
 
 /**
  * Halaman menu pengisian report SLA
  * @returns Komponen React
  */
 export default function PublicSLAMenuPage() {
+    const externalLinks = useExternalLinks();
+    const LANDSIDE_URL = getLinkUrl(externalLinks, 'sla-landside-page');
+    const AIRSIDE_URL = getLinkUrl(externalLinks, 'sla-airside-page');
   return (
     <div className="min-h-[100dvh] bg-gray-50">
       <GuestNav />

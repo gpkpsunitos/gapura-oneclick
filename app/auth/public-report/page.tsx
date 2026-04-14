@@ -14,7 +14,7 @@
  */
 'use client';
 
-import { useEffect, useState, type CSSProperties, type ComponentType } from 'react';
+import { useEffect, useState, useMemo, type CSSProperties, type ComponentType } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -30,6 +30,8 @@ import { GlassCard } from '@/components/ui/GlassCard';
 import { NoiseTexture } from '@/components/ui/NoiseTexture';
 import { PrismButton } from '@/components/ui/PrismButton';
 import { queueOfflineReport } from '@/lib/pwa/offline-queue';
+import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { getLinkUrl } from '@/lib/external-links';
 
 
 /**
@@ -63,102 +65,8 @@ type QuickAccessCategory = {
 };
 
 /**
- * Konfigurasi kategori akses cepat
+ * Konfigurasi kategori akses cepat — dipindahkan ke useMemo di dalam komponen
  */
-const CATEGORIES: QuickAccessCategory[] = [
-  {
-    id: 'AIChatbot',
-    title: "I'm in Charge Virtual Assistant",
-    description: 'Tanya asisten AI untuk bantuan operasional.',
-    icon: Bot,
-    color: 'oklch(0.60 0.18 260)',
-    span: 'col-span-1 row-span-1 sm:col-span-2 sm:row-span-2 lg:col-span-2 lg:row-span-2',
-    passwordProtected: true,
-    links: [
-      { label: 'Buka AI Virtual Assistant', sublabel: 'Powered by Gapura RAG', url: 'https://gapura-dev-gapura-rag.hf.space/' }
-    ]
-  },
-  {
-    id: 'Irregularity',
-    title: 'Irregularity Report',
-    description: 'Laporkan kendala operasional, kerusakan, atau penyimpangan.',
-    icon: AlertTriangle,
-    color: 'oklch(0.55 0.22 30)',
-    span: 'col-span-1 row-span-1 sm:col-span-2 sm:row-span-2 lg:col-span-2 lg:row-span-2'
-  },
-  {
-    id: 'JOUMPA',
-    title: 'JOUMPA',
-    description: 'Hospitality & VIP Service access.',
-    icon: QrCode,
-    color: 'oklch(0.50 0.15 190)',
-    span: 'col-span-1 row-span-1 sm:col-span-1 sm:row-span-1',
-    qrLinks: [
-      { label: 'Customer JOUMPA', url: 'https://forms.gle/gQpqWn2eSRqSsoJt7' },
-      { label: 'Staff JOUMPA', url: 'https://forms.gle/QTP5vvwbmJxDroSB7' }
-    ]
-  },
-  {
-    id: 'SLA',
-    title: 'Pengisian Report SLA',
-    description: 'Akses cepat pengisian laporan SLA.',
-    icon: ClipboardCheck,
-    color: 'oklch(0.45 0.18 240)',
-    span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
-    qrLinks: [
-      { label: 'Pengisian SLA Landside', url: 'https://docs.google.com/forms/d/e/1FAIpQLSeu3mRk2R_V-m9lBIn9704Kx6u3_p3d8pT80p3/viewform' },
-      { label: 'Pengisian SLA Airside', url: 'https://docs.google.com/forms/d/e/1FAIpQLSeu3mRk2R_V-m9lBIn9704Kx6u3_p3d8pT80p3/viewform' }
-    ]
-  },
-  {
-    id: 'Survey',
-    title: 'Survey Penumpang',
-    description: 'Bantu kami meningkatkan layanan via survey.',
-    icon: QrCode,
-    color: 'oklch(0.60 0.20 340)',
-    span: 'col-span-1 row-span-1',
-    qrLinks: [
-      { label: 'Survey Penumpang', url: 'https://forms.gle/G5T9yx2MBSWdXtJE7' }
-    ]
-  },
-  {
-    id: 'WSN',
-    title: 'WSN Dashboard',
-    description: 'Monitoring WSN & Weekly Service Notice.',
-    icon: Activity,
-    color: 'oklch(0.55 0.18 180)',
-    span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
-    passwordProtected: true,
-    qrLinks: [
-      { label: 'Monitoring WSN Dashboard', url: 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_ufv08vzhsd' },
-      { label: 'Weekly Service Notice Dashboard', url: 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_1swzqz7usd' }
-    ]
-  },
-  {
-    id: 'HSSE',
-    title: 'HSSE Report',
-    description: 'Akses cepat ke portal HSSE Report.',
-    icon: AlertTriangle,
-    color: 'oklch(0.62 0.22 28)',
-    span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
-    passwordProtected: true,
-    qrLinks: [
-      { label: 'HSSE Report Form', url: 'https://forms.office.com/pages/responsepage.aspx?id=UN958i0U-k6wuwHqZRjbWCdrrO6qSgFPtKjbarMtEydUN0ZaM0tJODFONktURkpZUE45TFpNQ1hJOC4u&origin=lprLink&route=shorturl' }
-    ]
-  },
-  {
-    id: 'Handbook',
-    title: 'Handbook SLA',
-    description: 'Panduan standar layanan operasional prima.',
-    icon: BookOpen,
-    color: 'oklch(0.45 0.20 160)',
-    span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
-    passwordProtected: true,
-    links: [
-      { label: 'Buka Handbook SLA', sublabel: 'SIS Apps Dev', url: 'https://sis.appsdev.my.id/' }
-    ]
-  }
-];
 
 /**
  * Opsi area lokasi kejadian
@@ -296,6 +204,102 @@ export default function PublicReportPage() {
   const [pendingProtectedCategory, setPendingProtectedCategory] = useState<QuickAccessCategory | null>(null);
   const [passwordInput, setPasswordInput] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const externalLinks = useExternalLinks();
+
+  const CATEGORIES = useMemo<QuickAccessCategory[]>(() => [
+    {
+      id: 'AIChatbot',
+      title: "I'm in Charge Virtual Assistant",
+      description: 'Tanya asisten AI untuk bantuan operasional.',
+      icon: Bot,
+      color: 'oklch(0.60 0.18 260)',
+      span: 'col-span-1 row-span-1 sm:col-span-2 sm:row-span-2 lg:col-span-2 lg:row-span-2',
+      passwordProtected: true,
+      links: [
+        { label: 'Buka AI Virtual Assistant', sublabel: 'Powered by Gapura RAG', url: getLinkUrl(externalLinks, 'ai-virtual-assistant') }
+      ]
+    },
+    {
+      id: 'Irregularity',
+      title: 'Irregularity Report',
+      description: 'Laporkan kendala operasional, kerusakan, atau penyimpangan.',
+      icon: AlertTriangle,
+      color: 'oklch(0.55 0.22 30)',
+      span: 'col-span-1 row-span-1 sm:col-span-2 sm:row-span-2 lg:col-span-2 lg:row-span-2'
+    },
+    {
+      id: 'JOUMPA',
+      title: 'JOUMPA',
+      description: 'Hospitality & VIP Service access.',
+      icon: QrCode,
+      color: 'oklch(0.50 0.15 190)',
+      span: 'col-span-1 row-span-1 sm:col-span-1 sm:row-span-1',
+      qrLinks: [
+        { label: 'Customer JOUMPA', url: getLinkUrl(externalLinks, 'customer-joumpa') },
+        { label: 'Staff JOUMPA', url: getLinkUrl(externalLinks, 'staff-joumpa') }
+      ]
+    },
+    {
+      id: 'SLA',
+      title: 'Pengisian Report SLA',
+      description: 'Akses cepat pengisian laporan SLA.',
+      icon: ClipboardCheck,
+      color: 'oklch(0.45 0.18 240)',
+      span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+      qrLinks: [
+        { label: 'Pengisian SLA Landside', url: getLinkUrl(externalLinks, 'sla-landside') },
+        { label: 'Pengisian SLA Airside', url: getLinkUrl(externalLinks, 'sla-airside') }
+      ]
+    },
+    {
+      id: 'Survey',
+      title: 'Survey Penumpang',
+      description: 'Bantu kami meningkatkan layanan via survey.',
+      icon: QrCode,
+      color: 'oklch(0.60 0.20 340)',
+      span: 'col-span-1 row-span-1',
+      qrLinks: [
+        { label: 'Survey Penumpang', url: getLinkUrl(externalLinks, 'survey-penumpang') }
+      ]
+    },
+    {
+      id: 'WSN',
+      title: 'WSN Dashboard',
+      description: 'Monitoring WSN & Weekly Service Notice.',
+      icon: Activity,
+      color: 'oklch(0.55 0.18 180)',
+      span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+      passwordProtected: true,
+      qrLinks: [
+        { label: 'Monitoring WSN Dashboard', url: getLinkUrl(externalLinks, 'wsn-monitor') },
+        { label: 'Weekly Service Notice Dashboard', url: getLinkUrl(externalLinks, 'wsn-weekly') }
+      ]
+    },
+    {
+      id: 'HSSE',
+      title: 'HSSE Report',
+      description: 'Akses cepat ke portal HSSE Report.',
+      icon: AlertTriangle,
+      color: 'oklch(0.62 0.22 28)',
+      span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+      passwordProtected: true,
+      qrLinks: [
+        { label: 'HSSE Report Form', url: getLinkUrl(externalLinks, 'hsse-report') }
+      ]
+    },
+    {
+      id: 'Handbook',
+      title: 'Handbook SLA',
+      description: 'Panduan standar layanan operasional prima.',
+      icon: BookOpen,
+      color: 'oklch(0.45 0.20 160)',
+      span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+      passwordProtected: true,
+      links: [
+        { label: 'Buka Handbook SLA', sublabel: 'SIS Apps Dev', url: getLinkUrl(externalLinks, 'handbook-sla') }
+      ]
+    }
+  ], [externalLinks]);
 
   const [formData, setFormData] = useState<FormData>({
     incident_date: new Date().toISOString().split('T')[0],

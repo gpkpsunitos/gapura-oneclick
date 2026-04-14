@@ -3,8 +3,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { QRCodeWithLogo } from '@/components/ui/QRCodeWithLogo';
+import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { getLinkUrl } from '@/lib/external-links';
 
 export default function WSNPage() {
+  const externalLinks = useExternalLinks();
   const searchParams = useSearchParams();
   const [copied, setCopied] = useState<string | null>(null);
   const origin = typeof window !== 'undefined' ? window.location.origin : '';
@@ -12,16 +15,16 @@ export default function WSNPage() {
     () => ({
       monitor: {
         title: 'Monitoring WSN Dashboard',
-        url: 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_ufv08vzhsd',
+        url: getLinkUrl(externalLinks, 'wsn-monitor'),
         short: `${origin}/dashboard/os/wsn?open=monitor`,
       },
       weekly: {
         title: 'Weekly Service Notice Dashboard',
-        url: 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_1swzqz7usd',
+        url: getLinkUrl(externalLinks, 'wsn-weekly'),
         short: `${origin}/dashboard/os/wsn?open=weekly`,
       },
     }),
-    [origin]
+    [origin, externalLinks]
   );
 
   useEffect(() => {

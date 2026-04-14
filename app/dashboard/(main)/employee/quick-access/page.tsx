@@ -8,13 +8,15 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { QRCodeCanvas } from 'qrcode.react';
 import {
   Bot, AlertTriangle, QrCode, ClipboardCheck, BookOpen, ArrowRight, X, ExternalLink, ChevronRight
 } from 'lucide-react';
+import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { getLinkUrl } from '@/lib/external-links';
 
 /**
  * Tipe data untuk link QR Code
@@ -32,92 +34,6 @@ type Category =
   | { id: string; title: string; description?: string; icon: any; color: string; span: string; qrLinks: QRLink[] }
   | { id: string; title: string; description?: string; icon: any; color: string; span: string; links: { label: string; sublabel?: string; url: string }[] }
   | { id: string; title: string; description?: string; icon: any; color: string; span: string };
-
-/**
- * Daftar kategori akses cepat yang tersedia
- * Berisi berbagai tool operasional seperti AI Chatbot, Irregularity Report, JOUMPA, dll.
- * @constant
- * @type {Category[]}
- */
-const CATEGORIES: Category[] = [
-  {
-    id: 'AIChatbot',
-    title: "I'm in Charge AI Virtual Assistant",
-    description: 'Tanya asisten AI untuk bantuan operasional.',
-    icon: Bot,
-    color: 'oklch(0.60 0.18 260)',
-    span: 'col-span-2 row-span-2 md:col-span-2 md:row-span-2',
-    links: [
-      { label: 'Buka AI Virtual Assistant', sublabel: 'Powered by Gapura RAG', url: 'https://gapura-dev-gapura-rag.hf.space/' }
-    ]
-  },
-  {
-    id: 'Irregularity',
-    title: 'Irregularity Report',
-    description: 'Akses cepat pelaporan internal.',
-    icon: AlertTriangle,
-    color: 'oklch(0.55 0.22 30)',
-    span: 'col-span-2 row-span-2 md:col-span-2 md:row-span-2'
-  },
-  {
-    id: 'JOUMPA',
-    title: 'JOUMPA',
-    description: 'Hospitality & VIP Service access.',
-    icon: QrCode,
-    color: 'oklch(0.50 0.15 190)',
-    span: 'col-span-1 row-span-1',
-    qrLinks: [
-      { label: 'Customer JOUMPA', url: 'https://forms.gle/gQpqWn2eSRqSsoJt7' },
-      { label: 'Staff JOUMPA', url: 'https://forms.gle/QTP5vvwbmJxDroSB7' }
-    ]
-  },
-  {
-    id: 'SLA',
-    title: 'Pengisian Report SLA',
-    description: 'Akses cepat pengisian laporan SLA.',
-    icon: ClipboardCheck,
-    color: 'oklch(0.45 0.18 240)',
-    span: 'col-span-2 md:col-span-2 row-span-1',
-    qrLinks: [
-      { label: 'Pengisian SLA Landside', url: 'https://docs.google.com/forms/d/e/1FAIpQLSeu3mRk2R_V-m9lBIn9704Kx6u3_p3d8pT80p3/viewform' },
-      { label: 'Pengisian SLA Airside', url: 'https://docs.google.com/forms/d/e/1FAIpQLSeu3mRk2R_V-m9lBIn9704Kx6u3_p3d8pT80p3/viewform' }
-    ]
-  },
-  {
-    id: 'Survey',
-    title: 'Survey Penumpang',
-    description: 'Bantu kami meningkatkan layanan via survey.',
-    icon: QrCode,
-    color: 'oklch(0.60 0.20 340)',
-    span: 'col-span-1 row-span-1',
-    qrLinks: [
-      { label: 'Survey Penumpang', url: 'https://forms.gle/G5T9yx2MBSWdXtJE7' }
-    ]
-  },
-  {
-    id: 'WSN',
-    title: 'WSN Dashboard',
-    description: 'Monitoring WSN & Weekly Service Notice.',
-    icon: QrCode,
-    color: 'oklch(0.55 0.18 180)',
-    span: 'col-span-2 md:col-span-2 row-span-1',
-    qrLinks: [
-      { label: 'Monitoring WSN Dashboard', url: 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_ufv08vzhsd' },
-      { label: 'Weekly Service Notice Dashboard', url: 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_1swzqz7usd' }
-    ]
-  },
-  {
-    id: 'Handbook',
-    title: 'Handbook SLA',
-    description: 'Panduan standar layanan operasional prima.',
-    icon: BookOpen,
-    color: 'oklch(0.45 0.20 160)',
-    span: 'col-span-2 md:col-span-2 row-span-1',
-    links: [
-      { label: 'Buka Handbook SLA', sublabel: 'SIS Apps Dev', url: 'https://sis.appsdev.my.id/' }
-    ]
-  }
-];
 
 /**
  * Komponen modal akses cepat
@@ -233,6 +149,88 @@ function QuickAccessModal({
  */
 export default function QuickAccessPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const externalLinks = useExternalLinks();
+
+  const CATEGORIES: Category[] = useMemo(() => [
+    {
+      id: 'AIChatbot',
+      title: "I'm in Charge AI Virtual Assistant",
+      description: 'Tanya asisten AI untuk bantuan operasional.',
+      icon: Bot,
+      color: 'oklch(0.60 0.18 260)',
+      span: 'col-span-2 row-span-2 md:col-span-2 md:row-span-2',
+      links: [
+        { label: 'Buka AI Virtual Assistant', sublabel: 'Powered by Gapura RAG', url: getLinkUrl(externalLinks, 'ai-virtual-assistant') }
+      ]
+    },
+    {
+      id: 'Irregularity',
+      title: 'Irregularity Report',
+      description: 'Akses cepat pelaporan internal.',
+      icon: AlertTriangle,
+      color: 'oklch(0.55 0.22 30)',
+      span: 'col-span-2 row-span-2 md:col-span-2 md:row-span-2'
+    },
+    {
+      id: 'JOUMPA',
+      title: 'JOUMPA',
+      description: 'Hospitality & VIP Service access.',
+      icon: QrCode,
+      color: 'oklch(0.50 0.15 190)',
+      span: 'col-span-1 row-span-1',
+      qrLinks: [
+        { label: 'Customer JOUMPA', url: getLinkUrl(externalLinks, 'customer-joumpa') },
+        { label: 'Staff JOUMPA', url: getLinkUrl(externalLinks, 'staff-joumpa') }
+      ]
+    },
+    {
+      id: 'SLA',
+      title: 'Pengisian Report SLA',
+      description: 'Akses cepat pengisian laporan SLA.',
+      icon: ClipboardCheck,
+      color: 'oklch(0.45 0.18 240)',
+      span: 'col-span-2 md:col-span-2 row-span-1',
+      qrLinks: [
+        { label: 'Pengisian SLA Landside', url: getLinkUrl(externalLinks, 'sla-landside') },
+        { label: 'Pengisian SLA Airside', url: getLinkUrl(externalLinks, 'sla-airside') }
+      ]
+    },
+    {
+      id: 'Survey',
+      title: 'Survey Penumpang',
+      description: 'Bantu kami meningkatkan layanan via survey.',
+      icon: QrCode,
+      color: 'oklch(0.60 0.20 340)',
+      span: 'col-span-1 row-span-1',
+      qrLinks: [
+        { label: 'Survey Penumpang', url: getLinkUrl(externalLinks, 'survey-penumpang') }
+      ]
+    },
+    {
+      id: 'WSN',
+      title: 'WSN Dashboard',
+      description: 'Monitoring WSN & Weekly Service Notice.',
+      icon: QrCode,
+      color: 'oklch(0.55 0.18 180)',
+      span: 'col-span-2 md:col-span-2 row-span-1',
+      qrLinks: [
+        { label: 'Monitoring WSN Dashboard', url: getLinkUrl(externalLinks, 'wsn-monitor') },
+        { label: 'Weekly Service Notice Dashboard', url: getLinkUrl(externalLinks, 'wsn-weekly') }
+      ]
+    },
+    {
+      id: 'Handbook',
+      title: 'Handbook SLA',
+      description: 'Panduan standar layanan operasional prima.',
+      icon: BookOpen,
+      color: 'oklch(0.45 0.20 160)',
+      span: 'col-span-2 md:col-span-2 row-span-1',
+      links: [
+        { label: 'Buka Handbook SLA', sublabel: 'SIS Apps Dev', url: getLinkUrl(externalLinks, 'handbook-sla') }
+      ]
+    }
+  ], [externalLinks]);
+
   const activeCategory = CATEGORIES.find(c => c.id === activeId) || null;
 
   return (

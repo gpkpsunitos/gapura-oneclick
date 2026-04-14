@@ -8,13 +8,17 @@
 'use client';
 
 import GuestNav from '@/components/GuestNav';
-import Image from 'next/image';
+import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { getLinkUrl } from '@/lib/external-links';
+import { QRCodeWithLogo } from '@/components/ui/QRCodeWithLogo';
 
 /**
  * Halaman feedback JOUMPA
  * @returns Komponen React
  */
 export default function JoumpaFeedbackPage() {
+  const externalLinks = useExternalLinks();
+
   return (
     <div className="min-h-[100dvh] bg-gray-50">
       <GuestNav />
@@ -24,14 +28,7 @@ export default function JoumpaFeedbackPage() {
           <p className="text-gray-500">Pindai QR berikut untuk memberikan feedback</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-2xl p-6 flex items-center justify-center">
-          <Image
-            src="/qr-code-customer-joumpa.png"
-            alt="QR Code Customer Feedback Joumpa"
-            width={360}
-            height={360}
-            className="w-full max-w-xs h-auto"
-            priority
-          />
+          <QRCodeWithLogo value={getLinkUrl(externalLinks, 'customer-joumpa')} size={360} fgColor="#0ea5a6" />
         </div>
       </div>
     </div>

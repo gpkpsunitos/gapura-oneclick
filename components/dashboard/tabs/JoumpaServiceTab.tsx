@@ -29,6 +29,8 @@ import {
   renderPieLabel,
   PIE_LABEL_LINE_PROPS,
 } from './shared/chart-ui';
+import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { getLinkUrl } from '@/lib/external-links';
 
 interface JoumpaServiceTabProps {
   allReports: Report[];
@@ -138,9 +140,6 @@ const SATISFACTION_LABELS: Record<string, string> = {
   '2': 'Kurang',
   '1': 'Sangat Kurang',
 };
-
-const JOUMPA_LOOKER_URL = 'https://lookerstudio.google.com/reporting/6a7aba44-6bd1-439f-a5d2-8bed4af56448';
-const JOUMPA_LOOKER_QR_URL = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(JOUMPA_LOOKER_URL)}`;
 
 function isExactJoumpaService(report: Report) {
   return normalizeLower(report.service_business_type) === 'joumpa service';
@@ -406,6 +405,10 @@ function ErrorPanel({ message }: { message: string }) {
 }
 
 export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps) {
+  const externalLinks = useExternalLinks();
+  const joumpaLookerUrl = getLinkUrl(externalLinks, 'joumpa-dashboard');
+  const joumpaLookerQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(joumpaLookerUrl)}`;
+
   const activeReportIds = useMemo(() => new Set(reports.map((report) => report.id)), [reports]);
   const activeMainReports = useMemo(
     () => allReports.filter((report) => activeReportIds.has(report.id)),
@@ -1204,7 +1207,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
                   </div>
 
                   <a
-                    href={JOUMPA_LOOKER_URL}
+                    href={joumpaLookerUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center justify-center gap-2 rounded-2xl border border-[var(--surface-4)] bg-white px-4 py-2.5 text-sm font-bold text-[var(--text-primary)] transition-all hover:bg-[var(--surface-2)]"
@@ -1245,7 +1248,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
             <div className="mt-5 flex justify-center">
               <div className="rounded-[28px] border border-[var(--surface-4)] bg-white p-4 shadow-sm">
                 <img
-                  src={JOUMPA_LOOKER_QR_URL}
+                  src={joumpaLookerQrUrl}
                   alt="QR code dashboard Looker Joumpa Service"
                   className="h-64 w-64 rounded-2xl"
                 />
@@ -1253,12 +1256,12 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
             </div>
 
             <a
-              href={JOUMPA_LOOKER_URL}
+              href={joumpaLookerUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="mt-5 flex items-center justify-between gap-3 rounded-[22px] border border-[var(--surface-4)] bg-[var(--surface-1)] px-4 py-3 text-sm font-medium text-[var(--text-primary)] transition hover:bg-[var(--surface-2)]"
             >
-              <span className="truncate">{JOUMPA_LOOKER_URL}</span>
+              <span className="truncate">{joumpaLookerUrl}</span>
               <ExternalLink size={18} className="shrink-0" />
             </a>
           </div>

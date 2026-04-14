@@ -33,6 +33,8 @@ import {
   renderPieLabel,
   PIE_LABEL_LINE_PROPS,
 } from './shared/chart-ui';
+import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { getLinkUrl } from '@/lib/external-links';
 
 interface ServiceQualityImprovementTabProps {
   reports: Report[];
@@ -53,14 +55,16 @@ const AREA_FILLS = {
   general: 'oklch(0.68 0.16 205)',
 };
 
-const CUSTOMER_FEEDBACK_LOOKER_URL = 'https://lookerstudio.google.com/reporting/1afa362c-347e-44cd-98b1-0ec29abbb333';
-const OP_INITIAL_IRREGULARITY_LOOKER_URL = 'https://lookerstudio.google.com/reporting/06d31553-08c6-42f3-81e6-1bc96356a854/page/tKISF';
-const CUSTOMER_FEEDBACK_LOOKER_QR = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(CUSTOMER_FEEDBACK_LOOKER_URL)}`;
-const OP_INITIAL_IRREGULARITY_LOOKER_QR = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(OP_INITIAL_IRREGULARITY_LOOKER_URL)}`;
 
 /* ─── Main Component ─── */
 
 export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovementTabProps) {
+
+  const externalLinks = useExternalLinks();
+  const customerFeedbackUrl = getLinkUrl(externalLinks, 'customer-feedback');
+  const opIrregularityUrl = getLinkUrl(externalLinks, 'op-initial-irregularity');
+  const customerFeedbackQr = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(customerFeedbackUrl)}`;
+  const opIrregularityQr = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(opIrregularityUrl)}`;
 
   // 1. KPIs
   const kpis = useMemo(() => {
@@ -635,13 +639,13 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
         <LookerQrCard
           title="Customer Feedback Service Dashboard Lookers Version"
-          url={CUSTOMER_FEEDBACK_LOOKER_URL}
-          qrUrl={CUSTOMER_FEEDBACK_LOOKER_QR}
+          url={customerFeedbackUrl}
+          qrUrl={customerFeedbackQr}
         />
         <LookerQrCard
           title="Initial Irregularity Report Dashboard Lookers OP Version"
-          url={OP_INITIAL_IRREGULARITY_LOOKER_URL}
-          qrUrl={OP_INITIAL_IRREGULARITY_LOOKER_QR}
+          url={opIrregularityUrl}
+          qrUrl={opIrregularityQr}
         />
       </div>
 

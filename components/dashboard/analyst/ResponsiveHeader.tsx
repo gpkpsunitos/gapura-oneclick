@@ -535,7 +535,7 @@ export function ResponsiveHeader({
             </Button>
           )}
 
-          {divisionDashboardButton}
+          {divisionDashboardButtons}
 
           {onSwitchDivision && (
             <Button

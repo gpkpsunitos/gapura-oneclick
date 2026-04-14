@@ -8,13 +8,17 @@
 'use client';
 
 import GuestNav from '@/components/GuestNav';
-import Image from 'next/image';
+import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { getLinkUrl } from '@/lib/external-links';
+import { QRCodeWithLogo } from '@/components/ui/QRCodeWithLogo';
 
 /**
  * Halaman Survey Penumpang
  * @returns Komponen React
  */
 export default function SurveyPenumpangPage() {
+  const externalLinks = useExternalLinks();
+
   return (
     <div className="min-h-[100dvh] bg-gray-50">
       <GuestNav />
@@ -24,14 +28,7 @@ export default function SurveyPenumpangPage() {
           <p className="text-gray-500">Pindai QR berikut untuk mengisi survey</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-2xl p-6 flex items-center justify-center">
-          <Image
-            src="/qr-code-survey-penumpang.png"
-            alt="QR Code Survey Penumpang"
-            width={360}
-            height={360}
-            className="w-full max-w-xs h-auto"
-            priority
-          />
+          <QRCodeWithLogo value={getLinkUrl(externalLinks, 'survey-penumpang')} size={360} fgColor="#0ea5a6" />
         </div>
       </div>
     </div>

@@ -6,21 +6,22 @@
  * Menentukan menu dan link yang tersedia untuk setiap role dalam aplikasi
  */
 
-import { 
-    LayoutDashboard, 
-    FileText, 
-    Plane, 
-    ClipboardList, 
-    Users, 
-    ChevronRight, 
-    Hash, 
-    FolderOpen, 
-    Shield, 
-    Brain, 
-    Inbox, 
+import {
+    LayoutDashboard,
+    FileText,
+    Plane,
+    ClipboardList,
+    Users,
+    ChevronRight,
+    Hash,
+    FolderOpen,
+    Shield,
+    Brain,
+    Inbox,
     Calendar,
     Layers,
     BookOpen,
+    Link2,
     type LucideIcon,
 } from 'lucide-react';
 
@@ -72,6 +73,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             items: [
                 { href: '/dashboard/admin/reports', label: 'Reports', icon: ClipboardList },
                 { href: '/dashboard/admin/users', label: 'Users', icon: Users },
+                { href: '/dashboard/admin/external-links', label: 'External Links', icon: Link2 },
             ]
         }
     ],

@@ -17,6 +17,8 @@ import { AISummaryKPICards } from '@/components/dashboard/ai-summary';
 
 import { exportToExcel as doExportExcel, exportToPDF as doExportPDF } from '@/lib/analyst-export';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { getLinkUrl } from '@/lib/external-links';
 import type { Report, AnalyticsData, ComparisonData } from '@/types';
 import { calculateComparisonData } from '@/lib/utils/comparison-utils';
 import type { DivisionConfig } from '@/components/dashboard/AnalyticsDashboard';
@@ -128,6 +130,7 @@ export function DivisionAnalystDashboard({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth(false);
+  const externalLinks = useExternalLinks();
 
   const [reports, setReports] = useState<Report[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
@@ -150,11 +153,11 @@ export function DivisionAnalystDashboard({
   const [visibleCount, setVisibleCount] = useState(100);
   const view = searchParams.get('view') === 'reports' ? 'reports' : 'dashboard';
   const [showOSDashboardModal, setShowOSDashboardModal] = useState(false);
-  const [osDashboardLink, setOsDashboardLink] = useState<string>('https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314');
+  const [osDashboardLink, setOsDashboardLink] = useState<string>(getLinkUrl(externalLinks, 'os-dashboard-analyst'));
   const [showOPDashboardModal, setShowOPDashboardModal] = useState(false);
-  const [opDashboardLink, setOpDashboardLink] = useState<string>('https://lookerstudio.google.com/u/0/reporting/06d31553-08c6-42f3-81e6-1bc96356a854/page/tKISF');
+  const [opDashboardLink, setOpDashboardLink] = useState<string>(getLinkUrl(externalLinks, 'op-initial-irregularity'));
   const [showServiceDashboardModal, setShowServiceDashboardModal] = useState(false);
-  const [serviceDashboardLink, setServiceDashboardLink] = useState<string>('https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314');
+  const [serviceDashboardLink, setServiceDashboardLink] = useState<string>(getLinkUrl(externalLinks, 'service-dashboard-analyst'));
 
   const handleScrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1064,7 +1067,7 @@ export function DivisionAnalystDashboard({
           {view === 'dashboard' && division.code === 'OS' && (
             <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
               <button
-                onClick={() => window.open('https://lookerstudio.google.com/reporting/6a7aba44-6bd1-439f-a5d2-8bed4af56448', '_blank', 'noopener,noreferrer')}
+                onClick={() => window.open(getLinkUrl(externalLinks, 'analyst-joumpa'), '_blank', 'noopener,noreferrer')}
                 className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-lg shadow-emerald-500/20 hover:shadow-xl hover:shadow-emerald-500/30 active:scale-95 flex-1 sm:flex-none justify-center min-w-0 sm:min-w-[160px] whitespace-nowrap"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 sm:w-4 sm:h-4"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
@@ -1078,14 +1081,14 @@ export function DivisionAnalystDashboard({
                 <span className="truncate">Dashboard OS</span>
               </button>
               <button
-                onClick={() => window.open('https://lookerstudio.google.com/u/0/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_qqvwkh1hsd', '_blank')}
+                onClick={() => window.open(getLinkUrl(externalLinks, 'analyst-op-weekly'), '_blank')}
                 className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 active:scale-95 flex-1 sm:flex-none justify-center min-w-0 sm:min-w-[160px] whitespace-nowrap"
               >
                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 sm:w-4 sm:h-4"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 <span className="truncate">Survey</span>
               </button>
               <button
-                onClick={() => window.open('https://lookerstudio.google.com/u/0/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_etgy5p9ptd', '_blank', 'noopener,noreferrer')}
+                onClick={() => window.open(getLinkUrl(externalLinks, 'analyst-ot-dashboard'), '_blank', 'noopener,noreferrer')}
                 className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white shadow-lg shadow-fuchsia-500/20 hover:shadow-xl hover:shadow-fuchsia-500/30 active:scale-95 flex-1 sm:flex-none justify-center min-w-0 sm:min-w-[160px] whitespace-nowrap"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 sm:w-4 sm:h-4"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
@@ -1099,7 +1102,7 @@ export function DivisionAnalystDashboard({
                 <span className="truncate">WSN</span>
               </button>
               <button
-                onClick={() => window.open('https://lookerstudio.google.com/u/6/reporting/55737b14-c27a-4ed8-b65c-336317790314/page/p_uyfwmq7usd', '_blank')}
+                onClick={() => window.open(getLinkUrl(externalLinks, 'analyst-branch-perf'), '_blank')}
                 className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-bold tracking-tight transition-all duration-300 bg-gradient-to-br from-amber-600 to-yellow-600 text-white shadow-lg shadow-amber-500/20 hover:shadow-xl hover:shadow-amber-500/30 active:scale-95 flex-1 sm:flex-none justify-center min-w-0 sm:min-w-[160px] whitespace-nowrap"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 sm:w-4 sm:h-4"><path d="M3 7h5l2 2h11v9a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7z"/><path d="M3 7V5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.4.6L12 5"/></svg>
@@ -1457,7 +1460,7 @@ export function DivisionAnalystDashboard({
                   <button
                     onClick={() => {
                       const saved = typeof window !== 'undefined' ? localStorage.getItem('op_dashboard_link') : null;
-                      setOpDashboardLink(saved || 'https://lookerstudio.google.com/u/0/reporting/06d31553-08c6-42f3-81e6-1bc96356a854/page/tKISF');
+                      setOpDashboardLink(saved || getLinkUrl(externalLinks, 'op-initial-irregularity'));
                     }}
                     className="flex-1 py-3.5 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-[13px]"
                   >
@@ -1526,7 +1529,7 @@ export function DivisionAnalystDashboard({
                   <button
                     onClick={() => {
                       const saved = typeof window !== 'undefined' ? localStorage.getItem('service_dashboard_link') : null;
-                      setServiceDashboardLink(saved || 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314');
+                      setServiceDashboardLink(saved || getLinkUrl(externalLinks, 'service-dashboard-analyst'));
                     }}
                     className="flex-1 py-3.5 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-[13px]"
                   >
@@ -1595,7 +1598,7 @@ export function DivisionAnalystDashboard({
                   <button
                     onClick={() => {
                       const saved = typeof window !== 'undefined' ? localStorage.getItem('os_dashboard_link') : null;
-                      setOsDashboardLink(saved || 'https://lookerstudio.google.com/reporting/55737b14-c27a-4ed8-b65c-336317790314');
+                      setOsDashboardLink(saved || getLinkUrl(externalLinks, 'os-dashboard-analyst'));
                     }}
                     className="flex-1 py-3.5 border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors text-[13px]"
                   >

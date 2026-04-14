@@ -15,6 +15,8 @@ import { usePathname } from 'next/navigation';
 import { QrCode, ClipboardList, BookOpen, ChevronUp, Menu as MenuIcon, Bot, Monitor, BarChart3, Lock, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuickAccessPasswordModal } from '@/components/QuickAccessPasswordModal';
+import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { getLinkUrl } from '@/lib/external-links';
 
 /**
  * Base tipe item guest navigasi
@@ -56,66 +58,6 @@ const PROTECTED_LABELS = new Set([
 const isLinkItem = (item: GuestItem): item is GuestLinkItem => 'href' in item && !!item.href;
 
 /**
- * Daftar item navigasi guest
- * @constant items
- */
-const items: GuestItem[] = [
-    {
-        label: 'AI Chatbot',
-        icon: Bot,
-        href: '/auth/ai-chat',
-    },
-    {
-        label: 'Chat Bot I\'m In Charge',
-        icon: Bot,
-        href: 'https://app.openai.com/',
-        external: true,
-        protected: true,
-    },
-    {
-        label: 'Customer Feedback JOUMPA',
-        icon: QrCode,
-        href: '/auth/joumpa',
-    },
-    {
-        label: 'Survey Penumpang',
-        icon: QrCode,
-        href: '/auth/survey-penumpang',
-    },
-    {
-        label: 'Staff JOUMPA Report',
-        icon: ClipboardList,
-        href: 'https://forms.gle/oLyEBoThQKbjPLAk9',
-        external: true,
-    },
-    {
-        label: 'Pengisian Inspeksi Report SLA',
-        icon: ClipboardList,
-        href: '/auth/sla',
-    },
-    {
-        label: 'Handbook SLA',
-        icon: BookOpen,
-        href: 'https://sis.appsdev.my.id/',
-        external: true,
-        protected: true,
-    },
-    {
-        label: 'WSN Dashboard',
-        icon: Monitor,
-        href: '/dashboard/os/wsn',
-        protected: true,
-    },
-    {
-        label: 'HSSE Report',
-        icon: AlertTriangle,
-        href: 'https://linktr.ee/HSSE_GP',
-        external: true,
-        protected: true,
-    },
-];
-
-/**
  * Komponen navigasi guest
  * Menampilkan sidebar desktop dan bottom navigation mobile dengan quick access links
  * @param hideSidebar - Sembunyikan sidebar desktop
@@ -131,6 +73,67 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
     const [expanded, setExpanded] = useState(false);
 
     const [modal, setModal] = useState<{ label: string; href: string; external: boolean } | null>(null);
+
+    const externalLinks = useExternalLinks();
+
+    /**
+     * Daftar item navigasi guest
+     */
+    const items: GuestItem[] = [
+        {
+            label: 'AI Chatbot',
+            icon: Bot,
+            href: '/auth/ai-chat',
+        },
+        {
+            label: 'Chat Bot I\'m In Charge',
+            icon: Bot,
+            href: getLinkUrl(externalLinks, 'chat-bot-openai'),
+            external: true,
+            protected: true,
+        },
+        {
+            label: 'Customer Feedback JOUMPA',
+            icon: QrCode,
+            href: '/auth/joumpa',
+        },
+        {
+            label: 'Survey Penumpang',
+            icon: QrCode,
+            href: '/auth/survey-penumpang',
+        },
+        {
+            label: 'Staff JOUMPA Report',
+            icon: ClipboardList,
+            href: getLinkUrl(externalLinks, 'staff-joumpa-report'),
+            external: true,
+        },
+        {
+            label: 'Pengisian Inspeksi Report SLA',
+            icon: ClipboardList,
+            href: '/auth/sla',
+        },
+        {
+            label: 'Handbook SLA',
+            icon: BookOpen,
+            href: getLinkUrl(externalLinks, 'handbook-sla'),
+            external: true,
+            protected: true,
+        },
+        {
+            label: 'WSN Dashboard',
+            icon: Monitor,
+            href: '/dashboard/os/wsn',
+            protected: true,
+        },
+        {
+            label: 'HSSE Report',
+            icon: AlertTriangle,
+            href: getLinkUrl(externalLinks, 'hsse-report-guestnav'),
+            external: true,
+            protected: true,
+        },
+    ];
 
     /**
      * Determine whether to intercept click for password gate
