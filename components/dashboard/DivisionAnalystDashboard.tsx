@@ -1036,7 +1036,7 @@ export function DivisionAnalystDashboard({
               division.code === 'OP'
                 ? [
                     {
-                      label: 'Dashboard operation lookers version',
+                      label: 'Dashboard Operation Lookers Version',
                       onClick: () => setShowOPDashboardModal(true),
                     },
                     {
@@ -1409,14 +1409,14 @@ export function DivisionAnalystDashboard({
             <div className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 animate-scale-in border border-[var(--surface-3)]">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
-                  <LinkIcon size={18} /> Dashboard operation lookers version
+                  <LinkIcon size={18} /> Dashboard Operation Lookers Version
                 </h3>
                 <button onClick={() => setShowOPDashboardModal(false)} className="p-2 hover:bg-[var(--surface-2)] rounded-xl transition-colors">
                   <X size={18} />
                 </button>
               </div>
               <p className="text-[13px] text-[var(--text-secondary)] mb-4">
-                Ubah, salin, atau buka tautan Dashboard operation lookers version (Google Looker Studio).
+                Ubah, salin, atau buka tautan Dashboard Operation Lookers Version (Google Looker Studio).
               </p>
               <div className="space-y-3">
                 <label className="block text-[11px] font-bold text-[var(--text-muted)]">Link Dashboard</label>
