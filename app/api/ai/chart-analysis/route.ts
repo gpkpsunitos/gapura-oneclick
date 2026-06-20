@@ -548,23 +548,60 @@ function entityRiskRows(endpoints: EndpointResult[], limit = 5) {
 }
 
 function forecastInsights(endpoints: EndpointResult[]) {
-  const forecastData = firstOkData(endpoints, ['forecast_issues']) as { forecasts?: Array<Record<string, unknown>>; method?: string; validation?: Record<string, unknown> } | undefined;
+  const forecastData = firstOkData(endpoints, ['forecast_issues']) as {
+    forecasts?: Array<Record<string, unknown>>;
+    method?: string;
+    baseline?: number;
+    trend_slope?: number;
+    validation?: { avg_horizon_wape?: number; backtest_points?: number };
+  } | undefined;
   const forecasts = Array.isArray(forecastData?.forecasts) ? forecastData.forecasts : [];
   const rows = forecasts.slice(0, 4).map((item) => (
     `${forecastPeriodLabel(asNumber(item.period) || 1)}: ${asNumber(item.predicted)} cases, expected range ${asNumber(item.lower_bound)}-${asNumber(item.upper_bound)}, confidence ${formatPercent(item.confidence)}.`
   ));
+  // ponytail: anchor every forecast in context — the executive needs to know whether 8/week
+  // is high, low, or flat versus the recent baseline, and whether the model is trustworthy.
+  if (rows.length > 0) {
+    const baseline = asNumber(forecastData?.baseline);
+    const wape = asNumber(forecastData?.validation?.avg_horizon_wape);
+    const slope = asNumber(forecastData?.trend_slope);
+    const trendWord = slope > 0.5 ? 'rising' : slope < -0.5 ? 'falling' : 'stable';
+    const accuracyWord = wape > 0 && wape < 0.25 ? 'high' : wape < 0.5 ? 'moderate' : 'low';
+    if (baseline > 0) {
+      rows.unshift(`Recent baseline: ${baseline} cases/week, trend ${trendWord} (slope ${slope.toFixed(2)}). Backtest accuracy: ${accuracyWord} (WAPE ${(wape * 100).toFixed(0)}%).`);
+    }
+  }
 
   return rows.length > 0 ? rows : ['Live issue forecast unavailable.'];
 }
 
 function seasonalityInsights(endpoints: EndpointResult[]) {
   const insights: string[] = [];
-  const data = firstOkData(endpoints, ['seasonality_forecast']) as Record<string, { forecasts?: Array<Record<string, unknown>> }> | undefined;
+  const data = firstOkData(endpoints, ['seasonality_forecast']) as Record<
+    string,
+    { forecasts?: Array<Record<string, unknown>>; baseline?: number; trend?: string }
+  > | undefined;
   Object.entries(data || {}).slice(0, 2).forEach(([group, value]) => {
+    const baseline = asNumber(value.baseline);
+    const trend = String(value.trend || 'stable');
     const first = value.forecasts?.[0];
     const second = value.forecasts?.[1];
-    if (first) insights.push(`${formatEndpointLabel(group)} ${forecastPeriodLabel(asNumber(first.period) || 1)}: ${asNumber(first.predicted)} cases.`);
-    if (second) insights.push(`${formatEndpointLabel(group)} ${forecastPeriodLabel(asNumber(second.period) || 2)}: ${asNumber(second.predicted)} cases.`);
+    // ponytail: pair every forecast with its baseline + seasonal multiplier so flat values
+    // are recognizable as flat, and seasonal swings get attributed to the right month.
+    if (first) {
+      const mult = asNumber(first.seasonal_multiplier) || 1;
+      const swing = mult > 1.1 ? ' (seasonal peak)' : mult < 0.9 ? ' (seasonal lull)' : '';
+      insights.push(
+        `${formatEndpointLabel(group)} ${forecastPeriodLabel(asNumber(first.period) || 1)}: ${asNumber(first.predicted)} cases${swing}. Baseline ${baseline}, trend ${trend}.`,
+      );
+    }
+    if (second) {
+      const mult = asNumber(second.seasonal_multiplier) || 1;
+      const swing = mult > 1.1 ? ' (seasonal peak)' : mult < 0.9 ? ' (seasonal lull)' : '';
+      insights.push(
+        `${formatEndpointLabel(group)} ${forecastPeriodLabel(asNumber(second.period) || 2)}: ${asNumber(second.predicted)} cases${swing}.`,
+      );
+    }
   });
 
   return insights.length > 0 ? insights : ['Live seasonal pattern unavailable.'];
