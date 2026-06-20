@@ -140,9 +140,16 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
       const filtered = structured.filter((row) => {
         // Date filter
         if (filters.dateFrom || filters.dateTo) {
-          const dateField = row['Date_of_Event'] || row['Date of Event'] || row['Tanggal'] || row['Date'] || '';
+          const dateField = row['Date of Event'] || row['Date_of_Event'] || row['Tanggal'] || row['Date'] || '';
           if (!dateField) return false;
-          const rowDate = new Date(dateField);
+          // ponytail: live sheet stores Excel serial ints (e.g. 45682) — convert before Date()
+          let rowDate: Date;
+          const asInt = Number(dateField);
+          if (Number.isFinite(asInt) && asInt > 20000 && asInt < 80000) {
+            rowDate = new Date((asInt - 25569) * 86400 * 1000);
+          } else {
+            rowDate = new Date(dateField);
+          }
           if (isNaN(rowDate.getTime())) return false;
           if (filters.dateFrom && rowDate < new Date(filters.dateFrom)) return false;
           if (filters.dateTo) {
@@ -172,11 +179,15 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
 
         // Category filter
         if (filters.categories && filters.categories.length > 0) {
+          // ponytail: include the live 3-bucket area-categories since the old combined column is gone
           const cat =
             row['Irregularity/Complain Category'] ||
             row['Irregularity_Complain_Category'] ||
             row['Report Category'] ||
             row['Report_Category'] ||
+            row['Terminal Area Category'] ||
+            row['Apron Area Category'] ||
+            row['General Category'] ||
             row['Main Category'] ||
             '';
           if (!filters.categories.some((c) => cat.toLowerCase().includes(c.toLowerCase()))) return false;
@@ -225,7 +236,15 @@ function buildDataContext(
       const repCat = row['Report Category'] || row['Report_Category'] || '';
       if (repCat) reportCategoryCount[repCat] = (reportCategoryCount[repCat] || 0) + 1;
 
-      const specCat = row['Irregularity/Complain Category'] || row['Irregularity_Complain_Category'] || '';
+      // ponytail: live schema dropped "Irregularity/Complain Category". Specific category is now
+      // expressed via Terminal/Apron/General buckets — fall through gracefully if absent.
+      const specCat =
+        row['Irregularity/Complain Category'] ||
+        row['Irregularity_Complain_Category'] ||
+        row['Terminal Area Category'] ||
+        row['Apron Area Category'] ||
+        row['General Category'] ||
+        '';
       if (specCat) specificCategoryCount[specCat] = (specificCategoryCount[specCat] || 0) + 1;
 
       const area = row['Area'] || '';
@@ -287,7 +306,7 @@ function buildDataContext(
       'Status',
       'Preventive Action', 'Preventive_Action',
       'Area', 'Terminal Area Category', 'Apron Area Category', 'General Category',
-      'Severity', 'Delay Code', 'Delay Duration', 'Case Classification', 'Accident / Incident',
+      'Severity Level', 'Severity', 'Delay Code', 'Delay Duration', 'Case Classification', 'Accident / Incident',
       'Gapura KPS Remarks', 'Gapura KPS Action Taken'
     ];
 
@@ -341,9 +360,10 @@ PASTIKAN hasil keluaran visualisasi dibungkus dengan tiga backticks \`\`\`json d
 
 KONTEKS DOMAIN:
 - Data berisi laporan irregularity dan complaint dari berbagai branch/cabang penerbangan
-- Kolom Penting: "Date of Event", "Airlines", "Reporting Branch", "HUB", "Report Category", "Irregularity/Complain Category", "Report" (deskripsi insiden), "Root Caused", "Action Taken", "Status", "Preventive Action", "Delay Code", "Delay Duration", "Case Classification", "Accident / Incident"
+- Kolom Penting (live schema, 36 kolom): "Date of Event" (Excel serial integer), "Jenis Maskapai", "Airlines", "Flight Number", "Branch", "HUB", "Route", "Report Category", "Report" (deskripsi insiden), "Root Caused", "Action Taken", "Preventive Action", "Area", "Terminal Area Category", "Apron Area Category", "General Category", "Service Business Type", "Accident / Incident", "Case Classification", "Delay Code", "Severity Level", "Status", "Final Remarks".
 - "Report Category" berisi tipe besar: Irregularity, Complaint, Compliment.
-- "Irregularity/Complain Category" berisi tipe spesifik: Pax Handling, Baggage Handling, GSE, Operation, dll. INILAH YANG DIMAKSUD JIKA USER BERTANYA TENTANG "Kategori Irregularity".
+- Kategori spesifik live tersimpan di salah satu dari "Terminal Area Category", "Apron Area Category", atau "General Category" (tergantung Area). JANGAN cari kolom "Irregularity/Complain Category" — kolom itu sudah tidak ada di sheet live.
+- "Severity Level" (BUKAN "Severity") berisi: Low, Medium, High, Critical.
 - Gunakan data "SUMMARY DISTRIBUTIONS" di bagian paling atas data untuk membikin visualisasi chart. JANGAN MENGHITUNG MANUAL dari sampel row. Data SUMMARY adalah kebenaran mutlak seluruh records.
 - Status: "Open" = belum selesai atau perlu respons, "Closed" = sudah selesai, "On Progress" = sedang ditangani
 - Severity: "TOP RISK" (tertinggi), "HIGH", "MEDIUM", "LOW".

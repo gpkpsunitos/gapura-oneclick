@@ -411,17 +411,10 @@ function rowsFromUnknownPayload(data: unknown, limit = 5): VisualRow[] {
     }
   }
 
-  return Object.entries(obj)
-    .filter(([key]) => !blockedKeys.has(key))
-    .map(([label, raw]) => {
-      if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-        return rowFromObject(plainObject(raw), label);
-      }
-      const value = asNumber(raw);
-      return value > 0 ? { label: formatEndpointLabel(label), value, score: value } : null;
-    })
-    .filter((row): row is VisualRow => Boolean(row?.label))
-    .slice(0, limit);
+  // ponytail: removed the "dump raw object keys" catch-all — it was producing executive-visible
+  // cards like "TotalRecords / categories / overallSummary". If no recognized shape is found,
+  // return empty so upstream callers fall through to "unavailable" copy instead of fabricated data.
+  return [];
 }
 
 function rowsFromNamedEndpoints(endpoints: EndpointResult[], names: string[], limit = 5): VisualRow[] {
@@ -1226,16 +1219,10 @@ async function callDl(name: string, path: string, body: unknown, timeoutMs = FAS
   }
 }
 
-function featureSummary(feature: FeatureKey, chartTitle: string) {
-  const subject = `"${chartTitle}"`;
-  if (feature === 'forecasting') return `Live forecast periods for ${subject}.`;
-  if (feature === 'seasonality') return `Live seasonal load for ${subject}.`;
-  if (feature === 'subcategory') return `Live issue grouping for ${subject}.`;
-  if (feature === 'rootCause') return `Live cause signals for ${subject}.`;
-  if (feature === 'riskScoring') return `Live risk ranking for ${subject}.`;
-  if (feature === 'similaritySearch') return `Live related-case lookup for ${subject}.`;
-  if (feature === 'actionRecommendation') return `Live action recommendations for ${subject}.`;
-  return `Live summary for ${subject}.`;
+function featureSummary(_feature: FeatureKey, _chartTitle: string) {
+  // ponytail: the per-card "Live X for Y" copy was boilerplate fluff above every section.
+  // The card header already labels it; an empty subhead removes ~1 line of noise per card.
+  return '';
 }
 
 function buildFeature(feature: FeatureKey, endpoints: EndpointResult[], chartTitle: string, chartData: ChartPoint[]) {

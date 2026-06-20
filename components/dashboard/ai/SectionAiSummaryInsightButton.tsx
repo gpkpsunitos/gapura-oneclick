@@ -383,11 +383,25 @@ function SummaryChart({ rows }: { rows: SummaryChartRow[] }) {
 }
 
 function PointList({ title, items }: { title: string; items: string[] }) {
+  // ponytail: strip leading "1." / "1) " upstream-prefixes so we don't render "1. 1. foo"
+  const cleaned = items
+    .map((item) => String(item ?? '').replace(/^\s*\d+[.)]\s*/, '').trim())
+    .filter(Boolean);
+
+  if (cleaned.length === 0) {
+    return (
+      <div className="border border-dashed border-[#cfd8ce] bg-white p-4">
+        <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[#61706a]">{title}</div>
+        <p className="mt-2 text-sm font-semibold text-[#61706a]">No signal returned for this section.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="border border-[#cfd8ce] bg-white p-4">
       <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[#007073]">{title}</div>
       <ul className="mt-3 space-y-2">
-        {items.slice(0, 6).map((item, index) => (
+        {cleaned.slice(0, 6).map((item, index) => (
           <li key={`${item}-${index}`} className="grid grid-cols-[1.6rem_minmax(0,1fr)] gap-2 text-sm font-semibold leading-6 text-[#263033]">
             <span className="text-right font-black text-[#d9911e]">{index + 1}.</span>
             <span>{item}</span>
@@ -419,13 +433,16 @@ function FeatureInsightCard({ feature }: { feature: FeatureResult }) {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h3 className="text-[16px] font-black text-[#1f2a2d]">{feature.label}</h3>
-          <p className="mt-1 text-sm font-semibold leading-6 text-[#61706a]">{feature.summary}</p>
+          {feature.summary ? (
+            <p className="mt-1 text-sm font-semibold leading-6 text-[#61706a]">{feature.summary}</p>
+          ) : null}
         </div>
       </div>
       <FeatureVisual visual={feature.visual} />
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <PointList title="Endpoint Signal" items={feature.chartSignal || []} />
-        <PointList title="Recommended Action" items={feature.recommendations?.length ? feature.recommendations : feature.chartSignal || []} />
+        {/* ponytail: no fallback to chartSignal — duplicating panels reads as a bug, not data */}
+        <PointList title="Recommended Action" items={feature.recommendations || []} />
       </div>
     </div>
   );
@@ -433,7 +450,16 @@ function FeatureInsightCard({ feature }: { feature: FeatureResult }) {
 
 function FeatureVisual({ visual }: { visual?: FeatureResult['visual'] }) {
   if (!visual?.rows?.length) return null;
-  const rows = visual.rows.slice(0, 8);
+  // ponytail: drop UNKNOWN/empty rows and zero-value rows before rendering — single-bar UNKNOWN was a fake chart
+  const rows = visual.rows
+    .filter((row) => {
+      const label = String(row.label ?? '').trim();
+      if (!label || label.toLowerCase() === 'unknown') return false;
+      const v = Number(row.value ?? row.score ?? 0);
+      return Number.isFinite(v) && v > 0;
+    })
+    .slice(0, 8);
+  if (rows.length === 0) return null;
 
   if (visual.type === 'bar' || visual.type === 'forecast') {
     return (
@@ -456,12 +482,19 @@ function FeatureVisual({ visual }: { visual?: FeatureResult['visual'] }) {
       <div className="h-[260px] border border-[#d7ded2] bg-[#fbfdf8] p-3">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            <Pie data={rows} dataKey="value" nameKey="label" outerRadius={92} label>
+            {/* ponytail: percent labels — raw counts at the rim were being misread as percentages */}
+            <Pie
+              data={rows}
+              dataKey="value"
+              nameKey="label"
+              outerRadius={92}
+              label={({ name, percent }) => `${name} ${Math.round((percent ?? 0) * 100)}%`}
+            >
               {rows.map((row, index) => (
                 <Cell key={row.label} fill={CHART_COLORS[index % CHART_COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip />
+            <Tooltip formatter={(value: number) => value.toLocaleString('en-US')} />
           </PieChart>
         </ResponsiveContainer>
       </div>

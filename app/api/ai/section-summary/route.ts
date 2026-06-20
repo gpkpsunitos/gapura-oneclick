@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { callOpenRouterAI, OPENROUTER_MODEL, type OpenRouterMessage } from '@/lib/ai/openrouter';
 import { buildAICacheKey, readAICache, writeAICache } from '@/lib/ai-cache';
 import { verifySession } from '@/lib/auth-utils';
+import { collectAllowedNumbers, filterGroundedBullets, stripUngroundedSentences } from '@/lib/ai/grounding';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -189,14 +190,30 @@ export async function POST(req: NextRequest) {
     }
 
     const fallback = fallbackSummary(section, title, chartData);
+    // ponytail: pre-compute aggregates so the model has hard ground truth and can't fabricate totals
+    const totalsByLabel = chartData.reduce<Record<string, number>>((acc, row) => {
+      const label = String(row.label || 'Unknown');
+      acc[label] = (acc[label] || 0) + asNumber(row.value);
+      return acc;
+    }, {});
+    const grandTotal = Object.values(totalsByLabel).reduce((a, b) => a + b, 0);
+    const topRow = Object.entries(totalsByLabel).sort((a, b) => b[1] - a[1])[0];
+    const knownNumbers = {
+      grand_total: grandTotal,
+      distinct_labels: Object.keys(totalsByLabel).length,
+      top_label_value: topRow?.[1] ?? 0,
+      values_by_label: totalsByLabel,
+    };
+
     const messages: OpenRouterMessage[] = [
       {
         role: 'system',
         content: [
-          'You are an aviation operations analyst for Gapura.',
-          'Return compact JSON only. No markdown.',
-          'Write in Indonesian business language.',
-          'Analyze section-level dashboard data, not generic advice.',
+          'You are an aviation operations analyst for Gapura, writing for C-level readers.',
+          'Return compact JSON only. No markdown, no preamble.',
+          'Write in Indonesian business language. One insight per sentence, no filler.',
+          'HARD RULE: every numeric figure you cite MUST appear inside `known_totals` or `data`.',
+          'If the data does not support an insight, OMIT the field rather than fabricate. Empty arrays are valid.',
           'Schema: {"executiveSummary":string,"keyPoints":string[],"table":[{"label":string,"value":number|string,"note":string}],"chart":[{"label":string,"value":number}],"predictiveSummary":string,"insights":string[]}',
         ].join(' '),
       },
@@ -207,13 +224,14 @@ export async function POST(req: NextRequest) {
           section,
           title,
           chartType,
+          known_totals: knownNumbers,
           data: chartData,
           requirements: [
-            'Ringkas apa yang terjadi di section ini.',
-            'Buat tabel 4-8 baris dari sinyal terpenting.',
-            'Buat chart data 4-8 baris numerik.',
-            'Berikan insight operasional dan prediksi singkat.',
-            'Jangan mengarang angka di luar data.',
+            'Ringkas apa yang terjadi di section ini dalam satu kalimat eksekutif.',
+            'Tabel 4-8 baris dari sinyal terpenting; setiap value harus berasal dari known_totals.values_by_label.',
+            'Chart 4-8 baris numerik dengan urutan menurun.',
+            'Insight operasional fokus pada label terbesar dan kemungkinan eskalasi.',
+            'Jangan menyebut "1110" atau angka apapun yang tidak ada di known_totals.',
           ],
         }),
       },
@@ -227,13 +245,31 @@ export async function POST(req: NextRequest) {
       console.warn('[section-summary] failed to parse LLM JSON:', error);
     }
 
+    // ponytail: hallucination gate — whitelist every number that appeared in the inputs,
+    // then strip any model-generated sentence whose numbers aren't in the whitelist.
+    const allowedNumbers = collectAllowedNumbers({ knownNumbers, chartData });
+    const groundedKeyPoints = filterGroundedBullets(
+      cleanStringArray(parsed.keyPoints, fallback.keyPoints),
+      allowedNumbers,
+    );
+    const groundedInsights = filterGroundedBullets(
+      cleanStringArray(parsed.insights, fallback.insights),
+      allowedNumbers,
+    );
+
     const payload: SectionSummaryPayload = {
-      executiveSummary: normalizeText(parsed.executiveSummary, fallback.executiveSummary),
-      keyPoints: cleanStringArray(parsed.keyPoints, fallback.keyPoints),
+      executiveSummary: stripUngroundedSentences(
+        normalizeText(parsed.executiveSummary, fallback.executiveSummary),
+        allowedNumbers,
+      ) || fallback.executiveSummary,
+      keyPoints: groundedKeyPoints.length > 0 ? groundedKeyPoints : fallback.keyPoints,
       table: cleanTable(parsed.table, fallback.table),
       chart: cleanChart(parsed.chart, fallback.chart),
-      predictiveSummary: normalizeText(parsed.predictiveSummary, fallback.predictiveSummary),
-      insights: cleanStringArray(parsed.insights, fallback.insights),
+      predictiveSummary: stripUngroundedSentences(
+        normalizeText(parsed.predictiveSummary, fallback.predictiveSummary),
+        allowedNumbers,
+      ) || fallback.predictiveSummary,
+      insights: groundedInsights.length > 0 ? groundedInsights : fallback.insights,
     };
 
     await writeCached(cacheKey, payload);
