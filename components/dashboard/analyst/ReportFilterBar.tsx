@@ -1,0 +1,264 @@
+"use client";
+
+import { FC, useState, type ElementType, type ReactNode } from 'react';
+import {
+  Building2,
+  CalendarDays,
+  ChevronDown,
+  Filter,
+  Plane,
+  RefreshCw,
+  Search,
+  ShieldAlert,
+  Tag,
+  X,
+} from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { type ReportFilterOptions } from '@/lib/reports-export';
+
+type ScreenReportFilterOptions = ReportFilterOptions & {
+  hubs: string[];
+  categories: string[];
+  areas: string[];
+};
+
+interface ReportFilterBarProps {
+  search: string;
+  onSearch: (v: string) => void;
+  startDate: string;
+  onStartDate: (v: string) => void;
+  endDate: string;
+  onEndDate: (v: string) => void;
+  hub: string;
+  onHub: (v: string) => void;
+  branch: string;
+  onBranch: (v: string) => void;
+  airline: string;
+  onAirline: (v: string) => void;
+  category: string;
+  onCategory: (v: string) => void;
+  caseClassification: string;
+  onCaseClassification: (v: string) => void;
+  area: string;
+  onArea: (v: string) => void;
+  status: string;
+  onStatus: (v: string) => void;
+  severity: string;
+  onSeverity: (v: string) => void;
+  options: ScreenReportFilterOptions;
+  totalCount: number;
+  filteredCount: number;
+  refreshing: boolean;
+  onRefresh: () => void;
+  onReset: () => void;
+}
+
+export const ReportFilterBar: FC<ReportFilterBarProps> = ({
+  search,
+  onSearch,
+  startDate,
+  onStartDate,
+  endDate,
+  onEndDate,
+  hub,
+  onHub,
+  branch,
+  onBranch,
+  airline,
+  onAirline,
+  category,
+  onCategory,
+  caseClassification,
+  onCaseClassification,
+  area,
+  onArea,
+  status,
+  onStatus,
+  severity,
+  onSeverity,
+  options,
+  totalCount,
+  filteredCount,
+  refreshing,
+  onRefresh,
+  onReset,
+}) => {
+  const [open, setOpen] = useState(false);
+  const activeCount = [
+    search,
+    startDate,
+    endDate,
+    hub,
+    branch,
+    airline,
+    category,
+    caseClassification,
+    area,
+    status !== 'all' ? status : '',
+    severity !== 'all' ? severity : '',
+  ]
+    .filter(Boolean)
+    .length;
+
+  return (
+    <div className="w-full overflow-hidden rounded-2xl border border-emerald-100/80 bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        className="flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 px-4 py-2.5 text-left transition hover:bg-emerald-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+      >
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700">
+            <Filter className="h-4 w-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Filter All Reports</p>
+            <p className="truncate text-xs font-semibold text-slate-700">
+              {activeCount > 0
+                ? `${activeCount} filter aktif • ${filteredCount.toLocaleString('id-ID')} dari ${totalCount.toLocaleString('id-ID')} report`
+                : 'Tanggal, hub, branch, airline, category, classification, area, status, severity'}
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-3">
+          {activeCount > 0 && (
+            <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700">
+              Active
+            </span>
+          )}
+          <ChevronDown className={cn('h-4 w-4 text-slate-400 transition-transform', open && 'rotate-180')} />
+        </div>
+      </button>
+
+      {open && (
+        <div className="border-t border-emerald-100/70 bg-[#fbfcf8] p-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <FilterInput label="Tanggal Mulai" icon={CalendarDays}>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(event) => onStartDate(event.target.value)}
+                className={fieldClass}
+              />
+            </FilterInput>
+            <FilterInput label="Tanggal Akhir" icon={CalendarDays}>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(event) => onEndDate(event.target.value)}
+                className={fieldClass}
+              />
+            </FilterInput>
+            <FilterSelect label="Hub" icon={Building2} value={hub} onChange={onHub} emptyLabel="Semua hub" options={options.hubs} />
+            <FilterSelect label="Branch" icon={Building2} value={branch} onChange={onBranch} emptyLabel="Semua branch" options={options.branches} />
+            <FilterSelect label="Airlines" icon={Plane} value={airline} onChange={onAirline} emptyLabel="Semua airlines" options={options.airlines} />
+            <FilterSelect label="Category" icon={Tag} value={category} onChange={onCategory} emptyLabel="Semua category" options={options.categories} />
+            <FilterSelect label="Case Classification" icon={Tag} value={caseClassification} onChange={onCaseClassification} emptyLabel="Semua case classification" options={options.caseClassifications} />
+            <FilterSelect label="Area" icon={Building2} value={area} onChange={onArea} emptyLabel="Semua area" options={options.areas} />
+            <FilterSelect label="Status" icon={ShieldAlert} value={status} onChange={onStatus} emptyLabel="Semua status" options={['OPEN', 'ON PROGRESS', 'CLOSED']} allValue="all" />
+            <FilterSelect label="Severity" icon={ShieldAlert} value={severity} onChange={onSeverity} emptyLabel="Semua severity" options={['LOW', 'MEDIUM', 'HIGH', 'TOP RISK']} allValue="all" />
+          </div>
+
+          <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(260px,1fr)_auto_auto]">
+            <FilterInput label="Search Manual" icon={Search}>
+              <input
+                value={search}
+                onChange={(event) => onSearch(event.target.value)}
+                placeholder="ID, nomor referensi, report, flight, route, branch, airlines..."
+                className={fieldClass}
+              />
+            </FilterInput>
+
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={onReset}
+                disabled={activeCount === 0}
+                className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-45 lg:w-auto"
+              >
+                <X className="h-4 w-4" />
+                Reset
+              </button>
+            </div>
+            <div className="flex items-end">
+            <button
+              type="button"
+              onClick={onRefresh}
+              disabled={refreshing}
+              className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-white px-5 text-sm font-black text-emerald-700 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
+            >
+              {refreshing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ShieldAlert className="h-4 w-4" />}
+              Refresh
+            </button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-800">
+              {filteredCount.toLocaleString('id-ID')} / {totalCount.toLocaleString('id-ID')} reports match
+            </p>
+            <p className="text-xs font-semibold text-slate-500">
+              Filter layar aktif untuk Report List. Export tetap punya scope sendiri.
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const fieldClass = "h-12 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10";
+
+function FilterInput({
+  label,
+  icon: Icon,
+  children,
+}: {
+  label: string;
+  icon: ElementType;
+  children: ReactNode;
+}) {
+  return (
+    <label className="relative block">
+      <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">{label}</span>
+      <Icon className="pointer-events-none absolute bottom-3.5 left-4 h-5 w-5 text-emerald-700" />
+      {children}
+    </label>
+  );
+}
+
+function FilterSelect({
+  label,
+  icon,
+  value,
+  options,
+  emptyLabel,
+  allValue = "",
+  onChange,
+}: {
+  label: string;
+  icon: ElementType;
+  value: string;
+  options: string[];
+  emptyLabel: string;
+  allValue?: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <FilterInput label={label} icon={icon}>
+      <select
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className={cn(fieldClass, "appearance-none")}
+      >
+        <option value={allValue}>{emptyLabel}</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </FilterInput>
+  );
+}

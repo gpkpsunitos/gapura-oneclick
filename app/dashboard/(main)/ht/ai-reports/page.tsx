@@ -1,0 +1,26 @@
+/**
+ * @file
+ * 
+ * File ini berisi halaman HT AI Reports yang memuat DivisionAIReportsDashboard komponen
+ */
+
+'use client';
+
+import dynamic from 'next/dynamic';
+
+/**
+ * Komponen DivisionAIReportsDashboard yang diload secara dinamis
+ */
+const DivisionAIReportsDashboard = dynamic(
+  () => import('@/components/dashboard/ai-reports/DivisionAIReportsDashboard'),
+  { loading: () => <div className="h-96 animate-pulse bg-gray-100 rounded-xl" /> }
+);
+
+/**
+ * Komponen halaman HT AI Reports
+ * Memuat komponen DivisionAIReportsDashboard dengan division "HT"
+ * @returns JSX element komponen DivisionAIReportsDashboard
+ */
+export default function HTAIReportsPage() {
+    return <DivisionAIReportsDashboard division="HT" />;
+}

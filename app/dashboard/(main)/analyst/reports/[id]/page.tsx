@@ -1,0 +1,180 @@
+/**
+ * @file
+ * 
+ * File ini berisi halaman detail laporan untuk analyst dengan komponen ReportDetailView
+ */
+
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import {
+    ArrowLeft, AlertCircle, Loader2
+} from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { Report, User } from '@/types';
+import { ReportDetailView, type StatusUpdateDetails } from '@/components/dashboard/ReportDetailView';
+
+/**
+ * Komponen halaman detail laporan untuk analyst
+ * Menggunakan ReportDetailView komponen yang sama dengan admin
+ * @returns JSX element halaman detail laporan analyst
+ */
+export default function AnalystReportDetailPage() {
+    const params = useParams();
+    const router = useRouter();
+    const reportId = params.id as string;
+
+    const [report, setReport] = useState<Report | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [, setActionLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [user, setUser] = useState<User | null>(null);
+
+    /**
+     * Mengambil data user saat ini dari session
+     * @param signal - AbortSignal untuk membatalkan request
+     */
+    const fetchUser = useCallback(async (signal?: AbortSignal) => {
+        try {
+            const res = await fetch('/api/auth/me', { signal });
+            if (res.ok) {
+                const data = await res.json();
+                setUser(data);
+            }
+        } catch (err) {
+            if (err instanceof DOMException && err.name === 'AbortError') return;
+            console.error('Error fetching user:', err);
+        }
+    }, []);
+
+    /**
+     * Mengambil data laporan berdasarkan ID
+     * @param updatedData - Data laporan yang sudah diupdate (opsional)
+     * @param signal - AbortSignal untuk membatalkan request
+     */
+    const fetchReport = useCallback(async (updatedData?: Report, signal?: AbortSignal) => {
+        if (updatedData) {
+            setReport(updatedData);
+            return;
+        }
+        try {
+            const res = await fetch(`/api/reports/${reportId}`, { signal });
+            if (!res.ok) throw new Error('Failed to load report');
+            const data = await res.json();
+            setReport(data);
+            setLoading(false);
+        } catch (err) {
+            if (err instanceof DOMException && err.name === 'AbortError') return;
+            setError(err instanceof Error ? err.message : 'Unknown error');
+            setLoading(false);
+        }
+    }, [reportId]);
+
+    /**
+     * Setup real-time subscription dan inisialisasi data
+     */
+    useEffect(() => {
+        const controller = new AbortController();
+        const { signal } = controller;
+
+        fetchUser(signal);
+        fetchReport(undefined, signal);
+
+        const channel = supabase
+            .channel(`report-${reportId}`)
+            .on('postgres_changes', { 
+                event: '*', 
+                schema: 'public', 
+                table: 'comments', 
+                filter: `report_id=eq.${reportId}` 
+            }, () => {
+                fetchReport(undefined, signal);
+            })
+            .subscribe();
+
+        return () => {
+            controller.abort();
+            supabase.removeChannel(channel);
+        };
+    }, [reportId, fetchReport, fetchUser]);
+
+    /**
+     * Menangani update status laporan
+     * @param id - ID laporan
+     * @param status - Status baru laporan
+     * @param notes - Catatan tambahan (opsional)
+     * @param evidenceUrl - URL bukti (opsional)
+     */
+    const handleStatusUpdate = async (id: string, status: string, notes?: string, evidenceUrl?: string, details?: StatusUpdateDetails) => {
+        setActionLoading(true);
+        try {
+            const body: Record<string, string | undefined> = {
+                reportId: id,
+                status,
+                notes,
+                kps_remarks: details?.finalRemarks,
+                final_remarks: details?.finalRemarks,
+                remarks_by: details?.remarksBy,
+            };
+            if (evidenceUrl) body.resolution_evidence_url = evidenceUrl;
+            
+            // Analyst uses same endpoint as Admin for status updates
+            const res = await fetch('/api/admin/reports', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+
+            if (res.ok) {
+                await fetchReport();
+            } else {
+                alert('Gagal mengubah status');
+            }
+        } catch (error) {
+            console.error('Error updating status:', error);
+            alert('Terjadi kesalahan sistem');
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <Loader2 className="w-8 h-8 animate-spin text-[var(--brand-primary)]" />
+            </div>
+        );
+    }
+
+    if (error || !report) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+                <AlertCircle className="w-12 h-12 text-red-500" />
+                <h2 className="text-xl font-bold">Error Loading Report</h2>
+                <p className="text-gray-500">{error}</p>
+                <button 
+                    onClick={() => router.back()}
+                    className="flex items-center gap-2 text-[var(--brand-primary)] font-bold hover:underline"
+                >
+                    <ArrowLeft size={16} /> Kembali
+                </button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="h-screen bg-[var(--surface-1)] overflow-hidden">
+            <ReportDetailView 
+                report={report} 
+                onUpdateStatus={handleStatusUpdate}
+                onRefresh={fetchReport}
+                onClose={() => router.push('/dashboard/analyst/reports')}
+                userRole={user?.role || 'ANALYST'}
+                isModal={false}
+                divisionColor="#10b981"
+                currentUserId={user?.id}
+            />
+        </div>
+    );
+}

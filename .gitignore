@@ -1,0 +1,85 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/.next-audit/
+/out/
+/.next-verify/
+
+# turbopack
+.turbo/
+public/sw*
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+certificates
+
+# Supabase export data (contains sensitive production data)
+supabase/export/data/
+supabase/export/schema/schema_definition.json
+supabase/export/seed_data.sql
+
+# Debug artifacts
+*.original.tsx
+*.original.ts
+*.bak
+*.bak2
+*page 2*
+
+# Test output screenshots
+/output/
+
+# AI tool configs (keep .claude tracked)
+.agent/
+.agents/
+.kilo/
+.kilocode/
+.kiro/
+.playwright-cli/
+.playwright-mcp/
+.mcp.json
+
+# IDE
+.idea/
+.vscode/
+
+# Keystore files (not a mobile project)
+*.keystore
+
+# Large analysis outputs
+analyze-all-response.json
+sheets_dump.txt
