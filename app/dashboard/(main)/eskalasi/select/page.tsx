@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { logoutWithPwaCleanup } from '@/lib/pwa/logout';
 import {
-    Plane, BookOpen, GraduationCap,
+    Plane, BookOpen, GraduationCap, Shield,
     ArrowRight, Layers
 } from 'lucide-react';
 
@@ -18,6 +18,15 @@ const divisionCards = [
         gradient: 'from-cyan-500 via-cyan-600 to-teal-600',
         hoverShadow: 'hover:shadow-cyan-500/25',
         divisionLabel: 'UQ, HT, OP, OT & OS Division',
+    },
+    {
+        code: 'OS',
+        name: 'Service Analytics Monitoring',
+        description: 'Services Reports',
+        icon: Shield,
+        gradient: 'from-emerald-500 via-emerald-600 to-teal-600',
+        hoverShadow: 'hover:shadow-emerald-500/25',
+        divisionLabel: 'OCS Division',
     },
     {
         code: 'HT',
@@ -40,7 +49,7 @@ const divisionCards = [
     },
 ];
 
-const COMING_SOON_DIVISIONS = new Set(['HT']);
+const COMING_SOON_DIVISIONS = new Set(['OS', 'HT', 'DOCUMENTS']);
 
 export default function DivisionSelectPage() {
     const [error, setError] = useState<string | null>(null);

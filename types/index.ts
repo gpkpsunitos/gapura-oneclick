@@ -678,6 +678,20 @@ export interface DivisionDocument {
 }
 
 /**
+ * Link eksternal untuk Performance Evaluation Monitoring (dikelola oleh analyst)
+ */
+export interface PerformanceLink {
+    id: string;
+    title: string;
+    url: string;
+    description?: string | null;
+    created_by: string;
+    created_by_name?: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+/**
  * Input untuk memperbarui event kalender
  */
 export interface UpdateCalendarEventInput {

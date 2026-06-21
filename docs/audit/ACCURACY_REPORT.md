@@ -13,13 +13,13 @@ node scripts/dump-sheet-schema.mjs  # produces docs/audit/schema.json (already d
 # 2. In hf-space/dl-space/:
 pip install -r requirements-lean.txt
 python scripts/train_rca.py \
-  --sheets-json /Users/nrzngr/Desktop/gapura-irrs2/docs/audit/schema.json \
+  --sheets-json ../../docs/audit/schema.json \
   --output-dir models
 # Prints 5-fold macro-F1 and writes models/rca_lgbm.joblib + rca_meta.json
 
 # 3. Backtest forecast vs naive seasonal baseline:
 python scripts/backtest_forecast.py \
-  --sheets-json /Users/nrzngr/Desktop/gapura-irrs2/docs/audit/schema.json \
+  --sheets-json ../../docs/audit/schema.json \
   --target case_volume --grain W --horizon 4 --folds 3 --group-by HUB
 # Prints per-series MAE and aggregate improvement vs naive.
 ```

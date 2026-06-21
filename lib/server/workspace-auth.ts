@@ -98,6 +98,23 @@ export function canManageDivisionDocuments(role: string | null | undefined, divi
 }
 
 /**
+ * Mengecek apakah user dapat mengelola Performance Evaluation Monitoring links.
+ * Hanya ANALYST (dan SUPER_ADMIN) yang boleh create/update/delete.
+ */
+export function canManagePerformanceLinks(role: string | null | undefined): boolean {
+    const normalized = normalizeRole(role);
+    return normalized === 'ANALYST' || normalized === 'SUPER_ADMIN';
+}
+
+/**
+ * Mengecek apakah user dapat melihat (read-only) Performance Evaluation Monitoring links.
+ * Analyst (pengelola) plus DIVISI_ESKALASI (viewer lewat eskalasi/select).
+ */
+export function canViewPerformanceLinks(role: string | null | undefined): boolean {
+    return canManagePerformanceLinks(role) || normalizeRole(role) === 'DIVISI_ESKALASI';
+}
+
+/**
  * Mengecek apakah user dapat melihat meeting HC berdasarkan target audience.
  */
 export function canViewAudienceScopedItem(

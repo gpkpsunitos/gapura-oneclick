@@ -21,6 +21,7 @@ import {
     Link2,
     Bell,
     BookOpen,
+    QrCode,
     type LucideIcon,
 } from 'lucide-react';
 
@@ -252,6 +253,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
                 { href: '/dashboard/analyst/dashboards', label: 'Custom Dashboards', icon: FolderOpen },
                 { href: '/dashboard/analyst/import', label: 'Import Data', icon: FolderOpen },
                 { href: '/dashboard/analyst/documents', label: 'Documents', icon: BookOpen },
+                { href: '/dashboard/analyst/performance-links', label: 'Performance Links', icon: QrCode },
                 { href: '/dashboard/employee/new', label: 'Create Report', icon: Plane },
             ]
         },
