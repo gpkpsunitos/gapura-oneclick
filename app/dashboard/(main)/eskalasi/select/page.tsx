@@ -50,7 +50,7 @@ const divisionCards = [
     },
 ];
 
-const COMING_SOON_DIVISIONS = new Set(['OS', 'DOCUMENTS']);
+const COMING_SOON_DIVISIONS = new Set(['OS', 'HT', 'DOCUMENTS']);
 
 export default function DivisionSelectPage() {
     const [error, setError] = useState<string | null>(null);
