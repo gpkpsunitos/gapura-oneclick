@@ -15,7 +15,9 @@ import type { Report } from '@/types';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
 import { ChartAiAnalysisButton, type ChartAiContext } from '@/components/dashboard/ai/ChartAiAnalysisButton';
 import { SectionAiSummaryInsightButton } from '@/components/dashboard/ai/SectionAiSummaryInsightButton';
+import { YearCard } from '@/components/dashboard/year-context';
 import {
+  isCargoReport,
   resolveCaseClassification,
   resolveReportAirline,
   resolveReportBranch,
@@ -25,6 +27,7 @@ import {
 
 interface SummaryReportTabProps {
   reports: Report[];
+  selectedYear?: number;
 }
 
 type MonthColumn = {
@@ -138,6 +141,19 @@ function normalizeText(value: unknown, fallback = '-') {
   return normalized ? normalized : fallback;
 }
 
+type SourceBreakdown = { landside: number; airside: number; general: number; gse: number };
+
+function computeSourceBreakdown(reports: Report[], year: number): SourceBreakdown {
+  const acc: SourceBreakdown = { landside: 0, airside: 0, general: 0, gse: 0 };
+  for (const r of reports) {
+    const m = extractMonthColumn(r);
+    if (!m || m.year !== year) continue;
+    const src = classifySourceArea(r);
+    if (src === 'landside' || src === 'airside' || src === 'general' || src === 'gse') acc[src] += 1;
+  }
+  return acc;
+}
+
 function resolveBranchLabel(report: Report) {
   return normalizeText(resolveReportBranch(report), 'Unknown').toUpperCase();
 }
@@ -159,6 +175,129 @@ type DrilldownHierarchyContext =
   | 'landside-airlines'
   | 'airside-airlines'
   | 'general-airlines';
+
+type SourceFilter = 'all' | 'landside' | 'airside' | 'general' | 'gse';
+
+const SOURCE_OPTIONS: { value: SourceFilter; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'landside', label: 'Landside' },
+  { value: 'airside', label: 'Airside' },
+  { value: 'general', label: 'General' },
+  { value: 'gse', label: 'GSE' },
+];
+const AIRSIDE_SOURCE_OPTIONS = SOURCE_OPTIONS.filter((opt) => opt.value === 'all' || opt.value === 'airside' || opt.value === 'gse');
+
+/**
+ * Classify a single report into Landside / Airside / GSE.
+ */
+function classifySourceArea(report: Report): 'landside' | 'airside' | 'general' | 'gse' | 'other' {
+  const area = String(report.area || '').trim().toLowerCase();
+  const apron = String(report.apron_area_category || '').trim().toLowerCase();
+  const general = String(report.general_category || '').trim().toLowerCase();
+  const categoryCaseGse = String(report.category_case_gse || '').trim().toLowerCase();
+  // ponytail: GSE source filter is just these three sheet fields containing "gse".
+  if ([area, apron, categoryCaseGse].some((value) => value.includes('gse'))) return 'gse';
+  if (area === 'general' || general) return 'general';
+  if (area === 'terminal area' || area.includes('terminal') || area.includes('landside')) return 'landside';
+  if (area === 'apron area' || area.includes('apron') || area.includes('airside')) return 'airside';
+  return 'other';
+}
+
+function applySourceFilter(reports: Report[], source: SourceFilter): Report[] {
+  if (source === 'all') return reports;
+  return reports.filter((r) => classifySourceArea(r) === source);
+}
+
+function resolveAirsideApronCategory(report: Report) {
+  // ponytail: 2026 GSE rows live under Area=GSE Availability and Category Case GSE, not Apron Area Category.
+  return normalizeText(report.apron_area_category || report.category_case_gse || report.gse_available_requirement, '');
+}
+
+function airsideCategoryHeader(source: SourceFilter) {
+  if (source === 'gse') return 'GSE Category';
+  if (source === 'airside') return 'Apron Area Category';
+  return 'Airside / GSE Category';
+}
+
+function keepAirsideGseReports(reports: Report[], source: SourceFilter) {
+  if (source !== 'all') return reports;
+  return reports.filter((report) => {
+    const sourceArea = classifySourceArea(report);
+    return sourceArea === 'airside' || sourceArea === 'gse';
+  });
+}
+
+/** Render-prop: owns one card's local source filter state + pill toggle. */
+function SourceCard({
+  reports, children, options = SOURCE_OPTIONS,
+}: {
+  reports: Report[];
+  options?: typeof SOURCE_OPTIONS;
+  children: (args: { filtered: Report[]; toggle: React.ReactNode; source: SourceFilter }) => React.ReactNode;
+}) {
+  const [source, setSource] = useState<SourceFilter>('all');
+  const filtered = useMemo(() => applySourceFilter(reports, source), [reports, source]);
+  const toggle = (
+    <div className="inline-flex items-center gap-0.5 rounded-full border border-[color:var(--sr-border)] bg-white p-0.5">
+      {options.map((opt) => {
+        const active = opt.value === source;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setSource(opt.value)}
+            aria-pressed={active}
+            className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.06em] leading-none transition ${
+              active
+                ? 'bg-gradient-to-b from-emerald-500 to-emerald-700 text-white shadow-[0_2px_0_#064e3b]'
+                : 'text-[color:var(--sr-text-3)] hover:text-[color:var(--sr-text)]'
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+  return <>{children({ filtered, toggle, source })}</>;
+}
+
+function YearSourceHeader({
+  year,
+  yearToggle,
+  sourceToggle,
+}: {
+  year: number;
+  yearToggle: ReactNode;
+  sourceToggle: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <span className="rounded-full border border-[color:var(--sr-border)] bg-[color:var(--sr-sunken)] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[color:var(--sr-text-2)]">
+        Showing {year}
+      </span>
+      {yearToggle}
+      {sourceToggle}
+    </div>
+  );
+}
+
+function YearOnlyHeader({
+  year,
+  yearToggle,
+}: {
+  year: number;
+  yearToggle: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <span className="rounded-full border border-[color:var(--sr-border)] bg-[color:var(--sr-sunken)] px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.08em] text-[color:var(--sr-text-2)]">
+        Showing {year}
+      </span>
+      {yearToggle}
+    </div>
+  );
+}
 
 function hasMeaningfulValue(value: unknown) {
   const normalized = String(value || '').trim().toLowerCase();
@@ -650,7 +789,7 @@ function matchesSingleContext(report: Report, context: DrilldownSingleContext, p
     case 'landside-category':
       return normalizeText(report.terminal_area_category, '-') === primaryValue;
     case 'airside-category':
-      return normalizeText(report.apron_area_category, '-') === primaryValue;
+      return normalizeText(resolveAirsideApronCategory(report), '-') === primaryValue;
     case 'general-category':
       return normalizeText(report.general_category, '-') === primaryValue;
     case 'case-classification':
@@ -687,7 +826,7 @@ function matchesHierarchyContext(
     case 'airside-airlines':
       return (
         resolveAirlineLabel(report) === primaryValue &&
-        normalizeText(report.apron_area_category, '-') === secondaryValue
+        normalizeText(resolveAirsideApronCategory(report), '-') === secondaryValue
       );
     case 'general-airlines':
       return (
@@ -699,7 +838,15 @@ function matchesHierarchyContext(
   }
 }
 
-export function SummaryReportTab({ reports }: SummaryReportTabProps) {
+export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryReportTabProps) {
+  // ponytail: exclude CGO at the top so every downstream memo inherits the filter
+  const reports = useMemo(() => rawReports.filter((r) => !isCargoReport(r)), [rawReports]);
+  // ponytail: fall back to the latest year in the data if no override is passed.
+  const fallbackYear = useMemo(() => {
+    const years = reports.map((r) => extractMonthColumn(r)?.year).filter((y): y is number => Boolean(y));
+    return years.length ? Math.max(...years) : new Date().getFullYear();
+  }, [reports]);
+  const activeYear = selectedYear ?? fallbackYear;
   const [selectedSummaryBranch, setSelectedSummaryBranch] = useState('all');
   const [selectedSummaryAirline, setSelectedSummaryAirline] = useState('all');
   const [showLandsideAirlines, setShowLandsideAirlines] = useState(false);
@@ -712,10 +859,9 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
   const currentYearReports = useMemo(
     () => reports.filter((report) => {
       const month = extractMonthColumn(report);
-      const isCurrentYear = month && month.year === 2026;
-      return isCurrentYear;
+      return month?.year === activeYear;
     }),
-    [reports]
+    [reports, activeYear]
   );
   const currentYearMonthColumns = useMemo(
     () => buildMonthColumns(currentYearReports),
@@ -758,10 +904,13 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
     () => buildMonthColumns(filteredSummaryReports),
     [filteredSummaryReports]
   );
+  // ponytail: YoY pair tracks the active year toggle. If the active year has no data
+  // we fall back to the data's most-recent pair.
   const summaryYears = useMemo(() => {
     const years = Array.from(new Set(filteredSummaryMonthColumns.map((month) => month.year))).sort((a, b) => a - b);
+    if (years.includes(activeYear) && years.includes(activeYear - 1)) return [activeYear - 1, activeYear];
     return years.slice(-2);
-  }, [filteredSummaryMonthColumns]);
+  }, [filteredSummaryMonthColumns, activeYear]);
   const hasComparableSummaryYears = summaryYears.length >= 2;
   const previousYear = summaryYears[0] ?? null;
   const comparisonCurrentYear = summaryYears[summaryYears.length - 1] ?? null;
@@ -791,26 +940,6 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
         (report) => resolveCategory(report)
       ),
     [currentYearReports, currentYearMonthColumns]
-  );
-
-  const caseClassificationReports = useMemo(
-    () =>
-      currentYearReports.filter(
-        (report) =>
-          hasMeaningfulValue(resolveCaseClassification(report)) &&
-          resolveCategory(report) !== 'Compliment'
-      ),
-    [currentYearReports]
-  );
-
-  const caseClassificationSummary = useMemo(
-    () =>
-      buildSingleDimensionRows(
-        caseClassificationReports,
-        currentYearMonthColumns,
-        (report) => normalizeText(resolveCaseClassification(report))
-      ),
-    [caseClassificationReports, currentYearMonthColumns]
   );
 
   const previousYearSummary = useMemo(
@@ -1020,207 +1149,360 @@ export function SummaryReportTab({ reports }: SummaryReportTabProps) {
         <div className="absolute inset-x-0 top-0 h-[5px] bg-[color:var(--sr-accent)]" aria-hidden="true" />
         <div className="flex min-w-0 items-center gap-4">
           <span className="inline-block h-12 w-[6px] shrink-0 rounded bg-[color:var(--sr-accent)] shadow-[5px_0_0_var(--sr-gold)]" aria-hidden="true" />
-          <h1 className="font-display text-[clamp(26px,2.4vw,34px)] font-bold leading-tight tracking-[-0.02em] text-[color:var(--sr-text)]">
-            Summary Report
-          </h1>
+          <div className="min-w-0">
+            <h1 className="font-display text-[clamp(26px,2.4vw,34px)] font-bold leading-tight tracking-[-0.02em] text-[color:var(--sr-text)]">
+              Summary Report
+              <span className="block text-[clamp(16px,1.5vw,22px)] font-semibold text-[color:var(--sr-text-2)]">Landside &amp; Airside</span>
+            </h1>
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[color:var(--sr-gold)] bg-[color:var(--sr-gold-soft)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[color:var(--sr-gold-strong)]">
+              Shown data: Non-CGO operational reports covering Landside, Airside/Apron, General Service, and GSE-classified records
+            </p>
+          </div>
         </div>
         <SectionAiSummaryInsightButton context={sectionAiContext} />
       </div>
 
-      {hasComparableSummaryYears && previousYearSummary && currentYearSummary && previousYear !== null && comparisonCurrentYear !== null ? (
-        <section>
-          <AnnualReportSummary
-            previousYear={previousYear}
-            currentYear={comparisonCurrentYear}
-            previousRows={previousYearSummary.rows}
-            currentRows={currentYearSummary.rows}
-            comparisonRows={yearComparisonRows}
-            branchOptions={summaryBranchOptions}
-            airlineOptions={summaryAirlineOptions}
-            selectedBranch={selectedSummaryBranch}
-            selectedAirline={selectedSummaryAirline}
-            onBranchChange={setSelectedSummaryBranch}
-            onAirlineChange={setSelectedSummaryAirline}
-            onMonthCategoryClick={handleYearMonthCategoryClick}
-            onYearComparisonClick={handleYearComparisonClick}
-          />
-        </section>
-      ) : selectedSummaryBranch !== 'all' || selectedSummaryAirline !== 'all' ? (
-        <section className="border border-[color:color-mix(in_oklch,var(--sr-border)_60%,transparent)] bg-white px-4 py-3 text-sm font-medium text-[color:var(--sr-text)]">
-          Filter saat ini tidak memiliki data yang cukup untuk membandingkan dua tahun.
-        </section>
-      ) : null}
+      <section>
+        {hasComparableSummaryYears && previousYear !== null && comparisonCurrentYear !== null ? (
+          <SourceCard reports={filteredSummaryReports}>{({ filtered, toggle: sourceToggle }) => {
+            const previous = buildYearlyMonthRows(filtered, previousYear);
+            const current = buildYearlyMonthRows(filtered, comparisonCurrentYear);
+            const comparison = buildYearComparisonRows(previous.totals, current.totals);
+            const onMonthClick = (targetYear: number, monthIndex: number, metricId: SummaryMetricId) => {
+              const drilldownReports = filtered.filter((report) => {
+                const month = extractMonthColumn(report);
+                return Boolean(month && month.year === targetYear && month.monthIndex === monthIndex && matchesSummaryMetric(report, metricId));
+              });
+              if (drilldownReports.length) {
+                const monthLabel = new Date(targetYear, monthIndex, 1).toLocaleString('en-US', { month: 'long' });
+                const metricLabel = metricId === 'total' ? 'Total Reports' : SUMMARY_METRIC_BY_ID[metricId]?.label || metricId;
+                openDrilldown(drilldownReports, `${monthLabel} ${targetYear} - ${metricLabel}`);
+              }
+            };
+            const onComparisonClick = (metricId: SummaryMetricId) => {
+              const drilldownReports = filtered.filter((report) => {
+                const month = extractMonthColumn(report);
+                return Boolean(month && (month.year === previousYear || month.year === comparisonCurrentYear) && matchesSummaryMetric(report, metricId));
+              });
+              if (drilldownReports.length) {
+                const metricLabel = metricId === 'total' ? 'Total Reports' : SUMMARY_METRIC_BY_ID[metricId]?.label || metricId;
+                openDrilldown(drilldownReports, `${previousYear} vs ${comparisonCurrentYear} - ${metricLabel}`);
+              }
+            };
+            return (
+              <AnnualReportSummary
+                previousYear={previousYear}
+                currentYear={comparisonCurrentYear}
+                previousRows={previous.rows}
+                currentRows={current.rows}
+                previousBreakdown={computeSourceBreakdown(filtered, previousYear)}
+                currentBreakdown={computeSourceBreakdown(filtered, comparisonCurrentYear)}
+                comparisonRows={comparison}
+                branchOptions={summaryBranchOptions}
+                airlineOptions={summaryAirlineOptions}
+                selectedBranch={selectedSummaryBranch}
+                selectedAirline={selectedSummaryAirline}
+                onBranchChange={setSelectedSummaryBranch}
+                onAirlineChange={setSelectedSummaryAirline}
+                onMonthCategoryClick={onMonthClick}
+                onYearComparisonClick={onComparisonClick}
+                headerExtra={sourceToggle}
+              />
+            );
+          }}</SourceCard>
+        ) : selectedSummaryBranch !== 'all' || selectedSummaryAirline !== 'all' ? (
+          <div className="border border-[color:color-mix(in_oklch,var(--sr-border)_60%,transparent)] bg-white px-4 py-3 text-sm font-medium text-[color:var(--sr-text)]">
+            Filter saat ini tidak memiliki data yang cukup untuk membandingkan dua tahun.
+          </div>
+        ) : null}
+      </section>
 
       <SummarySection title="Summary Report Overview by Station & Airlines">
         <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-2">
-          <HierarchicalMonthPivotTable
-            title="Summary Station"
-            primaryHeader="Station"
-            secondaryHeader="Report Category"
-            monthColumns={currentYearMonthColumns}
-            rows={stationSummary.rows}
-          monthTotals={stationSummary.monthTotals}
-          grandTotal={stationSummary.grandTotal}
-          scrollable
-          freezeRightCols
-          onCellClick={(monthKey, primaryValue, secondaryValue) =>
-            handleHierarchicalCellClick('summary-station', monthKey, primaryValue, secondaryValue)
-          }
-          />
-          <HierarchicalMonthPivotTable
-            title="Summary Airlines"
-            primaryHeader="Airlines"
-            secondaryHeader="Report Category"
-            monthColumns={currentYearMonthColumns}
-            rows={airlineSummary.rows}
-          monthTotals={airlineSummary.monthTotals}
-          grandTotal={airlineSummary.grandTotal}
-          scrollable
-          freezeRightCols
-          onCellClick={(monthKey, primaryValue, secondaryValue) =>
-            handleHierarchicalCellClick('summary-airlines', monthKey, primaryValue, secondaryValue)
-          }
-          />
-        </div>
-      </SummarySection>
-
-      <SummarySection title="Summary Report Case Classification">
-        <div className="grid grid-cols-1 items-stretch gap-4">
-          <SingleDimensionMonthPivotTable
-            title="Report Case Classification"
-            primaryHeader="Case Classification"
-            monthColumns={currentYearMonthColumns}
-            rows={caseClassificationSummary.rows}
-            monthTotals={caseClassificationSummary.monthTotals}
-            grandTotal={caseClassificationSummary.grandTotal}
-            compact
-            scrollable
-            onCellClick={(monthKey, primaryValue) =>
-              handleSingleDimensionCellClick('case-classification', monthKey, primaryValue)
-            }
-          />
+          <YearCard reports={reports}>{({ filtered: yearReports, toggle: yearToggle, year }) => (
+            <SourceCard reports={yearReports}>{({ filtered, toggle: sourceToggle }) => {
+              const monthColumns = buildMonthColumns(yearReports);
+              const data = buildHierarchicalRows(filtered, monthColumns, resolveBranchLabel, resolveCategory);
+              return (
+                <HierarchicalMonthPivotTable
+                  title="Summary Station"
+                  primaryHeader="Station"
+                  secondaryHeader="Report Category"
+                  monthColumns={monthColumns}
+                  rows={data.rows}
+                  monthTotals={data.monthTotals}
+                  grandTotal={data.grandTotal}
+                  scrollable
+                  freezeRightCols
+                  headerExtra={<YearSourceHeader year={year} yearToggle={yearToggle} sourceToggle={sourceToggle} />}
+                  onCellClick={(monthKey, primaryValue, secondaryValue) => {
+                    const drilldownReports = filtered.filter((report) => {
+                      const month = extractMonthColumn(report);
+                      return month?.key === monthKey && resolveBranchLabel(report) === primaryValue && resolveCategory(report) === secondaryValue;
+                    });
+                    if (drilldownReports.length) {
+                      const month = monthColumns.find((m) => m.key === monthKey);
+                      openDrilldown(drilldownReports, `${month ? `${month.label} ${month.year}` : monthKey} - ${primaryValue} / ${secondaryValue}`);
+                    }
+                  }}
+                />
+              );
+            }}</SourceCard>
+          )}</YearCard>
+          <YearCard reports={reports}>{({ filtered: yearReports, toggle: yearToggle, year }) => (
+            <SourceCard reports={yearReports}>{({ filtered, toggle: sourceToggle }) => {
+              const monthColumns = buildMonthColumns(yearReports);
+              const data = buildHierarchicalRows(filtered, monthColumns, resolveAirlineLabel, resolveCategory);
+              return (
+                <HierarchicalMonthPivotTable
+                  title="Summary Airlines"
+                  primaryHeader="Airlines"
+                  secondaryHeader="Report Category"
+                  monthColumns={monthColumns}
+                  rows={data.rows}
+                  monthTotals={data.monthTotals}
+                  grandTotal={data.grandTotal}
+                  scrollable
+                  freezeRightCols
+                  headerExtra={<YearSourceHeader year={year} yearToggle={yearToggle} sourceToggle={sourceToggle} />}
+                  onCellClick={(monthKey, primaryValue, secondaryValue) => {
+                    const drilldownReports = filtered.filter((report) => {
+                      const month = extractMonthColumn(report);
+                      return month?.key === monthKey && resolveAirlineLabel(report) === primaryValue && resolveCategory(report) === secondaryValue;
+                    });
+                    if (drilldownReports.length) {
+                      const month = monthColumns.find((m) => m.key === monthKey);
+                      openDrilldown(drilldownReports, `${month ? `${month.label} ${month.year}` : monthKey} - ${primaryValue} / ${secondaryValue}`);
+                    }
+                  }}
+                />
+              );
+            }}</SourceCard>
+          )}</YearCard>
         </div>
       </SummarySection>
 
       <SummarySection title="Summary Report Landside Area Category">
         <div className="grid grid-cols-1 items-stretch gap-4">
-          <SingleDimensionMonthPivotTable
-            title="Report Landside Category Area"
-            primaryHeader="Terminal Area Category"
-            monthColumns={currentYearMonthColumns}
-            rows={landsideCategorySummary.rows}
-            monthTotals={landsideCategorySummary.monthTotals}
-            grandTotal={landsideCategorySummary.grandTotal}
-            compact
-            scrollable
-            unbounded
-            onCellClick={(monthKey, primaryValue) =>
-              handleSingleDimensionCellClick('landside-category', monthKey, primaryValue)
-            }
-          />
+          <YearCard reports={reports}>{({ filtered: yearReports, toggle: yearToggle, year }) => {
+              const monthColumns = buildMonthColumns(yearReports);
+              const landsideRows = yearReports.filter((report) => hasMeaningfulValue(report.terminal_area_category));
+              const data = buildSingleDimensionRows(landsideRows, monthColumns, (report) => normalizeText(report.terminal_area_category));
+              return (
+                <SingleDimensionMonthPivotTable
+                  title="Report Landside Category Area"
+                  primaryHeader="Terminal Area Category"
+                  monthColumns={monthColumns}
+                  rows={data.rows}
+                  monthTotals={data.monthTotals}
+                  grandTotal={data.grandTotal}
+                  compact
+                  scrollable
+                  unbounded
+                  headerExtra={<YearOnlyHeader year={year} yearToggle={yearToggle} />}
+                  onCellClick={(monthKey, primaryValue) => {
+                    const drilldownReports = landsideRows.filter((report) => {
+                      const month = extractMonthColumn(report);
+                      return month?.key === monthKey && normalizeText(report.terminal_area_category, '-') === primaryValue;
+                    });
+                    if (drilldownReports.length) {
+                      const month = monthColumns.find((m) => m.key === monthKey);
+                      openDrilldown(drilldownReports, `${month ? `${month.label} ${month.year}` : monthKey} - ${primaryValue}`);
+                    }
+                  }}
+                />
+              );
+          }}</YearCard>
           <ExpandableReportBlock
             open={showLandsideAirlines}
             onToggle={() => setShowLandsideAirlines((value) => !value)}
             buttonLabel="Tampilkan Landside Area By Airlines Report"
           >
-            <HierarchicalMonthPivotTable
-              title="Landside Area by Airlines Report"
-              primaryHeader="Airlines"
-              secondaryHeader="Terminal Area Category"
-              monthColumns={currentYearMonthColumns}
-              rows={landsideAirlineSummary.rows}
-              monthTotals={landsideAirlineSummary.monthTotals}
-              grandTotal={landsideAirlineSummary.grandTotal}
-              compact
-              scrollable
-              unbounded
-              freezeRightCols
-              onCellClick={(monthKey, primaryValue, secondaryValue) =>
-                handleHierarchicalCellClick('landside-airlines', monthKey, primaryValue, secondaryValue)
-              }
-            />
+            <YearCard reports={reports}>{({ filtered: yearReports, toggle: yearToggle, year }) => {
+                const landsideRows = yearReports.filter((report) => hasMeaningfulValue(report.terminal_area_category));
+                const monthColumns = buildMonthColumns(yearReports);
+                const data = buildHierarchicalRows(landsideRows, monthColumns, resolveAirlineLabel, (report) => normalizeText(report.terminal_area_category));
+                return (
+                  <HierarchicalMonthPivotTable
+                    title="Landside Area by Airlines Report"
+                    primaryHeader="Airlines"
+                    secondaryHeader="Terminal Area Category"
+                    monthColumns={monthColumns}
+                    rows={data.rows}
+                    monthTotals={data.monthTotals}
+                    grandTotal={data.grandTotal}
+                    compact
+                    scrollable
+                    unbounded
+                    freezeRightCols
+                    headerExtra={<YearOnlyHeader year={year} yearToggle={yearToggle} />}
+                    onCellClick={(monthKey, primaryValue, secondaryValue) => {
+                      const drilldownReports = landsideRows.filter((report) => {
+                        const month = extractMonthColumn(report);
+                        return month?.key === monthKey &&
+                          resolveAirlineLabel(report) === primaryValue &&
+                          normalizeText(report.terminal_area_category, '-') === secondaryValue;
+                      });
+                      if (drilldownReports.length) {
+                        const month = monthColumns.find((m) => m.key === monthKey);
+                        openDrilldown(drilldownReports, `${month ? `${month.label} ${month.year}` : monthKey} - ${primaryValue} / ${secondaryValue}`);
+                      }
+                    }}
+                  />
+                );
+            }}</YearCard>
           </ExpandableReportBlock>
         </div>
       </SummarySection>
 
       <SummarySection title="Summary Report Airside/Apron Area Category">
         <div className="grid grid-cols-1 items-stretch gap-4">
-          <SingleDimensionMonthPivotTable
-            title="Report Airside Category Area"
-            primaryHeader="Apron Area Category"
-            monthColumns={currentYearMonthColumns}
-            rows={airsideCategorySummary.rows}
-            monthTotals={airsideCategorySummary.monthTotals}
-            grandTotal={airsideCategorySummary.grandTotal}
-            compact
-            scrollable
-            unbounded
-            onCellClick={(monthKey, primaryValue) =>
-              handleSingleDimensionCellClick('airside-category', monthKey, primaryValue)
-            }
-          />
+          <YearCard reports={reports}>{({ filtered: yearReports, toggle: yearToggle, year }) => (
+            <SourceCard reports={yearReports} options={AIRSIDE_SOURCE_OPTIONS}>{({ filtered, toggle: sourceToggle, source }) => {
+              const monthColumns = buildMonthColumns(yearReports);
+              const visible = keepAirsideGseReports(filtered, source);
+              const data = buildSingleDimensionRows(visible, monthColumns, resolveAirsideApronCategory);
+              const categoryHeader = airsideCategoryHeader(source);
+              return (
+                <SingleDimensionMonthPivotTable
+                  title="Report Airside / GSE Category Area"
+                  primaryHeader={categoryHeader}
+                  monthColumns={monthColumns}
+                  rows={data.rows}
+                  monthTotals={data.monthTotals}
+                  grandTotal={data.grandTotal}
+                  compact
+                  scrollable
+                  unbounded
+                  headerExtra={<YearSourceHeader year={year} yearToggle={yearToggle} sourceToggle={sourceToggle} />}
+                  onCellClick={(monthKey, primaryValue) => {
+                    const drilldownReports = visible.filter((report) => {
+                      const month = extractMonthColumn(report);
+                      return month?.key === monthKey && normalizeText(resolveAirsideApronCategory(report), '-') === primaryValue;
+                    });
+                    if (drilldownReports.length) {
+                      const month = monthColumns.find((m) => m.key === monthKey);
+                      openDrilldown(drilldownReports, `${month ? `${month.label} ${month.year}` : monthKey} - ${primaryValue}`);
+                    }
+                  }}
+                />
+              );
+            }}</SourceCard>
+          )}</YearCard>
           <ExpandableReportBlock
             open={showAirsideAirlines}
             onToggle={() => setShowAirsideAirlines((value) => !value)}
             buttonLabel="Tampilkan Airside Area By Airlines Report"
           >
-            <HierarchicalMonthPivotTable
-              title="Airside Area by Airlines Report"
-              primaryHeader="Airlines"
-              secondaryHeader="Apron Area Category"
-              monthColumns={currentYearMonthColumns}
-              rows={airsideAirlineSummary.rows}
-              monthTotals={airsideAirlineSummary.monthTotals}
-              grandTotal={airsideAirlineSummary.grandTotal}
-              compact
-              scrollable
-              unbounded
-              freezeRightCols
-              onCellClick={(monthKey, primaryValue, secondaryValue) =>
-                handleHierarchicalCellClick('airside-airlines', monthKey, primaryValue, secondaryValue)
-              }
-            />
+            <YearCard reports={reports}>{({ filtered: yearReports, toggle: yearToggle, year }) => (
+              <SourceCard reports={yearReports} options={AIRSIDE_SOURCE_OPTIONS}>{({ filtered, toggle: sourceToggle, source }) => {
+                const monthColumns = buildMonthColumns(yearReports);
+                const visible = keepAirsideGseReports(filtered, source);
+                const data = buildHierarchicalRows(visible, monthColumns, resolveAirlineLabel, resolveAirsideApronCategory);
+                const categoryHeader = airsideCategoryHeader(source);
+                return (
+                  <HierarchicalMonthPivotTable
+                    title="Airside / GSE Area by Airlines Report"
+                    primaryHeader="Airlines"
+                    secondaryHeader={categoryHeader}
+                    monthColumns={monthColumns}
+                    rows={data.rows}
+                    monthTotals={data.monthTotals}
+                    grandTotal={data.grandTotal}
+                    compact
+                    scrollable
+                    unbounded
+                    freezeRightCols
+                    headerExtra={<YearSourceHeader year={year} yearToggle={yearToggle} sourceToggle={sourceToggle} />}
+                    onCellClick={(monthKey, primaryValue, secondaryValue) => {
+                      const drilldownReports = visible.filter((report) => {
+                        const month = extractMonthColumn(report);
+                        return month?.key === monthKey &&
+                          resolveAirlineLabel(report) === primaryValue &&
+                          normalizeText(resolveAirsideApronCategory(report), '-') === secondaryValue;
+                      });
+                      if (drilldownReports.length) {
+                        const month = monthColumns.find((m) => m.key === monthKey);
+                        openDrilldown(drilldownReports, `${month ? `${month.label} ${month.year}` : monthKey} - ${primaryValue} / ${secondaryValue}`);
+                      }
+                    }}
+                  />
+                );
+              }}</SourceCard>
+            )}</YearCard>
           </ExpandableReportBlock>
         </div>
       </SummarySection>
 
       <SummarySection title="Summary Report General Service Category">
         <div className="grid grid-cols-1 items-stretch gap-4">
-          <SingleDimensionMonthPivotTable
-            title="Report General Service"
-            primaryHeader="General Category"
-            monthColumns={currentYearMonthColumns}
-            rows={generalServiceCategorySummary.rows}
-            monthTotals={generalServiceCategorySummary.monthTotals}
-            grandTotal={generalServiceCategorySummary.grandTotal}
-            compact
-            scrollable
-            unbounded
-            onCellClick={(monthKey, primaryValue) =>
-              handleSingleDimensionCellClick('general-category', monthKey, primaryValue)
-            }
-          />
+          <YearCard reports={reports}>{({ filtered: yearReports, toggle: yearToggle, year }) => {
+            const generalRows = yearReports.filter((report) => hasMeaningfulValue(report.general_category));
+            const monthColumns = buildMonthColumns(yearReports);
+            const data = buildSingleDimensionRows(generalRows, monthColumns, (report) => normalizeText(report.general_category));
+            return (
+              <SingleDimensionMonthPivotTable
+                title="Report General Service"
+                primaryHeader="General Category"
+                monthColumns={monthColumns}
+                rows={data.rows}
+                monthTotals={data.monthTotals}
+                grandTotal={data.grandTotal}
+                compact
+                scrollable
+                unbounded
+                headerExtra={<YearOnlyHeader year={year} yearToggle={yearToggle} />}
+                onCellClick={(monthKey, primaryValue) => {
+                  const drilldownReports = generalRows.filter((report) => {
+                    const month = extractMonthColumn(report);
+                    return month?.key === monthKey && normalizeText(report.general_category, '-') === primaryValue;
+                  });
+                  if (drilldownReports.length) {
+                    const month = monthColumns.find((m) => m.key === monthKey);
+                    openDrilldown(drilldownReports, `${month ? `${month.label} ${month.year}` : monthKey} - ${primaryValue}`);
+                  }
+                }}
+              />
+            );
+          }}</YearCard>
           <ExpandableReportBlock
             open={showGeneralAirlines}
             onToggle={() => setShowGeneralAirlines((value) => !value)}
             buttonLabel="Tampilkan General Service By Airlines Report"
           >
-            <HierarchicalMonthPivotTable
-              title="General Service by Airlines Report"
-              primaryHeader="Airlines"
-              secondaryHeader="General Category"
-              monthColumns={currentYearMonthColumns}
-              rows={generalServiceAirlineSummary.rows}
-              monthTotals={generalServiceAirlineSummary.monthTotals}
-              grandTotal={generalServiceAirlineSummary.grandTotal}
-              compact
-              scrollable
-              unbounded
-              freezeRightCols
-              onCellClick={(monthKey, primaryValue, secondaryValue) =>
-                handleHierarchicalCellClick('general-airlines', monthKey, primaryValue, secondaryValue)
-              }
-            />
+            <YearCard reports={reports}>{({ filtered: yearReports, toggle: yearToggle, year }) => {
+              const generalRows = yearReports.filter((report) => hasMeaningfulValue(report.general_category));
+              const monthColumns = buildMonthColumns(yearReports);
+              const data = buildHierarchicalRows(generalRows, monthColumns, resolveAirlineLabel, (report) => normalizeText(report.general_category));
+              return (
+                <HierarchicalMonthPivotTable
+                  title="General Service by Airlines Report"
+                  primaryHeader="Airlines"
+                  secondaryHeader="General Category"
+                  monthColumns={monthColumns}
+                  rows={data.rows}
+                  monthTotals={data.monthTotals}
+                  grandTotal={data.grandTotal}
+                  compact
+                  scrollable
+                  unbounded
+                  freezeRightCols
+                  headerExtra={<YearOnlyHeader year={year} yearToggle={yearToggle} />}
+                  onCellClick={(monthKey, primaryValue, secondaryValue) => {
+                    const drilldownReports = generalRows.filter((report) => {
+                      const month = extractMonthColumn(report);
+                      return month?.key === monthKey &&
+                        resolveAirlineLabel(report) === primaryValue &&
+                        normalizeText(report.general_category, '-') === secondaryValue;
+                    });
+                    if (drilldownReports.length) {
+                      const month = monthColumns.find((m) => m.key === monthKey);
+                      openDrilldown(drilldownReports, `${month ? `${month.label} ${month.year}` : monthKey} - ${primaryValue} / ${secondaryValue}`);
+                    }
+                  }}
+                />
+              );
+            }}</YearCard>
           </ExpandableReportBlock>
         </div>
       </SummarySection>
@@ -1298,6 +1580,8 @@ function AnnualMetricStrip({
   currentYear,
   previousRows,
   currentRows,
+  previousBreakdown,
+  currentBreakdown,
   comparisonRows,
   onYearComparisonClick,
 }: {
@@ -1305,11 +1589,22 @@ function AnnualMetricStrip({
   currentYear: number;
   previousRows: YearlyCategoryMonthRow[];
   currentRows: YearlyCategoryMonthRow[];
+  previousBreakdown: SourceBreakdown;
+  currentBreakdown: SourceBreakdown;
   comparisonRows: YearComparisonRow[];
   onYearComparisonClick?: (metricId: SummaryMetricId) => void;
 }) {
   const previousTotal = previousRows.reduce((sum, row) => sum + row.total, 0);
   const currentTotal = currentRows.reduce((sum, row) => sum + row.total, 0);
+
+  const renderBreakdown = (b: SourceBreakdown) => (
+    <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[color:var(--sr-text-2)]">
+      <span><span className="text-[color:var(--sr-text-3)]">Landside</span> · <span className="font-mono text-[color:var(--sr-text)]">{b.landside.toLocaleString()}</span></span>
+      <span><span className="text-[color:var(--sr-text-3)]">Airside</span> · <span className="font-mono text-[color:var(--sr-text)]">{b.airside.toLocaleString()}</span></span>
+      <span><span className="text-[color:var(--sr-text-3)]">General</span> · <span className="font-mono text-[color:var(--sr-text)]">{b.general.toLocaleString()}</span></span>
+      <span><span className="text-[color:var(--sr-text-3)]">GSE</span> · <span className="font-mono text-[color:var(--sr-text)]">{b.gse.toLocaleString()}</span></span>
+    </div>
+  );
 
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
@@ -1320,7 +1615,10 @@ function AnnualMetricStrip({
         title={`View ${previousYear} reports`}
       >
         <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-[color:var(--sr-accent-dark)]">Total Reports {previousYear}</span>
-        <div className="sr-hero-value">{previousTotal.toLocaleString()}</div>
+        <div>
+          <div className="sr-hero-value">{previousTotal.toLocaleString()}</div>
+          {renderBreakdown(previousBreakdown)}
+        </div>
       </button>
       <button
         type="button"
@@ -1329,7 +1627,10 @@ function AnnualMetricStrip({
         title={`View all ${currentYear} reports`}
       >
         <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-[color:var(--sr-accent-dark)]">Total Reports {currentYear}</span>
-        <div className="sr-hero-value">{currentTotal.toLocaleString()}</div>
+        <div>
+          <div className="sr-hero-value">{currentTotal.toLocaleString()}</div>
+          {renderBreakdown(currentBreakdown)}
+        </div>
       </button>
     </div>
   );
@@ -1481,8 +1782,8 @@ function YearTrendChartPanel({
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
           <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Year key</span>
           <span className="inline-flex items-center gap-2 text-[11px] font-bold text-slate-500">
-            <span className="h-0 w-8 border-t-2 border-dashed border-slate-500 opacity-70" />
-            {previousYear}
+            <span className="h-0 w-8 border-t-2 border-dashed border-[#94a3b8]" />
+            {previousYear} (prior)
           </span>
           <span className="inline-flex items-center gap-2 text-[11px] font-black text-slate-800">
             <span className="h-0 w-8 border-t-[3px] border-slate-800" />
@@ -1524,18 +1825,23 @@ function YearTrendChartPanel({
               cursor={{ stroke: '#94a3b8', strokeDasharray: '4 4', strokeWidth: 1 }}
               content={(props) => renderMonthlyTrendTooltip(props as TrendTooltipProps, visibleMetrics, previousYear, currentYear)}
             />
+            {/* ponytail: previous-year line is dashed + neutral grey so the current year (full
+                colour, solid, thicker) carries the eye. Boomer-friendly: no toggle needed.
+                For >2 priors, layer additional lines here using progressively lighter greys
+                (#94a3b8 → #cbd5e1) and longer dash patterns ("8 4", "10 6"). Upstream still
+                slices to 2 years (see summaryYears) — extend that to opt into more history. */}
             {visibleMetrics.flatMap((metric) => [
               <Line
                 key={`${metric.id}-${previousYear}`}
                 type="monotone"
                 dataKey={`${metric.id}-${previousYear}`}
                 name={`${metric.chartLabel} ${previousYear}`}
-                stroke={metric.color}
-                strokeOpacity={0.48}
-                strokeWidth={2.1}
-                strokeDasharray="5 5"
-                dot={renderTrendDot(previousYear, metric.id, metric.color, 2.5, 0.48)}
-                activeDot={renderTrendDot(previousYear, metric.id, metric.color, 5.5, 0.85)}
+                stroke="#94a3b8"
+                strokeOpacity={0.85}
+                strokeWidth={2}
+                strokeDasharray="6 5"
+                dot={renderTrendDot(previousYear, metric.id, '#94a3b8', 2.5, 0.7)}
+                activeDot={renderTrendDot(previousYear, metric.id, '#94a3b8', 5.5, 1)}
                 onClick={(point: unknown) => {
                   const monthIndex = (point as TrendPoint)?.payload?.monthIndex;
                   if (typeof monthIndex === 'number') onMonthCategoryClick?.(previousYear, monthIndex, metric.id);
@@ -1568,6 +1874,8 @@ function AnnualReportSummary({
   currentYear,
   previousRows,
   currentRows,
+  previousBreakdown,
+  currentBreakdown,
   comparisonRows,
   branchOptions,
   airlineOptions,
@@ -1577,11 +1885,14 @@ function AnnualReportSummary({
   onAirlineChange,
   onMonthCategoryClick,
   onYearComparisonClick,
+  headerExtra,
 }: {
   previousYear: number;
   currentYear: number;
   previousRows: YearlyCategoryMonthRow[];
   currentRows: YearlyCategoryMonthRow[];
+  previousBreakdown: SourceBreakdown;
+  currentBreakdown: SourceBreakdown;
   comparisonRows: YearComparisonRow[];
   branchOptions: string[];
   airlineOptions: string[];
@@ -1591,6 +1902,7 @@ function AnnualReportSummary({
   onAirlineChange: (value: string) => void;
   onMonthCategoryClick?: (year: number, monthIndex: number, metricId: SummaryMetricId) => void;
   onYearComparisonClick?: (metricId: SummaryMetricId) => void;
+  headerExtra?: ReactNode;
 }) {
   return (
     <div className="sr-card relative overflow-hidden p-6 sm:p-8">
@@ -1610,6 +1922,7 @@ function AnnualReportSummary({
         </div>
 
         <div className="flex flex-wrap items-end gap-3">
+          {headerExtra}
           <label className="flex min-w-[180px] flex-col gap-1.5">
             <span className="sr-eyebrow">Branch</span>
             <select
@@ -1661,6 +1974,8 @@ function AnnualReportSummary({
         currentYear={currentYear}
         previousRows={previousRows}
         currentRows={currentRows}
+        previousBreakdown={previousBreakdown}
+        currentBreakdown={currentBreakdown}
         comparisonRows={comparisonRows}
         onYearComparisonClick={onYearComparisonClick}
       />
@@ -1733,7 +2048,7 @@ function YearCategorySummaryTable({
           }}
         />
       </div>
-      <div className="overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto">
         <table className="sr-table sr-table-mom">
           <thead>
             <tr>
@@ -1843,7 +2158,7 @@ function YearImprovementSummaryTable({
           }}
         />
       </div>
-      <div className="overflow-auto">
+      <div className="min-h-0 flex-1 overflow-auto">
         <table className="sr-table">
           <thead>
             <tr>
@@ -1916,6 +2231,7 @@ function SingleDimensionMonthPivotTable({
   onCellClick,
   scrollable = false,
   unbounded = false,
+  headerExtra,
 }: {
   title: string;
   primaryHeader: string;
@@ -1927,6 +2243,7 @@ function SingleDimensionMonthPivotTable({
   onCellClick?: (monthKey: string, primaryValue: string) => void;
   scrollable?: boolean;
   unbounded?: boolean;
+  headerExtra?: ReactNode;
 }) {
   const safeRows = compactRows(rows).sort((a, b) => b.total - a.total);
   // Ascending: January first
@@ -1938,6 +2255,7 @@ function SingleDimensionMonthPivotTable({
       title={title}
       scrollable={scrollable}
       unbounded={unbounded}
+      headerExtra={headerExtra}
       aiContext={{
         section: 'Summary Report',
         chartTitle: title,
@@ -2022,12 +2340,14 @@ function TableShell({
   scrollable,
   unbounded,
   aiContext,
+  headerExtra,
 }: {
   title: string;
   children: ReactNode;
   scrollable?: boolean;
   unbounded?: boolean;
   aiContext?: ChartAiContext;
+  headerExtra?: ReactNode;
 }) {
   return (
     <div className={`sr-table-card flex min-w-0 flex-col ${unbounded ? 'h-auto' : 'h-[28rem]'}`}>
@@ -2036,7 +2356,10 @@ function TableShell({
           <span className="sr-marker" aria-hidden="true" />
           <h3>{title}</h3>
         </div>
-        {aiContext ? <ChartAiAnalysisButton context={aiContext} /> : null}
+        <div className="flex items-center gap-2">
+          {headerExtra}
+          {aiContext ? <ChartAiAnalysisButton context={aiContext} /> : null}
+        </div>
       </div>
       <div
         className={
@@ -2076,6 +2399,7 @@ function HierarchicalMonthPivotTable({
   maxRows,
   freezeRightCols = false,
   unbounded = false,
+  headerExtra,
 }: {
   title: string;
   primaryHeader: string;
@@ -2090,6 +2414,7 @@ function HierarchicalMonthPivotTable({
   maxRows?: number;
   freezeRightCols?: boolean;
   unbounded?: boolean;
+  headerExtra?: ReactNode;
 }) {
   const groupedRows = (() => {
     const groupTotals = new Map<string, number>();
@@ -2130,6 +2455,7 @@ function HierarchicalMonthPivotTable({
       title={title}
       scrollable={scrollable}
       unbounded={unbounded}
+      headerExtra={headerExtra}
       aiContext={{
         section: 'Summary Report',
         chartTitle: title,

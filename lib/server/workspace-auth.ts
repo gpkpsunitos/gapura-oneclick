@@ -91,7 +91,7 @@ export function isBranchManager(role: string | null | undefined): boolean {
  * }
  * ```
  */
-export function canManageDivisionDocuments(role: string | null | undefined, division: 'HC' | 'HT'): boolean {
+export function canManageDivisionDocuments(role: string | null | undefined, division: 'HC' | 'HT' | 'ANALYST'): boolean {
     const normalized = normalizeRole(role);
     if (normalized === 'SUPER_ADMIN' || normalized === 'ANALYST') return true;
     return normalized === `DIVISI_${division}` || normalized === `PARTNER_${division}`;

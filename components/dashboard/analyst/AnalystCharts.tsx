@@ -61,6 +61,11 @@ const DelayCodeReportTab = dynamic(
     { ssr: false, loading: () => tabLoadingFallback }
 );
 
+const ReportsStatusTab = dynamic(
+    () => import('@/components/dashboard/tabs/ReportsStatusTab').then((mod) => mod.ReportsStatusTab),
+    { ssr: false, loading: () => tabLoadingFallback }
+);
+
 // Complexity: Time O(n) per render | Space O(k) where k = chart data points (pre-computed by parent)
 
 
@@ -119,20 +124,23 @@ export default function AnalystCharts({
     availableOptions,
     showDelayCodeTab = false,
 }: AnalystChartsProps) {
-    const BASE_TABS = ['summary', 'sqi', 'joumpa', 'gse', 'cgo_cargo'] as const;
+    const BASE_TABS = ['summary', 'sqi', 'joumpa', 'gse', 'cgo_cargo', 'status_details'] as const;
     const TABS = (showDelayCodeTab
         ? [...BASE_TABS, 'delay'] as const
         : BASE_TABS) as readonly string[];
-    const TAB_LABELS: Record<string, string> = {
-        summary: 'Summary Report',
-        sqi: 'Service Quality Improvement',
+    const TAB_LABELS: Record<string, React.ReactNode> = {
+        summary: (<><span className="block">Summary Report</span><span className="block">Landside &amp; Airside</span></>),
+        sqi: (<><span className="block">Landside &amp; Airside</span><span className="block">Detail Report</span></>),
         joumpa: 'Joumpa Service',
-        gse: 'GSE Performance',
+        gse: (<><span className="block">GSE Performance</span><span className="block">Detail Report</span></>),
         cgo_cargo: 'CGO Cargo Report',
         delay: 'Delay Code Report',
+        status_details: (<><span className="block">Reports Status</span><span className="block">Details</span></>),
     };
     const [activeTab, setActiveTab] = useState<string>('summary');
     const [isGlobalFilterCollapsed, setIsGlobalFilterCollapsed] = useState(true);
+    // ponytail: year filtering is per-card now (each Panel owns its own state via
+    // useCardYear). No tab-level pre-filter — each card receives full filteredReports.
 
     return (
         <div className="space-y-6">
@@ -227,13 +235,13 @@ export default function AnalystCharts({
                                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                                 />
                             )}
-                            <span className="relative z-10">{TAB_LABELS[tab]}</span>
+                            <span className="relative z-10 whitespace-normal text-center leading-tight">{TAB_LABELS[tab]}</span>
                         </button>
                     ))}
                 </div>
             </div>
 
-            {/* Blank Canvas for Each Tab */}
+            {/* Tabs receive raw filteredReports; each card year-scopes itself locally. */}
             {activeTab === 'summary' && <SummaryReportTab reports={filteredReports as Report[]} />}
             {activeTab === 'sqi' && <ServiceQualityImprovementTab reports={filteredReports as Report[]} />}
             {activeTab === 'joumpa' && (
@@ -245,6 +253,7 @@ export default function AnalystCharts({
             {activeTab === 'gse' && <GsePerformanceTab reports={filteredReports as Report[]} />}
             {activeTab === 'cgo_cargo' && <CgoCargoReportTab reports={filteredReports as Report[]} />}
             {activeTab === 'delay' && <DelayCodeReportTab reports={filteredReports as Report[]} />}
+            {activeTab === 'status_details' && <ReportsStatusTab reports={filteredReports as Report[]} />}
         </div>
     );
 }

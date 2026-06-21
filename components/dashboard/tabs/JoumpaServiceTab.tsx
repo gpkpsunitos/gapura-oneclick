@@ -73,6 +73,24 @@ interface MatrixRow {
 }
 
 type JoumpaCategoryKey = 'compliment' | 'complaint' | 'irregularity';
+type JoumpaKpiId =
+  | 'report'
+  | 'station'
+  | 'airlines'
+  | 'complaintFeedback'
+  | 'complimentReport'
+  | 'nonCorporate'
+  | 'corporatePassenger'
+  | 'reportOpen'
+  | 'closedRecord';
+
+interface JoumpaKpiItem {
+  id: JoumpaKpiId;
+  label: string;
+  value: number;
+  helper?: string;
+  tone?: 'accent' | 'gold' | 'neutral';
+}
 
 interface JoumpaCategoryMatrixRow {
   id: string;
@@ -879,8 +897,10 @@ function VoiceSummaryTable({
 
 function JoumpaKpiStrip({
   items,
+  onItemClick,
 }: {
-  items: Array<{ label: string; value: number; helper?: string; tone?: 'accent' | 'gold' | 'neutral' }>;
+  items: JoumpaKpiItem[];
+  onItemClick?: (item: JoumpaKpiItem) => void;
 }) {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-9">
@@ -890,10 +910,16 @@ function JoumpaKpiStrip({
           item.tone === 'neutral' ? 'var(--sr-text)' :
           'var(--sr-accent-dark)';
         return (
-          <div key={item.label} className="sr-table-card flex h-full min-h-[88px] flex-col justify-between gap-2 p-4">
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => onItemClick?.(item)}
+            className="sr-table-card group flex h-full min-h-[88px] flex-col justify-between gap-2 p-4 text-left outline-none transition-all hover:-translate-y-0.5 hover:border-[color:var(--sr-accent-soft-2)] hover:shadow-[0_16px_30px_-24px_rgba(6,78,59,0.55)] focus-visible:ring-2 focus-visible:ring-[color:var(--sr-accent)] focus-visible:ring-offset-2"
+            aria-label={`Open ${item.label} drilldown`}
+          >
             <div className="flex items-start gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--sr-text-3)]">
-              <span className="mt-0.5 h-3 w-1 shrink-0 rounded-sm bg-[color:var(--sr-gold)]" aria-hidden="true" />
-              <span className="break-words leading-tight">{item.label}</span>
+              <span className="mt-0.5 h-3 w-1 shrink-0 rounded-sm bg-[color:var(--sr-gold)] transition-all group-hover:h-4 group-hover:bg-[color:var(--sr-accent)]" aria-hidden="true" />
+              <span className="break-words leading-tight group-hover:text-[color:var(--sr-text)]">{item.label}</span>
             </div>
             <div className="flex items-baseline gap-2">
               <span className="font-mono text-[26px] font-bold leading-none tabular-nums tracking-[-0.02em]" style={{ color: valueColor }}>
@@ -901,11 +927,57 @@ function JoumpaKpiStrip({
               </span>
               {item.helper ? <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--sr-text-3)]">{item.helper}</span> : null}
             </div>
-          </div>
+          </button>
         );
       })}
     </div>
   );
+}
+
+function getJoumpaKpiRecords(metricId: JoumpaKpiId, data: Report[]) {
+  switch (metricId) {
+    case 'complaintFeedback':
+      return data.filter((report) => getJoumpaCategoryKey(report) !== 'compliment');
+    case 'complimentReport':
+      return data.filter((report) => getJoumpaCategoryKey(report) === 'compliment');
+    case 'nonCorporate':
+      return data.filter((report) => normalizeLower(getCustomerSegment(report)).includes('non'));
+    case 'corporatePassenger':
+      return data.filter((report) => normalizeLower(getCustomerSegment(report)) === 'corporate');
+    case 'reportOpen':
+      return data.filter((report) => normalizeLower(report.status) === 'open');
+    case 'closedRecord':
+      return data.filter((report) => normalizeLower(report.status) === 'closed');
+    case 'station':
+      return data.filter((report) => normalizeText(resolveReportBranch(report), '-') !== '-');
+    case 'airlines':
+      return data.filter((report) => normalizeText(resolveReportAirline(report), '-') !== '-');
+    case 'report':
+    default:
+      return data;
+  }
+}
+
+function getJoumpaKpiBreakdown(metricId: JoumpaKpiId, data: Report[]) {
+  switch (metricId) {
+    case 'station':
+      return { title: 'Station Breakdown', rows: buildCountRows(data, (report) => normalizeText(resolveReportBranch(report), '-')) };
+    case 'airlines':
+      return { title: 'Airline Breakdown', rows: buildCountRows(data, (report) => normalizeText(resolveReportAirline(report), '-')) };
+    case 'complaintFeedback':
+    case 'complimentReport':
+      return { title: 'Case Breakdown', rows: buildCountRows(data, getJoumpaDetailIssue) };
+    case 'nonCorporate':
+      return { title: 'Non-Corporate Breakdown', rows: buildCountRows(data, getNonCorporateCategory) };
+    case 'corporatePassenger':
+      return { title: 'Corporate Breakdown', rows: buildCountRows(data, getCorporateCategory) };
+    case 'reportOpen':
+    case 'closedRecord':
+      return { title: 'Category Breakdown', rows: buildCountRows(data, getJoumpaCategoryLabel) };
+    case 'report':
+    default:
+      return { title: 'Report Category Breakdown', rows: buildCountRows(data, getJoumpaCategoryLabel) };
+  }
 }
 
 function JoumpaCustomerCategoryPanel({
@@ -1618,15 +1690,15 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
     const open = joumpaDashboardReports.filter((report) => normalizeLower(report.status) === 'open').length;
     const closed = joumpaDashboardReports.filter((report) => normalizeLower(report.status) === 'closed').length;
     return [
-      { label: 'Report', value: joumpaDashboardReports.length, tone: 'neutral' as const },
-      { label: 'Station', value: stationCount, tone: 'neutral' as const },
-      { label: 'Airlines', value: airlineCount, tone: 'neutral' as const },
-      { label: 'Complaint Feedback', value: complaintFeedback, tone: 'gold' as const },
-      { label: 'Compliment Report', value: complimentReport, tone: 'accent' as const },
-      { label: 'Non - Corporate', value: nonCorporate, tone: 'accent' as const },
-      { label: 'Corporate Passenger', value: corporate, tone: 'accent' as const },
-      { label: 'Report Open', value: open, tone: 'gold' as const },
-      { label: 'Closed Record', value: closed, tone: 'accent' as const },
+      { id: 'report' as const, label: 'Report', value: joumpaDashboardReports.length, tone: 'neutral' as const },
+      { id: 'station' as const, label: 'Station', value: stationCount, tone: 'neutral' as const },
+      { id: 'airlines' as const, label: 'Airlines', value: airlineCount, tone: 'neutral' as const },
+      { id: 'complaintFeedback' as const, label: 'Complaint Feedback', value: complaintFeedback, tone: 'gold' as const },
+      { id: 'complimentReport' as const, label: 'Compliment Report', value: complimentReport, tone: 'accent' as const },
+      { id: 'nonCorporate' as const, label: 'Non - Corporate', value: nonCorporate, tone: 'accent' as const },
+      { id: 'corporatePassenger' as const, label: 'Corporate Passenger', value: corporate, tone: 'accent' as const },
+      { id: 'reportOpen' as const, label: 'Report Open', value: open, tone: 'gold' as const },
+      { id: 'closedRecord' as const, label: 'Closed Record', value: closed, tone: 'accent' as const },
     ];
   }, [joumpaDashboardReports]);
 
@@ -1879,7 +1951,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
       </div>
 
       <JoumpaSection title="Joumpa Service Customer Handling Overview">
-        <JoumpaKpiStrip items={joumpaKpis} />
+        <JoumpaKpiStrip items={joumpaKpis} onItemClick={(item) => openDrilldown(getJoumpaKpiRecords(item.id, joumpaDashboardReports), item.label)} />
 
         {/* Tier 1: stack on tablet, 3-col only on desktop */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

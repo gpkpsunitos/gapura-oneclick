@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useDeferredValue, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useEffect, useDeferredValue, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -430,7 +430,7 @@ function HeatMatrix({
   }
 
   return (
-    <div className="h-full w-full overflow-y-auto overflow-x-hidden p-2.5">
+    <div className="h-full w-full overflow-y-auto overflow-x-hidden">
       <table
         className="sr-table text-[11px]"
         style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}
@@ -575,14 +575,7 @@ function buildDetailRow(r: Report): DetailRow {
 }
 
 function DetailTable({ rows }: { rows: DetailRow[] }) {
-  const PAGE_SIZE = 10;
-  const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageRows = rows.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
-  const start = rows.length === 0 ? 0 : safePage * PAGE_SIZE + 1;
-  const end = Math.min(rows.length, safePage * PAGE_SIZE + pageRows.length);
 
   const tdStyle: CSSProperties = {
     whiteSpace: 'normal',
@@ -594,8 +587,7 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+    <div className="overflow-y-auto" style={{ height: '36rem' }}>
         <table
           className="sr-table text-[12px]"
           style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}
@@ -613,14 +605,14 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {pageRows.length === 0 ? (
+            {rows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="!py-10 text-center text-[12px] font-medium text-[color:var(--sr-text-3)]">
                   Tidak ada data
                 </td>
               </tr>
             ) : (
-              pageRows.map((row) => {
+              rows.map((row) => {
                 const isExpanded = expandedId === row.id;
                 const statusClass =
                   row.status === 'CLOSED'
@@ -700,31 +692,6 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
             )}
           </tbody>
         </table>
-      </div>
-      {rows.length > PAGE_SIZE ? (
-        <div className="flex items-center justify-between border-t border-[color:var(--sr-border)] bg-[color:var(--sr-overlay)] px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-[color:var(--sr-text-3)]">
-          <span>{start}-{end} of {rows.length}</span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={safePage === 0}
-              className="inline-flex h-9 w-9 items-center justify-center border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] text-[color:var(--sr-text)] disabled:opacity-35"
-            >
-              <ChevronLeft size={14} />
-            </button>
-            <span className="min-w-[4rem] text-center">{safePage + 1}/{totalPages}</span>
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={safePage >= totalPages - 1}
-              className="inline-flex h-9 w-9 items-center justify-center border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] text-[color:var(--sr-text)] disabled:opacity-35"
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

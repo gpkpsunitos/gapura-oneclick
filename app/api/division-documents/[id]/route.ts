@@ -17,12 +17,14 @@ const VALID_CATEGORIES = [
     'NOTULENSI_RAPAT',
     'TRAINING_MATERIAL',
     'DOKUMEN_LAIN',
+    'NOTICE',
+    'MANUAL',
 ] as const;
 const VALID_VISIBILITY = ['all', 'stations', 'roles', 'targeted'] as const;
 
 interface StoredDivisionDocument {
     id: string;
-    division: 'HC' | 'HT';
+    division: 'HC' | 'HT' | 'ANALYST';
     category: DivisionDocumentCategory;
     title: string;
     description?: string | null;

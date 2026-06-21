@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Fragment, useDeferredValue, useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -19,12 +19,16 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, ExternalLink, Minus } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, ExternalLink, Minus } from 'lucide-react';
 import type { Report } from '@/types';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
 import { ChartAiAnalysisButton, type ChartAiContext } from '@/components/dashboard/ai/ChartAiAnalysisButton';
 import { SectionAiSummaryInsightButton } from '@/components/dashboard/ai/SectionAiSummaryInsightButton';
+import { YearCard } from '@/components/dashboard/year-context';
 import {
+  isCargoReport,
+  isGseServiceReport,
+  isJoumpaServiceReport,
   resolveAreaType,
   resolveCaseClassification,
   resolveEvidenceLinks,
@@ -110,6 +114,16 @@ function getStatus(r: Report): string {
   return raw === 'CLOSED' ? 'CLOSED' : 'OPEN';
 }
 
+function isLandsideReport(r: Report) {
+  const area = val(r.area).toLowerCase();
+  return hasValue(r.terminal_area_category) || area.includes('terminal') || area.includes('landside');
+}
+
+function isAirsideReport(r: Report) {
+  const area = val(r.area).toLowerCase();
+  return hasValue(r.apron_area_category) || area.includes('apron') || area.includes('airside');
+}
+
 function normalizeSeverity(value: unknown): string {
   const t = val(value).toUpperCase();
   if (!t) return '-';
@@ -138,6 +152,150 @@ function aggregate(reports: Report[], getValue: (r: Report) => string): CountRow
   return Array.from(buckets.values()).sort((a, b) => b.total - a.total || a.label.localeCompare(b.label));
 }
 
+function computeCaseClassByMonth(reports: Report[]) {
+  const monthSet = new Set<string>();
+  const buckets = new Map<string, Map<string, number>>();
+  reports.forEach((r) => {
+    if (getCategory(r).toLowerCase().includes('compliment')) return;
+    const cc = getCaseClass(r);
+    const mk = getMonthKey(r);
+    if (!hasValue(cc) || !mk) return;
+    monthSet.add(mk);
+    const inner = buckets.get(cc) || new Map<string, number>();
+    inner.set(mk, (inner.get(mk) || 0) + 1);
+    buckets.set(cc, inner);
+  });
+  const monthKeys = Array.from(monthSet).sort();
+  const monthLabel = (mk: string) => {
+    const [y, m] = mk.split('-').map(Number);
+    return new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+  };
+  const rows = Array.from(buckets.entries()).map(([cc, inner]) => {
+    const values = monthKeys.map((mk) => inner.get(mk) || 0);
+    return { caseClass: cc, values, total: values.reduce((a, b) => a + b, 0) };
+  }).sort((a, b) => b.total - a.total);
+  const monthTotals = monthKeys.map((_, i) => rows.reduce((s, r) => s + r.values[i], 0));
+  const grandTotal = monthTotals.reduce((a, b) => a + b, 0);
+  return { monthKeys, monthLabel, rows, monthTotals, grandTotal };
+}
+
+function heatBucket(value: number, maxValue: number): number {
+  if (!value || !maxValue) return 0;
+  const ratio = value / maxValue;
+  if (ratio >= 0.90) return 5;
+  if (ratio >= 0.70) return 4;
+  if (ratio >= 0.45) return 3;
+  if (ratio >= 0.22) return 2;
+  if (ratio >= 0.06) return 1;
+  return 0;
+}
+
+function heatClass(value: number, maxValue: number): string {
+  const b = heatBucket(value, maxValue);
+  return b === 0 ? '' : `sr-heat-${b}`;
+}
+
+type ChronicRow = {
+  branch: string;
+  subCategory: string;
+  caseClass: string;
+  area: string;
+  monthsCount: number;
+  total: number;
+  firstSeen: string;
+  lastSeen: string;
+  trend: 'up' | 'down' | 'flat';
+  trendDelta: number;
+  topRootCause: string;
+  topSeverity: string;
+  openCount: number;
+  closedCount: number;
+  openPct: number;
+  reports: Report[];
+};
+
+function computeChronicIssues(reports: Report[]): ChronicRow[] {
+  const subCategoryOf = (r: Report) => val(r.terminal_area_category) || val(r.apron_area_category) || val(r.general_category) || '';
+  const areaOf = (r: Report) => {
+    if (hasValue(r.terminal_area_category)) return 'Terminal';
+    if (hasValue(r.apron_area_category)) return 'Apron';
+    if (hasValue(r.general_category)) return 'General';
+    return (resolveAreaType(r) || 'General');
+  };
+  const buckets = new Map<string, { branch: string; subCategory: string; area: string; months: Map<string, number>; reports: Report[] }>();
+  reports
+    .filter((r) => !getCategory(r).toLowerCase().includes('compliment'))
+    .forEach((r) => {
+      const branch = (resolveReportBranch(r) || val(r.branch) || val(r.station_code) || 'Unknown');
+      const sub = subCategoryOf(r);
+      const monthKey = getMonthKey(r);
+      if (!hasValue(branch) || !hasValue(sub) || !monthKey) return;
+      const key = `${branch.toLowerCase()}::${sub.toLowerCase()}`;
+      const bucket = buckets.get(key) || { branch, subCategory: sub, area: areaOf(r), months: new Map<string, number>(), reports: [] };
+      bucket.months.set(monthKey, (bucket.months.get(monthKey) || 0) + 1);
+      bucket.reports.push(r);
+      buckets.set(key, bucket);
+    });
+  const monthLabel = (key: string) => {
+    const [y, m] = key.split('-').map(Number);
+    return new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+  };
+  const topOf = (rs: Report[], fn: (r: Report) => string): string => {
+    const c: Record<string, number> = {};
+    rs.forEach((r) => { const v = fn(r); if (hasValue(v)) c[v] = (c[v] || 0) + 1; });
+    return Object.entries(c).sort((a, b) => b[1] - a[1])[0]?.[0] || '—';
+  };
+  return Array.from(buckets.values())
+    .filter((b) => b.months.size >= 3)
+    .map((b) => {
+      const sortedKeys = Array.from(b.months.keys()).sort();
+      const recent = sortedKeys.slice(-3).reduce((s, k) => s + (b.months.get(k) || 0), 0);
+      const prior = sortedKeys.slice(-6, -3).reduce((s, k) => s + (b.months.get(k) || 0), 0);
+      const trendDelta = recent - prior;
+      const trend: 'up' | 'down' | 'flat' = trendDelta > 0 ? 'up' : trendDelta < 0 ? 'down' : 'flat';
+      const openCount = b.reports.filter((r) => getStatus(r) !== 'CLOSED').length;
+      const closedCount = b.reports.length - openCount;
+      return {
+        branch: b.branch,
+        subCategory: b.subCategory,
+        caseClass: topOf(b.reports, getCaseClass),
+        area: b.area,
+        monthsCount: b.months.size,
+        total: b.reports.length,
+        firstSeen: monthLabel(sortedKeys[0]),
+        lastSeen: monthLabel(sortedKeys[sortedKeys.length - 1]),
+        trend,
+        trendDelta,
+        topRootCause: topOf(b.reports, getRoot),
+        topSeverity: topOf(b.reports, getSeverity),
+        openCount,
+        closedCount,
+        openPct: Math.round((openCount / b.reports.length) * 100),
+        reports: b.reports,
+      };
+    })
+    .sort((a, b) => b.monthsCount - a.monthsCount || b.total - a.total);
+}
+
+function buildMatrix(
+  reports: Report[],
+  getRow: (r: Report) => string,
+  getCol: (r: Report) => string
+): Record<string, Record<string, MatrixCell>> {
+  const cells: Record<string, Record<string, MatrixCell>> = {};
+  reports.forEach((r) => {
+    const rowKey = getRow(r);
+    const colKey = getCol(r);
+    if (!hasValue(rowKey)) return;
+    const rk = rowKey.toLowerCase();
+    if (!cells[rk]) cells[rk] = {};
+    if (!cells[rk][colKey]) cells[rk][colKey] = { total: 0, reports: [] };
+    cells[rk][colKey].total += 1;
+    cells[rk][colKey].reports.push(r);
+  });
+  return cells;
+}
+
 // ── Visual primitives (cloned from CGO Cargo Report) ─────────────────────────
 
 function sqiAiContext(chartTitle: string, chartType: string, chartData: unknown): ChartAiContext {
@@ -159,6 +317,7 @@ function Panel({
   className = '',
   bodyClassName = '',
   aiContext,
+  headerExtra,
   children,
 }: {
   title: string;
@@ -167,15 +326,16 @@ function Panel({
   className?: string;
   bodyClassName?: string;
   aiContext?: ChartAiContext;
+  headerExtra?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <div className={`${PANEL_FRAME} ${className}`}>
-      <div className="sr-table-caption">
-        <div className="sr-table-caption-title min-w-0 !items-start">
+      <div className="sr-table-caption !grid !grid-cols-1 !items-start gap-3">
+        <div className="sr-table-caption-title min-w-0 !flex-nowrap !items-start">
           <span className="mt-[5px] h-[19px] w-1 shrink-0 bg-[color:var(--sr-gold)]" aria-hidden="true" />
-          <div className="min-w-0">
-            <h3 className="text-[15px] font-bold leading-snug tracking-[-0.02em] text-[color:var(--sr-text)] break-words">
+          <div className="min-w-0 flex-1">
+            <h3 className="max-w-full text-[15px] font-bold leading-snug tracking-[-0.02em] text-[color:var(--sr-text)]">
               {title}
             </h3>
             {subtitle ? (
@@ -185,7 +345,8 @@ function Panel({
             ) : null}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex w-full flex-wrap items-center justify-end gap-2">
+          {headerExtra}
           {typeof total === 'number' ? (
             <span className="inline-flex items-baseline gap-1 rounded-md bg-[color:var(--sr-accent-soft)] px-2 py-0.5 text-[color:var(--sr-accent-dark)]">
               <span className="font-mono text-[13px] font-bold tabular-nums">{total}</span>
@@ -218,6 +379,55 @@ function KpiTile({ label, value, helper, tone = 'accent' }: { label: string; val
       </div>
     </div>
   );
+}
+
+type AreaScope = 'all' | 'landside' | 'airside';
+const AREA_SCOPE_OPTIONS: { value: AreaScope; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'landside', label: 'Landside' },
+  { value: 'airside', label: 'Airside' },
+];
+
+function AreaCard({
+  reports,
+  children,
+}: {
+  reports: Report[];
+  children: (args: { filtered: Report[]; toggle: ReactNode; area: AreaScope }) => ReactNode;
+}) {
+  const [area, setArea] = useState<AreaScope>('all');
+  const filtered = useMemo(() => {
+    if (area === 'landside') return reports.filter(isLandsideReport);
+    if (area === 'airside') return reports.filter((r) => !isLandsideReport(r) && isAirsideReport(r));
+    return reports;
+  }, [area, reports]);
+  const toggle = (
+    <div className="inline-flex max-w-full items-center gap-0.5 rounded-full border border-[color:var(--sr-border)] bg-white p-0.5">
+      {AREA_SCOPE_OPTIONS.map((opt) => {
+        const active = opt.value === area;
+        return (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setArea(opt.value)}
+            aria-pressed={active}
+            className={`rounded-full px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.03em] leading-none transition ${
+              active
+                ? 'bg-gradient-to-b from-emerald-500 to-emerald-700 text-white shadow-[0_2px_0_#064e3b]'
+                : 'text-[color:var(--sr-text-3)] hover:text-[color:var(--sr-text)]'
+            }`}
+          >
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+  return <>{children({ filtered, toggle, area })}</>;
+}
+
+function ChartFilterHeader({ yearToggle, areaToggle }: { yearToggle: ReactNode; areaToggle: ReactNode }) {
+  return <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">{yearToggle}{areaToggle}</div>;
 }
 
 function BarList({
@@ -436,7 +646,7 @@ function HeatMatrix({
   );
 
   return (
-    <div className="h-full w-full overflow-y-auto overflow-x-hidden p-2.5">
+    <div className="h-full w-full overflow-auto">
       <table className="sr-table text-[11px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
         <thead>
           <tr>
@@ -505,11 +715,20 @@ type DetailRow = {
   id: string;
   ts: number;
   date: string;
+  eventDate: string;
   branch: string;
   airline: string;
+  flightNumber: string;
+  route: string;
+  location: string;
+  aircraftReg: string;
+  delayInfo: string;
+  referenceNumber: string;
+  serviceBusinessType: string;
   category: string;
   area: string;
   caseClass: string;
+  subCategory: string;
   rootCause: string;
   actionTaken: string;
   preventive: string;
@@ -525,11 +744,20 @@ function buildDetailRow(r: Report): DetailRow {
     id: r.id || r.original_id || `${r.row_number ?? Math.random()}`,
     ts: d ? d.getTime() : 0,
     date: d ? d.toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }) : '—',
+    eventDate: d ? d.toLocaleString('en-US', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—',
     branch: getBranch(r),
     airline: getAirline(r),
+    flightNumber: val(r.flight_number) || '—',
+    route: val(r.route) || '—',
+    location: val(r.specific_location) || val(r.location) || '—',
+    aircraftReg: val(r.aircraft_reg) || '—',
+    delayInfo: [val(r.delay_code), val(r.delay_duration)].filter(hasValue).join(' / ') || '—',
+    referenceNumber: val(r.reference_number) || val(r.original_id) || '—',
+    serviceBusinessType: val(r.service_business_type) || '—',
     category: getCategory(r),
     area: getArea(r),
     caseClass: getCaseClass(r) || '—',
+    subCategory: val(r.terminal_area_category) || val(r.apron_area_category) || val(r.general_category) || '—',
     rootCause: getRoot(r) || '—',
     actionTaken: val(r.action_taken) || '—',
     preventive: val(r.preventive_action) || '—',
@@ -581,14 +809,7 @@ function formatEvidenceLabel(link: string, index: number) {
 }
 
 function DetailTable({ rows }: { rows: DetailRow[] }) {
-  const PAGE_SIZE = 10;
-  const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageRows = rows.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
-  const start = rows.length === 0 ? 0 : safePage * PAGE_SIZE + 1;
-  const end = Math.min(rows.length, safePage * PAGE_SIZE + pageRows.length);
 
   const tdStyle: CSSProperties = {
     whiteSpace: 'normal',
@@ -600,31 +821,31 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
+    <div className="overflow-y-auto" style={{ height: '36rem' }}>
+      <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
           <thead>
             <tr>
-              <th style={{ width: '10%', whiteSpace: 'normal' }} className="!text-left">Date</th>
-              <th style={{ width: '7%', whiteSpace: 'normal' }} className="!text-left">Branch</th>
-              <th style={{ width: '13%', whiteSpace: 'normal' }} className="!text-left">Airlines</th>
-              <th style={{ width: '11%', whiteSpace: 'normal' }} className="!text-left">Category</th>
-              <th style={{ width: '11%', whiteSpace: 'normal' }} className="!text-left">Area</th>
-              <th style={{ whiteSpace: 'normal' }} className="!text-left">Case Classification</th>
-              <th style={{ width: '9%', whiteSpace: 'normal' }} className="sr-center">Severity</th>
+              <th style={{ width: '9.5%', whiteSpace: 'normal' }} className="!text-left">Date</th>
+              <th style={{ width: '6.5%', whiteSpace: 'normal' }} className="!text-left">Branch</th>
+              <th style={{ width: '12%', whiteSpace: 'normal' }} className="!text-left">Airlines</th>
+              <th style={{ width: '7.5%', whiteSpace: 'normal' }} className="!text-left">Flight</th>
+              <th style={{ width: '10.5%', whiteSpace: 'normal' }} className="!text-left">Category</th>
+              <th style={{ width: '10%', whiteSpace: 'normal' }} className="!text-left">Area</th>
+              <th style={{ width: '18.5%', whiteSpace: 'normal' }} className="!text-left">Case Classification</th>
+              <th style={{ width: '8.5%', whiteSpace: 'normal' }} className="sr-center">Severity</th>
               <th style={{ width: '8%', whiteSpace: 'normal' }} className="sr-center">Status</th>
               <th style={{ width: '9%', whiteSpace: 'normal' }} className="sr-center">Details</th>
             </tr>
           </thead>
           <tbody>
-            {pageRows.length === 0 ? (
+            {rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="!py-10 text-center text-[12px] font-medium text-[color:var(--sr-text-3)]">
+                <td colSpan={10} className="!py-10 text-center text-[12px] font-medium text-[color:var(--sr-text-3)]">
                   Tidak ada data
                 </td>
               </tr>
             ) : (
-              pageRows.map((row) => {
+              rows.map((row) => {
                 const isExpanded = expandedId === row.id;
                 const statusClass = row.status === 'CLOSED'
                   ? 'bg-[color:var(--sr-accent-soft)] text-[color:var(--sr-accent-dark)]'
@@ -635,6 +856,7 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
                       <td className="font-mono tabular-nums" style={tdStyle}>{row.date}</td>
                       <td className="font-bold" style={tdStyle}>{row.branch}</td>
                       <td style={tdStyle}>{row.airline}</td>
+                      <td className="font-mono font-semibold tabular-nums" style={tdStyle}>{row.flightNumber}</td>
                       <td style={tdStyle}>{row.category}</td>
                       <td style={tdStyle}>{row.area}</td>
                       <td style={tdStyle}>
@@ -666,10 +888,32 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
                     </tr>
                     {isExpanded ? (
                       <tr>
-                        <td colSpan={9} className="!bg-[color:var(--sr-sunken)] !p-0">
+                        <td colSpan={10} className="!bg-[color:var(--sr-sunken)] !p-0">
                           <div className="border-l-4 border-[color:var(--sr-accent)] p-5">
                             <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
                               <DetailBlock label="Report" value={row.report} />
+                              <DetailBlock
+                                label="Flight Operation"
+                                value={[
+                                  `Flight : ${row.flightNumber}`,
+                                  `Route : ${row.route}`,
+                                  `Airline : ${row.airline}`,
+                                  `Aircraft : ${row.aircraftReg}`,
+                                  `Branch : ${row.branch}`,
+                                  `Event : ${row.eventDate}`,
+                                ].join('\n')}
+                              />
+                              <DetailBlock
+                                label="Operational Context"
+                                value={[
+                                  `Location : ${row.location}`,
+                                  `Area : ${row.area}`,
+                                  `Sub-category : ${row.subCategory}`,
+                                  `Service : ${row.serviceBusinessType}`,
+                                  `Delay : ${row.delayInfo}`,
+                                  `Reference : ${row.referenceNumber}`,
+                                ].join('\n')}
+                              />
                               <DetailBlock label="Root Cause" value={row.rootCause} />
                               <DetailBlock label="Action Taken" value={row.actionTaken} />
                               <DetailBlock label="Preventive Action" value={row.preventive} />
@@ -708,31 +952,6 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
             )}
           </tbody>
         </table>
-      </div>
-      {rows.length > PAGE_SIZE ? (
-        <div className="flex items-center justify-between border-t border-[color:var(--sr-border)] bg-[color:var(--sr-overlay)] px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-[color:var(--sr-text-3)]">
-          <span>{start}-{end} of {rows.length}</span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={safePage === 0}
-              className="inline-flex h-9 w-9 items-center justify-center border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] text-[color:var(--sr-text)] disabled:opacity-35"
-            >
-              <ChevronLeft size={14} />
-            </button>
-            <span className="min-w-[4rem] text-center">{safePage + 1}/{totalPages}</span>
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={safePage >= totalPages - 1}
-              className="inline-flex h-9 w-9 items-center justify-center border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] text-[color:var(--sr-text)] disabled:opacity-35"
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -769,15 +988,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
   const deferredReports = useDeferredValue(baseReports);
 
   const filteredSourceReports = useMemo(
-    () =>
-      deferredReports.filter((report) => {
-        const serviceType = val(report.service_business_type).toLowerCase();
-        return (
-          val(report.source_sheet).toUpperCase() !== 'CGO' &&
-          serviceType !== 'joumpa service' &&
-          serviceType !== 'gse service performance'
-        );
-      }),
+    () => deferredReports.filter((r) => !isCargoReport(r) && !isGseServiceReport(r) && !isJoumpaServiceReport(r)),
     [deferredReports]
   );
 
@@ -878,6 +1089,34 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     [scopedReports]
   );
 
+  // === Case Classification × Month Pivot (moved from Summary Report) ===
+  const caseClassByMonth = useMemo(() => {
+    const monthSet = new Set<string>();
+    const buckets = new Map<string, Map<string, number>>(); // caseClass → monthKey → count
+    scopedReports.forEach((r) => {
+      if (getCategory(r).toLowerCase().includes('compliment')) return;
+      const cc = getCaseClass(r);
+      const mk = getMonthKey(r);
+      if (!hasValue(cc) || !mk) return;
+      monthSet.add(mk);
+      const inner = buckets.get(cc) || new Map<string, number>();
+      inner.set(mk, (inner.get(mk) || 0) + 1);
+      buckets.set(cc, inner);
+    });
+    const monthKeys = Array.from(monthSet).sort();
+    const monthLabel = (mk: string) => {
+      const [y, m] = mk.split('-').map(Number);
+      return new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+    };
+    const rows = Array.from(buckets.entries()).map(([cc, inner]) => {
+      const values = monthKeys.map((mk) => inner.get(mk) || 0);
+      return { caseClass: cc, values, total: values.reduce((a, b) => a + b, 0) };
+    }).sort((a, b) => b.total - a.total);
+    const monthTotals = monthKeys.map((_, i) => rows.reduce((s, r) => s + r.values[i], 0));
+    const grandTotal = monthTotals.reduce((a, b) => a + b, 0);
+    return { monthKeys, monthLabel, rows, monthTotals, grandTotal };
+  }, [scopedReports]);
+
   // === Chronic Issues ===
   // (Branch × Sub-Category) combos that appear in 3+ distinct calendar months.
   // Sub-category is read from whichever of Terminal/Apron/General Category is
@@ -885,6 +1124,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
   type ChronicRow = {
     branch: string;
     subCategory: string;
+    caseClass: string;
     area: string;
     monthsCount: number;
     total: number;
@@ -895,6 +1135,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     topRootCause: string;
     topSeverity: string;
     openCount: number;
+    closedCount: number;
     openPct: number;
     reports: Report[];
   };
@@ -908,7 +1149,10 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
       return getArea(r);
     };
     const buckets = new Map<string, { branch: string; subCategory: string; area: string; months: Map<string, number>; reports: Report[] }>();
-    scopedReports.forEach((r) => {
+    // ponytail: exclude compliments per spec — chronic patterns track actionable issues
+    scopedReports
+      .filter((r) => !getCategory(r).toLowerCase().includes('compliment'))
+      .forEach((r) => {
       const branch = getBranch(r);
       const sub = subCategoryOf(r);
       const monthKey = getMonthKey(r);
@@ -941,9 +1185,11 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         const trendDelta = recent - prior;
         const trend: 'up' | 'down' | 'flat' = trendDelta > 0 ? 'up' : trendDelta < 0 ? 'down' : 'flat';
         const openCount = b.reports.filter((r) => getStatus(r) !== 'CLOSED').length;
+        const closedCount = b.reports.length - openCount;
         return {
           branch: b.branch,
           subCategory: b.subCategory,
+          caseClass: topOf(b.reports, getCaseClass),
           area: b.area,
           monthsCount: b.months.size,
           total: b.reports.length,
@@ -954,6 +1200,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           topRootCause: topOf(b.reports, getRoot),
           topSeverity: topOf(b.reports, getSeverity),
           openCount,
+          closedCount,
           openPct: Math.round((openCount / b.reports.length) * 100),
           reports: b.reports,
         };
@@ -1016,8 +1263,31 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     const s = getSeverity(r);
     return s === 'TOP RISK' || s === 'HIGH RISK' || s === 'HIGH';
   }).length;
+  const formatAreaSplit = (rs: Report[]) => {
+    const landside = rs.filter(isLandsideReport).length;
+    const airside = rs.filter((r) => !isLandsideReport(r) && isAirsideReport(r)).length;
+    return `Landside ${landside} · Airside ${airside}`;
+  };
+  const areaBreakdown = useMemo(() => {
+    return formatAreaSplit(scopedReports);
+  }, [scopedReports]);
+  const closedOpenBreakdown = useMemo(
+    () => formatAreaSplit(scopedReports.filter((r) => getStatus(r) === 'CLOSED')),
+    [scopedReports]
+  );
+  const riskBreakdown = useMemo(
+    () => formatAreaSplit(scopedReports.filter((r) => {
+      const s = getSeverity(r);
+      return s === 'TOP RISK' || s === 'HIGH RISK' || s === 'HIGH';
+    })),
+    [scopedReports]
+  );
   const topBranch = branchRows[0]?.label || '—';
   const topBranchCount = branchRows[0]?.total || 0;
+  const topBranchBreakdown = useMemo(
+    () => formatAreaSplit(scopedReports.filter((r) => getBranch(r).toLowerCase() === (branchRows[0]?.id || ''))),
+    [branchRows, scopedReports]
+  );
 
   const sectionAiContext = useMemo(() => ({
     section: 'Service Quality Improvement',
@@ -1042,14 +1312,14 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <span className="inline-block h-12 w-[6px] shrink-0 rounded bg-[color:var(--sr-accent)] shadow-[5px_0_0_var(--sr-gold)]" aria-hidden="true" />
           <div className="min-w-0">
             <h1 className="font-display text-[clamp(26px,2.4vw,34px)] font-bold leading-tight tracking-[-0.02em] text-[color:var(--sr-text)]">
-              Service Quality Improvement
+              Landside &amp; Airside
+              <span className="block text-[clamp(16px,1.5vw,22px)] font-semibold text-[color:var(--sr-text-2)]">Detail Report</span>
             </h1>
             <p className="mt-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-[color:var(--sr-text-3)]">
               {scopedReports.length} reports · {caseClassRows.length} case types · {branchRows.length} branches · {airlineRows.length} airlines
             </p>
             <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[color:var(--sr-gold)] bg-[color:var(--sr-gold-soft)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[color:var(--sr-gold-strong)]">
-              <span aria-hidden="true">⚠</span>
-              Excludes CGO Cargo, Joumpa Service &amp; GSE Performance — see their dedicated tabs
+              Shown data: Landside and Airside operational service-quality reports
             </p>
           </div>
         </div>
@@ -1088,10 +1358,10 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <h2>Performance Summary</h2>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <KpiTile label="Total Reports" value={scopedReports.length} helper="in scope" tone="neutral" />
-          <KpiTile label="Resolution Rate" value={`${resolutionPct}%`} helper={`${closed} closed / ${open} open`} tone="accent" />
-          <KpiTile label="High / Top Risk" value={topRisk} helper={`${scopedReports.length > 0 ? ((topRisk / scopedReports.length) * 100).toFixed(0) : 0}% of total`} tone="neg" />
-          <KpiTile label="Top Branch" value={topBranch} helper={`${topBranchCount} reports`} tone="gold" />
+          <KpiTile label="Total Reports" value={scopedReports.length} helper={areaBreakdown} tone="neutral" />
+          <KpiTile label="Resolution Rate" value={`${resolutionPct}%`} helper={`${closed} closed / ${open} open · ${closedOpenBreakdown}`} tone="accent" />
+          <KpiTile label="High / Top Risk" value={topRisk} helper={`${scopedReports.length > 0 ? ((topRisk / scopedReports.length) * 100).toFixed(0) : 0}% of total · ${riskBreakdown}`} tone="neg" />
+          <KpiTile label="Top Branch" value={topBranch} helper={`${topBranchCount} reports · ${topBranchBreakdown}`} tone="gold" />
         </div>
       </section>
 
@@ -1102,82 +1372,57 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <h2>Report Volume &amp; Composition</h2>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <Panel
-            title="Monthly Report Volume"
-            total={monthlyRows.reduce((s, r) => s + r.total, 0)}
-            className="h-[18rem]"
-            aiContext={sqiAiContext('Monthly Report Volume', 'monthly_volume', monthlyRows)}
-          >
-            <div className="mb-2 flex justify-center gap-1">
-              {[previousYear, currentYear].map((y) => (
-                <button
-                  key={y}
-                  type="button"
-                  onClick={() => setMonthlyYear(y)}
-                  className={`rounded-md px-2 py-0.5 text-[10px] font-bold tabular-nums transition-colors ${
-                    monthlyYear === y
-                      ? 'bg-[color:var(--sr-accent)] text-white'
-                      : 'bg-[color:var(--sr-sunken)] text-[color:var(--sr-text-2)] hover:bg-[color:var(--sr-border)]'
-                  }`}
-                >
-                  {y}
-                </button>
-              ))}
-            </div>
-            <HBarChart
-              rows={monthlyRows}
-              emptyLabel="No monthly data"
-              scrollable
-              onOpen={(row) =>
-                openDrilldown(
-                  scopedReports.filter((r) => {
-                    const d = getReportDate(r);
-                    if (!d || d.getFullYear() !== monthlyYear) return false;
-                    return `${monthlyYear}-${String(d.getMonth() + 1).padStart(2, '0')}` === row.id;
-                  }),
-                  `Month: ${row.label} ${monthlyYear}`
-                )
-              }
-            />
-          </Panel>
+          <YearCard reports={scopedReports}>{({ filtered: yearReports, toggle, year }) => (
+            <AreaCard reports={yearReports}>{({ filtered, toggle: areaToggle }) => {
+              const rows: CountRow[] = (() => {
+                const buckets = new Array(12).fill(0);
+                filtered.forEach((r) => { const d = getReportDate(r); if (d) buckets[d.getMonth()] += 1; });
+                return buckets.map((total, idx) => ({
+                  id: `${year}-${String(idx + 1).padStart(2, '0')}`,
+                  label: new Date(Date.UTC(year, idx, 1)).toLocaleString('en-US', { month: 'short', timeZone: 'UTC' }),
+                  total,
+                }));
+              })();
+              return (
+                <Panel headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />} title="Monthly Report Volume" total={rows.reduce((s, r) => s + r.total, 0)} className="h-[18rem]" aiContext={sqiAiContext('Monthly Report Volume', 'monthly_volume', rows)}>
+                  <HBarChart rows={rows} emptyLabel="No monthly data" scrollable onOpen={(row) => openDrilldown(filtered.filter((r) => { const d = getReportDate(r); return d ? `${year}-${String(d.getMonth() + 1).padStart(2, '0')}` === row.id : false; }), `Month: ${row.label} ${year}`)} />
+                </Panel>
+              );
+            }}</AreaCard>
+          )}</YearCard>
 
-          <Panel
-            title="Top Case Classifications"
-            total={caseClassRows.reduce((s, r) => s + r.total, 0)}
-            className="h-[18rem]"
-            aiContext={sqiAiContext('Top Case Classifications', 'case_classification_bar', caseClassRows.slice(0, 10))}
-          >
-            <BarList
-              rows={caseClassRows}
-              emptyLabel="No classification data"
-              limit={10}
-              onOpen={(row) => openDrilldown(scopedReports.filter((r) => getCaseClass(r).toLowerCase() === row.id), `Case: ${row.label}`)}
-            />
-          </Panel>
+          <YearCard reports={scopedReports}>{({ filtered: yearReports, toggle }) => (
+            <AreaCard reports={yearReports}>{({ filtered, toggle: areaToggle }) => {
+              const rows = aggregate(filtered, getCaseClass);
+              return (
+                <Panel headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />} title="Top Case Classifications" total={rows.reduce((s, r) => s + r.total, 0)} className="h-[18rem]" aiContext={sqiAiContext('Top Case Classifications', 'case_classification_bar', rows.slice(0, 10))}>
+                  <BarList rows={rows} emptyLabel="No classification data" limit={10} onOpen={(row) => openDrilldown(filtered.filter((r) => getCaseClass(r).toLowerCase() === row.id), `Case: ${row.label}`)} />
+                </Panel>
+              );
+            }}</AreaCard>
+          )}</YearCard>
 
-          <Panel
-            title="Report Type Composition"
-            total={reportCategoryRows.reduce((s, r) => s + r.total, 0)}
-            className="h-[18rem]"
-            aiContext={sqiAiContext('Report Type Composition', 'category_donut', reportCategoryRows)}
-          >
-            <Donut
-              rows={reportCategoryRows}
-              onOpen={(row) => openDrilldown(scopedReports.filter((r) => getCategory(r) === row.label), `Category: ${row.label}`)}
-            />
-          </Panel>
+          <YearCard reports={scopedReports}>{({ filtered: yearReports, toggle }) => (
+            <AreaCard reports={yearReports}>{({ filtered, toggle: areaToggle }) => {
+              const rows = aggregate(filtered, getCategory);
+              return (
+                <Panel headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />} title="Report Type Composition" total={rows.reduce((s, r) => s + r.total, 0)} className="h-[18rem]" aiContext={sqiAiContext('Report Type Composition', 'category_donut', rows)}>
+                  <Donut rows={rows} onOpen={(row) => openDrilldown(filtered.filter((r) => getCategory(r) === row.label), `Category: ${row.label}`)} />
+                </Panel>
+              );
+            }}</AreaCard>
+          )}</YearCard>
 
-          <Panel
-            title="Operational Area Distribution"
-            total={areaRows.reduce((s, r) => s + r.total, 0)}
-            className="h-[18rem]"
-            aiContext={sqiAiContext('Operational Area Distribution', 'area_donut', areaRows)}
-          >
-            <Donut
-              rows={areaRows}
-              onOpen={(row) => openDrilldown(scopedReports.filter((r) => getArea(r) === row.label), `Area: ${row.label}`)}
-            />
-          </Panel>
+          <YearCard reports={scopedReports}>{({ filtered: yearReports, toggle }) => (
+            <AreaCard reports={yearReports}>{({ filtered, toggle: areaToggle }) => {
+              const rows = aggregate(filtered, getArea);
+              return (
+                <Panel headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />} title="Operational Area Distribution" total={rows.reduce((s, r) => s + r.total, 0)} className="h-[18rem]" aiContext={sqiAiContext('Operational Area Distribution', 'area_donut', rows)}>
+                  <Donut rows={rows} onOpen={(row) => openDrilldown(filtered.filter((r) => getArea(r) === row.label), `Area: ${row.label}`)} />
+                </Panel>
+              );
+            }}</AreaCard>
+          )}</YearCard>
         </div>
       </section>
 
@@ -1187,27 +1432,42 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <span className="sr-section-rule" aria-hidden="true" />
           <h2>Year-over-Year Monthly Trend</h2>
         </div>
-        <Panel
-          title={`Monthly Report Volume — ${currentYear} vs ${previousYear}`}
-          subtitle="Tracks growth or decline in reported issues across comparable months"
-          total={yoyMonthlyRows.reduce((s, r) => s + r.current + r.previous, 0)}
-          className="h-[22rem]"
-          aiContext={sqiAiContext('YoY Monthly Comparison', 'yoy_line', yoyMonthlyRows)}
-        >
-          <div className="h-full p-2.5">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={yoyMonthlyRows} margin={{ top: 8, right: 16, left: 4, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="2 6" stroke="var(--sr-border)" />
-                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--sr-text-3)' }} />
-                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--sr-text-3)' }} />
-                <Tooltip contentStyle={{ borderRadius: 4, borderColor: 'var(--sr-border-strong)', fontSize: 11 }} />
-                <Legend wrapperStyle={{ fontSize: 11, fontWeight: 700 }} />
-                <Line type="monotone" dataKey="previous" name={`${previousYear}`} stroke="var(--sr-gold-strong)" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="current" name={`${currentYear}`} stroke="var(--sr-accent)" strokeWidth={2.5} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </Panel>
+        {/* ponytail: YoY chart uses scopedReports + tab-level year toggle, since the chart
+            inherently spans 2 years. YearCard's local year becomes the "current" year of the
+            pair; previous = year - 1. */}
+        <YearCard reports={scopedReports}>{({ toggle, year: cy }) => (
+          <AreaCard reports={scopedReports}>{({ filtered, toggle: areaToggle }) => {
+            const py = cy - 1;
+            const buckets = { current: new Array(12).fill(0), previous: new Array(12).fill(0) };
+            filtered.forEach((r) => {
+              const d = getReportDate(r); if (!d) return;
+              if (d.getFullYear() === cy) buckets.current[d.getMonth()] += 1;
+              else if (d.getFullYear() === py) buckets.previous[d.getMonth()] += 1;
+            });
+            const rows = Array.from({ length: 12 }, (_, i) => ({
+              month: new Date(Date.UTC(cy, i, 1)).toLocaleString('en-US', { month: 'short', timeZone: 'UTC' }),
+              current: buckets.current[i],
+              previous: buckets.previous[i],
+            }));
+            return (
+              <Panel headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />} title={`Monthly Report Volume — ${cy} vs ${py}`} subtitle="Tracks growth or decline in reported issues across comparable months" total={rows.reduce((s, r) => s + r.current + r.previous, 0)} className="h-[22rem]" aiContext={sqiAiContext('YoY Monthly Comparison', 'yoy_line', rows)}>
+                <div className="h-full p-2.5">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={rows} margin={{ top: 8, right: 16, left: 4, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="2 6" stroke="var(--sr-border)" />
+                      <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--sr-text-3)' }} />
+                      <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--sr-text-3)' }} />
+                      <Tooltip contentStyle={{ borderRadius: 4, borderColor: 'var(--sr-border-strong)', fontSize: 11 }} />
+                      <Legend wrapperStyle={{ fontSize: 11, fontWeight: 700 }} />
+                      <Line type="monotone" dataKey="previous" name={`${py}`} stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 5" dot={{ r: 3 }} />
+                      <Line type="monotone" dataKey="current" name={`${cy}`} stroke="var(--sr-accent)" strokeWidth={2.5} dot={{ r: 4 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </Panel>
+            );
+          }}</AreaCard>
+        )}</YearCard>
       </section>
 
       {/* Sub-Category Breakdown */}
@@ -1217,45 +1477,30 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <h2>Sub-Category Breakdown by Operational Area</h2>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
-          <Panel
-            title="Terminal Area Sub-Categories"
-            total={terminalSubRows.reduce((s, r) => s + r.total, 0)}
-            className="h-[22rem]"
-            aiContext={sqiAiContext('Terminal Area Sub-Categories', 'sub_category_bar', terminalSubRows.slice(0, 15))}
-          >
-            <BarList
-              rows={terminalSubRows}
-              emptyLabel="No terminal sub-category data"
-              limit={15}
-              onOpen={(row) => openDrilldown(scopedReports.filter((r) => val(r.terminal_area_category).toLowerCase() === row.id), `Terminal · ${row.label}`)}
-            />
-          </Panel>
-          <Panel
-            title="Apron Area Sub-Categories"
-            total={apronSubRows.reduce((s, r) => s + r.total, 0)}
-            className="h-[22rem]"
-            aiContext={sqiAiContext('Apron Area Sub-Categories', 'sub_category_bar', apronSubRows.slice(0, 15))}
-          >
-            <BarList
-              rows={apronSubRows}
-              emptyLabel="No apron sub-category data"
-              limit={15}
-              onOpen={(row) => openDrilldown(scopedReports.filter((r) => val(r.apron_area_category).toLowerCase() === row.id), `Apron · ${row.label}`)}
-            />
-          </Panel>
-          <Panel
-            title="General Category Breakdown"
-            total={generalSubRows.reduce((s, r) => s + r.total, 0)}
-            className="h-[22rem]"
-            aiContext={sqiAiContext('General Category Breakdown', 'sub_category_bar', generalSubRows.slice(0, 15))}
-          >
-            <BarList
-              rows={generalSubRows}
-              emptyLabel="No general category data"
-              limit={15}
-              onOpen={(row) => openDrilldown(scopedReports.filter((r) => val(r.general_category).toLowerCase() === row.id), `General · ${row.label}`)}
-            />
-          </Panel>
+          <YearCard reports={scopedReports}>{({ filtered, toggle }) => {
+            const rows = aggregate(filtered, (r) => val(r.terminal_area_category));
+            return (
+              <Panel headerExtra={toggle} title="Terminal Area Sub-Categories" total={rows.reduce((s, r) => s + r.total, 0)} className="h-[22rem]" aiContext={sqiAiContext('Terminal Area Sub-Categories', 'sub_category_bar', rows.slice(0, 15))}>
+                <BarList rows={rows} emptyLabel="No terminal sub-category data" limit={15} onOpen={(row) => openDrilldown(filtered.filter((r) => val(r.terminal_area_category).toLowerCase() === row.id), `Terminal · ${row.label}`)} />
+              </Panel>
+            );
+          }}</YearCard>
+          <YearCard reports={scopedReports}>{({ filtered, toggle }) => {
+            const rows = aggregate(filtered, (r) => val(r.apron_area_category));
+            return (
+              <Panel headerExtra={toggle} title="Apron Area Sub-Categories" total={rows.reduce((s, r) => s + r.total, 0)} className="h-[22rem]" aiContext={sqiAiContext('Apron Area Sub-Categories', 'sub_category_bar', rows.slice(0, 15))}>
+                <BarList rows={rows} emptyLabel="No apron sub-category data" limit={15} onOpen={(row) => openDrilldown(filtered.filter((r) => val(r.apron_area_category).toLowerCase() === row.id), `Apron · ${row.label}`)} />
+              </Panel>
+            );
+          }}</YearCard>
+          <YearCard reports={scopedReports}>{({ filtered, toggle }) => {
+            const rows = aggregate(filtered, (r) => val(r.general_category));
+            return (
+              <Panel headerExtra={toggle} title="General Category Breakdown" total={rows.reduce((s, r) => s + r.total, 0)} className="h-[22rem]" aiContext={sqiAiContext('General Category Breakdown', 'sub_category_bar', rows.slice(0, 15))}>
+                <BarList rows={rows} emptyLabel="No general category data" limit={15} onOpen={(row) => openDrilldown(filtered.filter((r) => val(r.general_category).toLowerCase() === row.id), `General · ${row.label}`)} />
+              </Panel>
+            );
+          }}</YearCard>
         </div>
       </section>
 
@@ -1266,59 +1511,28 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <h2>Distribution by Station &amp; Airline</h2>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          <Panel
-            title="Reports by Station / Branch"
-            total={branchRows.reduce((s, r) => s + r.total, 0)}
-            className="h-[22rem]"
-            aiContext={sqiAiContext('Reports by Station', 'station_bar', branchRows)}
-          >
-            <HBarChart
-              rows={branchRows}
-              emptyLabel="No station data"
-              scrollable
-              limit={20}
-              onOpen={(row) => openDrilldown(scopedReports.filter((r) => getBranch(r).toLowerCase() === row.id), `Station: ${row.label}`)}
-            />
-          </Panel>
+          <YearCard reports={scopedReports}>{({ filtered: yearReports, toggle }) => (
+            <AreaCard reports={yearReports}>{({ filtered, toggle: areaToggle }) => {
+              const rows = aggregate(filtered, getBranch);
+              return (
+                <Panel headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />} title="Reports by Station / Branch" total={rows.reduce((s, r) => s + r.total, 0)} className="h-[22rem]" aiContext={sqiAiContext('Reports by Station', 'station_bar', rows)}>
+                  <HBarChart rows={rows} emptyLabel="No station data" scrollable limit={20} onOpen={(row) => openDrilldown(filtered.filter((r) => getBranch(r).toLowerCase() === row.id), `Station: ${row.label}`)} />
+                </Panel>
+              );
+            }}</AreaCard>
+          )}</YearCard>
 
-          <Panel
-            title="Reports by Airline"
-            total={airlineRows.reduce((s, r) => s + r.total, 0)}
-            className="h-[22rem]"
-            aiContext={sqiAiContext('Reports by Airline', 'airline_bar', airlineRows)}
-          >
-            <HBarChart
-              rows={airlineRows}
-              emptyLabel="No airline data"
-              scrollable
-              limit={20}
-              color="var(--sr-gold-strong)"
-              onOpen={(row) => openDrilldown(scopedReports.filter((r) => getAirline(r).toLowerCase() === row.id), `Airline: ${row.label}`)}
-            />
-          </Panel>
+          <YearCard reports={scopedReports}>{({ filtered: yearReports, toggle }) => (
+            <AreaCard reports={yearReports}>{({ filtered, toggle: areaToggle }) => {
+              const rows = aggregate(filtered, getAirline);
+              return (
+                <Panel headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />} title="Reports by Airline" total={rows.reduce((s, r) => s + r.total, 0)} className="h-[22rem]" aiContext={sqiAiContext('Reports by Airline', 'airline_bar', rows)}>
+                  <HBarChart rows={rows} emptyLabel="No airline data" scrollable limit={20} color="var(--sr-gold-strong)" onOpen={(row) => openDrilldown(filtered.filter((r) => getAirline(r).toLowerCase() === row.id), `Airline: ${row.label}`)} />
+                </Panel>
+              );
+            }}</AreaCard>
+          )}</YearCard>
         </div>
-      </section>
-
-      {/* Root Cause Analysis */}
-      <section>
-        <div className="sr-section-h">
-          <span className="sr-section-rule" aria-hidden="true" />
-          <h2>Root Cause Analysis</h2>
-        </div>
-        <Panel
-          title="Root Cause Identification"
-          subtitle="Compliments excluded — focused on actionable issues"
-          total={rootRows.reduce((s, r) => s + r.total, 0)}
-          className="h-[26rem]"
-          aiContext={sqiAiContext('Root Cause Identification', 'root_cause_bar', rootRows.slice(0, 25))}
-        >
-          <BarList
-            rows={rootRows}
-            emptyLabel="No root cause data"
-            limit={25}
-            onOpen={(row) => openDrilldown(scopedReports.filter((r) => getRoot(r).toLowerCase() === row.id), `Root: ${row.label}`)}
-          />
-        </Panel>
       </section>
 
       {/* Cross-Dimensional Analysis */}
@@ -1328,54 +1542,120 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <h2>Cross-Dimensional Analysis</h2>
         </div>
         <div className="grid gap-3 xl:grid-cols-2">
-          <Panel
-            title="Case Classification by Operational Area"
-            subtitle="Where each case type concentrates"
-            className="h-[26rem]"
-            aiContext={sqiAiContext('Case Classification x Area', 'pivot_table', { keys: caseClassKeys, cols: presentAreaCols })}
-            bodyClassName="overflow-hidden"
-          >
-            <HeatMatrix
-              rowKeys={caseClassKeys}
-              rowLabel="Case Classification"
-              colKeys={presentAreaCols}
-              cells={caseByArea}
-              onOpen={(rs, ctx) => openDrilldown(rs, ctx)}
-            />
-          </Panel>
+          <YearCard reports={scopedReports}>{({ filtered, toggle }) => {
+            const branchRowsLocal = aggregate(filtered, getBranch).slice(0, 12);
+            const catRowsLocal = aggregate(filtered, getCategory);
+            const cells = buildMatrix(filtered, getBranch, getCategory);
+            return (
+              <Panel headerExtra={toggle} title="Station Volume by Report Category" subtitle="Station hotspots across report types" className="h-[26rem]" aiContext={sqiAiContext('Station x Report Category', 'pivot_table', { keys: branchRowsLocal, cols: catRowsLocal })} bodyClassName="overflow-hidden">
+                <HeatMatrix rowKeys={branchRowsLocal.map((r) => ({ id: r.id, label: r.label }))} rowLabel="Branch" colKeys={catRowsLocal.map((r) => ({ id: r.label, label: r.label }))} cells={cells} onOpen={(rs, ctx) => openDrilldown(rs, ctx)} />
+              </Panel>
+            );
+          }}</YearCard>
 
-          <Panel
-            title="Station Volume by Report Category"
-            subtitle="Station hotspots across report types"
-            className="h-[26rem]"
-            aiContext={sqiAiContext('Station x Report Category', 'pivot_table', { keys: branchKeys, cols: presentCategoryCols })}
-            bodyClassName="overflow-hidden"
-          >
-            <HeatMatrix
-              rowKeys={branchKeys}
-              rowLabel="Branch"
-              colKeys={presentCategoryCols}
-              cells={branchByCategory}
-              onOpen={(rs, ctx) => openDrilldown(rs, ctx)}
-            />
-          </Panel>
+          <YearCard reports={scopedReports}>{({ filtered, toggle }) => {
+            const airlineRowsLocal = aggregate(filtered, getAirline).slice(0, 12);
+            const catRowsLocal = aggregate(filtered, getCategory);
+            const cells = buildMatrix(filtered, getAirline, getCategory);
+            return (
+              <Panel headerExtra={toggle} title="Airline Volume by Report Category" subtitle="Which airlines drive which report types" className="h-[26rem]" aiContext={sqiAiContext('Airline x Report Category', 'pivot_table', { keys: airlineRowsLocal, cols: catRowsLocal })} bodyClassName="overflow-hidden">
+                <HeatMatrix rowKeys={airlineRowsLocal.map((r) => ({ id: r.id, label: r.label }))} rowLabel="Airline" colKeys={catRowsLocal.map((r) => ({ id: r.label, label: r.label }))} cells={cells} onOpen={(rs, ctx) => openDrilldown(rs, ctx)} />
+              </Panel>
+            );
+          }}</YearCard>
 
-          <Panel
-            title="Airline Volume by Report Category"
-            subtitle="Which airlines drive which report types"
-            className="h-[26rem] xl:col-span-2"
-            aiContext={sqiAiContext('Airline x Report Category', 'pivot_table', { keys: airlineKeys, cols: presentCategoryCols })}
-            bodyClassName="overflow-hidden"
-          >
-            <HeatMatrix
-              rowKeys={airlineKeys}
-              rowLabel="Airline"
-              colKeys={presentCategoryCols}
-              cells={airlineByCategory}
-              onOpen={(rs, ctx) => openDrilldown(rs, ctx)}
-            />
-          </Panel>
+          <YearCard reports={scopedReports}>{({ filtered, toggle }) => {
+            const branchRowsLocal = aggregate(filtered, getBranch).slice(0, 12);
+            const areaRowsLocal = aggregate(filtered, getArea);
+            const cells = buildMatrix(filtered, getBranch, getArea);
+            return (
+              <Panel headerExtra={toggle} title="Station Volume by Operational Area" subtitle="Station volume across operational areas" className="h-[26rem]" aiContext={sqiAiContext('Station x Operational Area', 'pivot_table', { keys: branchRowsLocal, cols: areaRowsLocal })} bodyClassName="overflow-hidden">
+                <HeatMatrix rowKeys={branchRowsLocal.map((r) => ({ id: r.id, label: r.label }))} rowLabel="Branch" colKeys={areaRowsLocal.map((r) => ({ id: r.label, label: r.label }))} cells={cells} onOpen={(rs, ctx) => openDrilldown(rs, ctx)} />
+              </Panel>
+            );
+          }}</YearCard>
+
+          <YearCard reports={scopedReports}>{({ filtered, toggle }) => {
+            const airlineRowsLocal = aggregate(filtered, getAirline).slice(0, 12);
+            const areaRowsLocal = aggregate(filtered, getArea);
+            const cells = buildMatrix(filtered, getAirline, getArea);
+            return (
+              <Panel headerExtra={toggle} title="Airline Volume by Operational Area" subtitle="Airline volume across operational areas" className="h-[26rem]" aiContext={sqiAiContext('Airline x Operational Area', 'pivot_table', { keys: airlineRowsLocal, cols: areaRowsLocal })} bodyClassName="overflow-hidden">
+                <HeatMatrix rowKeys={airlineRowsLocal.map((r) => ({ id: r.id, label: r.label }))} rowLabel="Airline" colKeys={areaRowsLocal.map((r) => ({ id: r.label, label: r.label }))} cells={cells} onOpen={(rs, ctx) => openDrilldown(rs, ctx)} />
+              </Panel>
+            );
+          }}</YearCard>
         </div>
+      </section>
+
+      {/* Case Classification by Month (moved from Summary Report) */}
+      <section>
+        <div className="sr-section-h">
+          <span className="sr-section-rule" aria-hidden="true" />
+          <h2>Case Classification by Month</h2>
+        </div>
+        <YearCard reports={scopedReports}>{({ filtered: yearReports, toggle }) => (
+          <AreaCard reports={yearReports}>{({ filtered, toggle: areaToggle }) => {
+            const data = computeCaseClassByMonth(filtered);
+            const maxValue = Math.max(1, ...data.rows.flatMap((row) => row.values));
+            return (
+            <Panel headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />} title="Report Case Classification" subtitle="Compliments excluded. Click a cell to drill into matching reports." total={data.grandTotal} className="h-[28rem]" aiContext={sqiAiContext('Case Classification by Month', 'case_classification_month_pivot', data.rows.slice(0, 20))} bodyClassName="overflow-hidden">
+              {data.rows.length === 0 ? (
+                <div className="flex h-full min-h-[12rem] items-center justify-center text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--sr-text-3)]">
+                  No case classification data
+                </div>
+              ) : (
+                <div className="h-full overflow-y-auto overflow-x-auto">
+                  <table className="sr-table text-[11.5px]" style={{ width: '100%', minWidth: 720 }}>
+                    <thead>
+                      <tr>
+                        <th className="!text-left" style={{ whiteSpace: 'normal', width: '20%' }}>Case Classification</th>
+                        {data.monthKeys.map((mk) => (
+                          <th key={mk} className="sr-center" style={{ whiteSpace: 'nowrap' }}>{data.monthLabel(mk)}</th>
+                        ))}
+                        <th className="sr-center">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.rows.map((row) => (
+                        <tr key={row.caseClass}>
+                          <td className="sr-label !bg-[color:var(--sr-overlay)] font-bold leading-tight" style={{ whiteSpace: 'normal' }}>{row.caseClass}</td>
+                          {row.values.map((v, i) => {
+                            const mk = data.monthKeys[i];
+                            const clickable = v > 0;
+                            const heatCls = heatClass(v, maxValue);
+                            return (
+                              <td key={mk} className={`sr-center align-middle font-mono tabular-nums ${heatCls} ${clickable ? 'cursor-pointer hover:bg-[color:var(--sr-overlay)]' : ''}`}
+                                onClick={() => {
+                                  if (!clickable) return;
+                                  const matches = filtered.filter((r) => getCaseClass(r) === row.caseClass && getMonthKey(r) === mk && !getCategory(r).toLowerCase().includes('compliment'));
+                                  openDrilldown(matches, `${row.caseClass} · ${data.monthLabel(mk)}`);
+                                }}
+                              >
+                                {v > 0 ? <span className="sr-cell-value">{v}</span> : <span className="text-[color:var(--sr-text-3)]">–</span>}
+                              </td>
+                            );
+                          })}
+                          <td className="sr-center align-middle font-mono font-bold tabular-nums">{row.total}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot>
+                      <tr>
+                        <td className="sr-label-foot">Total</td>
+                        {data.monthTotals.map((t, i) => (
+                          <td key={data.monthKeys[i]} className="sr-center font-mono font-bold tabular-nums">{t}</td>
+                        ))}
+                        <td className="sr-center font-mono font-bold tabular-nums">{data.grandTotal}</td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
+            </Panel>
+            );
+          }}</AreaCard>
+        )}</YearCard>
       </section>
 
       {/* Recurring Issue Patterns */}
@@ -1384,7 +1664,12 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <span className="sr-section-rule" aria-hidden="true" />
           <h2>Recurring Issue Patterns</h2>
         </div>
+        <YearCard reports={scopedReports}>{({ filtered: yearReports, toggle }) => (
+          <AreaCard reports={yearReports}>{({ filtered, toggle: areaToggle }) => {
+            const chronicIssueRows = computeChronicIssues(filtered);
+            return (
         <Panel
+          headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />}
           title="Recurring Issues by Branch & Sub-Category"
           subtitle="Branch + sub-category combinations appearing in 3 or more distinct months — sorted by persistence. Click a row to drill into all related reports."
           total={chronicIssueRows.length}
@@ -1409,21 +1694,21 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
               No recurring patterns detected
             </div>
           ) : (
-            <div className="h-full overflow-y-auto overflow-x-auto p-2.5">
+            <div className="h-full overflow-y-auto overflow-x-auto">
               <table className="sr-table text-[11.5px]" style={{ width: '100%', minWidth: 1080 }}>
                 <thead>
                   <tr>
-                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '11%' }}>Branch</th>
-                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '8%' }}>Area</th>
-                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '20%' }}>Sub-Category</th>
-                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '7%' }}>Months</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '10%' }}>Branch</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '7%' }}>Area</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '17%' }}>Sub-Category</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '13%' }}>Case Classification</th>
                     <th className="sr-center" style={{ whiteSpace: 'normal', width: '7%' }}>Reports</th>
                     <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>First Seen</th>
                     <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>Last Seen</th>
-                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '9%' }}>Trend (3mo)</th>
-                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '14%' }}>Top Root Cause</th>
-                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>Top Severity</th>
-                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>Open</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>Trend (3mo)</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '12%' }}>Top Root Cause</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '6%' }}>Top Severity</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '12%' }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1444,7 +1729,9 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                         <td className="leading-tight" style={{ verticalAlign: 'top', whiteSpace: 'normal', wordBreak: 'break-word' }}>
                           {row.subCategory}
                         </td>
-                        <td className="sr-center align-middle font-mono font-bold tabular-nums">{row.monthsCount}</td>
+                        <td className="leading-tight" style={{ verticalAlign: 'top', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                          {row.caseClass}
+                        </td>
                         <td className="sr-center align-middle font-mono font-bold tabular-nums">{row.total}</td>
                         <td className="sr-center align-middle font-mono tabular-nums text-[color:var(--sr-text-2)]">{row.firstSeen}</td>
                         <td className="sr-center align-middle font-mono tabular-nums text-[color:var(--sr-text-2)]">{row.lastSeen}</td>
@@ -1460,10 +1747,12 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                         <td className="sr-center align-middle">
                           <SeverityChip severity={row.topSeverity} />
                         </td>
-                        <td className="sr-center align-middle font-mono font-bold tabular-nums">
+                        <td className="sr-center align-middle font-mono font-bold tabular-nums whitespace-nowrap">
                           <span style={{ color: row.openPct >= 50 ? 'var(--sr-neg-strong)' : row.openPct >= 25 ? 'var(--sr-gold-strong)' : 'var(--sr-text)' }}>
-                            {row.openCount} · {row.openPct}%
+                            {row.openCount} OPEN
                           </span>
+                          <span className="mx-1 text-[color:var(--sr-text-3)]">·</span>
+                          <span className="text-[color:var(--sr-text-2)]">{row.closedCount} CLOSED</span>
                         </td>
                       </tr>
                     );
@@ -1473,6 +1762,9 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
             </div>
           )}
         </Panel>
+            );
+          }}</AreaCard>
+        )}</YearCard>
       </section>
 
       {/* Detailed Records */}
@@ -1481,14 +1773,21 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <span className="sr-section-rule" aria-hidden="true" />
           <h2>Detailed Report Records</h2>
         </div>
-        <Panel
-          title="Quality Records"
-          className="h-[40rem]"
-          aiContext={sqiAiContext('Quality Records', 'detail_table', detailRows.slice(0, 20))}
-          bodyClassName="overflow-hidden"
-        >
-          <DetailTable rows={detailRows} />
-        </Panel>
+        <YearCard reports={scopedReports}>{({ filtered: yearReports, toggle }) => (
+          <AreaCard reports={yearReports}>{({ filtered, toggle: areaToggle }) => {
+            const detailRows = filtered.map(buildDetailRow).sort((a, b) => b.ts - a.ts);
+            const detailTableKey = [
+              detailRows.length,
+              detailRows[0]?.id ?? '',
+              detailRows[detailRows.length - 1]?.id ?? '',
+            ].join(':');
+            return (
+              <Panel headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />} title="Quality Records" aiContext={sqiAiContext('Quality Records', 'detail_table', detailRows.slice(0, 20))}>
+                <DetailTable key={detailTableKey} rows={detailRows} />
+              </Panel>
+            );
+          }}</AreaCard>
+        )}</YearCard>
       </section>
 
       {DrilldownRenderer()}

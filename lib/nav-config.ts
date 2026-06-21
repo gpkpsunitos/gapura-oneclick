@@ -86,7 +86,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
                 { href: '/dashboard/employee', label: 'My Reports', icon: FileText },
                 { href: '/dashboard/employee/new', label: 'Create Report', icon: Plane },
                 { href: '/dashboard/employee/quick-access', label: 'Quick Access', icon: ChevronRight },
-                { href: '/dashboard/employee/edaran-materi', label: 'HC Documents', icon: BookOpen },
+                { href: '/dashboard/employee/documents', label: 'Documents', icon: BookOpen },
             ]
         }
     ],
@@ -97,7 +97,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             items: [
                 { href: '/dashboard/employee', label: 'My Reports', icon: FileText },
                 { href: '/dashboard/employee/new', label: 'Create Report', icon: Plane },
-                { href: '/dashboard/employee/edaran-materi', label: 'HC Documents', icon: BookOpen },
+                { href: '/dashboard/employee/documents', label: 'Documents', icon: BookOpen },
             ]
         }
     ],
@@ -114,7 +114,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             items: [
                 { href: '/dashboard/employee/reports', label: 'All Reports', icon: ClipboardList },
                 { href: '/dashboard/employee/new', label: 'Create Report', icon: Plane },
-                { href: '/dashboard/manager/edaran-materi', label: 'HC Documents', icon: BookOpen },
+                { href: '/dashboard/manager/documents', label: 'Documents', icon: BookOpen },
             ]
         },
         {
@@ -209,8 +209,6 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             title: 'Escalation Center',
             items: [
                 { href: '/dashboard/eskalasi/select', label: 'Select Division', icon: Layers },
-                { href: '/dashboard/eskalasi', label: 'Dashboard', icon: LayoutDashboard },
-                { href: '/dashboard/eskalasi/laporan-divisi', label: 'All Reports', icon: ClipboardList },
             ]
         }
     ],
@@ -253,6 +251,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
                 { href: '/dashboard/analyst/builder', label: 'Explore & Build', icon: Hash },
                 { href: '/dashboard/analyst/dashboards', label: 'Custom Dashboards', icon: FolderOpen },
                 { href: '/dashboard/analyst/import', label: 'Import Data', icon: FolderOpen },
+                { href: '/dashboard/analyst/documents', label: 'Documents', icon: BookOpen },
                 { href: '/dashboard/employee/new', label: 'Create Report', icon: Plane },
             ]
         },

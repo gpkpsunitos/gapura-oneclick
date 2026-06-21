@@ -22,8 +22,8 @@ export default function PublicReportPage() {
             <span className="text-emerald-600">Irregularity</span> Report
           </h1>
           <p className="text-lg md:text-2xl text-[oklch(0.40_0.02_200)] max-w-xl mx-auto font-medium leading-relaxed">
-            Platform pelaporan operasional terpadu.<br />
-            Cepat, akurat, dan transparan.
+            Unified operational reporting platform.<br />
+            Fast, accurate, and transparent.
           </p>
         </div>
         {/* Soft background illumination */}

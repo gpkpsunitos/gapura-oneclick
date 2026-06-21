@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { logoutWithPwaCleanup } from '@/lib/pwa/logout';
 import {
-    Plane, Shield, GraduationCap,
-    ArrowRight, Layers, BookOpen
+    Plane, BookOpen, GraduationCap,
+    ArrowRight, Layers
 } from 'lucide-react';
 
 const divisionCards = [
@@ -20,15 +20,6 @@ const divisionCards = [
         divisionLabel: 'UQ, HT, OP, OT & OS Division',
     },
     {
-        code: 'OS',
-        name: 'Customer Service Center',
-        description: 'Services Reports',
-        icon: Shield,
-        gradient: 'from-emerald-500 via-emerald-600 to-teal-600',
-        hoverShadow: 'hover:shadow-emerald-500/25',
-        divisionLabel: 'OCS Division',
-    },
-    {
         code: 'HT',
         name: 'Performance Evaluation Monitoring',
         description: 'Quality Assessment Monitoring and Service Recovery',
@@ -38,17 +29,18 @@ const divisionCards = [
         divisionLabel: '',
     },
     {
-        code: 'HC',
+        code: 'DOCUMENTS',
         name: 'Circulars & Materials',
-        description: 'Manage and distribute HC documents to branches',
+        description: 'All documents uploaded by the analyst team, across every branch',
         icon: BookOpen,
         gradient: 'from-violet-500 via-purple-600 to-fuchsia-600',
         hoverShadow: 'hover:shadow-violet-500/25',
-        divisionLabel: 'Head Office & All Branches',
+        divisionLabel: 'All Branches',
+        href: '/dashboard/eskalasi/documents',
     },
 ];
 
-const COMING_SOON_DIVISIONS = new Set(['OS', 'HT', 'HC']);
+const COMING_SOON_DIVISIONS = new Set(['HT']);
 
 export default function DivisionSelectPage() {
     const [error, setError] = useState<string | null>(null);
@@ -59,7 +51,7 @@ export default function DivisionSelectPage() {
     useEffect(() => {
         divisionCards.forEach((card) => {
             if (!COMING_SOON_DIVISIONS.has(card.code)) {
-                router.prefetch(`/dashboard/${card.code.toLowerCase()}`);
+                router.prefetch(card.href ?? `/dashboard/${card.code.toLowerCase()}`);
             }
         });
     }, [router]);
@@ -96,6 +88,12 @@ export default function DivisionSelectPage() {
         if (COMING_SOON_DIVISIONS.has(code)) {
             setError(null);
             setComingSoonCode(code);
+            return;
+        }
+
+        const card = divisionCards.find((item) => item.code === code);
+        if (card?.href) {
+            router.push(card.href);
             return;
         }
 

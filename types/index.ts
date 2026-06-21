@@ -589,7 +589,7 @@ export interface HCLeaveRecord {
 /**
  * Divisi untuk dokumen
  */
-export type DivisionDocumentDivision = 'HC' | 'HT';
+export type DivisionDocumentDivision = 'HC' | 'HT' | 'ANALYST';
 
 /**
  * Kategori dokumen divisi
@@ -600,7 +600,9 @@ export type DivisionDocumentCategory =
     | 'MATERI_SOSIALISASI'
     | 'NOTULENSI_RAPAT'
     | 'TRAINING_MATERIAL'
-    | 'DOKUMEN_LAIN';
+    | 'DOKUMEN_LAIN'
+    | 'NOTICE'
+    | 'MANUAL';
 
 /**
  * Tipe sumber dokumen */

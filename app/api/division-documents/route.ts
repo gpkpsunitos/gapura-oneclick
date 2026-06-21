@@ -15,7 +15,7 @@ import type {
     DivisionDocumentVisibilityScope,
 } from '@/types';
 
-const VALID_DIVISIONS = ['HC', 'HT'] as const;
+const VALID_DIVISIONS = ['HC', 'HT', 'ANALYST'] as const;
 const VALID_CATEGORIES = [
     'SAM_HANDBOOK',
     'EDARAN_DIREKSI',
@@ -23,6 +23,8 @@ const VALID_CATEGORIES = [
     'NOTULENSI_RAPAT',
     'TRAINING_MATERIAL',
     'DOKUMEN_LAIN',
+    'NOTICE',
+    'MANUAL',
 ] as const;
 const VALID_VISIBILITY = ['all', 'stations', 'roles', 'targeted'] as const;
 
@@ -65,6 +67,7 @@ function isValidDivision(value: string): value is DivisionDocumentDivision {
 
 function canViewDocument(user: NonNullable<Awaited<ReturnType<typeof getWorkspaceUser>>>, document: DivisionDocument) {
     if (canManageDivisionDocuments(user.role, document.division)) return true;
+    if (normalizeRole(user.role) === 'DIVISI_ESKALASI') return true;
     if (!isBranchRole(user.role)) return false;
     return canViewAudienceScopedItem(
         user,

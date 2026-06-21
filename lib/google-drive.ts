@@ -232,7 +232,7 @@ export interface UploadDivisionDocumentToDriveInput {
   buffer: Buffer;
   mimeType: string;
   originalName: string;
-  division: 'HC' | 'HT';
+  division: 'HC' | 'HT' | 'ANALYST';
   category: string;
   title: string;
   userId: string;

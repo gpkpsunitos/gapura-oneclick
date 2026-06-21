@@ -642,7 +642,7 @@ function SrPivot({ result, isFullWidth }: { result: QueryResult | undefined; isF
   const totalWeight = visibleCols.reduce((s, c) => s + colWeight(c), 0);
   return (
     <div
-      className={`w-full overflow-y-auto overflow-x-hidden custom-scrollbar p-2 ${isFullWidth ? 'min-h-[240px]' : 'min-h-[160px]'}`}
+      className={`w-full overflow-y-auto overflow-x-hidden custom-scrollbar ${isFullWidth ? 'min-h-[240px]' : 'min-h-[160px]'}`}
       style={{ maxHeight: isFullWidth ? 540 : 400 }}
     >
       <table
@@ -720,7 +720,7 @@ function SrTable({ result, maxRows = 200 }: { result: QueryResult | undefined; m
   const cols = dedupeColumns(result.columns as string[], result.rows as Record<string, unknown>[]);
   const totalWeight = cols.reduce((s, c) => s + colWeight(c), 0);
   return (
-    <div className="w-full overflow-y-auto overflow-x-hidden custom-scrollbar p-2" style={{ maxHeight: 520 }}>
+    <div className="w-full overflow-y-auto overflow-x-hidden custom-scrollbar" style={{ maxHeight: 520 }}>
       <table
         className="sr-table sr-table-compact text-[10.5px]"
         style={{ width: '100%', tableLayout: 'fixed' }}

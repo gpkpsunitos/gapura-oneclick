@@ -20,11 +20,16 @@ export async function POST(request: Request) {
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        if (!canManageDivisionDocuments(user.role, 'HC')) {
+        const formData = await request.formData();
+        const rawDivision = String(formData.get('division') || 'ANALYST').trim().toUpperCase() as 'HC' | 'HT' | 'ANALYST';
+        const allowedDivisions = ['HC', 'HT', 'ANALYST'] as const;
+        if (!allowedDivisions.includes(rawDivision as typeof allowedDivisions[number])) {
+            return NextResponse.json({ error: 'Invalid division' }, { status: 400 });
+        }
+        if (!canManageDivisionDocuments(user.role, rawDivision)) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        const formData = await request.formData();
         const file = formData.get('file');
         const category = String(formData.get('category') || 'DOKUMEN_LAIN').trim().toUpperCase();
         const title = String(formData.get('title') || '').trim();
@@ -46,7 +51,7 @@ export async function POST(request: Request) {
             buffer: Buffer.from(await file.arrayBuffer()),
             mimeType: file.type || 'application/octet-stream',
             originalName: file.name,
-            division: 'HC',
+            division: rawDivision,
             category,
             title,
             userId: user.id,

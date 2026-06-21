@@ -187,7 +187,7 @@ export function PublicReportWizard() {
     {
       id: 'AIChatbot',
       title: "I'm in Charge Virtual Assistant",
-      description: 'Tanya asisten AI untuk bantuan operasional.',
+      description: 'Ask the AI assistant for operational help.',
       icon: Bot,
       color: 'oklch(0.60 0.18 260)',
       span: 'col-span-1 row-span-1 sm:col-span-2 sm:row-span-2 lg:col-span-2 lg:row-span-2',
@@ -198,7 +198,7 @@ export function PublicReportWizard() {
     {
       id: 'Irregularity',
       title: 'Irregularity Report',
-      description: 'Laporkan kendala operasional, kerusakan, atau penyimpangan.',
+      description: 'Report operational issues, damage, or irregularities.',
       icon: AlertTriangle,
       color: 'oklch(0.55 0.22 30)',
       span: 'col-span-1 row-span-1 sm:col-span-2 sm:row-span-2 lg:col-span-2 lg:row-span-2'
@@ -209,39 +209,39 @@ export function PublicReportWizard() {
       description: 'Hospitality & VIP Service access.',
       icon: QrCode,
       color: 'oklch(0.50 0.15 190)',
-      span: 'col-span-1 row-span-1 sm:col-span-1 sm:row-span-1',
+      span: 'col-span-1 row-span-1 sm:col-span-2 sm:row-span-2 lg:col-span-2 lg:row-span-2',
       qrLinks: [
-        { label: 'Report Untuk Customer', url: getLinkUrl(externalLinks, 'customer-joumpa') },
-        { label: 'Report Untuk Staff', url: getLinkUrl(externalLinks, 'staff-joumpa') }
+        { label: 'JOUMPA Incompatibility Service', url: getLinkUrl(externalLinks, 'staff-joumpa') },
+        { label: 'JOUMPA Customer Survey', url: getLinkUrl(externalLinks, 'customer-joumpa') }
       ]
     },
     {
       id: 'SLA',
-      title: 'Pengisian Report SLA',
-      description: 'Akses cepat pengisian laporan SLA.',
+      title: 'SLA Report Submission',
+      description: 'Quick access to SLA report submission.',
       icon: ClipboardCheck,
       color: 'oklch(0.45 0.18 240)',
       span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
       qrLinks: [
-        { label: 'Pengisian SLA Landside', url: getLinkUrl(externalLinks, 'sla-landside') },
-        { label: 'Pengisian SLA Airside', url: getLinkUrl(externalLinks, 'sla-airside') }
+        { label: 'SLA Landside Submission', url: getLinkUrl(externalLinks, 'sla-landside') },
+        { label: 'SLA Airside Submission', url: getLinkUrl(externalLinks, 'sla-airside') }
       ]
     },
     {
       id: 'Survey',
-      title: 'Survey Penumpang',
-      description: 'Bantu kami meningkatkan layanan via survey.',
+      title: 'Passenger Survey',
+      description: 'Help us improve our service via survey.',
       icon: QrCode,
       color: 'oklch(0.60 0.20 340)',
-      span: 'col-span-1 row-span-1',
+      span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
       qrLinks: [
-        { label: 'Survey Penumpang', url: getLinkUrl(externalLinks, 'survey-penumpang') }
+        { label: 'Passenger Survey', url: getLinkUrl(externalLinks, 'survey-penumpang') }
       ]
     },
     {
       id: 'WSN',
       title: 'Weekly Service Notice',
-      description: 'Akses Weekly Service Notice dalam satu link.',
+      description: 'Access the Weekly Service Notice in one link.',
       icon: Activity,
       color: 'oklch(0.55 0.18 180)',
       span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
@@ -253,7 +253,7 @@ export function PublicReportWizard() {
     {
       id: 'HSSEReport',
       title: 'HSSE Report',
-      description: 'Akses cepat QR dan redirect ke portal HSSE Report.',
+      description: 'Quick QR access and redirect to the HSSE Report portal.',
       icon: AlertTriangle,
       color: 'oklch(0.58 0.2 35)',
       span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
@@ -264,7 +264,7 @@ export function PublicReportWizard() {
     },
     {
       id: 'HSSE',
-      title: 'FORM LAPORAN INSPEKSI',
+      title: 'INSPECTION REPORT FORM',
       description: 'HEALTH, SAFETY & ENVIRONMENT (HSE)',
       icon: AlertTriangle,
       color: 'oklch(0.62 0.22 28)',
@@ -276,13 +276,13 @@ export function PublicReportWizard() {
     {
       id: 'Handbook',
       title: 'Handbook SLA',
-      description: 'Panduan standar layanan operasional prima.',
+      description: 'Operational service standards handbook.',
       icon: BookOpen,
       color: 'oklch(0.45 0.20 160)',
       span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
       passwordProtected: true,
       links: [
-        { label: 'Buka Handbook SLA', sublabel: 'SIS Apps Dev', url: getLinkUrl(externalLinks, 'handbook-sla') }
+        { label: 'Open Handbook SLA', sublabel: 'SIS Apps Dev', url: getLinkUrl(externalLinks, 'handbook-sla') }
       ]
     }
   ], [externalLinks]);
@@ -348,7 +348,7 @@ export function PublicReportWizard() {
     const data = await res.json().catch(() => null);
 
     if (!res.ok || !data?.token) {
-      throw new Error(data?.error || 'Gagal mengambil token upload');
+      throw new Error(data?.error || 'Failed to get upload token');
     }
 
     setUploadToken(data.token);
@@ -404,16 +404,16 @@ export function PublicReportWizard() {
   const handleFilesSelected = async () => {
     if (!selectedFiles.length) return;
     if (!navigator.onLine) {
-      setError('Anda sedang offline. File akan ikut masuk antrean saat laporan dikirim.');
+      setError('You are offline. Files will be queued when the report is submitted.');
       return;
     }
     try {
       const { uploadedUrls, failedKeys, successKeys } = await uploadEvidenceFiles(selectedFiles);
       setFormData((prev) => ({ ...prev, evidence_urls: [...prev.evidence_urls, ...uploadedUrls] }));
       setSelectedFiles((prev) => prev.filter((file) => !successKeys.includes(evidenceFileKey(file))));
-      setError(failedKeys.length > 0 ? 'Sebagian bukti gagal diunggah. Silakan retry file yang gagal.' : '');
+      setError(failedKeys.length > 0 ? 'Some evidence failed to upload. Please retry the failed files.' : '');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Gagal mengunggah bukti';
+      const message = err instanceof Error ? err.message : 'Failed to upload evidence';
       setError(message);
     }
   };
@@ -458,7 +458,7 @@ export function PublicReportWizard() {
             setUploadToken(null);
           }
           const data = await res.json().catch(() => null);
-          throw new Error(data?.error || 'Gagal upload bukti');
+          throw new Error(data?.error || 'Failed to upload evidence');
         }
         const data = await res.json();
         uploadedUrls.push(data.url);
@@ -471,7 +471,7 @@ export function PublicReportWizard() {
         failedKeys.push(key);
         setEvidenceUploadStatuses((prev) => ({
           ...prev,
-          [key]: { status: 'failed', message: err instanceof Error ? err.message : 'Gagal upload bukti' },
+          [key]: { status: 'failed', message: err instanceof Error ? err.message : 'Failed to upload evidence' },
         }));
       }
     }
@@ -802,7 +802,7 @@ export function PublicReportWizard() {
       }
 
       if (!reporterEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(reporterEmail)) {
-        throw new Error('Email contact tidak valid');
+        throw new Error('Invalid contact email');
       }
 
       const stationCode = selectedStation?.code || formData.station_id || '';
@@ -817,7 +817,7 @@ export function PublicReportWizard() {
         setFormData((prev) => ({ ...prev, evidence_urls: [...prev.evidence_urls, ...uploadedUrls] }));
         setSelectedFiles((prev) => prev.filter((file) => !successKeys.includes(evidenceFileKey(file))));
         if (failedKeys.length > 0) {
-          throw new Error('Sebagian bukti gagal diunggah. Retry file yang gagal sebelum submit final.');
+          throw new Error('Some evidence failed to upload. Retry the failed files before the final submission.');
         }
       }
 
@@ -887,11 +887,11 @@ export function PublicReportWizard() {
       const contentType = res.headers.get('content-type') || '';
       if (!contentType.includes('application/json')) {
         await res.text();
-        throw new Error('Respons server tidak valid. Mohon coba lagi.');
+        throw new Error('Invalid server response. Please try again.');
       }
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data?.error || 'Gagal mengirim laporan');
+        throw new Error(data?.error || 'Failed to submit report');
       }
 
       const month = new Date(formData.incident_date).toLocaleDateString('id-ID', { month: 'short' }).toUpperCase();
@@ -959,7 +959,7 @@ export function PublicReportWizard() {
       await generatePDF(reportToExport, signatureDataUrl);
     } catch (err) {
       console.error('PDF Export failed', err);
-      setError('Gagal membuat PDF. Mohon coba lagi.');
+      setError('Failed to create PDF. Please try again.');
     } finally {
       setExportLoading(null);
     }
@@ -980,7 +980,7 @@ export function PublicReportWizard() {
       await generateWord(reportToExport, signatureDataUrl);
     } catch (err) {
       console.error('Word Export failed', err);
-      setError('Gagal membuat Word. Mohon coba lagi.');
+      setError('Failed to create Word document. Please try again.');
     } finally {
       setExportLoading(null);
     }
@@ -1042,26 +1042,26 @@ export function PublicReportWizard() {
                 <div className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-20" />
               </div>
               <h2 className="text-4xl md:text-6xl font-display font-black mb-4 text-[oklch(0.15_0.05_200)] tracking-tight">
-                {submissionMode === 'queued' ? 'Laporan Masuk Antrean Offline' : 'Laporan Terkirim'}
+                {submissionMode === 'queued' ? 'Report Queued Offline' : 'Report Submitted'}
               </h2>
               <p className="text-[oklch(0.40_0.02_200)] text-lg mb-8 max-w-sm mx-auto font-bold opacity-80">
                 ID: {createdReport?.id || 'SUBMITTED'}<br/>
                 {submissionMode === 'queued'
-                  ? 'Laporan akan dikirim otomatis saat koneksi kembali.'
-                  : 'Terima kasih atas kontribusi Anda dalam menjaga kualitas layanan operasional.'}
+                  ? 'Report will be sent automatically when connection is restored.'
+                  : 'Thank you for your contribution to maintaining operational service quality.'}
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <PrismButton
                   onClick={resetToQuickAccess}
                   className="bg-white text-[oklch(0.15_0.05_200)] px-8 h-14 text-base border border-white/10 shadow-spatial-md"
                 >
-                  Tutup
+                  Close
                 </PrismButton>
                 <PrismButton
                   onClick={resetToQuickAccess}
                   className="bg-emerald-600 text-white px-8 h-14 text-base shadow-spatial-md"
                 >
-                  Kembali ke Quick Access
+                  Back to Quick Access
                 </PrismButton>
               </div>
             </m.div>
@@ -1079,17 +1079,18 @@ export function PublicReportWizard() {
 
       {/* Bento Grid */}
       <main className="max-w-7xl mx-auto mb-32 relative z-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 auto-rows-[minmax(140px,auto)] sm:auto-rows-[minmax(180px,auto)] lg:auto-rows-[minmax(220px,auto)] grid-flow-row-dense px-4 md:px-0">
-          {CATEGORIES.map((cat, idx) => (
+        {/* Card renderer shared between mobile + desktop */}
+        {(() => {
+          const renderCard = (cat: typeof CATEGORIES[number], idx: number, solo = false) => (
             <m.div
               key={cat.id}
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1, type: 'spring', damping: 20 }}
-              className={`${cat.span} group relative cursor-pointer`}
+              className={`${solo ? 'col-span-full' : cat.span} group relative cursor-pointer`}
               onClick={() => openCategory(cat)}
             >
-              <GlassCard 
+              <GlassCard
                 variant="frosted"
                 className="h-full border-[oklch(0.15_0.02_200_/_0.05)] hover:border-emerald-500/30 transition-all duration-500 shadow-spatial-sm hover:shadow-spatial-lg"
               >
@@ -1110,19 +1111,44 @@ export function PublicReportWizard() {
                       <p className="hidden md:block text-sm text-[oklch(0.45_0.02_200)] leading-relaxed font-medium">{cat.description}</p>
                     </div>
                   </div>
-                  
                   <div className="flex items-center justify-between text-[oklch(0.15_0.02_200_/_0.2)] group-hover:text-emerald-600 transition-colors mt-auto">
-                    <span className="text-[9px] md:text-xs font-bold tracking-wide uppercase">{('qrLinks' in cat) ? 'Quick Access' : 'Luncurkan'}</span>
+                    <span className="text-[9px] md:text-xs font-bold tracking-wide uppercase">{('qrLinks' in cat) ? 'Quick Access' : 'Launch'}</span>
                     <ArrowRight className="w-4 h-4 md:w-5 md:h-5 -translate-x-2 group-hover:translate-x-0 opacity-0 group-hover:opacity-100 transition-all" />
                   </div>
                 </div>
-
-                {/* Silk highlight effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
               </GlassCard>
             </m.div>
-          ))}
-        </div>
+          );
+
+          const SECTIONS: { label: string; ids: string[] }[] = [
+            { label: 'AI Assistant', ids: ['AIChatbot'] },
+            { label: 'Forms & Reports', ids: ['Irregularity', 'JOUMPA', 'SLA', 'HSSEReport', 'Survey', 'HSSE'] },
+            { label: 'Documents', ids: ['WSN', 'Handbook'] },
+          ];
+
+          return (
+            <div className="px-4 md:px-0">
+              {SECTIONS.map((section) => {
+                const cats = section.ids.map((id) => CATEGORIES.find((c) => c.id === id)).filter(Boolean) as typeof CATEGORIES;
+                if (!cats.length) return null;
+                const solo = cats.length === 1;
+                return (
+                  <div key={section.label} className="mb-6">
+                    <div className="flex items-center gap-3 mb-3">
+                      <span className="flex-1 h-px bg-[oklch(0.15_0.02_200_/_0.12)]" />
+                      <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[oklch(0.50_0.02_200)]">{section.label}</span>
+                      <span className="flex-1 h-px bg-[oklch(0.15_0.02_200_/_0.12)]" />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 auto-rows-[minmax(140px,auto)] sm:auto-rows-[minmax(180px,auto)] lg:auto-rows-[minmax(220px,auto)] grid-flow-row-dense">
+                      {cats.map((cat, idx) => renderCard(cat, idx, solo))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
       </main>
 
       {/* Portal Dialog */}
@@ -1176,7 +1202,7 @@ export function PublicReportWizard() {
                       <h3 className="text-4xl font-display font-black tracking-tight text-[oklch(0.15_0.05_200)]">
                         {selectedCategory?.title || 'Access'}
                       </h3>
-                      <p className="text-[oklch(0.40_0.02_200)] text-lg font-medium">Scan QR, salin link, atau klik kartu untuk langsung membuka link.</p>
+                      <p className="text-[oklch(0.40_0.02_200)] text-lg font-medium">Scan the QR, copy the link, or click the card to open the link directly.</p>
                     </div>
                     <div
                       className={`grid gap-12 w-full max-w-3xl px-4 ${
@@ -1298,7 +1324,7 @@ export function PublicReportWizard() {
                         {formData.airline === 'Other / Lainnya' && (
                           <input
                             type="text"
-                            placeholder="Tulis nama maskapai"
+                            placeholder="Enter airline name"
                             className="mt-2 w-full px-5 py-4 rounded-2xl bg-white border border-[oklch(0.15_0.02_200_/_0.1)] focus:border-emerald-500/50 outline-none transition-all text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm placeholder-[oklch(0.15_0.02_200_/_0.3)]"
                             value={formData.airline_other ?? ''}
                             onChange={(e) => setFormData({ ...formData, airline_other: e.target.value })}
@@ -1609,7 +1635,7 @@ export function PublicReportWizard() {
 	                                        const key = evidenceFileKey(file);
 	                                        setEvidenceUploadStatuses((current) => ({
 	                                          ...current,
-	                                          [key]: { status: navigator.onLine ? 'pending' : 'pending', message: navigator.onLine ? undefined : 'Akan dikirim saat online.' },
+	                                          [key]: { status: navigator.onLine ? 'pending' : 'pending', message: navigator.onLine ? undefined : 'Will be sent when online.' },
 	                                        }));
 	                                      }
 	                                    }
@@ -1671,10 +1697,10 @@ export function PublicReportWizard() {
 	                                <p className="truncate text-sm font-semibold text-[oklch(0.15_0.05_200)]">{file.name}</p>
 	                                <p className="text-xs text-blue-600">
 	                                  {(file.size / 1024 / 1024).toFixed(2)} MB · {
-	                                    evidenceUploadStatuses[evidenceFileKey(file)]?.status === 'uploading' ? 'Mengunggah...' :
-	                                    evidenceUploadStatuses[evidenceFileKey(file)]?.status === 'uploaded' ? 'Berhasil diunggah' :
-	                                    evidenceUploadStatuses[evidenceFileKey(file)]?.status === 'failed' ? (evidenceUploadStatuses[evidenceFileKey(file)]?.message || 'Gagal') :
-	                                    navigator.onLine ? 'Menunggu upload' : 'Menunggu koneksi'
+	                                    evidenceUploadStatuses[evidenceFileKey(file)]?.status === 'uploading' ? 'Uploading...' :
+	                                    evidenceUploadStatuses[evidenceFileKey(file)]?.status === 'uploaded' ? 'Uploaded successfully' :
+	                                    evidenceUploadStatuses[evidenceFileKey(file)]?.status === 'failed' ? (evidenceUploadStatuses[evidenceFileKey(file)]?.message || 'Failed') :
+	                                    navigator.onLine ? 'Pending upload' : 'Waiting for connection'
 	                                  }
 	                                </p>
 	                              </div>
@@ -1717,19 +1743,19 @@ export function PublicReportWizard() {
 	                      <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 text-xs font-bold uppercase tracking-wider">
 	                        <ClipboardCheck className="w-4 h-4" /> Review Before Submit
 	                      </div>
-	                      <h3 className="text-3xl font-display font-black text-[oklch(0.15_0.05_200)]">Periksa Ringkasan Laporan</h3>
-	                      <p className="text-sm font-medium text-[oklch(0.40_0.02_200)]">Pastikan data sudah benar sebelum laporan dikirim final.</p>
+	                      <h3 className="text-3xl font-display font-black text-[oklch(0.15_0.05_200)]">Review Report Summary</h3>
+	                      <p className="text-sm font-medium text-[oklch(0.40_0.02_200)]">Make sure all data is correct before the final submission.</p>
 	                    </div>
 
 	                    {duplicateCheckLoading && (
 	                      <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm font-semibold text-blue-700">
-	                        Mengecek kemungkinan duplikasi laporan...
+	                        Checking for possible report duplication...
 	                      </div>
 	                    )}
 
 	                    {duplicateCheckDone && duplicateCandidates.length === 0 && (
 	                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700">
-	                        Tidak ada kandidat laporan duplikat yang kuat.
+	                        No strong duplicate report candidates found.
 	                      </div>
 	                    )}
 
@@ -1738,8 +1764,8 @@ export function PublicReportWizard() {
 	                        <div className="flex items-start gap-3">
 	                          <AlertTriangle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
 	                          <div>
-	                            <p className="text-sm font-black text-amber-800">Kemungkinan laporan duplikat ditemukan</p>
-	                            <p className="text-xs font-medium text-amber-700">Peringatan ini tidak memblokir submit. Periksa kembali jika laporan memang sama.</p>
+	                            <p className="text-sm font-black text-amber-800">Possible duplicate report found</p>
+	                            <p className="text-xs font-medium text-amber-700">This warning does not block submission. Review again if the reports are the same.</p>
 	                          </div>
 	                        </div>
 	                        <div className="grid gap-2">
@@ -1747,7 +1773,7 @@ export function PublicReportWizard() {
 	                            <div key={candidate.id} className="rounded-xl border border-amber-200 bg-white px-4 py-3">
 	                              <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
 	                                <p className="text-sm font-bold text-[oklch(0.15_0.05_200)]">{candidate.title}</p>
-	                                <span className="text-xs font-black uppercase text-amber-700">{Math.round(candidate.similarity * 100)}% mirip</span>
+	                                <span className="text-xs font-black uppercase text-amber-700">{Math.round(candidate.similarity * 100)}% similar</span>
 	                              </div>
 	                              <p className="mt-1 text-xs font-medium text-amber-700">
 	                                {candidate.date_of_event?.slice(0, 10) || '-'} · {candidate.station_id || '-'} · {candidate.airline || '-'} {candidate.flight_number || ''} · {candidate.status}
@@ -1760,14 +1786,14 @@ export function PublicReportWizard() {
 
 	                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
 	                      {[
-	                        ['Tanggal Kejadian', formData.incident_date],
+	                        ['Date of Incident', formData.incident_date],
 	                        ['Station/Branch', selectedStation ? `${selectedStation.code} - ${selectedStation.name}` : formData.station_id],
-	                        ['Maskapai', formData.airline],
+	                        ['Airline', formData.airline],
 	                        ['Flight Number', formData.flight_number],
 	                        ['Route', formData.route],
-	                        ['Kategori', `${formData.main_category} / ${formData.area} / ${formData.area_category}`],
+	                        ['Category', `${formData.main_category} / ${formData.area} / ${formData.area_category}`],
 	                        ['Severity', formData.severity.toUpperCase()],
-	                        ['Pelapor', `${formData.reporter_name} (${formData.reporter_email})`],
+	                        ['Reporter', `${formData.reporter_name} (${formData.reporter_email})`],
 	                      ].map(([label, value]) => (
 	                        <div key={label} className="rounded-2xl border border-[oklch(0.15_0.02_200_/_0.08)] bg-white p-4 shadow-spatial-sm">
 	                          <p className="text-[10px] font-black uppercase tracking-widest text-[oklch(0.15_0.02_200_/_0.45)]">{label}</p>
@@ -1792,11 +1818,11 @@ export function PublicReportWizard() {
 	                    <div className="rounded-2xl border border-[oklch(0.15_0.02_200_/_0.08)] bg-white p-5 shadow-spatial-sm">
 	                      <p className="text-[10px] font-black uppercase tracking-widest text-[oklch(0.15_0.02_200_/_0.45)]">Evidence</p>
 	                      <p className="mt-1 text-sm font-bold text-[oklch(0.15_0.05_200)]">
-	                        {formData.evidence_urls.length} sudah terunggah · {selectedFiles.length} menunggu upload
+	                        {formData.evidence_urls.length} uploaded · {selectedFiles.length} pending upload
 	                      </p>
 	                      {selectedFiles.length > 0 && (
 	                        <p className="mt-2 text-xs font-medium text-blue-700">
-	                          File yang belum diunggah akan diproses saat submit final. Jika offline, file masuk antrean offline bersama laporan.
+	                          Unuploaded files will be processed on final submit. If offline, files are queued with the report.
 	                        </p>
 	                      )}
 	                    </div>
@@ -2248,7 +2274,7 @@ export function PublicReportWizard() {
                 Password Required
               </h3>
               <p className="text-[oklch(0.40_0.02_200)] text-sm mb-6">
-                Masukkan password untuk mengakses {pendingProtectedCategory.title}
+                Enter password to access {pendingProtectedCategory.title}
               </p>
               <div className="space-y-4">
                 <div className="relative">

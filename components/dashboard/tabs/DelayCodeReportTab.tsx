@@ -2,7 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Fragment, useDeferredValue, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useEffect, useDeferredValue, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -218,13 +218,13 @@ function Panel({
   );
 }
 
-function KpiTile({ label, value, helper, tone = 'accent' }: { label: string; value: ReactNode; helper?: string; tone?: 'accent' | 'gold' | 'neutral' }) {
+function KpiTile({ label, value, helper, tone = 'accent', onClick }: { label: string; value: ReactNode; helper?: string; tone?: 'accent' | 'gold' | 'neutral'; onClick?: () => void }) {
   const valueColor =
     tone === 'gold' ? 'var(--sr-gold-strong)' :
     tone === 'neutral' ? 'var(--sr-text)' :
     'var(--sr-accent-dark)';
   return (
-    <div className="sr-table-card flex h-full min-h-[88px] flex-col justify-between gap-2 p-4">
+    <button type="button" onClick={onClick} className="sr-table-card flex h-full min-h-[88px] flex-col justify-between gap-2 p-4 text-left transition-opacity hover:opacity-80 active:opacity-60">
       <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-[color:var(--sr-text-3)]">
         <span className="h-3 w-1 rounded-sm bg-[color:var(--sr-gold)]" aria-hidden="true" />
         <span className="truncate">{label}</span>
@@ -233,7 +233,7 @@ function KpiTile({ label, value, helper, tone = 'accent' }: { label: string; val
         <span className="font-mono text-[28px] font-bold leading-none tabular-nums tracking-[-0.02em]" style={{ color: valueColor }}>{value}</span>
         {helper ? <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--sr-text-3)]">{helper}</span> : null}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -471,7 +471,7 @@ function HeatMatrix({
   );
 
   return (
-    <div className="h-full w-full overflow-y-auto overflow-x-hidden p-2.5">
+    <div className="h-full w-full overflow-y-auto overflow-x-hidden">
       <table className="sr-table text-[11px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
         <thead>
           <tr>
@@ -620,14 +620,7 @@ function formatEvidenceLabel(link: string, index: number) {
 }
 
 function DetailTable({ rows }: { rows: DetailRow[] }) {
-  const PAGE_SIZE = 10;
-  const [page, setPage] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
-  const safePage = Math.min(page, totalPages - 1);
-  const pageRows = rows.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
-  const start = rows.length === 0 ? 0 : safePage * PAGE_SIZE + 1;
-  const end = Math.min(rows.length, safePage * PAGE_SIZE + pageRows.length);
 
   const tdStyle: CSSProperties = {
     whiteSpace: 'normal',
@@ -639,8 +632,7 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+    <div className="overflow-y-auto" style={{ height: '36rem' }}>
         <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
           <thead>
             <tr>
@@ -656,14 +648,14 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
             </tr>
           </thead>
           <tbody>
-            {pageRows.length === 0 ? (
+            {rows.length === 0 ? (
               <tr>
                 <td colSpan={9} className="!py-10 text-center text-[12px] font-medium text-[color:var(--sr-text-3)]">
                   Tidak ada data
                 </td>
               </tr>
             ) : (
-              pageRows.map((row) => {
+              rows.map((row) => {
                 const isExpanded = expandedId === row.id;
                 const statusClass = row.status === 'CLOSED'
                   ? 'bg-[color:var(--sr-accent-soft)] text-[color:var(--sr-accent-dark)]'
@@ -752,31 +744,6 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
             )}
           </tbody>
         </table>
-      </div>
-      {rows.length > PAGE_SIZE ? (
-        <div className="flex items-center justify-between border-t border-[color:var(--sr-border)] bg-[color:var(--sr-overlay)] px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-[color:var(--sr-text-3)]">
-          <span>{start}-{end} of {rows.length}</span>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={safePage === 0}
-              className="inline-flex h-9 w-9 items-center justify-center border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] text-[color:var(--sr-text)] disabled:opacity-35"
-            >
-              <ChevronLeft size={14} />
-            </button>
-            <span className="min-w-[4rem] text-center">{safePage + 1}/{totalPages}</span>
-            <button
-              type="button"
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={safePage >= totalPages - 1}
-              className="inline-flex h-9 w-9 items-center justify-center border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] text-[color:var(--sr-text)] disabled:opacity-35"
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -1024,10 +991,10 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
           <h2>Key Metrics</h2>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <KpiTile label="Total Reports" value={scopedReports.length} helper="in scope" tone="neutral" />
-          <KpiTile label="With Delay Code" value={delayCodeReports.length} helper={`${coverage}% coverage`} tone="accent" />
-          <KpiTile label="Avg Duration" value={durationStats.avg} helper={`min · max ${durationStats.max || 0}`} tone="gold" />
-          <KpiTile label="Top Branch" value={topBranch} helper={`${topBranchCount} delays`} tone="accent" />
+          <KpiTile label="Total Reports" value={scopedReports.length} helper="in scope" tone="neutral" onClick={() => openDrilldown(scopedReports as Report[], 'Total Reports')} />
+          <KpiTile label="With Delay Code" value={delayCodeReports.length} helper={`${coverage}% coverage`} tone="accent" onClick={() => openDrilldown(delayCodeReports as Report[], 'With Delay Code')} />
+          <KpiTile label="Avg Duration" value={durationStats.avg} helper={`min · max ${durationStats.max || 0}`} tone="gold" onClick={() => openDrilldown(delayCodeReports as Report[], 'Avg Duration')} />
+          <KpiTile label="Top Branch" value={topBranch} helper={`${topBranchCount} delays`} tone="accent" onClick={() => openDrilldown(delayCodeReports.filter((r) => resolveBranch(r) === topBranch) as Report[], `Top Branch · ${topBranch}`)} />
         </div>
       </section>
 

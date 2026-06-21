@@ -360,9 +360,14 @@ export default function Sidebar({ role }: { role: string }) {
         }
     }, []);
 
+    // Eskalasi has no bottom nav fallback (its links don't fit that pattern), so it
+    // needs the drawer's hamburger trigger and a wider collapse breakpoint (covers iPad).
+    const isEskalasi = role === 'DIVISI_ESKALASI';
+    const collapseBp = isEskalasi ? 'lg' : 'md';
+
     return (
         <>
-            <div className="md:hidden fixed top-4 left-4 z-50 pointer-events-none opacity-0">
+            <div className={cn(`${collapseBp}:hidden fixed top-4 left-4 z-50`, isEskalasi ? '' : 'pointer-events-none opacity-0')}>
                 <button
                     onClick={() => setMobileOpen(true)}
                     className="p-2.5 bg-white rounded-xl shadow-md border border-gray-200 text-[var(--text-primary)] active:scale-95 transition-transform"
@@ -373,11 +378,11 @@ export default function Sidebar({ role }: { role: string }) {
 
             {/* Mobile drawer overlay — CSS transitions replace framer-motion */}
             <div
-                className={`fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300 ${mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+                className={cn(`fixed inset-0 bg-black/20 backdrop-blur-sm z-40 ${collapseBp}:hidden transition-opacity duration-300`, mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none')}
                 onClick={() => setMobileOpen(false)}
             />
             <div
-                className={`fixed inset-y-0 left-0 w-[280px] max-w-[85vw] z-50 shadow-2xl md:hidden transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                className={cn(`fixed inset-y-0 left-0 w-[280px] max-w-[85vw] z-50 shadow-2xl ${collapseBp}:hidden transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]`, mobileOpen ? 'translate-x-0' : '-translate-x-full')}
             >
                  <NavContent {...navContentProps} />
                   <button
@@ -388,7 +393,7 @@ export default function Sidebar({ role }: { role: string }) {
                 </button>
             </div>
 
-            <div className="hidden md:block fixed top-0 left-0 h-screen w-[240px] lg:w-[260px] z-40 border-r border-dashed border-gray-200 shadow-[2px_0_24px_rgba(0,0,0,0.02)]">
+            <div className={`hidden ${collapseBp}:block fixed top-0 left-0 h-screen w-[240px] lg:w-[260px] z-40 border-r border-dashed border-gray-200 shadow-[2px_0_24px_rgba(0,0,0,0.02)]`}>
                 <NavContent {...navContentProps} />
             </div>
         </>
