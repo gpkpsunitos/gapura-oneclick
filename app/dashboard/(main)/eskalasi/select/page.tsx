@@ -36,6 +36,7 @@ const divisionCards = [
         gradient: 'from-sky-500 via-blue-600 to-indigo-600',
         hoverShadow: 'hover:shadow-sky-500/25',
         divisionLabel: '',
+        href: '/dashboard/eskalasi/performance-links',
     },
     {
         code: 'DOCUMENTS',
@@ -49,7 +50,7 @@ const divisionCards = [
     },
 ];
 
-const COMING_SOON_DIVISIONS = new Set(['OS', 'HT', 'DOCUMENTS']);
+const COMING_SOON_DIVISIONS = new Set(['OS', 'DOCUMENTS']);
 
 export default function DivisionSelectPage() {
     const [error, setError] = useState<string | null>(null);
