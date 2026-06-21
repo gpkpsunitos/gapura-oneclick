@@ -238,79 +238,77 @@ export function DetailReportTable({ data }: { data: Report[] }) {
     }
 
     return (
-        <div>
-            <div className="overflow-x-auto">
-                <div className="max-h-[300px] overflow-y-auto">
-                    <table className="w-full text-xs min-w-[800px]">
-                        <thead className="sticky top-0 z-10 bg-white">
-                            <tr className="border-b border-gray-200">
-                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700 whitespace-nowrap">Date</th>
-                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700 whitespace-nowrap">Tag</th>
-                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700 whitespace-nowrap">Category</th>
-                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700 whitespace-nowrap">Branch</th>
-                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700 whitespace-nowrap">Airlines</th>
-                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700 whitespace-nowrap">Flight</th>
-                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700">Report</th>
-                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700">Root Caused</th>
-                                <th className="text-left py-1.5 px-2 font-semibold text-gray-700">Action Taken</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {pageItems.map((r, idx) => {
-                                const date = r.date_of_event
-                                    ? new Date(r.date_of_event).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' })
-                                    : '-';
-                                const tag = (r as any).primary_tag || '-';
-                                const tagColor = tag === 'Landside' ? 'bg-blue-100 text-blue-700' : tag === 'Airside' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600';
-                                const branch = r.stations?.code || r.branch || '-';
-                                return (
-                                    <tr key={`${r.id || idx}-${idx}`} className="border-b border-gray-100 hover:bg-gray-50 align-top">
-                                        <td className="py-1.5 px-2 whitespace-nowrap text-gray-700">{date}</td>
-                                        <td className="py-1.5 px-2 whitespace-nowrap">
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${tagColor}`}>{tag}</span>
-                                        </td>
-                                        <td className="py-1.5 px-2 whitespace-nowrap text-gray-700">{r.category || r.main_category || '-'}</td>
-                                        <td className="py-1.5 px-2 whitespace-nowrap font-medium text-gray-800">{branch}</td>
-                                        <td className="py-1.5 px-2 whitespace-nowrap text-gray-700">{r.airlines || '-'}</td>
-                                        <td className="py-1.5 px-2 whitespace-nowrap text-gray-700">{(r as any).flight_number || '-'}</td>
-                                        <td className="py-1.5 px-2 text-gray-700 max-w-[160px]">
-                                            <p className="line-clamp-2">{(r as any).description || (r as any).report || '-'}</p>
-                                        </td>
-                                        <td className="py-1.5 px-2 text-gray-700 max-w-[140px]">
-                                            <p className="line-clamp-2">{(r as any).root_caused || '-'}</p>
-                                        </td>
-                                        <td className="py-1.5 px-2 text-gray-700 max-w-[140px]">
-                                            <p className="line-clamp-2">{(r as any).action_taken || '-'}</p>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
-                </div>
+        <div className="sr-scope flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="min-h-0 flex-1 overflow-x-auto overflow-y-auto">
+                <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 1080, tableLayout: 'fixed' }}>
+                    <thead>
+                        <tr>
+                            <th style={{ width: '9%', whiteSpace: 'normal' }}>Date</th>
+                            <th style={{ width: '9%', whiteSpace: 'normal' }}>Tag</th>
+                            <th style={{ width: '10%', whiteSpace: 'normal' }}>Category</th>
+                            <th style={{ width: '8%', whiteSpace: 'normal' }}>Branch</th>
+                            <th style={{ width: '12%', whiteSpace: 'normal' }}>Airlines</th>
+                            <th style={{ width: '8%', whiteSpace: 'normal' }}>Flight</th>
+                            <th style={{ whiteSpace: 'normal' }}>Report</th>
+                            <th style={{ width: '16%', whiteSpace: 'normal' }}>Root Caused</th>
+                            <th style={{ width: '14%', whiteSpace: 'normal' }}>Action Taken</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {pageItems.map((r, idx) => {
+                            const date = r.date_of_event
+                                ? new Date(r.date_of_event).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' })
+                                : '-';
+                            const tag = (r as any).primary_tag || '-';
+                            const tagColor = tag === 'Landside' ? 'bg-blue-100 text-blue-700' : tag === 'Airside' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600';
+                            const branch = r.stations?.code || r.branch || '-';
+                            return (
+                                <tr key={`${r.id || idx}-${idx}`}>
+                                    <td className="font-mono tabular-nums">{date}</td>
+                                    <td className="sr-center">
+                                        <span className={`inline-flex rounded-md px-1.5 py-0.5 text-[10px] font-bold ${tagColor}`}>{tag}</span>
+                                    </td>
+                                    <td>{r.category || r.main_category || '-'}</td>
+                                    <td className="font-bold">{branch}</td>
+                                    <td>{r.airlines || '-'}</td>
+                                    <td className="font-mono tabular-nums">{(r as any).flight_number || '-'}</td>
+                                    <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', verticalAlign: 'top' }}>
+                                        <p className="overflow-hidden whitespace-normal break-words leading-snug [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{(r as any).description || (r as any).report || '-'}</p>
+                                    </td>
+                                    <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', verticalAlign: 'top' }}>
+                                        <p className="overflow-hidden whitespace-normal break-words leading-snug [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{(r as any).root_caused || '-'}</p>
+                                    </td>
+                                    <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', verticalAlign: 'top' }}>
+                                        <p className="overflow-hidden whitespace-normal break-words leading-snug [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{(r as any).action_taken || '-'}</p>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
             </div>
             {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-2">
-                    <span className="text-[10px] text-[var(--text-muted)]">
+                <div className="flex items-center justify-between border-t border-[color:var(--sr-border)] bg-[color:var(--sr-overlay)] px-3 py-2 text-[12px] font-semibold uppercase tracking-[0.12em] text-[color:var(--sr-text-3)]">
+                    <span>
                         {startIdx}-{endIdx} / {data.length} records
                     </span>
                     <div className="flex items-center gap-2">
                         <button
                             aria-label="Halaman sebelumnya"
-                            className="p-1 rounded hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                            className="inline-flex h-9 w-9 items-center justify-center border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] text-[color:var(--sr-text)] disabled:opacity-35"
                             disabled={page === 0}
                             onClick={() => setPage((p) => p - 1)}
                         >
-                            <ChevronLeft size={14} className="text-[var(--text-secondary)]" aria-hidden="true" />
+                            <ChevronLeft size={14} aria-hidden="true" />
                         </button>
-                        <span className="text-[10px] text-[var(--text-secondary)]">Page {page + 1}/{totalPages}</span>
+                        <span className="min-w-[4rem] text-center">{page + 1}/{totalPages}</span>
                         <button
                             aria-label="Halaman selanjutnya"
-                            className="p-1 rounded hover:bg-[var(--surface-2)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-1"
+                            className="inline-flex h-9 w-9 items-center justify-center border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] text-[color:var(--sr-text)] disabled:opacity-35"
                             disabled={page >= totalPages - 1}
                             onClick={() => setPage((p) => p + 1)}
                         >
-                            <ChevronRight size={14} className="text-[var(--text-secondary)]" aria-hidden="true" />
+                            <ChevronRight size={14} aria-hidden="true" />
                         </button>
                     </div>
                 </div>

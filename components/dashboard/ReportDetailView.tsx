@@ -43,6 +43,7 @@ import { DocxEditorModal } from "@/components/dashboard/DocxEditorModal";
 import { BriefingEditorModal } from "@/components/dashboard/BriefingEditorModal";
 import { EvidenceViewModal } from "@/components/dashboard/EvidenceViewModal";
 import { AIAnalysisSection } from "@/components/dashboard/ai-summary";
+import { AIInsightCard } from "@/components/dashboard/ai-insight";
 import { canExportBranchData, canEditReport } from "@/lib/permissions";
 
 /* ============================================
@@ -882,11 +883,11 @@ export function ReportDetailView({
                 )}
               </SectionCard>
 
-              {/* AI Analysis Section */}
-              <SectionCard title="AI Analysis" headerAction={
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-bold">BETA</span>
+              {/* AI Insight Section (v2 — exec layout, schema-validated) */}
+              <SectionCard title="AI Insight" headerAction={
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold">v2</span>
               }>
-                <AIAnalysisSection report={report} autoFetch={true} />
+                <AIInsightCard report={report} />
               </SectionCard>
             </div>
           </main>

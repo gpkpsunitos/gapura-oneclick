@@ -179,8 +179,7 @@ export function SectionAiSummaryInsightButton({ context }: { context: SectionAiC
   }, [open, activeTab]);
 
   const openModal = () => {
-    setOpen(true);
-    setActiveTab('summary');
+    window.alert('Coming soon\n\nThis feature is still on development');
   };
 
   const fallbackRows = buildLocalFallbackRows(context.chartData);

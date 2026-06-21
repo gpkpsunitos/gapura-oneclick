@@ -2,20 +2,15 @@
 
 import { useState, useMemo, Fragment } from 'react';
 import { 
-  ChevronDown, 
   ChevronRight, 
   Search, 
-  Filter, 
   Download, 
   Maximize2, 
-  MoreHorizontal, 
   AlertCircle, 
   CheckCircle2, 
   HelpCircle,
   Clock,
   Link as LinkIcon,
-  Sparkles,
-  ChevronUp,
   FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -60,7 +55,7 @@ const getCategoryIcon = (category: string) => {
 };
 
 // Helper to parse evidence links (splits space, comma, newline separated or postgres arrays)
-  const parseEvidenceLinks = (val: any): string[] => {
+  const parseEvidenceLinks = (val: unknown): string[] => {
     if (!val) return [];
     const str = String(val).trim();
     if (!str) return [];
@@ -157,11 +152,11 @@ export function InvestigativeTable({
     }
 
     return sortedRows.slice(0, maxRows);
-  }, [data.rows, categoryCol, reportCol, rootCauseCol, actionTakenCol, evidenceCol, dateCol, maxRows]);
+  }, [data.rows, categoryCol, rootCauseCol, actionTakenCol, evidenceCol, dateCol, maxRows]);
 
   // ─── 2. DATA PROCESSING ─────────────────────────────────────────────────────
   const filteredData = useMemo(() => {
-    let rows = prioritizedRows as Record<string, any>[];
+    let rows = prioritizedRows as Record<string, unknown>[];
     
     // Search
     if (searchTerm) {
@@ -194,7 +189,7 @@ export function InvestigativeTable({
     const metricCol = allColumns.find(c => ['count', 'jumlah', 'total', 'record_count', 'frequency'].includes(c.toLowerCase()));
     
     // Helper to sum metric or count rows
-    const sumMetric = (items: Record<string, any>[]) => {
+    const sumMetric = (items: Record<string, unknown>[]) => {
       if (!metricCol) return items.length;
       return items.reduce((sum, item) => sum + (Number(item[metricCol]) || 0), 0);
     };
@@ -214,10 +209,6 @@ export function InvestigativeTable({
     return filteredData.slice(start, start + rowsPerPage);
   }, [filteredData, safeCurrentPage, rowsPerPage]);
   
-  const tableViewportMaxHeight = expandedRowId !== null 
-    ? 'none' 
-    : `${Math.min(560, Math.max(260, rowsPerPage * 56 + 72))}px`;
-
   // ─── HANDLERS ───────────────────────────────────────────────────────────────
   const handleSort = (col: string) => {
     if (sortCol === col) {
@@ -254,27 +245,16 @@ export function InvestigativeTable({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: [0.19, 1, 0.22, 1] }}
-      className={`flex flex-col h-full bg-[var(--surface-1)] backdrop-blur-3xl rounded-3xl border border-[var(--surface-2)] shadow-spatial-md overflow-hidden relative group/table isolate ${className}`}
+      className={`sr-scope sr-table-card flex h-full min-h-0 min-w-0 flex-col ${className}`}
     >
-      {/* Dynamic Glow Ornament */}
-      <div className="absolute inset-x-0 -top-24 h-48 bg-gradient-to-b from-[var(--brand-primary)]/10 to-transparent blur-3xl opacity-50 pointer-events-none" />
-      <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }} />
-
       {/* ─── 1. HEADER STRIP ─────────────────────────────────────────────────── */}
-      <div className="relative z-10 px-6 py-5 border-b border-[var(--surface-border)]/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--surface-0)]/30 backdrop-blur-md">
-        <div className="flex items-center gap-4">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--brand-primary)]/20 to-[var(--brand-primary)]/5 flex items-center justify-center border border-[var(--brand-primary)]/20 shadow-inner-rim relative overflow-hidden group">
-            <div className="absolute inset-0 opacity-[0.05] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }} />
-            <Sparkles size={18} className="text-[var(--brand-primary)] drop-shadow-md group-hover:scale-110 transition-transform duration-500 ease-[cubic-bezier(0.19,1,0.22,1)]" />
-          </div>
+      <div className="sr-table-caption">
+        <div className="sr-table-caption-title min-w-0">
+          <span className="h-6 w-1 bg-[color:var(--sr-gold)]" aria-hidden="true" />
           <div>
-            <h3 className="text-sm font-black text-[var(--text-primary)] uppercase tracking-[0.15em] font-display">
+            <h3 className="truncate text-[15px] font-bold leading-snug tracking-[-0.02em] text-[color:var(--sr-text)]">
               {title}
             </h3>
-            <div className="text-[10px] font-bold text-[var(--text-tertiary)] uppercase tracking-widest flex items-center gap-2 mt-1">
-              <span>Scanning Operations</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--brand-emerald-500)] shadow-[0_0_8px_var(--brand-emerald-500)] animate-pulse" />
-            </div>
           </div>
         </div>
 
@@ -282,17 +262,17 @@ export function InvestigativeTable({
            {/* Summary Stats Pucks */}
            <div className="flex flex-wrap items-center gap-2">
              {stats.complaints > 0 && (
-               <div className="px-3 py-1.5 rounded-full bg-[oklch(0.98_0.02_25)] border border-[oklch(0.9_0.05_25)] text-[oklch(0.45_0.2_25)] font-black text-[10px] uppercase tracking-[0.1em] flex items-center gap-1.5 shadow-[0_4px_12px_oklch(0.6_0.22_25/0.05)]">
+               <div className="inline-flex items-center gap-1.5 rounded-md bg-[color:var(--sr-accent-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[color:var(--sr-accent-dark)]">
                  <AlertCircle size={12} strokeWidth={2.5} /> {stats.complaints} Cases
                </div>
              )}
              {stats.irregularities > 0 && (
-               <div className="px-3 py-1.5 rounded-full bg-[oklch(0.98_0.04_45)] border border-[oklch(0.9_0.08_45)] text-[oklch(0.55_0.2_45)] font-black text-[10px] uppercase tracking-[0.1em] flex items-center gap-1.5 shadow-[0_4px_12px_oklch(0.65_0.25_45/0.05)]">
+               <div className="inline-flex items-center gap-1.5 rounded-md bg-[color:var(--sr-gold-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[color:var(--sr-gold-strong)]">
                  <HelpCircle size={12} strokeWidth={2.5} /> {stats.irregularities} Events
                </div>
              )}
              {stats.compliments > 0 && (
-               <div className="px-3 py-1.5 rounded-full bg-[var(--surface-1)] border border-[oklch(0.9_0.02_160)] text-[var(--brand-emerald-700)] font-black text-[10px] uppercase tracking-[0.1em] flex items-center gap-1.5 shadow-[0_4px_12px_oklch(0.65_0.18_160/0.05)]">
+               <div className="inline-flex items-center gap-1.5 rounded-md bg-[color:var(--sr-sunken)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[color:var(--sr-text-2)]">
                  <CheckCircle2 size={12} strokeWidth={2.5} /> {stats.compliments} Wins
                </div>
              )}
@@ -304,20 +284,20 @@ export function InvestigativeTable({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-tertiary)] group-focus-within/search:text-[var(--brand-primary)] transition-colors" />
               <input
                 type="text"
-                placeholder="QUERYS_SEARCH..."
+                placeholder="SEARCH..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                   setCurrentPage(1);
                   setExpandedRowId(null);
                 }}
-                className="pl-9 pr-4 py-2 text-[10px] font-black uppercase tracking-[0.15em] bg-[var(--surface-2)]/50 border border-[var(--surface-border)] rounded-full focus:outline-none focus:ring-4 focus:ring-[var(--brand-primary)]/10 focus:border-[var(--brand-primary)]/50 w-full sm:w-56 transition-all shadow-inner placeholder:text-[var(--text-tertiary)] text-[var(--text-primary)]"
+                className="w-full rounded-md border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] py-1.5 pl-8 pr-3 text-[11px] font-semibold uppercase tracking-[0.08em] text-[color:var(--sr-text)] placeholder:text-[color:var(--sr-text-3)] focus:border-[color:var(--sr-accent)] focus:outline-none sm:w-44"
               />
             </div>
 
             <button 
               onClick={handleExport}
-              className="p-2 text-[var(--text-tertiary)] hover:text-[var(--brand-primary)] hover:bg-[var(--brand-primary)]/5 rounded-full transition-all border border-[var(--surface-border)] hover:border-[var(--brand-primary)]/20 shadow-sm" 
+              className="inline-flex h-8 w-8 items-center justify-center border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] text-[color:var(--sr-text)]" 
               title="Export CSV"
             >
               <Download size={14} strokeWidth={2.5} />
@@ -326,10 +306,10 @@ export function InvestigativeTable({
             {onViewDetail && (
               <button
                 onClick={onViewDetail}
-                className="flex items-center gap-2 px-5 py-2 text-[10px] font-black text-[var(--text-on-brand)] bg-[var(--text-primary)] rounded-full hover:bg-[var(--text-secondary)] transition-all shadow-lg active:scale-95 uppercase tracking-[0.15em]"
+                className="inline-flex h-8 items-center gap-2 rounded-md bg-[color:var(--sr-accent)] px-3 text-[10px] font-bold uppercase tracking-[0.08em] text-white hover:bg-[color:var(--sr-accent-strong)]"
               >
                 <Maximize2 size={12} strokeWidth={2.5} />
-                <span>EXPAND VIEW</span>
+                <span>Expand</span>
               </button>
             )}
           </div>
@@ -338,13 +318,12 @@ export function InvestigativeTable({
 
       {/* ─── 2. TABLE BODY ────────────────────────────────────────────────────── */}
       <div
-        className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar relative z-10 bg-[var(--surface-0)]/20 pb-1"
-        style={{ maxHeight: tableViewportMaxHeight }}
+        className="min-h-0 flex-1 overflow-x-auto overflow-y-auto custom-scrollbar"
       >
-        <table className="w-full border-separate border-spacing-0">
-          <thead className="sticky top-0 z-40">
-            <tr className="bg-[var(--surface-1)]/80 backdrop-blur-xl shadow-sm">
-              <th className="px-6 py-5 text-left w-12 border-b border-[var(--surface-border)] bg-transparent" />
+        <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 1080 }}>
+          <thead>
+            <tr>
+              <th className="w-12" />
               {categoryCol && (
                 <th onClick={() => handleSort(categoryCol)} className="px-6 py-5 border-b border-[var(--surface-border)] text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] cursor-pointer hover:text-[var(--brand-primary)] transition-colors group select-none text-left bg-transparent">
                   <div className="flex items-center gap-2">
@@ -550,7 +529,7 @@ export function InvestigativeTable({
                                           <FileText size={14} /> NARRATIVE RECORD
                                         </h4>
                                         <div className="bg-white/5 p-6 rounded-2xl border border-white/10 shadow-inner text-[13px] text-[var(--surface-100)] leading-relaxed italic font-medium">
-                                          "{String(row[reportCol])}"
+                                          &quot;{String(row[reportCol])}&quot;
                                         </div>
                                       </div>
                                     )}

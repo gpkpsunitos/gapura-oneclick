@@ -9,6 +9,9 @@ import {
   CartesianGrid,
   Cell,
   LabelList,
+  Legend,
+  Line,
+  LineChart,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -16,7 +19,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, ChevronLeft, ChevronRight, ExternalLink, Minus } from 'lucide-react';
 import type { Report } from '@/types';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
 import { ChartAiAnalysisButton, type ChartAiContext } from '@/components/dashboard/ai/ChartAiAnalysisButton';
@@ -875,52 +878,6 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     [scopedReports]
   );
 
-  // === Closure Discipline ===
-  // For CLOSED reports, do we actually document the response? An undocumented
-  // close is a process gap, not a real resolution.
-  const closureDiscipline = useMemo(() => {
-    const closedReports = scopedReports.filter((r) => getStatus(r) === 'CLOSED');
-    const denom = closedReports.length || 1;
-    const noAction = closedReports.filter((r) => !hasValue(r.action_taken) && !hasValue(r.gapura_kps_action_taken)).length;
-    const noPreventive = closedReports.filter((r) => !hasValue(r.preventive_action)).length;
-    const noRemarks = closedReports.filter((r) => !hasValue(r.final_remarks)).length;
-    const fullyDocumented = closedReports.filter((r) =>
-      (hasValue(r.action_taken) || hasValue(r.gapura_kps_action_taken)) &&
-      hasValue(r.preventive_action) &&
-      hasValue(r.final_remarks)
-    ).length;
-    return {
-      closedTotal: closedReports.length,
-      fullyDocumentedPct: ((fullyDocumented / denom) * 100).toFixed(0),
-      noActionPct: ((noAction / denom) * 100).toFixed(0),
-      noPreventivePct: ((noPreventive / denom) * 100).toFixed(0),
-      noRemarksPct: ((noRemarks / denom) * 100).toFixed(0),
-      closedReports,
-    };
-  }, [scopedReports]);
-
-  // Branches ranked by share of CLOSED reports missing at least one of the
-  // three documentation fields.
-  const branchClosureGapRows = useMemo<CountRow[]>(() => {
-    const perBranch = new Map<string, { branch: string; total: number; gaps: number }>();
-    closureDiscipline.closedReports.forEach((r) => {
-      const branch = getBranch(r);
-      if (!hasValue(branch)) return;
-      const key = branch.toLowerCase();
-      const bucket = perBranch.get(key) || { branch, total: 0, gaps: 0 };
-      bucket.total += 1;
-      const hasAction = hasValue(r.action_taken) || hasValue(r.gapura_kps_action_taken);
-      const hasPreventive = hasValue(r.preventive_action);
-      const hasRemarks = hasValue(r.final_remarks);
-      if (!hasAction || !hasPreventive || !hasRemarks) bucket.gaps += 1;
-      perBranch.set(key, bucket);
-    });
-    return Array.from(perBranch.entries())
-      .filter(([, v]) => v.total >= 3) // suppress small-sample noise
-      .map(([id, v]) => ({ id, label: `${v.branch} (${v.gaps}/${v.total})`, total: v.gaps }))
-      .sort((a, b) => b.total - a.total);
-  }, [closureDiscipline.closedReports]);
-
   // === Chronic Issues ===
   // (Branch × Sub-Category) combos that appear in 3+ distinct calendar months.
   // Sub-category is read from whichever of Terminal/Apron/General Category is
@@ -928,36 +885,128 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
   type ChronicRow = {
     branch: string;
     subCategory: string;
+    area: string;
     monthsCount: number;
     total: number;
+    firstSeen: string;
+    lastSeen: string;
+    trend: 'up' | 'down' | 'flat';
+    trendDelta: number;
+    topRootCause: string;
+    topSeverity: string;
+    openCount: number;
+    openPct: number;
     reports: Report[];
   };
   const chronicIssueRows = useMemo<ChronicRow[]>(() => {
     const subCategoryOf = (r: Report): string =>
       val(r.terminal_area_category) || val(r.apron_area_category) || val(r.general_category) || '';
-    const buckets = new Map<string, { branch: string; subCategory: string; months: Set<string>; reports: Report[] }>();
+    const areaOf = (r: Report): string => {
+      if (hasValue(r.terminal_area_category)) return 'Terminal';
+      if (hasValue(r.apron_area_category)) return 'Apron';
+      if (hasValue(r.general_category)) return 'General';
+      return getArea(r);
+    };
+    const buckets = new Map<string, { branch: string; subCategory: string; area: string; months: Map<string, number>; reports: Report[] }>();
     scopedReports.forEach((r) => {
       const branch = getBranch(r);
       const sub = subCategoryOf(r);
       const monthKey = getMonthKey(r);
       if (!hasValue(branch) || !hasValue(sub) || !monthKey) return;
       const key = `${branch.toLowerCase()}::${sub.toLowerCase()}`;
-      const bucket = buckets.get(key) || { branch, subCategory: sub, months: new Set<string>(), reports: [] };
-      bucket.months.add(monthKey);
+      const bucket = buckets.get(key) || { branch, subCategory: sub, area: areaOf(r), months: new Map<string, number>(), reports: [] };
+      bucket.months.set(monthKey, (bucket.months.get(monthKey) || 0) + 1);
       bucket.reports.push(r);
       buckets.set(key, bucket);
     });
+    const monthLabel = (key: string) => {
+      const [y, m] = key.split('-').map(Number);
+      return new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+    };
+    const topOf = (rs: Report[], fn: (r: Report) => string): string => {
+      const c: Record<string, number> = {};
+      rs.forEach((r) => {
+        const v = fn(r);
+        if (hasValue(v)) c[v] = (c[v] || 0) + 1;
+      });
+      const entries = Object.entries(c).sort((a, b) => b[1] - a[1]);
+      return entries[0]?.[0] || '—';
+    };
     return Array.from(buckets.values())
       .filter((b) => b.months.size >= 3)
-      .map((b) => ({
-        branch: b.branch,
-        subCategory: b.subCategory,
-        monthsCount: b.months.size,
-        total: b.reports.length,
-        reports: b.reports,
-      }))
+      .map((b) => {
+        const sortedKeys = Array.from(b.months.keys()).sort();
+        const recent = sortedKeys.slice(-3).reduce((s, k) => s + (b.months.get(k) || 0), 0);
+        const prior = sortedKeys.slice(-6, -3).reduce((s, k) => s + (b.months.get(k) || 0), 0);
+        const trendDelta = recent - prior;
+        const trend: 'up' | 'down' | 'flat' = trendDelta > 0 ? 'up' : trendDelta < 0 ? 'down' : 'flat';
+        const openCount = b.reports.filter((r) => getStatus(r) !== 'CLOSED').length;
+        return {
+          branch: b.branch,
+          subCategory: b.subCategory,
+          area: b.area,
+          monthsCount: b.months.size,
+          total: b.reports.length,
+          firstSeen: monthLabel(sortedKeys[0]),
+          lastSeen: monthLabel(sortedKeys[sortedKeys.length - 1]),
+          trend,
+          trendDelta,
+          topRootCause: topOf(b.reports, getRoot),
+          topSeverity: topOf(b.reports, getSeverity),
+          openCount,
+          openPct: Math.round((openCount / b.reports.length) * 100),
+          reports: b.reports,
+        };
+      })
       .sort((a, b) => b.monthsCount - a.monthsCount || b.total - a.total);
   }, [scopedReports]);
+
+  // === YoY Monthly Comparison ===
+  const yoyMonthlyRows = useMemo(() => {
+    const buckets = { current: new Array(12).fill(0), previous: new Array(12).fill(0) };
+    scopedReports.forEach((r) => {
+      const d = getReportDate(r);
+      if (!d) return;
+      if (d.getFullYear() === currentYear) buckets.current[d.getMonth()] += 1;
+      else if (d.getFullYear() === previousYear) buckets.previous[d.getMonth()] += 1;
+    });
+    return Array.from({ length: 12 }, (_, i) => ({
+      month: new Date(Date.UTC(currentYear, i, 1)).toLocaleString('en-US', { month: 'short', timeZone: 'UTC' }),
+      current: buckets.current[i],
+      previous: buckets.previous[i],
+    }));
+  }, [scopedReports, currentYear, previousYear]);
+
+  // === Sub-Category Breakdowns (Terminal / Apron / General) ===
+  const terminalSubRows = useMemo<CountRow[]>(
+    () => aggregate(scopedReports, (r) => val(r.terminal_area_category)),
+    [scopedReports]
+  );
+  const apronSubRows = useMemo<CountRow[]>(
+    () => aggregate(scopedReports, (r) => val(r.apron_area_category)),
+    [scopedReports]
+  );
+  const generalSubRows = useMemo<CountRow[]>(
+    () => aggregate(scopedReports, (r) => val(r.general_category)),
+    [scopedReports]
+  );
+
+  // === Airline × Report Category heatmap ===
+  const airlineByCategory = useMemo(() => {
+    const cells: Record<string, Record<string, MatrixCell>> = {};
+    scopedReports.forEach((r) => {
+      const airline = getAirline(r);
+      const cat = getCategory(r);
+      if (!hasValue(airline)) return;
+      const ak = airline.toLowerCase();
+      if (!cells[ak]) cells[ak] = {};
+      if (!cells[ak][cat]) cells[ak][cat] = { total: 0, reports: [] };
+      cells[ak][cat].total += 1;
+      cells[ak][cat].reports.push(r);
+    });
+    return cells;
+  }, [scopedReports]);
+  const airlineKeys = useMemo(() => airlineRows.slice(0, 12).map((r) => ({ id: r.id, label: r.label })), [airlineRows]);
 
   // KPI calculations
   const closed = scopedReports.filter((r) => getStatus(r) === 'CLOSED').length;
@@ -998,6 +1047,10 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
             <p className="mt-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-[color:var(--sr-text-3)]">
               {scopedReports.length} reports · {caseClassRows.length} case types · {branchRows.length} branches · {airlineRows.length} airlines
             </p>
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[color:var(--sr-gold)] bg-[color:var(--sr-gold-soft)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[color:var(--sr-gold-strong)]">
+              <span aria-hidden="true">⚠</span>
+              Excludes CGO Cargo, Joumpa Service &amp; GSE Performance — see their dedicated tabs
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap items-end gap-3">
@@ -1028,11 +1081,11 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         </div>
       ) : null}
 
-      {/* Key Metrics */}
+      {/* Performance Summary */}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
-          <h2>Key Metrics</h2>
+          <h2>Performance Summary</h2>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <KpiTile label="Total Reports" value={scopedReports.length} helper="in scope" tone="neutral" />
@@ -1042,18 +1095,18 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         </div>
       </section>
 
-      {/* Volume Overview */}
+      {/* Report Volume & Composition */}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
-          <h2>Volume Overview</h2>
+          <h2>Report Volume &amp; Composition</h2>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <Panel
-            title="Monthly Report"
+            title="Monthly Report Volume"
             total={monthlyRows.reduce((s, r) => s + r.total, 0)}
             className="h-[18rem]"
-            aiContext={sqiAiContext('Monthly Report', 'monthly_volume', monthlyRows)}
+            aiContext={sqiAiContext('Monthly Report Volume', 'monthly_volume', monthlyRows)}
           >
             <div className="mb-2 flex justify-center gap-1">
               {[previousYear, currentYear].map((y) => (
@@ -1103,10 +1156,10 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           </Panel>
 
           <Panel
-            title="Report by Category"
+            title="Report Type Composition"
             total={reportCategoryRows.reduce((s, r) => s + r.total, 0)}
             className="h-[18rem]"
-            aiContext={sqiAiContext('Report by Category', 'category_donut', reportCategoryRows)}
+            aiContext={sqiAiContext('Report Type Composition', 'category_donut', reportCategoryRows)}
           >
             <Donut
               rows={reportCategoryRows}
@@ -1115,10 +1168,10 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           </Panel>
 
           <Panel
-            title="Report by Area"
+            title="Operational Area Distribution"
             total={areaRows.reduce((s, r) => s + r.total, 0)}
             className="h-[18rem]"
-            aiContext={sqiAiContext('Report by Area', 'area_donut', areaRows)}
+            aiContext={sqiAiContext('Operational Area Distribution', 'area_donut', areaRows)}
           >
             <Donut
               rows={areaRows}
@@ -1128,15 +1181,93 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         </div>
       </section>
 
-      {/* Where & Who */}
+      {/* Year-over-Year Trend */}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
-          <h2>Where &amp; Who</h2>
+          <h2>Year-over-Year Monthly Trend</h2>
+        </div>
+        <Panel
+          title={`Monthly Report Volume — ${currentYear} vs ${previousYear}`}
+          subtitle="Tracks growth or decline in reported issues across comparable months"
+          total={yoyMonthlyRows.reduce((s, r) => s + r.current + r.previous, 0)}
+          className="h-[22rem]"
+          aiContext={sqiAiContext('YoY Monthly Comparison', 'yoy_line', yoyMonthlyRows)}
+        >
+          <div className="h-full p-2.5">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={yoyMonthlyRows} margin={{ top: 8, right: 16, left: 4, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="2 6" stroke="var(--sr-border)" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--sr-text-3)' }} />
+                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--sr-text-3)' }} />
+                <Tooltip contentStyle={{ borderRadius: 4, borderColor: 'var(--sr-border-strong)', fontSize: 11 }} />
+                <Legend wrapperStyle={{ fontSize: 11, fontWeight: 700 }} />
+                <Line type="monotone" dataKey="previous" name={`${previousYear}`} stroke="var(--sr-gold-strong)" strokeWidth={2} dot={{ r: 3 }} />
+                <Line type="monotone" dataKey="current" name={`${currentYear}`} stroke="var(--sr-accent)" strokeWidth={2.5} dot={{ r: 4 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </Panel>
+      </section>
+
+      {/* Sub-Category Breakdown */}
+      <section>
+        <div className="sr-section-h">
+          <span className="sr-section-rule" aria-hidden="true" />
+          <h2>Sub-Category Breakdown by Operational Area</h2>
+        </div>
+        <div className="grid gap-3 md:grid-cols-3">
+          <Panel
+            title="Terminal Area Sub-Categories"
+            total={terminalSubRows.reduce((s, r) => s + r.total, 0)}
+            className="h-[22rem]"
+            aiContext={sqiAiContext('Terminal Area Sub-Categories', 'sub_category_bar', terminalSubRows.slice(0, 15))}
+          >
+            <BarList
+              rows={terminalSubRows}
+              emptyLabel="No terminal sub-category data"
+              limit={15}
+              onOpen={(row) => openDrilldown(scopedReports.filter((r) => val(r.terminal_area_category).toLowerCase() === row.id), `Terminal · ${row.label}`)}
+            />
+          </Panel>
+          <Panel
+            title="Apron Area Sub-Categories"
+            total={apronSubRows.reduce((s, r) => s + r.total, 0)}
+            className="h-[22rem]"
+            aiContext={sqiAiContext('Apron Area Sub-Categories', 'sub_category_bar', apronSubRows.slice(0, 15))}
+          >
+            <BarList
+              rows={apronSubRows}
+              emptyLabel="No apron sub-category data"
+              limit={15}
+              onOpen={(row) => openDrilldown(scopedReports.filter((r) => val(r.apron_area_category).toLowerCase() === row.id), `Apron · ${row.label}`)}
+            />
+          </Panel>
+          <Panel
+            title="General Category Breakdown"
+            total={generalSubRows.reduce((s, r) => s + r.total, 0)}
+            className="h-[22rem]"
+            aiContext={sqiAiContext('General Category Breakdown', 'sub_category_bar', generalSubRows.slice(0, 15))}
+          >
+            <BarList
+              rows={generalSubRows}
+              emptyLabel="No general category data"
+              limit={15}
+              onOpen={(row) => openDrilldown(scopedReports.filter((r) => val(r.general_category).toLowerCase() === row.id), `General · ${row.label}`)}
+            />
+          </Panel>
+        </div>
+      </section>
+
+      {/* Distribution by Station & Airline */}
+      <section>
+        <div className="sr-section-h">
+          <span className="sr-section-rule" aria-hidden="true" />
+          <h2>Distribution by Station &amp; Airline</h2>
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <Panel
-            title="Reports by Station"
+            title="Reports by Station / Branch"
             total={branchRows.reduce((s, r) => s + r.total, 0)}
             className="h-[22rem]"
             aiContext={sqiAiContext('Reports by Station', 'station_bar', branchRows)}
@@ -1151,10 +1282,10 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           </Panel>
 
           <Panel
-            title="Reports by Airlines"
+            title="Reports by Airline"
             total={airlineRows.reduce((s, r) => s + r.total, 0)}
             className="h-[22rem]"
-            aiContext={sqiAiContext('Reports by Airlines', 'airline_bar', airlineRows)}
+            aiContext={sqiAiContext('Reports by Airline', 'airline_bar', airlineRows)}
           >
             <HBarChart
               rows={airlineRows}
@@ -1175,10 +1306,11 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <h2>Root Cause Analysis</h2>
         </div>
         <Panel
-          title="Identification of Root"
+          title="Root Cause Identification"
+          subtitle="Compliments excluded — focused on actionable issues"
           total={rootRows.reduce((s, r) => s + r.total, 0)}
           className="h-[26rem]"
-          aiContext={sqiAiContext('Identification of Root', 'root_cause_bar', rootRows.slice(0, 25))}
+          aiContext={sqiAiContext('Root Cause Identification', 'root_cause_bar', rootRows.slice(0, 25))}
         >
           <BarList
             rows={rootRows}
@@ -1189,15 +1321,16 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         </Panel>
       </section>
 
-      {/* Cross-Tab Analysis */}
+      {/* Cross-Dimensional Analysis */}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
-          <h2>Cross-Tab Analysis</h2>
+          <h2>Cross-Dimensional Analysis</h2>
         </div>
         <div className="grid gap-3 xl:grid-cols-2">
           <Panel
-            title="Where Each Case Type Strikes Most"
+            title="Case Classification by Operational Area"
+            subtitle="Where each case type concentrates"
             className="h-[26rem]"
             aiContext={sqiAiContext('Case Classification x Area', 'pivot_table', { keys: caseClassKeys, cols: presentAreaCols })}
             bodyClassName="overflow-hidden"
@@ -1212,7 +1345,8 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           </Panel>
 
           <Panel
-            title="Station Hotspots by Report Category"
+            title="Station Volume by Report Category"
+            subtitle="Station hotspots across report types"
             className="h-[26rem]"
             aiContext={sqiAiContext('Station x Report Category', 'pivot_table', { keys: branchKeys, cols: presentCategoryCols })}
             bodyClassName="overflow-hidden"
@@ -1225,85 +1359,48 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
               onOpen={(rs, ctx) => openDrilldown(rs, ctx)}
             />
           </Panel>
-        </div>
-      </section>
 
-      {/* Closure Discipline */}
-      <section>
-        <div className="sr-section-h">
-          <span className="sr-section-rule" aria-hidden="true" />
-          <h2>Closure Discipline</h2>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <KpiTile
-            label="Fully Documented Closures"
-            value={`${closureDiscipline.fullyDocumentedPct}%`}
-            helper={`${closureDiscipline.closedTotal} closed cases in scope`}
-            tone="accent"
-          />
-          <KpiTile
-            label="Closed without Action Taken"
-            value={`${closureDiscipline.noActionPct}%`}
-            helper="No action recorded at closure"
-            tone={Number(closureDiscipline.noActionPct) >= 20 ? 'neg' : 'neutral'}
-          />
-          <KpiTile
-            label="Closed without Preventive Action"
-            value={`${closureDiscipline.noPreventivePct}%`}
-            helper="Recurrence risk left on the table"
-            tone={Number(closureDiscipline.noPreventivePct) >= 20 ? 'neg' : 'neutral'}
-          />
-          <KpiTile
-            label="Closed without Final Remarks"
-            value={`${closureDiscipline.noRemarksPct}%`}
-            helper="Closures with no narrative"
-            tone={Number(closureDiscipline.noRemarksPct) >= 20 ? 'neg' : 'neutral'}
-          />
-        </div>
-        <div className="mt-3">
           <Panel
-            title="Branches with the Most Undocumented Closures"
-            total={branchClosureGapRows.reduce((s, r) => s + r.total, 0)}
-            className="h-[26rem]"
-            aiContext={sqiAiContext('Branches with Undocumented Closures', 'closure_gap_bar', branchClosureGapRows.slice(0, 20))}
+            title="Airline Volume by Report Category"
+            subtitle="Which airlines drive which report types"
+            className="h-[26rem] xl:col-span-2"
+            aiContext={sqiAiContext('Airline x Report Category', 'pivot_table', { keys: airlineKeys, cols: presentCategoryCols })}
+            bodyClassName="overflow-hidden"
           >
-            <HBarChart
-              rows={branchClosureGapRows}
-              emptyLabel="No undocumented closures detected"
-              scrollable
-              limit={20}
-              color="var(--sr-neg)"
-              onOpen={(row) => {
-                const branchKey = row.id;
-                openDrilldown(
-                  closureDiscipline.closedReports.filter((r) => {
-                    if (getBranch(r).toLowerCase() !== branchKey) return false;
-                    const hasAction = hasValue(r.action_taken) || hasValue(r.gapura_kps_action_taken);
-                    return !hasAction || !hasValue(r.preventive_action) || !hasValue(r.final_remarks);
-                  }),
-                  `Undocumented closures · ${row.label}`
-                );
-              }}
+            <HeatMatrix
+              rowKeys={airlineKeys}
+              rowLabel="Airline"
+              colKeys={presentCategoryCols}
+              cells={airlineByCategory}
+              onOpen={(rs, ctx) => openDrilldown(rs, ctx)}
             />
           </Panel>
         </div>
       </section>
 
-      {/* Chronic Issues */}
+      {/* Recurring Issue Patterns */}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
-          <h2>Chronic Issues</h2>
+          <h2>Recurring Issue Patterns</h2>
         </div>
         <Panel
           title="Recurring Issues by Branch & Sub-Category"
+          subtitle="Branch + sub-category combinations appearing in 3 or more distinct months — sorted by persistence. Click a row to drill into all related reports."
           total={chronicIssueRows.length}
-          className="h-[28rem]"
-          aiContext={sqiAiContext('Chronic Issues', 'chronic_issues_table', chronicIssueRows.slice(0, 20).map((r) => ({
+          className="h-[34rem]"
+          aiContext={sqiAiContext('Recurring Issue Patterns', 'chronic_issues_table', chronicIssueRows.slice(0, 20).map((r) => ({
             branch: r.branch,
             sub_category: r.subCategory,
+            area: r.area,
             months: r.monthsCount,
             total: r.total,
+            first_seen: r.firstSeen,
+            last_seen: r.lastSeen,
+            trend: r.trend,
+            top_root_cause: r.topRootCause,
+            top_severity: r.topSeverity,
+            open_pct: r.openPct,
           })))}
           bodyClassName="overflow-hidden"
         >
@@ -1312,33 +1409,65 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
               No recurring patterns detected
             </div>
           ) : (
-            <div className="h-full overflow-y-auto overflow-x-hidden p-2.5">
-              <table className="sr-table text-[12px]" style={{ width: '100%', tableLayout: 'fixed' }}>
+            <div className="h-full overflow-y-auto overflow-x-auto p-2.5">
+              <table className="sr-table text-[11.5px]" style={{ width: '100%', minWidth: 1080 }}>
                 <thead>
                   <tr>
-                    <th className="!text-left" style={{ width: '20%', whiteSpace: 'normal' }}>Branch</th>
-                    <th className="!text-left" style={{ width: '52%', whiteSpace: 'normal' }}>Sub-Category</th>
-                    <th className="sr-center" style={{ width: '14%', whiteSpace: 'normal' }}>Months Seen</th>
-                    <th className="sr-center" style={{ width: '14%', whiteSpace: 'normal' }}>Total Reports</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '11%' }}>Branch</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '8%' }}>Area</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '20%' }}>Sub-Category</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '7%' }}>Months</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '7%' }}>Reports</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>First Seen</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>Last Seen</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '9%' }}>Trend (3mo)</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '14%' }}>Top Root Cause</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>Top Severity</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>Open</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {chronicIssueRows.map((row) => (
-                    <tr
-                      key={`${row.branch}::${row.subCategory}`}
-                      className="cursor-pointer transition-colors hover:bg-[color:var(--sr-overlay)]"
-                      onClick={() => openDrilldown(row.reports, `${row.branch} · ${row.subCategory}`)}
-                    >
-                      <td className="sr-label !bg-[color:var(--sr-overlay)] font-bold leading-tight" style={{ verticalAlign: 'top', whiteSpace: 'normal' }}>
-                        {row.branch}
-                      </td>
-                      <td className="leading-tight" style={{ verticalAlign: 'top', whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                        {row.subCategory}
-                      </td>
-                      <td className="sr-center align-middle font-mono font-bold tabular-nums">{row.monthsCount}</td>
-                      <td className="sr-center align-middle font-mono font-bold tabular-nums">{row.total}</td>
-                    </tr>
-                  ))}
+                  {chronicIssueRows.map((row) => {
+                    const TrendIcon = row.trend === 'up' ? ArrowUpRight : row.trend === 'down' ? ArrowDownRight : Minus;
+                    const trendColor = row.trend === 'up' ? 'var(--sr-neg-strong)' : row.trend === 'down' ? 'var(--sr-accent-dark)' : 'var(--sr-text-3)';
+                    const deltaSign = row.trendDelta > 0 ? '+' : '';
+                    return (
+                      <tr
+                        key={`${row.branch}::${row.subCategory}`}
+                        className="cursor-pointer transition-colors hover:bg-[color:var(--sr-overlay)]"
+                        onClick={() => openDrilldown(row.reports, `${row.branch} · ${row.subCategory}`)}
+                      >
+                        <td className="sr-label !bg-[color:var(--sr-overlay)] font-bold leading-tight" style={{ verticalAlign: 'top', whiteSpace: 'normal' }}>
+                          {row.branch}
+                        </td>
+                        <td className="leading-tight" style={{ verticalAlign: 'top', whiteSpace: 'normal' }}>{row.area}</td>
+                        <td className="leading-tight" style={{ verticalAlign: 'top', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                          {row.subCategory}
+                        </td>
+                        <td className="sr-center align-middle font-mono font-bold tabular-nums">{row.monthsCount}</td>
+                        <td className="sr-center align-middle font-mono font-bold tabular-nums">{row.total}</td>
+                        <td className="sr-center align-middle font-mono tabular-nums text-[color:var(--sr-text-2)]">{row.firstSeen}</td>
+                        <td className="sr-center align-middle font-mono tabular-nums text-[color:var(--sr-text-2)]">{row.lastSeen}</td>
+                        <td className="sr-center align-middle">
+                          <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold tabular-nums" style={{ color: trendColor }}>
+                            <TrendIcon size={12} />
+                            {deltaSign}{row.trendDelta}
+                          </span>
+                        </td>
+                        <td className="leading-tight" style={{ verticalAlign: 'top', whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                          {row.topRootCause}
+                        </td>
+                        <td className="sr-center align-middle">
+                          <SeverityChip severity={row.topSeverity} />
+                        </td>
+                        <td className="sr-center align-middle font-mono font-bold tabular-nums">
+                          <span style={{ color: row.openPct >= 50 ? 'var(--sr-neg-strong)' : row.openPct >= 25 ? 'var(--sr-gold-strong)' : 'var(--sr-text)' }}>
+                            {row.openCount} · {row.openPct}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -1346,11 +1475,11 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         </Panel>
       </section>
 
-      {/* Detail Report */}
+      {/* Detailed Records */}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
-          <h2>Detail Report</h2>
+          <h2>Detailed Report Records</h2>
         </div>
         <Panel
           title="Quality Records"

@@ -7,13 +7,14 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter } from 'lucide-react';
 import { PrismMultiSelect } from '@/components/ui/PrismMultiSelect';
 import { cn } from '@/lib/utils';
 import type { Report } from '@/types';
 import { DelayCodeReportTab } from '@/components/dashboard/tabs/DelayCodeReportTab';
+import { CustomerFeedbackPageTab, prefetchCustomerFeedback } from '@/components/dashboard/tabs/CustomerFeedbackPageTab';
 import { DrilldownDrawer } from '@/components/chart-detail/DrilldownDrawer';
 
 import {
@@ -45,16 +46,44 @@ export default function AnalystCharts({
     setGlobalFilters,
     availableOptions,
 }: AnalystChartsProps) {
-    const TABS = ['stations_airlines', 'tren', 'delay_code', 'cgo'] as const;
+    const TABS = [
+        'stations_airlines',
+        'tren',
+        'delay_code',
+        'cgo',
+        'cf_report_category',
+        'cf_detail_category',
+        'cf_status_analytics',
+        'cf_cgo_report_category',
+        'cf_cgo_detail_report',
+    ] as const;
     type AnalystTab = typeof TABS[number];
     const TAB_LABELS: Record<AnalystTab, string> = {
         stations_airlines: 'Stations & Airlines',
         tren: 'Trend & Category',
         delay_code: 'Delay Code Report',
         cgo: 'CGO Cargo',
+        cf_report_category: 'Report Category',
+        cf_detail_category: 'Detail Category',
+        cf_status_analytics: 'Status Analytics',
+        cf_cgo_report_category: 'CGO Report Category',
+        cf_cgo_detail_report: 'CGO Detail Report',
+    };
+    const CF_PAGE_INDEX: Partial<Record<AnalystTab, number>> = {
+        cf_report_category: 0,
+        cf_detail_category: 1,
+        cf_status_analytics: 2,
+        cf_cgo_report_category: 3,
+        cf_cgo_detail_report: 4,
     };
     const [activeTab, setActiveTab] = useState<AnalystTab>('stations_airlines');
     const [isGlobalFilterCollapsed, setIsGlobalFilterCollapsed] = useState(true);
+
+    // Warm the CF cache shortly after mount so the first CF-tab click renders instantly.
+    useEffect(() => {
+        const id = window.setTimeout(() => prefetchCustomerFeedback(), 1500);
+        return () => window.clearTimeout(id);
+    }, []);
 
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [drawerTitle, setDrawerTitle] = useState('');
@@ -232,6 +261,11 @@ export default function AnalystCharts({
                     filteredReports={filteredReports}
                     openDrawer={openDrawer}
                 />
+            )}
+
+            {/* Customer Feedback pages — one tab per page from customer-feedback-main dashboard */}
+            {CF_PAGE_INDEX[activeTab] !== undefined && (
+                <CustomerFeedbackPageTab pageIndex={CF_PAGE_INDEX[activeTab]!} />
             )}
 
         </div>
