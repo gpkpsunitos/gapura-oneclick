@@ -21,7 +21,7 @@ const divisionCards = [
     },
     {
         code: 'OS',
-        name: 'Service Analytics Monitoring',
+        name: 'Customer Service Center',
         description: 'Services Reports',
         icon: Shield,
         gradient: 'from-emerald-500 via-emerald-600 to-teal-600',
@@ -41,11 +41,11 @@ const divisionCards = [
     {
         code: 'DOCUMENTS',
         name: 'Circulars & Materials',
-        description: 'All documents uploaded by the analyst team, across every branch',
+        description: 'Manage and distribute HC documents to branches',
         icon: BookOpen,
         gradient: 'from-violet-500 via-purple-600 to-fuchsia-600',
         hoverShadow: 'hover:shadow-violet-500/25',
-        divisionLabel: 'All Branches',
+        divisionLabel: 'Head Office & All Branches',
         href: '/dashboard/eskalasi/documents',
     },
 ];

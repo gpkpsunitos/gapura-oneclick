@@ -505,7 +505,7 @@ export function ReportDetailView({
 
             {/* Main Title Section */}
             <div className="max-w-4xl space-y-4 md:space-y-6">
-              <h1 className="text-2xl md:text-4xl lg:text-5xl font-medium text-slate-900 leading-tight tracking-tight px-0.5">
+              <h1 className="text-lg md:text-xl lg:text-2xl font-bold text-slate-900 leading-tight tracking-tight px-0.5">
                 {report.report || report.title || `${report.airlines || ""} ${report.flight_number || ""}`.trim() || "Unlabeled Record"}
               </h1>
               
@@ -883,12 +883,14 @@ export function ReportDetailView({
                 )}
               </SectionCard>
 
-              {/* AI Insight Section (v2 — exec layout, schema-validated) */}
-              <SectionCard title="AI Insight" headerAction={
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold">v2</span>
-              }>
-                <AIInsightCard report={report} />
-              </SectionCard>
+              {/* AI Insight Section (v2 — exec layout, schema-validated) — hidden for now, ponytail: flip back on when ready */}
+              {false && (
+                <SectionCard title="AI Insight" headerAction={
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold">v2</span>
+                }>
+                  <AIInsightCard report={report} />
+                </SectionCard>
+              )}
             </div>
           </main>
 
