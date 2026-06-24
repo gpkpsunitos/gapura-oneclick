@@ -20,7 +20,6 @@ export async function GET(request: Request) {
         const from = searchParams.get('from');
         const to = searchParams.get('to');
 
-        // Build date filter
         let dateFrom: Date | null = null;
         let dateTo: Date | null = null;
 
@@ -51,11 +50,8 @@ export async function GET(request: Request) {
         const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        // Fetch directly from the live Google Sheets source so admin stats match
-        // the current spreadsheet schema and values.
         const reports = await reportsService.getReports({ source: 'sheets' });
 
-        // Filter reports by date
         let filteredReports = reports;
         if (dateFrom || dateTo) {
             filteredReports = reports.filter(r => {
@@ -66,7 +62,6 @@ export async function GET(request: Request) {
             });
         }
 
-        // Calculate Stats
         const totalReports = filteredReports.length;
         let menungguFeedback = 0;
         let sudahDiverifikasi = 0;
@@ -92,9 +87,6 @@ export async function GET(request: Request) {
             }
         }
 
-        // Trends (from ALL reports, usually relative to now, regardless of filter? 
-        // Original code used `FROM reports` for trends, not `FROM filtered`.
-        // So we use `reports` for trends.
         let todayReports = 0;
         let weekReports = 0;
         let monthReports = 0;
@@ -105,13 +97,9 @@ export async function GET(request: Request) {
             if (created >= startOfMonth.getTime()) monthReports++;
         }
 
-        // Top Locations
         const locationBreakdown: Record<string, number> = {};
         filteredReports.forEach(r => {
-            // Priority: Station Code > Location Name > 'Tidak Diketahui'
-            // Check if we have station info joined (reportsService might not join fully if types are simple)
-            // But reportsService.getReports() returns Report objects which usually have fields from Sheets.
-            // Sheets has 'station_code' or 'branch'.
+
             const loc = r.station_code || r.branch || r.location || 'Tidak Diketahui';
             locationBreakdown[loc] = (locationBreakdown[loc] || 0) + 1;
         });
@@ -121,8 +109,6 @@ export async function GET(request: Request) {
             .slice(0, 5)
             .map(([location, count]) => ({ location, count }));
 
-        // Recent Reports (limit 5)
-        // Original code: order by created_at desc limit 5
         const recentReports = [...reports]
             .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
             .slice(0, 5)
@@ -141,7 +127,6 @@ export async function GET(request: Request) {
                 stations: r.stations ? { code: r.stations.code } : (r.station_code ? { code: r.station_code } : null)
             }));
 
-        // User Stats (Still from Supabase as Users are there)
         const { count: pendingUsers } = await supabase.from('users').select('id', { count: 'exact', head: true }).eq('status', 'pending');
         const { count: activeUsers } = await supabase.from('users').select('id', { count: 'exact', head: true }).eq('status', 'active');
 
@@ -188,6 +173,3 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Failed to fetch stats' }, { status: 500 });
     }
 }
-
-// Removed fallbackStats as we are now using a reliable service-based approach
-

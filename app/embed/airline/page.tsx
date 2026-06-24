@@ -1,18 +1,9 @@
-/**
- * @file
- * 
- * File ini berisi halaman detail airline dengan Suspense boundary
- * untuk loading skeleton saat data dimuat
- */
+
 import { Suspense } from 'react';
 import { AirlineDetailContent } from './AirlineDetailContent';
 
 export const revalidate = 300;
 
-/**
- * Halaman detail airline dengan Suspense
- * @returns Komponen React
- */
 export default function AirlineDetailPage() {
   return (
     <Suspense fallback={<LoadingSkeleton />}>
@@ -21,10 +12,6 @@ export default function AirlineDetailPage() {
   );
 }
 
-/**
- * Komponen loading skeleton untuk airline detail
- * @returns Komponen React
- */
 function LoadingSkeleton() {
   return (
     <div className="embed-loading">

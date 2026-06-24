@@ -3,19 +3,19 @@
 import dynamic from 'next/dynamic';
 import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWorkspaceSkeleton';
 
-const AnalystDocumentViewerPage = dynamic(
-    () => import('@/components/analyst/AnalystDocumentViewerPage').then((m) => m.AnalystDocumentViewerPage),
+const EskalasiDocumentsViewerPage = dynamic(
+    () => import('@/components/analyst/EskalasiDocumentsViewerPage').then((m) => m.EskalasiDocumentsViewerPage),
     {
         ssr: false,
         loading: () => (
             <DashboardWorkspaceSkeleton
-                title="Documents"
-                subtitle="Loading documents shared with your branch."
+                title="Document Meeting"
+                subtitle="Loading meeting records for your branch."
             />
         ),
     }
 );
 
 export default function ManagerDocumentsPage() {
-    return <AnalystDocumentViewerPage />;
+    return <EskalasiDocumentsViewerPage hideNav />;
 }

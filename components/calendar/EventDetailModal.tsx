@@ -69,7 +69,7 @@ export function EventDetailModal({
           className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 bg-[var(--surface-1)] border border-[oklch(0.92_0.01_90/0.8)] rounded-2xl shadow-[var(--shadow-spatial-lg)] animate-scale-in focus:outline-none"
           aria-describedby={undefined}
         >
-          {/* Header */}
+          {}
           <div className="flex items-center justify-between p-4 border-b border-[oklch(0.94_0.01_90/0.6)]">
             <Dialog.Title className="text-lg font-bold font-display tracking-tight text-[var(--text-primary)]">
               Detail Kegiatan
@@ -84,9 +84,9 @@ export function EventDetailModal({
             </Dialog.Close>
           </div>
 
-          {/* Body */}
+          {}
           <div className="p-5 space-y-4">
-            {/* Title + Recurring badge */}
+            {}
             <div>
               <h3 className="text-xl font-bold font-display tracking-tight text-[var(--text-primary)] leading-tight">
                 {event.title}
@@ -99,7 +99,7 @@ export function EventDetailModal({
               )}
             </div>
 
-            {/* Detail rows */}
+            {}
             <div className="space-y-3">
               <DetailRow icon={Calendar} label={isMultiDay ? 'Rentang Tanggal' : 'Tanggal'}>
                 {formatDate(event.event_date)}
@@ -141,7 +141,7 @@ export function EventDetailModal({
             </div>
           </div>
 
-          {/* Footer actions */}
+          {}
           {(onEdit || onQuickEdit) && (
             <div className="flex justify-end gap-2 p-4 border-t border-[oklch(0.94_0.01_90/0.6)]">
               {onQuickEdit && (

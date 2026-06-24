@@ -82,7 +82,7 @@ export default function AdminDashboard() {
 
     return (
         <div className="space-y-8 stagger-children snap-y">
-            {/* Slide 1: Header + High Priority Alert */}
+            {}
             <PresentationSlide className="!p-0 !min-h-0 !bg-transparent !shadow-none !border-0">
                 <div className="space-y-6">
                     <DashboardHeader
@@ -134,7 +134,7 @@ export default function AdminDashboard() {
                 </div>
             </PresentationSlide>
 
-            {/* Slide 2: Severity + Activity + Top Locations */}
+            {}
             <PresentationSlide
                 title="Analisis & Tren"
                 subtitle="Breakdown severity, aktivitas, dan lokasi terbanyak"
@@ -142,7 +142,7 @@ export default function AdminDashboard() {
                 hint="Klik item untuk melihat detail laporan"
             >
                 <div className="bento-grid bento-3">
-                    {/* Severity Breakdown */}
+                    {}
                     <div className="card-solid animate-fade-in-up">
                         <p className="text-xs font-semibold uppercase tracking-wider mb-5" style={{ color: 'var(--text-muted)' }}>
                             Berdasarkan Severity
@@ -178,7 +178,7 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
-                    {/* Activity Trends */}
+                    {}
                     <div className="card-solid animate-fade-in-up" style={{ animationDelay: '80ms' }}>
                         <p className="text-xs font-semibold uppercase tracking-wider mb-5" style={{ color: 'var(--text-muted)' }}>
                             Aktivitas
@@ -201,7 +201,7 @@ export default function AdminDashboard() {
                         </div>
                     </div>
 
-                    {/* Top Locations */}
+                    {}
                     <div className="card-solid animate-fade-in-up" style={{ animationDelay: '160ms' }}>
                         <p className="text-xs font-semibold uppercase tracking-wider mb-5" style={{ color: 'var(--text-muted)' }}>
                             Lokasi Terbanyak
@@ -241,7 +241,7 @@ export default function AdminDashboard() {
                 </div>
             </PresentationSlide>
 
-            {/* Slide 3: Recent Reports */}
+            {}
             <PresentationSlide
                 title="Laporan Terbaru"
                 subtitle="5 laporan terakhir"
@@ -307,7 +307,7 @@ export default function AdminDashboard() {
                 </div>
             </PresentationSlide>
 
-            {/* Slide 4: Quick Actions */}
+            {}
             <PresentationSlide
                 title="Aksi Cepat"
                 subtitle="Kelola laporan dan pengguna"
@@ -352,7 +352,7 @@ export default function AdminDashboard() {
                 </div>
             </PresentationSlide>
 
-            {/* Report Detail Modal */}
+            {}
             <ReportDetailModal
                 isOpen={!!selectedReport}
                 onClose={() => setSelectedReport(null)}

@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi fungsi utilitas untuk menghitung data perbandingan Month-over-Month dan Year-over-Year
- */
 
 import { Report, ComparisonData, ComparisonMetric, MonthlyBucket } from '@/types';
 import {
@@ -44,29 +39,12 @@ function incrementCategory(entry: Pick<ComparisonMonthEntry, 'irregularity' | 'c
     else if (category === 'Accident / Incident') entry.accidentIncident++;
 }
 
-/**
- * Menghitung data perbandingan MoM dan YoY dari daftar laporan
- * Digunakan di berbagai komponen dashboard
- * 
- * Kompleksitas: Waktu O(n) | Ruang O(m) dimana n = laporan, m = bulan unik
- * @param {Report[]} filteredReports - Array laporan yang sudah difilter
- * @returns {ComparisonData} Objek data perbandingan lengkap
- * @example
- * ```ts
- * const comparisonData = calculateComparisonData(reports);
- * console.log(comparisonData.overallMetrics);
- * console.log(comparisonData.monthlyTrend);
- * ```
- */
 export function calculateComparisonData(filteredReports: Report[]): ComparisonData {
     console.log('[calculateComparisonData] Starting with reports:', filteredReports.length);
     const monthMap = new Map<string, ComparisonMonthEntry>();
 
     filteredReports.forEach((r) => {
-        // Use a robust date parsing strategy: 
-        // 1. Prefer date_of_event (string YYYY-MM-DD usually)
-        // 2. Fallback to created_at
-        // 3. Ensure YYYY-MM-DD strings are parsed as LOCAL midnight to avoid UTC day-shifts
+
         const dateStr = r.date_of_event || r.created_at;
         if (!dateStr) return;
 
@@ -128,8 +106,6 @@ export function calculateComparisonData(filteredReports: Report[]): ComparisonDa
     const latestEntry = latestKey ? monthMap.get(latestKey)! : emptyMonthEntry();
     const prevEntry = prevKey ? monthMap.get(prevKey)! : emptyMonthEntry();
 
-    // YoY: same month, previous year — only if prior-year data exists.
-    // Additionally, suppress YoY when latest year equals earliest year present in the dataset.
     let yoyKey: string | undefined;
     if (latestKey) {
         const [latestYear, latestMonth] = latestKey.split('-').map(Number);
@@ -144,7 +120,7 @@ export function calculateComparisonData(filteredReports: Report[]): ComparisonDa
     const formatLabel = (key: string) => {
         if (!key) return undefined;
         const [y, m] = key.split('-').map(Number);
-        // Use Indonesian locale for clarity
+
         return new Date(y, m - 1).toLocaleString('id-ID', { month: 'short', year: 'numeric' });
     };
 
@@ -172,7 +148,6 @@ export function calculateComparisonData(filteredReports: Report[]): ComparisonDa
         buildMetric('Accident / Incident', latestEntry.accidentIncident, prevEntry.accidentIncident, yoyEntry ? latestEntry.accidentIncident : undefined, yoyEntry?.accidentIncident),
     ];
 
-    // Add "Lainnya" (Others) if there are uncategorized reports
     const latestKnown = latestEntry.irregularity + latestEntry.complaint + latestEntry.compliment + latestEntry.occurrence + latestEntry.accidentIncident;
     const prevKnown = prevEntry.irregularity + prevEntry.complaint + prevEntry.compliment + prevEntry.occurrence + prevEntry.accidentIncident;
     const latestOthers = latestEntry.total - latestKnown;
@@ -183,7 +158,6 @@ export function calculateComparisonData(filteredReports: Report[]): ComparisonDa
             yoyEntry ? (yoyEntry.total - (yoyEntry.irregularity + yoyEntry.complaint + yoyEntry.compliment + yoyEntry.occurrence + yoyEntry.accidentIncident)) : undefined));
     }
 
-    // Top 5 branches
     const branchTotals: Record<string, number> = {};
     monthMap.forEach((e) => {
         Object.entries(e.branches).forEach(([b, c]) => {
@@ -210,7 +184,6 @@ export function calculateComparisonData(filteredReports: Report[]): ComparisonDa
             yoyEntry ? (yoyEntry.branches[b] || 0) : undefined)
     );
 
-    // Top 5 airlines
     const airlineTotals: Record<string, number> = {};
     monthMap.forEach((e) => {
         Object.entries(e.airlines).forEach(([a, c]) => {

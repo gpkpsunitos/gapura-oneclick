@@ -2,10 +2,6 @@
 
 import dynamic from 'next/dynamic';
 
-/**
- * Client boundary for dynamically loading the public-report wizard.
- * Required because `ssr: false` cannot be used in Server Components.
- */
 const PublicReportWizard = dynamic(
   () => import('@/components/public-report/PublicReportWizard').then((mod) => mod.PublicReportWizard),
   {

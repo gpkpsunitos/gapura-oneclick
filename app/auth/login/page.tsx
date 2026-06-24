@@ -1,9 +1,3 @@
-/**
- * @file
- * Halaman login utama dengan shell server ringan untuk mempercepat render awal.
- * Server Component — delegates all interactivity to LoginForm via dynamic().
- * LoginForm is split off the critical-path bundle via dynamic() to improve FCP.
- */
 
 import Image from 'next/image';
 import LoginFormLoader from '@/components/auth/LoginFormLoader';

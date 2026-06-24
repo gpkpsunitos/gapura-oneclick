@@ -66,10 +66,6 @@ const ReportsStatusTab = dynamic(
     { ssr: false, loading: () => tabLoadingFallback }
 );
 
-// Complexity: Time O(n) per render | Space O(k) where k = chart data points (pre-computed by parent)
-
-
-
 export interface AnalystChartsProps {
     readonly analytics: AnalyticsData | null;
     readonly caseCategoryData: readonly CaseCategoryItem[];
@@ -114,8 +110,6 @@ export interface AnalystChartsProps {
     readonly showDelayCodeTab?: boolean;
 }
 
-
-
 export default function AnalystCharts({
     allReports,
     filteredReports,
@@ -139,12 +133,10 @@ export default function AnalystCharts({
     };
     const [activeTab, setActiveTab] = useState<string>('summary');
     const [isGlobalFilterCollapsed, setIsGlobalFilterCollapsed] = useState(true);
-    // ponytail: year filtering is per-card now (each Panel owns its own state via
-    // useCardYear). No tab-level pre-filter — each card receives full filteredReports.
 
     return (
         <div className="space-y-6">
-            {/* Global Filters Section */}
+            {}
             <div className="relative z-50 bg-[oklch(1_0_0_/_0.4)] backdrop-blur-2xl border border-[oklch(1_0_0_/_0.1)] shadow-inner-rim rounded-2xl mb-4 sm:mb-6">
                 <div className="flex justify-between items-center px-4 sm:px-6 py-3 sm:py-4 border-b border-[oklch(1_0_0_/_0.05)]">
                     <h3 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
@@ -166,7 +158,7 @@ export default function AnalystCharts({
                         </motion.svg>
                     </button>
                 </div>
-                
+
                 <AnimatePresence>
                     {!isGlobalFilterCollapsed && (
                         <motion.div
@@ -210,7 +202,7 @@ export default function AnalystCharts({
                 </AnimatePresence>
             </div>
 
-            {/* Tab Bar - PRISM Floating Capsule */}
+            {}
             <div className="flex justify-center sticky top-0 z-40 py-1 sm:py-2">
                 <div className="flex p-1 sm:p-1.5 rounded-2xl bg-[oklch(1_0_0_/_0.4)] backdrop-blur-2xl border border-[oklch(1_0_0_/_0.1)] shadow-inner-rim max-w-full overflow-x-auto no-scrollbar">
                     {TABS.map((tab) => (
@@ -241,7 +233,7 @@ export default function AnalystCharts({
                 </div>
             </div>
 
-            {/* Tabs receive raw filteredReports; each card year-scopes itself locally. */}
+            {}
             {activeTab === 'summary' && <SummaryReportTab reports={filteredReports as Report[]} />}
             {activeTab === 'sqi' && <ServiceQualityImprovementTab reports={filteredReports as Report[]} />}
             {activeTab === 'joumpa' && (

@@ -24,7 +24,6 @@ export async function GET() {
 
         if (error) throw error;
 
-        // Mask SID for security
         const safeSessions = sessions.map(s => ({
             id: s.id,
             ip: s.ip_address,
@@ -55,18 +54,16 @@ export async function POST(request: Request) {
         const { sessionId } = await request.json();
         if (!sessionId) return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
 
-        // Revoke in DB
         const { data: revokedRow, error } = await supabase
             .from('security_sessions')
             .update({ is_revoked: true })
             .eq('id', sessionId)
-            .eq('user_id', payload.id) // Ensure ownership
+            .eq('user_id', payload.id)
             .select('session_id')
             .single();
 
         if (error) throw error;
 
-        // Evict from in-memory session cache so revocation takes effect immediately
         if (revokedRow?.session_id) {
             evictSessionCache(revokedRow.session_id);
         }

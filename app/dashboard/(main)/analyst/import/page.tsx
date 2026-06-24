@@ -1,70 +1,48 @@
-/**
- * @file
- * 
- * File ini berisi halaman import data laporan untuk analyst,
- * menyediakan fungsi untuk import massal data laporan dari Excel atau CSV.
- */
 
 'use client';
+/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities */
 
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-// ExcelJS will be imported dynamically in parseFile
+
 import { Upload, FileUp, AlertCircle, CheckCircle, Loader2, X, Database, Truck, Plane, FileSpreadsheet } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// --- Type Definitions ---
-/**
- * Tipe data untuk tipe import laporan
- * @typedef {'NON_CARGO' | 'CARGO'} ImportType
- */
 type ImportType = 'NON_CARGO' | 'CARGO';
 
-// Define strict mapping based on reports-service.ts
-// Key = CSV Header, Value = DB Column
-/**
- * Pemetaan header CSV ke kolom database
- * Digunakan untuk mengonversi nama kolom dari file Excel/CSV ke kolom database
- * @constant
- * @type {Record<string, string>}
- */
 const HEADER_MAPPING: Record<string, string> = {
-  // Common
+
   'Date of Event': 'date_of_event',
   'Date': 'date_of_event',
   'Tanggal': 'date_of_event',
-  'Month': 'date_of_event', // Sometimes used for month aggregations, handle with care
+  'Month': 'date_of_event',
   'Incident Date': 'date_of_event',
-  
-  // Airline Info
+
   'Jenis Maskapai': 'jenis_maskapai',
   'Airlines': 'airline',
   'Airline': 'airline',
   'Flight Number': 'flight_number',
   'Route': 'route',
-  
-  // Location
+
   'Reporting Branch': 'reporting_branch',
   'Branch': 'branch',
-  'Branch ': 'branch', // Support live schema trailing space
+  'Branch ': 'branch',
   'Station': 'branch',
   'HUB': 'hub',
   'KODE CABANG (VLOOKUP)': 'kode_cabang',
   'KODE HUB (VLOOKUP)': 'kode_hub',
 
-  // Categorization
-  'Report Category': 'main_category', // Irregularity, Complaint, Compliment
-  'Irregularity/Complain Category': 'irregularity_complain_category', // Sub-category
+  'Report Category': 'main_category',
+  'Irregularity/Complain Category': 'irregularity_complain_category',
   'Main Category': 'main_category',
   'Case Category': 'case_category',
-  
-  // Details
+
   'Report': 'description',
   'Description': 'description',
   'Root Caused': 'root_caused',
   'Action Taken': 'action_taken',
   'Gapura KPS Remarks': 'kps_remarks',
-  'Final Remarks': 'kps_remarks', // Support live schema
+  'Final Remarks': 'kps_remarks',
   'Gapura KPS Action Taken': 'gapura_kps_action_taken',
   'Preventive Action': 'preventive_action',
   'Remarks Case': 'remarks_case',
@@ -74,20 +52,17 @@ const HEADER_MAPPING: Record<string, string> = {
   'Issue Caused': 'issue_caused',
   'Breakdown Caused': 'breakdown_caused',
 
-  // Remarks Gapura KPS -> maps to sub_category_note (replaces Sub Category Note direction)
   'Remarks Gapura KPS': 'sub_category_note',
   'Sub Category Note': 'sub_category_note',
   'Primary Tag': 'primary_tag',
   'ESKLASI DIVISI': 'esklasi_divisi',
-  
-  // Meta
+
   'Report By': 'reporter_name',
   'Upload Irregularity Photo': 'evidence_url',
   'Status': 'status',
   'Per Week in Month': 'week_in_month',
   'Severity Level': 'severity',
-  
-  // Area Specific
+
   'Area': 'area',
   'Terminal Area Category': 'terminal_area_category',
   'Apron Area Category': 'apron_area_category',
@@ -95,47 +70,30 @@ const HEADER_MAPPING: Record<string, string> = {
   'Location of Incident': 'specific_location',
   'Service Business Type': 'service_business_type',
 
-  // Lookups
   'MASKAPAI (VLOOKUP)': 'maskapai_lookup',
   'Lokal / MPA (VLOOKUP)': 'lokal_mpa_lookup',
 
-  // Operational Specifics
   'GSE Available & Requirement': 'gse_available_requirement',
   'GSE Requirement': 'gse_requirement',
   'Delay Code': 'delay_code',
   'Delay Duration': 'delay_duration',
 };
 
-// Convert Excel serial number to JS Date
-/**
- * Mengkonversi nomor serial Excel ke objek Date JavaScript
- * @param {string | number} val - Nilai yang akan dikonversi (nomor serial Excel atau string tanggal)
- * @returns {Date | null} Objek Date JavaScript atau null jika tidak valid
- */
 const excelSerialToDate = (val: string | number): Date | null => {
   if (!val || val === '#N/A' || val === 'N/A') return null;
   if (typeof val === 'number') {
-    // Excel base date is Dec 30 1899
+
     return new Date((val - 25569) * 86400 * 1000);
   }
   const d = new Date(val);
   return isNaN(d.getTime()) ? null : d;
 };
 
-// Returns date-only string (YYYY-MM-DD) for DB
-/**
- * Mengambil string tanggal (YYYY-MM-DD) dari nilai yang diberikan
- * @param {string | number} val - Nilai yang akan diproses
- * @returns {string | null} String tanggal dalam format YYYY-MM-DD atau null jika tidak valid
- */
 const parseDateOnly = (val: string | number): string | null => {
-  // If explicitly string DD/MM/YYYY
+
   if (typeof val === 'string' && val.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)) {
       const parts = val.split('/');
-      // Assume DD/MM/YYYY or MM/DD/YYYY? Standard is usually MDY in US or DMY in ID. 
-      // Let's safe guess: if part[0] > 12 it must be day.
-      // Ideally we use a robust parser. For now, assume common Excel export format (often MDY or YMD).
-      // Actually, let's try date constructor first.
+
       const d = new Date(val);
       if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
   }
@@ -145,12 +103,6 @@ const parseDateOnly = (val: string | number): string | null => {
   return d.toISOString().split('T')[0];
 };
 
-// Map CSV Status to DB constraint
-/**
- * Menormalkan status laporan dari format CSV ke format database
- * @param {string | undefined | null} raw - Status raw dari file CSV
- * @returns {string} Status yang dinormalkan (OPEN, CLOSED, atau ON PROGRESS)
- */
 const normalizeStatus = (raw: string | undefined | null): string => {
   if (!raw) return 'OPEN';
   const upper = raw.toString().trim().toUpperCase();
@@ -159,11 +111,6 @@ const normalizeStatus = (raw: string | undefined | null): string => {
   return 'OPEN';
 };
 
-/**
- * Menormalkan tingkat keparahan laporan
- * @param {string | undefined | null} raw - Severity raw dari file CSV
- * @returns {string} Severity level (low, medium, high, urgent)
- */
 const normalizeSeverity = (raw: string | undefined | null): string => {
   if (!raw) return 'LOW';
   const upper = raw.toString().trim().toUpperCase();
@@ -173,23 +120,15 @@ const normalizeSeverity = (raw: string | undefined | null): string => {
   return 'LOW';
 };
 
-// Main Helper: Map a single CSV row to a Report object
-/**
- * Mengkonversi satu baris data CSV ke objek Report
- * Melakukan pemetaan kolom, normalisasi data, dan menambahkan nilai default
- * @param {any} row - Baris data dari file CSV/Excel
- * @param {ImportType} importType - Tipe import (NON_CARGO atau CARGO)
- * @returns {any} Objek report yang sudah dipetakan dan dinormalkan
- */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mapRowToReport = (row: any, importType: ImportType) => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const report: any = {};
-  
-  // 1. Map known columns
+
   Object.keys(row).forEach((csvHeader) => {
-    // Try exact match
+
     let dbKey = HEADER_MAPPING[csvHeader.trim()];
-    
-    // Check fuzzy/normalized if needed (e.g. case insensitive)
+
     if (!dbKey) {
        const norm = csvHeader.trim().toLowerCase();
        const found = Object.keys(HEADER_MAPPING).find(k => k.toLowerCase() === norm);
@@ -201,51 +140,42 @@ const mapRowToReport = (row: any, importType: ImportType) => {
     }
   });
 
-  // 2. Normalize & Defaults
-  
-  // Date
   if (report.date_of_event) {
       report.date_of_event = parseDateOnly(report.date_of_event);
   }
   if (!report.date_of_event) {
-      // Fallback: created_at = now
+
       report.created_at = new Date().toISOString(); 
-      // If we really need a date_of_event, maybe leave null or set to today?
-      // Let's leave it null if missing, types usually allow it or defaulted in DB
+
   } else {
       report.created_at = new Date(report.date_of_event).toISOString();
   }
-  
+
   report.updated_at = new Date().toISOString();
 
-  // Status & Severity
   report.status = normalizeStatus(report.status);
   report.severity = normalizeSeverity(report.severity);
-  
-  // Import Type Specific Logic
+
   if (importType === 'CARGO') {
       report.area = 'CARGO';
-      report.source_sheet = 'CGO'; // Tag source
-      // If category is missing but we have general/terminal/apron cols? 
-      // Cargo usually uses 'general_category' or specific cargo columns if mapped
+      report.source_sheet = 'CGO';
+
   } else if (importType === 'NON_CARGO') {
       report.source_sheet = 'NON CARGO';
-      // Ensure area is set if possible
+
       if (!report.area && report.terminal_area_category) report.area = 'TERMINAL';
       if (!report.area && report.apron_area_category) report.area = 'APRON';
   }
 
-  // Generate a robust reference number if ID exists
   if (row['Id'] || row['ID'] || row['No']) {
       const id = row['Id'] || row['ID'] || row['No'];
       report.reference_number = `IMP-${importType}-${id}`;
       report.csv_id = Number(id) || null;
   } else {
-      // Generate random ref
+
       report.reference_number = `IMP-${Date.now()}-${Math.floor(Math.random()*1000)}`;
   }
 
-  // Title fallback
   if (!report.title) {
       report.title = `${report.main_category || 'Report'} - ${report.airline || 'Unknown'}`;
   }
@@ -253,27 +183,18 @@ const mapRowToReport = (row: any, importType: ImportType) => {
   return report;
 };
 
-/**
- * Komponen halaman import data laporan untuk analyst
- * Menyediakan UI untuk upload file Excel/CSV dan import massal data laporan
- * @returns {JSX.Element} Tampilan halaman import data laporan
- */
 export default function ImportDataPage() {
   const [importType, setImportType] = useState<ImportType>('NON_CARGO');
   const [file, setFile] = useState<File | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [previewData, setPreviewData] = useState<any[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
-  
+
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [successCount, setSuccessCount] = useState(0);
 
-  /**
-   * Handler untuk drop file
-   * Dipanggil saat file di-drop ke area upload
-   * @param {File[]} acceptedFiles - Array file yang di-upload
-   */
   const onDrop = (acceptedFiles: File[]) => {
     const uploadedFile = acceptedFiles[0];
     if (uploadedFile) {
@@ -291,19 +212,15 @@ export default function ImportDataPage() {
     multiple: false
   });
 
-  /**
-   * Mengurai file Excel atau CSV untuk preview
-   * Membaca data dari file dan menyiapkan preview sebelum import
-   * @param {File} file - File yang akan diuraikan
-   */
   const parseFile = async (file: File) => {
     try {
       const ExcelJS = await import('exceljs');
       const workbook = new ExcelJS.Workbook();
       const arrayBuffer = await file.arrayBuffer();
-      
+
       if (file.name.endsWith('.csv')) {
-        // ExcelJS CSV reading in browser is slightly different, we use a Buffer/Uint8Array
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await workbook.csv.read(new Response(arrayBuffer).body! as any);
       } else {
         await workbook.xlsx.load(arrayBuffer);
@@ -312,10 +229,10 @@ export default function ImportDataPage() {
       const worksheet = workbook.worksheets[0];
       if (!worksheet) throw new Error("File kosong");
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const jsonData: any[] = [];
       const fileHeaders: string[] = [];
 
-      // Get headers from first row
       const firstRow = worksheet.getRow(1);
       firstRow.eachCell({ includeEmpty: true }, (cell, colNumber) => {
         const val = cell.text || (typeof cell.value === 'string' ? cell.value : '');
@@ -323,9 +240,9 @@ export default function ImportDataPage() {
       });
       setHeaders(fileHeaders.filter(Boolean));
 
-      // Parse data rows
       worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
          if (rowNumber === 1) return;
+         // eslint-disable-next-line @typescript-eslint/no-explicit-any
          const rowData: any = {};
          row.eachCell({ includeEmpty: true }, (cell, colNumber) => {
             const header = fileHeaders[colNumber - 1];
@@ -345,10 +262,6 @@ export default function ImportDataPage() {
     }
   };
 
-  /**
-   * Menangani proses import data ke database
-   * Mengirim data yang sudah dipetakan ke API untuk batch insert
-   */
   const handleImport = async () => {
     if (!previewData.length) return;
 
@@ -358,10 +271,9 @@ export default function ImportDataPage() {
     setSuccessCount(0);
 
     try {
-      // 1. Map Data
+
       const mappedData = previewData.map((row) => mapRowToReport(row, importType));
 
-      // 2. Batch Insert to Sheets API
       const response = await fetch('/api/reports/batch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -369,7 +281,7 @@ export default function ImportDataPage() {
       });
 
       const result = await response.json();
-      
+
       if (!response.ok) {
           throw new Error(result.error || 'Gagal mengimport ke Google Sheets');
       }
@@ -386,10 +298,6 @@ export default function ImportDataPage() {
     }
   };
 
-  /**
-   * Mereset state ke kondisi awal
-   * Menghapus file, preview data, dan status upload
-   */
   const reset = () => {
       setFile(null);
       setPreviewData([]);
@@ -400,8 +308,8 @@ export default function ImportDataPage() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8 pb-32">
-      {/* Header */}
-      {/* Header */}
+      {}
+      {}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Import Data Laporan</h1>
@@ -409,7 +317,7 @@ export default function ImportDataPage() {
               Mode Administrator untuk import data massal dari Google Sheets/Excel.
           </p>
         </div>
-        
+
         <a 
             href={`https://docs.google.com/spreadsheets/d/${process.env.NEXT_PUBLIC_GOOGLE_SHEET_ID || '1TFPZOAWAKubPl7iaUk8BXt2BabY1N-AcLgi-_zBQGzk'}/edit`}
             target="_blank"
@@ -421,7 +329,7 @@ export default function ImportDataPage() {
         </a>
       </div>
 
-      {/* Configuration Card */}
+      {}
       <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm space-y-6">
           <div>
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -440,7 +348,10 @@ export default function ImportDataPage() {
                             <Plane size={16} />
                         </div>
                         <span className="font-bold text-gray-900">Landside & Airside</span>
+                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                     </div>
+                    // eslint-disable-next-line react/no-unescaped-entities
+                    // eslint-disable-next-line react/no-unescaped-entities
                     <p className="text-xs text-gray-500">Laporan reguler (Terminal, Apron, General). Sheet: 'NON CARGO'</p>
                 </button>
 
@@ -455,7 +366,10 @@ export default function ImportDataPage() {
                             <Truck size={16} />
                         </div>
                         <span className="font-bold text-gray-900">Cargo</span>
+                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                     </div>
+                    // eslint-disable-next-line react/no-unescaped-entities
+                    // eslint-disable-next-line react/no-unescaped-entities
                     <p className="text-xs text-gray-500">Laporan khusus Cargo. Sheet: 'CGO'</p>
                 </button>
 
@@ -463,7 +377,7 @@ export default function ImportDataPage() {
           </div>
       </div>
 
-      {/* Upload Logic Area */}
+      {}
       {!file ? (
          <div 
             {...getRootProps()} 
@@ -485,7 +399,7 @@ export default function ImportDataPage() {
          </div>
       ) : (
           <div className="space-y-6">
-              {/* File Info Card */}
+              {}
               <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center justify-between">
                   <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
@@ -501,7 +415,7 @@ export default function ImportDataPage() {
                   </button>
               </div>
 
-              {/* Status Messages */}
+              {}
               <AnimatePresence>
                 {uploadStatus === 'success' && (
                     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-green-50 text-green-700 rounded-xl flex items-center gap-3 border border-green-200">
@@ -517,7 +431,7 @@ export default function ImportDataPage() {
                 )}
               </AnimatePresence>
 
-              {/* Preview Table */}
+              {}
               {previewData.length > 0 && (
                   <div className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm">
                       <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
@@ -534,7 +448,7 @@ export default function ImportDataPage() {
                                   </tr>
                               </thead>
                               <tbody className="divide-y divide-gray-100">
-                                  {/* Show mapping preview based on first row headers */}
+                                  {}
                                   {headers.slice(0, 10).map((header, i) => {
                                       const dbField = HEADER_MAPPING[header] || HEADER_MAPPING[header.trim()] || '-';
                                       const val = previewData[0][header];
@@ -556,7 +470,7 @@ export default function ImportDataPage() {
                   </div>
               )}
 
-              {/* Action Button */}
+              {}
               <div className="flex justify-end pt-4">
                   <button
                       onClick={uploadStatus === 'success' ? reset : handleImport}

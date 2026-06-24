@@ -1,4 +1,3 @@
-// Types for AI Summary Dashboard - matches action-summary.json structure
 
 export interface TopAction {
   action: string;
@@ -71,8 +70,6 @@ export interface ActionSummaryResponse {
   topCategoriesByRisk: TopCategoryByRisk[];
   globalRecommendations: GlobalRecommendation[];
 }
-
-// Risk Summary Types
 
 export interface RiskOverview {
   total_issues: number;

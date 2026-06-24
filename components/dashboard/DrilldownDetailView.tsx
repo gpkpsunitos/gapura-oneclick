@@ -53,7 +53,7 @@ export function DrilldownDetailView({
 
     return (
         <div className="space-y-6 pb-24">
-            {/* Breadcrumb & Back */}
+            {}
             <div className="flex items-center gap-3">
                 <Link
                     href={backHref}
@@ -64,13 +64,13 @@ export function DrilldownDetailView({
                 </Link>
             </div>
 
-            {/* Title */}
+            {}
             <div>
                 <h1 className="text-2xl lg:text-3xl font-bold text-[var(--text-primary)]">{title}</h1>
                 {subtitle && <p className="text-sm text-[var(--text-muted)] mt-1">{subtitle}</p>}
             </div>
 
-            {/* Summary Stats */}
+            {}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <SummaryCard icon={FileText} label="Total" value={totalCount} color="blue" />
                 <SummaryCard icon={CheckCircle2} label="Selesai" value={resolvedCount} color="green" />
@@ -78,14 +78,14 @@ export function DrilldownDetailView({
                 <SummaryCard icon={AlertTriangle} label="High Severity" value={highCount} color="red" />
             </div>
 
-            {/* Optional breakdown chart */}
+            {}
             {breakdownChart && (
                 <div className="card-solid p-6">
                     {breakdownChart}
                 </div>
             )}
 
-            {/* Reports Table */}
+            {}
             <div className="card-solid p-0 overflow-hidden">
                 <div className="p-5 border-b border-[var(--surface-4)]">
                     <h3 className="font-bold text-[var(--text-primary)]">

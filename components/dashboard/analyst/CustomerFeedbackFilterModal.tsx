@@ -44,17 +44,17 @@ export function CustomerFeedbackFilterModal({
     const [dateTo, setDateTo] = useState(initialDateRange?.to || '');
     const [customTitle, setCustomTitle] = useState('');
     const [folder, setFolder] = useState('');
-    
+
     const [selectedHubs, setSelectedHubs] = useState<string[]>([]);
     const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
     const [selectedAirlines, setSelectedAirlines] = useState<string[]>([]);
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
-    // Reset state when opening
     useEffect(() => {
         if (isOpen) {
-            setCustomTitle(''); // Reset title on open
-            setFolder('');      // Reset folder on open
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setCustomTitle('');
+            setFolder('');
             if (initialDateRange) {
                 setDateFrom(initialDateRange.from);
                 setDateTo(initialDateRange.to);
@@ -82,7 +82,7 @@ export function CustomerFeedbackFilterModal({
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
             <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden animate-scale-in mx-4">
-                {/* Header */}
+                {}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                     <div className="flex items-center gap-2">
                         <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
@@ -98,10 +98,10 @@ export function CustomerFeedbackFilterModal({
                     </button>
                 </div>
 
-                {/* Content */}
+                {}
                 <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto custom-scrollbar">
-                    
-                    {/* Date Range */}
+
+                    {}
                     <div className="space-y-3">
                         <h4 className="text-sm font-bold text-gray-700 flex items-center gap-2">
                             <Calendar size={14} /> Periode Tanggal
@@ -130,7 +130,7 @@ export function CustomerFeedbackFilterModal({
 
                     <div className="h-px bg-gray-100" />
 
-                    {/* Dashboard Title */}
+                    {}
                     <div>
                         <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                             <FileText size={14} /> Judul Dashboard (Opsional)
@@ -146,8 +146,8 @@ export function CustomerFeedbackFilterModal({
 
                     <div className="h-px bg-gray-100" />
 
-                    {/* Filters */}
-                    {/* Dashboard Folder */}
+                    {}
+                    {}
                     <div>
                         <h4 className="text-sm font-bold text-gray-700 mb-2 flex items-center gap-2">
                             <Box size={14} /> Simpan di Folder (Opsional)
@@ -169,7 +169,7 @@ export function CustomerFeedbackFilterModal({
 
                     <div className="h-px bg-gray-100" />
 
-                    {/* Filters */}
+                    {}
                     <div className="space-y-4">
                         <PrismMultiSelect
                             label="Hub"
@@ -205,7 +205,7 @@ export function CustomerFeedbackFilterModal({
                     </div>
                 </div>
 
-                {/* Footer */}
+                {}
                 <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
                     <button 
                         onClick={onClose}

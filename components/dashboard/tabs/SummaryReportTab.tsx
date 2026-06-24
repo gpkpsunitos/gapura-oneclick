@@ -187,15 +187,12 @@ const SOURCE_OPTIONS: { value: SourceFilter; label: string }[] = [
 ];
 const AIRSIDE_SOURCE_OPTIONS = SOURCE_OPTIONS.filter((opt) => opt.value === 'all' || opt.value === 'airside' || opt.value === 'gse');
 
-/**
- * Classify a single report into Landside / Airside / GSE.
- */
 function classifySourceArea(report: Report): 'landside' | 'airside' | 'general' | 'gse' | 'other' {
   const area = String(report.area || '').trim().toLowerCase();
   const apron = String(report.apron_area_category || '').trim().toLowerCase();
   const general = String(report.general_category || '').trim().toLowerCase();
   const categoryCaseGse = String(report.category_case_gse || '').trim().toLowerCase();
-  // ponytail: GSE source filter is just these three sheet fields containing "gse".
+
   if ([area, apron, categoryCaseGse].some((value) => value.includes('gse'))) return 'gse';
   if (area === 'general' || general) return 'general';
   if (area === 'terminal area' || area.includes('terminal') || area.includes('landside')) return 'landside';
@@ -209,7 +206,7 @@ function applySourceFilter(reports: Report[], source: SourceFilter): Report[] {
 }
 
 function resolveAirsideApronCategory(report: Report) {
-  // ponytail: 2026 GSE rows live under Area=GSE Availability and Category Case GSE, not Apron Area Category.
+
   return normalizeText(report.apron_area_category || report.category_case_gse || report.gse_available_requirement, '');
 }
 
@@ -227,7 +224,6 @@ function keepAirsideGseReports(reports: Report[], source: SourceFilter) {
   });
 }
 
-/** Render-prop: owns one card's local source filter state + pill toggle. */
 function SourceCard({
   reports, children, options = SOURCE_OPTIONS,
 }: {
@@ -839,9 +835,9 @@ function matchesHierarchyContext(
 }
 
 export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryReportTabProps) {
-  // ponytail: exclude CGO at the top so every downstream memo inherits the filter
+
   const reports = useMemo(() => rawReports.filter((r) => !isCargoReport(r)), [rawReports]);
-  // ponytail: fall back to the latest year in the data if no override is passed.
+
   const fallbackYear = useMemo(() => {
     const years = reports.map((r) => extractMonthColumn(r)?.year).filter((y): y is number => Boolean(y));
     return years.length ? Math.max(...years) : new Date().getFullYear();
@@ -853,7 +849,6 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
   const [showAirsideAirlines, setShowAirsideAirlines] = useState(false);
   const [showGeneralAirlines, setShowGeneralAirlines] = useState(false);
 
-  // Drilldown Hook
   const { openDrilldown, DrilldownRenderer } = useDrilldown();
 
   const currentYearReports = useMemo(
@@ -904,8 +899,7 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
     () => buildMonthColumns(filteredSummaryReports),
     [filteredSummaryReports]
   );
-  // ponytail: YoY pair tracks the active year toggle. If the active year has no data
-  // we fall back to the data's most-recent pair.
+
   const summaryYears = useMemo(() => {
     const years = Array.from(new Set(filteredSummaryMonthColumns.map((month) => month.year))).sort((a, b) => a - b);
     if (years.includes(activeYear) && years.includes(activeYear - 1)) return [activeYear - 1, activeYear];
@@ -1081,9 +1075,6 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
     }
   };
 
-  /**
-   * Handle cell click for single dimension pivot (e.g., landside, airside, general)
-   */
   const handleSingleDimensionCellClick = (
     context: DrilldownSingleContext,
     monthKey: string,
@@ -1105,9 +1096,6 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
     }
   };
 
-  /**
-   * Handle cell click for hierarchical pivot (e.g., station, airlines)
-   */
   const handleHierarchicalCellClick = (
     context: DrilldownHierarchyContext,
     monthKey: string,
@@ -1507,7 +1495,7 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
         </div>
       </SummarySection>
 
-      {/* Drilldown Drawer */}
+      {}
       <DrilldownRenderer />
     </div>
   );
@@ -1825,11 +1813,7 @@ function YearTrendChartPanel({
               cursor={{ stroke: '#94a3b8', strokeDasharray: '4 4', strokeWidth: 1 }}
               content={(props) => renderMonthlyTrendTooltip(props as TrendTooltipProps, visibleMetrics, previousYear, currentYear)}
             />
-            {/* ponytail: previous-year line is dashed + neutral grey so the current year (full
-                colour, solid, thicker) carries the eye. Boomer-friendly: no toggle needed.
-                For >2 priors, layer additional lines here using progressively lighter greys
-                (#94a3b8 → #cbd5e1) and longer dash patterns ("8 4", "10 6"). Upstream still
-                slices to 2 years (see summaryYears) — extend that to opt into more history. */}
+            {}
             {visibleMetrics.flatMap((metric) => [
               <Line
                 key={`${metric.id}-${previousYear}`}
@@ -2027,7 +2011,7 @@ function YearCategorySummaryTable({
   const now = new Date();
   const isCurrentCalendarYear = year === now.getFullYear();
   const lastOccurredMonthIndex = isCurrentCalendarYear ? now.getMonth() : 11;
-  // Exclude months that haven't occurred yet, keep ascending order starting January
+
   const displayRows = [...rows]
     .filter((row) => row.monthIndex <= lastOccurredMonthIndex)
     .sort((a, b) => a.monthIndex - b.monthIndex);
@@ -2180,7 +2164,7 @@ function YearImprovementSummaryTable({
                 pillKind = 'neutral';
                 icon = '→';
               } else {
-                // For all metrics except compliments, fewer reports = good (lower is better).
+
                 const isGood = isPositiveMetric ? isIncrease : !isIncrease;
                 pillKind = isGood ? 'pos' : 'neg';
                 icon = isIncrease ? '↑' : '↓';
@@ -2246,7 +2230,7 @@ function SingleDimensionMonthPivotTable({
   headerExtra?: ReactNode;
 }) {
   const safeRows = compactRows(rows).sort((a, b) => b.total - a.total);
-  // Ascending: January first
+
   const displayMonths = [...monthColumns].sort((a, b) => (a.year - b.year) || (a.monthIndex - b.monthIndex));
   const maxValue = Math.max(1, ...safeRows.flatMap((row) => displayMonths.map((month) => row.values[month.key] || 0)));
 
@@ -2430,7 +2414,7 @@ function HierarchicalMonthPivotTable({
   })();
   const safeRows = groupedRows;
   const visibleRows = !unbounded && typeof maxRows === 'number' ? safeRows.slice(0, maxRows) : safeRows;
-  // Ascending: January first
+
   const displayMonths = [...monthColumns].sort((a, b) => (a.year - b.year) || (a.monthIndex - b.monthIndex));
   const maxValue = Math.max(1, ...visibleRows.flatMap((row) => displayMonths.map((month) => row.values[month.key] || 0)));
 

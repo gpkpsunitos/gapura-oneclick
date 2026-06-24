@@ -44,21 +44,18 @@ export default function DashboardManagerPage() {
     const [selectedFolder, setSelectedFolder] = useState<string | null>('all');
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [sortBy, setSortBy] = useState<'name' | 'date'>('date');
-    
-    // UI states
+
     const [isCreatingFolder, setIsCreatingFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
-    
-    // Management states
+
     const [activeDashboardMenu, setActiveDashboardMenu] = useState<string | null>(null);
     const [activeFolderMenu, setActiveFolderMenu] = useState<string | null>(null);
-    
+
     const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
     const [renamingDashboardId, setRenamingDashboardId] = useState<string | null>(null);
     const [movingDashboardId, setMovingDashboardId] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
 
-    // Filter Modal States
     const [showFilterModal, setShowFilterModal] = useState(false);
     const [filterLoading, setFilterLoading] = useState(false);
     const [metadata, setMetadata] = useState<{
@@ -83,6 +80,7 @@ export default function DashboardManagerPage() {
                 const airlines = new Set<string>();
                 const categories = new Set<string>();
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 reports.forEach((r: any) => {
                     if (r.hub) hubs.add(r.hub);
                     if (r.stations?.code) branches.add(r.stations.code);
@@ -146,8 +144,7 @@ export default function DashboardManagerPage() {
 
     const handleDeleteDashboard = async (id: string) => {
         if (!confirm('Yakin ingin menghapus dashboard ini?')) return;
-        
-        // Optimistic update
+
         setDashboards(prev => prev.filter(d => d.id !== id));
         setActiveDashboardMenu(null);
 
@@ -156,7 +153,7 @@ export default function DashboardManagerPage() {
             if (!res.ok) throw new Error('Delete failed');
         } catch (err) {
             console.error('Delete error:', err);
-            fetchDashboards(); // Revert on failure
+            fetchDashboards();
         }
     };
 
@@ -164,7 +161,6 @@ export default function DashboardManagerPage() {
         const name = newName.trim();
         if (!name) return;
 
-        // Optimistic update
         setDashboards(prev => prev.map(d => d.id === id ? { ...d, name } : d));
         setRenamingDashboardId(null);
 
@@ -183,7 +179,6 @@ export default function DashboardManagerPage() {
     const handleMoveDashboard = async (id: string, folder: string | null) => {
         const finalFolder = folder?.trim() || null;
 
-        // Optimistic update
         setDashboards(prev => prev.map(d => d.id === id ? { ...d, folder: finalFolder } : d));
         setMovingDashboardId(null);
 
@@ -206,7 +201,6 @@ export default function DashboardManagerPage() {
             return;
         }
 
-        // Optimistic update
         setDashboards(prev => prev.map(d => d.folder === oldName ? { ...d, folder: name } : d));
         if (selectedFolder === oldName) setSelectedFolder(name);
         setRenamingFolder(null);
@@ -226,7 +220,6 @@ export default function DashboardManagerPage() {
     const handleDeleteFolder = async (folderName: string) => {
         if (!confirm(`Hapus folder "${folderName}"? Dashboard akan dipindahkan ke "Root".`)) return;
 
-        // Optimistic update
         setDashboards(prev => prev.map(d => d.folder === folderName ? { ...d, folder: null } : d));
         if (selectedFolder === folderName) setSelectedFolder('all');
         setActiveFolderMenu(null);
@@ -251,6 +244,7 @@ export default function DashboardManagerPage() {
         setSelectedFolder(name);
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const handleApplyFilter = async (filterData: any) => {
         setFilterLoading(true);
         try {
@@ -264,7 +258,7 @@ export default function DashboardManagerPage() {
 
             const data = await res.json();
             if (data.dashboard) {
-                // Refresh list and select the new dashboard's folder if applicable
+
                 await fetchDashboards();
                 if (data.dashboard.folder) setSelectedFolder(data.dashboard.folder);
                 setShowFilterModal(false);
@@ -279,10 +273,10 @@ export default function DashboardManagerPage() {
 
     return (
         <div className="flex flex-col h-[calc(100vh-2rem)] animate-fade-in bg-[var(--surface-1)] relative overflow-hidden">
-            {/* Noise Overlay */}
+            {}
             <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-100 contrast-150 z-50"></div>
 
-            {/* Header */}
+            {}
             <div className="flex items-center justify-between px-8 py-6 border-b border-dashed border-gray-100 bg-[oklch(0.99_0_0/0.4)] backdrop-blur-xl z-20">
                 <div>
                     <h1 className="text-2xl font-bold text-[var(--text-primary)] tracking-tight">Custom Dashboards</h1>
@@ -307,7 +301,7 @@ export default function DashboardManagerPage() {
             </div>
 
             <div className="flex flex-1 min-h-0">
-                {/* Sidebar Navigation */}
+                {}
                 <div className="w-64 border-r border-dashed border-gray-100 p-6 flex flex-col gap-8 overflow-y-auto">
                     <div>
                         <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-4">Navigasi</h3>
@@ -392,7 +386,7 @@ export default function DashboardManagerPage() {
                                             {dashboards.filter(d => d.folder === folder).length}
                                         </span>
                                     </button>
-                                    
+
                                     {!renamingFolder && (
                                         <div className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button 
@@ -404,7 +398,7 @@ export default function DashboardManagerPage() {
                                             >
                                                 <MoreVertical size={12} />
                                             </button>
-                                            
+
                                             <AnimatePresence>
                                                 {activeFolderMenu === folder && (
                                                     <motion.div
@@ -436,9 +430,9 @@ export default function DashboardManagerPage() {
                     </div>
                 </div>
 
-                {/* Content Area */}
+                {}
                 <div className="flex-1 flex flex-col min-w-0 bg-[var(--surface-bg-alt)]">
-                    {/* Toolbar */}
+                    {}
                     <div className="px-8 py-4 border-b border-dashed border-gray-100 bg-[var(--surface-1)] flex items-center justify-between">
                         <div className="relative w-96">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={16} />
@@ -450,7 +444,7 @@ export default function DashboardManagerPage() {
                                 className="w-full pl-10 pr-4 py-2 rounded-xl bg-[var(--surface-2)] border-none text-sm focus:ring-2 focus:ring-[var(--brand-primary)]/10 transition-all outline-none"
                             />
                         </div>
-                        
+
                         <div className="flex items-center gap-4">
                             <div className="flex bg-[var(--surface-2)] rounded-lg p-1 border border-gray-100">
                                 <button 
@@ -466,7 +460,7 @@ export default function DashboardManagerPage() {
                                     <List size={16} />
                                 </button>
                             </div>
-                            
+
                             <button 
                                 onClick={() => setSortBy(sortBy === 'name' ? 'date' : 'name')}
                                 className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-bold text-[var(--text-secondary)] hover:bg-[var(--surface-2)] transition-all"
@@ -477,7 +471,7 @@ export default function DashboardManagerPage() {
                         </div>
                     </div>
 
-                    {/* Dashboard List */}
+                    {}
                     <div className="flex-1 overflow-y-auto p-8">
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-64 text-[var(--text-muted)]">
@@ -506,11 +500,11 @@ export default function DashboardManagerPage() {
                                             exit={{ opacity: 0, scale: 0.95 }}
                                             className="group relative flex flex-col bg-[var(--surface-1)] border border-gray-100 rounded-2xl shadow-sm hover:shadow-xl hover:shadow-[var(--brand-primary)]/5 hover:border-[var(--brand-primary)]/20 transition-all duration-300 overflow-hidden"
                                         >
-                                            {/* Preview Placeholder */}
+                                            {}
                                             <div className="aspect-[16/10] bg-[var(--surface-2)] flex items-center justify-center group-hover:bg-[var(--brand-primary)]/5 transition-colors relative">
                                                 <FileBarChart size={48} className="text-[var(--text-muted)] group-hover:text-[var(--brand-primary)] transition-colors opacity-20" />
-                                                
-                                                {/* Float Labels Overly */}
+
+                                                {}
                                                 <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-t from-black/20 to-transparent pointer-events-none flex items-end">
                                                     <span className="text-[10px] font-bold text-white uppercase tracking-widest bg-black/20 backdrop-blur-sm px-2 py-1 rounded-lg">
                                                         Preview Dashboard
@@ -518,7 +512,7 @@ export default function DashboardManagerPage() {
                                                 </div>
                                             </div>
 
-                                            {/* Content */}
+                                            {}
                                             <div className="p-5 flex-1 flex flex-col">
                                                 <div className="flex items-start justify-between gap-2 mb-2">
                                                     <div className="flex-1 min-w-0">
@@ -540,7 +534,7 @@ export default function DashboardManagerPage() {
                                                             </h4>
                                                         )}
                                                     </div>
-                                                    
+
                                                     <div className="relative">
                                                         <button 
                                                             onClick={(e) => {
@@ -602,7 +596,7 @@ export default function DashboardManagerPage() {
                                                             {new Date(dashboard.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                                                         </span>
                                                     </div>
-                                                    
+
                                                     {dashboard.folder && (
                                                         <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[10px] font-bold border border-blue-100">
                                                             {dashboard.folder}
@@ -610,8 +604,8 @@ export default function DashboardManagerPage() {
                                                     )}
                                                 </div>
                                             </div>
-                                            
-                                            {/* Interaction Overlay (only when menu not open) */}
+
+                                            {}
                                             {!activeDashboardMenu && (
                                                 <div 
                                                     className="absolute inset-x-0 top-0 bottom-24 cursor-pointer"
@@ -619,7 +613,7 @@ export default function DashboardManagerPage() {
                                                 />
                                             )}
 
-                                            {/* Move Modal/Input Overlay */}
+                                            {}
                                             <AnimatePresence>
                                                 {movingDashboardId === dashboard.id && (
                                                     <motion.div 
@@ -763,7 +757,7 @@ export default function DashboardManagerPage() {
                                                         </AnimatePresence>
                                                     </div>
 
-                                                    {/* Inline Move for List View */}
+                                                    {}
                                                     <AnimatePresence>
                                                         {movingDashboardId === dashboard.id && (
                                                             <motion.div 
@@ -813,7 +807,7 @@ export default function DashboardManagerPage() {
                 </div>
             </div>
 
-            {/* Filter Modal */}
+            {}
             <CustomerFeedbackFilterModal
                 isOpen={showFilterModal}
                 onClose={() => setShowFilterModal(false)}

@@ -157,7 +157,7 @@ export function QuickEditPopover({
               </div>
             )}
 
-            {/* Action buttons */}
+            {}
             {showDeleteConfirm ? (
               <div className="flex items-center gap-2 pt-1">
                 <AlertTriangle className="w-4 h-4 text-[oklch(0.55_0.2_25)] flex-shrink-0" />

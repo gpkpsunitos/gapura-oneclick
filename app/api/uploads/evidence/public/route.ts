@@ -12,7 +12,7 @@ export async function POST(request: Request) {
   let uploadedDriveFileId: string | null = null;
 
   try {
-    // 1. Verify signed upload token
+
     const uploadToken = request.headers.get('x-upload-token');
     if (!uploadToken || !verifyUploadToken(uploadToken)) {
         return NextResponse.json(
@@ -21,7 +21,6 @@ export async function POST(request: Request) {
         );
     }
 
-    // 2. In-memory rate limit (fast, first layer)
     const ip = getClientIpFromRequest(request);
     const memRl = checkRateLimit(`upload:${ip}`, MAX_UPLOADS_PER_WINDOW, RATE_LIMIT_WINDOW);
     if (!memRl.success) {
@@ -31,7 +30,6 @@ export async function POST(request: Request) {
         );
     }
 
-    // 3. Database-backed rate limit (persistent across serverless instances)
     const dbRl = await checkDbRateLimit(`upload:${ip}`, MAX_UPLOADS_PER_WINDOW, RATE_LIMIT_WINDOW);
     if (!dbRl.success) {
         return NextResponse.json(
@@ -56,7 +54,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 });
     }
 
-    // Max 10MB before compression
     const MAX_BYTES = 10 * 1024 * 1024;
     if (file.size > MAX_BYTES) {
       return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 413 });
@@ -65,7 +62,6 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Server-side magic byte validation
     const validation = validateImageFile(buffer, file.type);
     if (!validation.valid) {
         return NextResponse.json({ error: 'Invalid image file' }, { status: 400 });

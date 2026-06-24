@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Copy, ExternalLink, Loader2, MoreHorizontal, Plus, QrCode, RefreshCw, Search, X } from 'lucide-react';
+import { Copy, ExternalLink, GripVertical, ImagePlus, Loader2, MoreHorizontal, Plus, QrCode, RefreshCw, Search, X } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -12,14 +12,23 @@ import { QRCodeWithLogo } from '@/components/ui/QRCodeWithLogo';
 import { cn } from '@/lib/utils';
 import type { PerformanceLink } from '@/types';
 
+type LinkCategory = 'ground-handling' | 'joumpa';
+
+const CATEGORIES: { id: LinkCategory; label: string }[] = [
+    { id: 'ground-handling', label: 'Ground Handling' },
+    { id: 'joumpa', label: 'JOUMPA' },
+];
+
 interface FormState {
     title: string;
     url: string;
     description: string;
+    thumbnailUrl: string;
+    category: LinkCategory;
 }
 
 function initialForm(): FormState {
-    return { title: '', url: '', description: '' };
+    return { title: '', url: '', description: '', thumbnailUrl: '', category: 'ground-handling' };
 }
 
 function formatDate(value: string) {
@@ -39,6 +48,9 @@ export function PerformanceLinksManagementPage() {
     const [form, setForm] = useState<FormState>(initialForm());
     const [qrLink, setQrLink] = useState<PerformanceLink | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+    const [draggingId, setDraggingId] = useState<string | null>(null);
+    const [dragOverId, setDragOverId] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -71,7 +83,13 @@ export function PerformanceLinksManagementPage() {
 
     const openEdit = useCallback((link: PerformanceLink) => {
         setEditing(link);
-        setForm({ title: link.title, url: link.url, description: link.description || '' });
+        setForm({
+            title: link.title,
+            url: link.url,
+            description: link.description || '',
+            thumbnailUrl: link.thumbnail_url || '',
+            category: link.category || 'ground-handling',
+        });
         setComposerOpen(true);
     }, []);
 
@@ -90,6 +108,8 @@ export function PerformanceLinksManagementPage() {
                 title: form.title.trim(),
                 url: form.url.trim(),
                 description: form.description.trim() || null,
+                thumbnail_url: form.thumbnailUrl.trim() || null,
+                category: form.category,
             };
             const res = await fetch(
                 editing ? `/api/performance-links/${editing.id}` : '/api/performance-links',
@@ -122,11 +142,60 @@ export function PerformanceLinksManagementPage() {
         }
     }, [load]);
 
+    const uploadThumbnail = useCallback(async (file: File) => {
+        setUploadingThumbnail(true);
+        setError('');
+        try {
+            const body = new FormData();
+            body.append('file', file);
+            const res = await fetch('/api/uploads/performance-link-thumbnail', { method: 'POST', body });
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(result.error || 'Unable to upload photo');
+            setForm((c) => ({ ...c, thumbnailUrl: result.url }));
+        } catch (e) {
+            setError(e instanceof Error ? e.message : 'Unable to upload photo');
+        } finally {
+            setUploadingThumbnail(false);
+        }
+    }, []);
+
     const copyLink = useCallback(async (link: PerformanceLink) => {
         await navigator.clipboard.writeText(link.url);
         setCopiedId(link.id);
         setTimeout(() => setCopiedId((cur) => (cur === link.id ? null : cur)), 1500);
     }, []);
+
+    const handleDragEnd = useCallback(() => {
+        setDraggingId(null);
+        setDragOverId(null);
+    }, []);
+
+    const handleDrop = useCallback(async (targetId: string) => {
+        const fromId = draggingId;
+        handleDragEnd();
+        if (!fromId || fromId === targetId) return;
+
+        const fromIndex = links.findIndex((l) => l.id === fromId);
+        const toIndex = links.findIndex((l) => l.id === targetId);
+        if (fromIndex === -1 || toIndex === -1) return;
+
+        const reordered = [...links];
+        const [moved] = reordered.splice(fromIndex, 1);
+        reordered.splice(toIndex, 0, moved);
+        setLinks(reordered);
+
+        try {
+            const res = await fetch('/api/performance-links/reorder', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order: reordered.map((l) => l.id) }),
+            });
+            if (!res.ok) throw new Error('Unable to save the new order');
+        } catch (e) {
+            setError(e instanceof Error ? e.message : 'Unable to save the new order');
+            await load();
+        }
+    }, [draggingId, handleDragEnd, links, load]);
 
     return (
         <div className="min-h-screen bg-[#F7F8FA] px-4 py-5 text-slate-900 sm:px-6 lg:px-8">
@@ -196,61 +265,114 @@ export function PerformanceLinksManagementPage() {
                             <p className="mt-1 text-sm text-slate-500">Add the first link or adjust the current search.</p>
                         </div>
                     ) : (
-                        <div className="divide-y divide-slate-100">
-                            {filteredLinks.map((link) => (
-                                <article key={link.id} className="group flex items-center gap-4 px-4 py-4 transition hover:bg-slate-50 sm:px-6">
-                                    <button
-                                        type="button"
-                                        onClick={() => setQrLink(link)}
-                                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700"
-                                        aria-label="Show QR code"
+                        <div className="grid grid-cols-1 gap-6 p-4 sm:grid-cols-2 sm:p-6 xl:grid-cols-3">
+                            {filteredLinks.map((link) => {
+                                const isDragging = draggingId === link.id;
+                                const isDropTarget = dragOverId === link.id && draggingId !== null && draggingId !== link.id;
+                                return (
+                                    <article
+                                        key={link.id}
+                                        onDragOver={(e) => { e.preventDefault(); if (draggingId && draggingId !== link.id) setDragOverId(link.id); }}
+                                        onDragLeave={() => setDragOverId((cur) => (cur === link.id ? null : cur))}
+                                        onDrop={(e) => { e.preventDefault(); void handleDrop(link.id); }}
+                                        className={cn(
+                                            'group relative overflow-hidden rounded-[28px] border bg-white shadow-[0_24px_60px_-30px_rgba(15,23,42,0.25)] transition',
+                                            isDragging ? 'border-emerald-900/8' : 'border-emerald-900/8 hover:-translate-y-1',
+                                            isDropTarget && 'ring-2 ring-emerald-400 ring-offset-2'
+                                        )}
                                     >
-                                        <QrCode className="h-5 w-5" />
-                                    </button>
-                                    <div className="min-w-0 flex-1">
-                                        <span className="block truncate text-sm font-semibold text-slate-900">{link.title}</span>
-                                        <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
-                                            <span className="truncate">{link.url}</span>
-                                            <span aria-hidden="true">•</span>
-                                            <span>{formatDate(link.created_at)}</span>
-                                        </span>
-                                    </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => void copyLink(link)}
-                                        className="hidden h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-white sm:inline-flex"
-                                    >
-                                        <Copy className="h-4 w-4" />
-                                        {copiedId === link.id ? 'Copied' : 'Copy'}
-                                    </button>
-                                    <a
-                                        href={link.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="hidden h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-white sm:inline-flex"
-                                    >
-                                        <ExternalLink className="h-4 w-4" />
-                                        Open
-                                    </a>
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
+                                        {isDragging && (
+                                            <div className="absolute inset-0 z-20 flex items-center justify-center rounded-[28px] border-2 border-dashed border-emerald-300 bg-emerald-50/80 backdrop-blur-sm">
+                                                <span className="text-xs font-bold uppercase tracking-wide text-emerald-500">Drop to reorder</span>
+                                            </div>
+                                        )}
+                                        <div
+                                            draggable
+                                            onDragStart={(e) => { e.stopPropagation(); setDraggingId(link.id); }}
+                                            onDragEnd={handleDragEnd}
+                                            className="absolute right-3 top-3 z-30 flex h-8 w-8 cursor-grab items-center justify-center rounded-lg border border-slate-200 bg-white/90 text-slate-500 backdrop-blur transition hover:bg-white active:cursor-grabbing"
+                                        >
+                                            <GripVertical className="h-4 w-4" />
+                                        </div>
+                                        <div className={cn(isDragging && 'invisible')}>
                                             <button
                                                 type="button"
-                                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white hover:text-slate-900"
-                                                aria-label="Link actions"
+                                                onClick={() => setQrLink(link)}
+                                                className="relative block h-44 w-full overflow-hidden"
+                                                aria-label="Show QR code"
                                             >
-                                                <MoreHorizontal className="h-4 w-4" />
+                                                {link.thumbnail_url ? (
+                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                    <img
+                                                        src={link.thumbnail_url}
+                                                        alt=""
+                                                        draggable={false}
+                                                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                                                    />
+                                                ) : (
+                                                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600">
+                                                        <QrCode className="h-16 w-16 text-white/25" />
+                                                    </div>
+                                                )}
                                             </button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem onClick={() => openEdit(link)}>Edit</DropdownMenuItem>
-                                            <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => void removeLink(link)}>
-                                                Remove
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                </article>
-                            ))}
+                                            <div className="px-5 pb-5 pt-5">
+                                                <span
+                                                    className={cn(
+                                                        'mb-2 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide',
+                                                        link.category === 'joumpa'
+                                                            ? 'bg-amber-100 text-amber-700'
+                                                            : 'bg-teal-100 text-teal-700'
+                                                    )}
+                                                >
+                                                    {link.category === 'joumpa' ? 'JOUMPA' : 'Ground Handling'}
+                                                </span>
+                                                <h3 className="line-clamp-2 text-base font-extrabold leading-tight tracking-tight text-slate-950">
+                                                    {link.title}
+                                                </h3>
+                                                <span className="mt-1 block truncate text-xs font-medium text-slate-500">{link.url}</span>
+                                                <span className="mt-1 block text-xs text-slate-400">{formatDate(link.created_at)}</span>
+                                                <div className="mt-4 flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => void copyLink(link)}
+                                                        className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                                                    >
+                                                        <Copy className="h-4 w-4" />
+                                                        {copiedId === link.id ? 'Copied' : 'Copy'}
+                                                    </button>
+                                                    <a
+                                                        href={link.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        draggable={false}
+                                                        className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                                                    >
+                                                        <ExternalLink className="h-4 w-4" />
+                                                        Open
+                                                    </a>
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <button
+                                                                type="button"
+                                                                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+                                                                aria-label="Link actions"
+                                                            >
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem onClick={() => openEdit(link)}>Edit</DropdownMenuItem>
+                                                            <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => void removeLink(link)}>
+                                                                Remove
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </article>
+                                );
+                            })}
                         </div>
                     )}
                 </section>
@@ -312,6 +434,26 @@ export function PerformanceLinksManagementPage() {
                                         required
                                     />
                                 </label>
+                                <div className="block space-y-2 text-sm font-semibold text-slate-700">
+                                    Category
+                                    <div className="grid grid-cols-2 gap-2">
+                                        {CATEGORIES.map((cat) => (
+                                            <button
+                                                key={cat.id}
+                                                type="button"
+                                                onClick={() => setForm((c) => ({ ...c, category: cat.id }))}
+                                                className={cn(
+                                                    'h-10 rounded-lg border px-3 text-sm font-semibold transition',
+                                                    form.category === cat.id
+                                                        ? 'border-blue-600 bg-blue-50 text-blue-700'
+                                                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                                                )}
+                                            >
+                                                {cat.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                                 <label className="block space-y-2 text-sm font-semibold text-slate-700">
                                     URL
                                     <input
@@ -332,6 +474,46 @@ export function PerformanceLinksManagementPage() {
                                         className="w-full rounded-lg border border-slate-200 px-3 py-2 font-normal outline-none focus:border-blue-500"
                                     />
                                 </label>
+                                <div className="block space-y-2 text-sm font-semibold text-slate-700">
+                                    Cover photo (optional)
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                                            {uploadingThumbnail ? (
+                                                <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+                                            ) : form.thumbnailUrl ? (
+                                                // eslint-disable-next-line @next/next/no-img-element
+                                                <img src={form.thumbnailUrl} alt="" className="h-full w-full object-cover" />
+                                            ) : (
+                                                <ImagePlus className="h-5 w-5 text-slate-300" />
+                                            )}
+                                        </div>
+                                        <label className="inline-flex h-9 cursor-pointer items-center rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:bg-slate-50">
+                                            {form.thumbnailUrl ? 'Replace photo' : 'Upload photo'}
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                onChange={(e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (file) void uploadThumbnail(file);
+                                                    e.target.value = '';
+                                                }}
+                                            />
+                                        </label>
+                                        {form.thumbnailUrl ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setForm((c) => ({ ...c, thumbnailUrl: '' }))}
+                                                className="text-xs font-semibold text-slate-400 hover:text-red-600"
+                                            >
+                                                Remove
+                                            </button>
+                                        ) : null}
+                                    </div>
+                                    <p className="text-xs font-normal text-slate-400">
+                                        Shown as the card cover on the eskalasi monitoring page. If left empty, an abstract gradient is used instead.
+                                    </p>
+                                </div>
                             </div>
                             <div className="flex items-center justify-end gap-2 border-t border-slate-200 px-6 py-4">
                                 <button
@@ -344,7 +526,7 @@ export function PerformanceLinksManagementPage() {
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={saving}
+                                    disabled={saving || uploadingThumbnail}
                                     className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                                 >
                                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

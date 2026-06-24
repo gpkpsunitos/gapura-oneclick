@@ -13,8 +13,6 @@ export default async function ManagerAllReportsPage() {
     const payload = token ? await readSessionPayload(token) : null;
     if (!payload?.id) redirect('/auth/login');
 
-    // Read station_id from the users table (mirrors /api/dashboard/manager-cabang).
-    // The JWT payload's station_id can be stale or absent on older sessions.
     const { data: dbUser } = await supabaseAdmin
         .from('users')
         .select('station_id')
@@ -28,7 +26,7 @@ export default async function ManagerAllReportsPage() {
         .eq('id', dbUser.station_id)
         .single();
     const stationCode = (station?.code || '').toUpperCase();
-    // Fail-closed: an unresolved station must not widen to all reports.
+
     if (!stationCode) redirect('/dashboard/manager');
 
     let initialReports;

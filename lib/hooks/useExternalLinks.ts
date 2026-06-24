@@ -4,10 +4,6 @@ import { useState, useEffect } from 'react';
 import type { ExternalLinksMap } from '@/lib/external-links';
 import { DEFAULT_EXTERNAL_LINKS } from '@/lib/external-links';
 
-/**
- * Client hook to fetch external links from the public API.
- * Returns null while loading; consumers should fall back to DEFAULT_EXTERNAL_LINKS.
- */
 export function useExternalLinks(): ExternalLinksMap | null {
   const [links, setLinks] = useState<ExternalLinksMap | null>(null);
 

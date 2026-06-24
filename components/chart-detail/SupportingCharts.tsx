@@ -7,7 +7,6 @@ import { Info } from 'lucide-react';
 import type { DashboardTile, QueryResult } from '@/types/builder';
 import { ViewMode, Normalization } from './GlobalControlBar';
 
-// Import custom charts
 import { StatusBreakdownChart } from './custom-charts/StatusBreakdownChart';
 import { SubCategoryDetailChart } from './custom-charts/SubCategoryDetailChart';
 import { TargetDivisionChart } from './custom-charts/TargetDivisionChart';
@@ -21,7 +20,6 @@ import { CategoryByBranchChart } from './custom-charts/CategoryByBranchChart';
 import { ShieldAlert, Loader2, RefreshCcw, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// Types of custom charts
 export type CustomChartType = 
   | 'status_breakdown'
   | 'subcategory_detail'
@@ -51,6 +49,7 @@ interface SupportingChartsProps {
   normalization?: Normalization;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function safeRender(value: any): React.ReactNode {
   if (value === null || value === undefined) return '';
   if (typeof value === 'object') {
@@ -59,10 +58,8 @@ function safeRender(value: any): React.ReactNode {
   return String(value);
 }
 
-// Helper functions to transform QueryResult data for custom charts
 function transformToStatusData(result: QueryResult) {
   if (!result?.rows || result.rows.length === 0) {
-    console.warn('StatusBreakdownChart: No data available');
     return [];
   }
   const total = result.rows.reduce((sum, row) => {
@@ -81,11 +78,9 @@ function transformToStatusData(result: QueryResult) {
 
 function transformToSubCategoryData(result: QueryResult) {
   if (!result?.rows || result.rows.length === 0) {
-    console.warn('SubCategoryDetailChart: No data available');
     return [];
   }
 
-  // Filter out rows with empty/null sub-categories FIRST
   const columns = result.columns || Object.keys(result.rows[0] || {});
   const subCategoryColumn = columns.find(col =>
     col.toLowerCase().includes('irregularity_complain') ||
@@ -93,14 +88,12 @@ function transformToSubCategoryData(result: QueryResult) {
     col.toLowerCase().includes('subcategory')
   ) || columns.find(col => col !== 'jumlah' && col !== 'count' && col !== 'JUMLAH' && col !== 'COUNT') || columns[0];
 
-  // Filter rows with valid sub-categories (non-empty, non-null)
   const validRows = result.rows.filter(row => {
     const subCategory = String(row[subCategoryColumn] || row.irregularity_complain_category || row.sub_category || row.SUB_CATEGORY || '').trim();
     return subCategory && subCategory !== '' && subCategory !== 'null' && subCategory !== 'undefined';
   });
 
   if (validRows.length === 0) {
-    console.warn('SubCategoryDetailChart: No valid sub-category data after filtering');
     return [];
   }
 
@@ -126,25 +119,24 @@ function transformToSubCategoryData(result: QueryResult) {
 
 function transformToBranchCategoryData(result: QueryResult) {
   if (!result?.rows || result.rows.length === 0) {
-    console.warn('CategoryByBranchChart: No data available');
     return [];
   }
 
   const columns = result.columns || Object.keys(result.rows[0] || {});
-  
-  // Robust field detection
+
   const branchKeys = ['branch', 'reporting_branch', 'BRANCH', 'Reporting_Branch', 'Reporting Branch', 'Branch ', 'lokal_mpa_lookup', 'Lokal / MPA (VLOOKUP)'];
   const categoryKeys = ['category', 'main_category', 'CATEGORY', 'Report_Category', 'Report Category', 'Irregularity_Complain_Category'];
   const countKeys = ['jumlah', 'count', 'JUMLAH', 'COUNT', 'jumlah_kasus', 'jumlah kasus'];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const getVal = (row: any, keys: string[]) => {
-    // Try lowercase and trimmed versions too
+
     for (const k of keys) {
       if (row[k] !== undefined && row[k] !== null && row[k] !== '') return row[k];
       const foundKey = Object.keys(row).find(rk => rk.trim().toLowerCase() === k.trim().toLowerCase());
       if (foundKey && row[foundKey] !== undefined) return row[foundKey];
     }
-    // Fallback searching in columns
+
     const colName = columns.find(c => keys.includes(c) || keys.includes(c.toLowerCase()));
     if (colName) return row[colName];
     return null;
@@ -154,7 +146,7 @@ function transformToBranchCategoryData(result: QueryResult) {
     const branch = String(getVal(row, branchKeys) || 'Unknown');
     const category = String(getVal(row, categoryKeys) || 'Unknown');
     const count = Number(getVal(row, countKeys) || 1);
-    
+
     return {
       branch,
       category,
@@ -165,7 +157,6 @@ function transformToBranchCategoryData(result: QueryResult) {
 
 function transformToDivisionData(result: QueryResult) {
   if (!result?.rows || result.rows.length === 0) {
-    console.warn('TargetDivisionChart: No data available');
     return [];
   }
   const total = result.rows.reduce((sum, row) => {
@@ -184,28 +175,16 @@ function transformToDivisionData(result: QueryResult) {
 
 function transformToAreaSubCategoryData(result: QueryResult, forcedArea?: string) {
   if (!result?.rows || result.rows.length === 0) {
-    console.warn('AreaSubCategoryChart: No data available');
     return [];
   }
-
-  // DEBUG: Log detailed info
-  console.group('🔍 AreaSubCategory Transform Debug');
-  console.log('Forced Area:', forcedArea);
-  console.log('Result columns:', result.columns);
-  console.log('First row keys:', Object.keys(result.rows[0] || {}));
-  console.log('First row:', result.rows[0]);
 
   const total = result.rows.reduce((sum, row) => {
     const count = Number(row.Total) || Number(row.total) || Number(row.jumlah) || Number(row.count) || Number(row.JUMLAH) || Number(row.COUNT) || 0;
     return sum + count;
   }, 0);
 
-  // Determine which column contains the sub-category
   const columns = result.columns || Object.keys(result.rows[0] || {});
-  
-  // DEBUG: Log all columns
-  console.log('All columns:', columns);
-  
+
   const subCategoryColumn = columns.find(col =>
     col.toLowerCase() === 'category' ||
     col.toLowerCase() === 'terminal_area_category' ||
@@ -216,26 +195,20 @@ function transformToAreaSubCategoryData(result: QueryResult, forcedArea?: string
     return lower !== 'total' && lower !== 'jumlah' && lower !== 'count' && lower !== 'area';
   }) || columns[0];
 
-  // Find area column - be more flexible with naming
   const areaColumn = columns.find(col => {
     const lower = col.toLowerCase();
     return lower === 'area' || lower === 'Area' || lower.includes('area');
   });
 
-  console.log('SubCategory column:', subCategoryColumn);
-  console.log('Area column:', areaColumn);
-  console.log('Area column value in first row:', areaColumn ? result.rows[0]?.[areaColumn] : 'N/A');
-
   const transformed = result.rows.map(row => {
     const count = Number(row.Total) || Number(row.total) || Number(row.jumlah) || Number(row.count) || Number(row.JUMLAH) || Number(row.COUNT) || 0;
     const subCategory = String(row[subCategoryColumn] || row.Category || row.category || 'Tidak Terkategori');
-    
-    // Read area from data
+
     let area = forcedArea || 'GENERAL';
     if (areaColumn && row[areaColumn]) {
       area = String(row[areaColumn]).toUpperCase();
     } else if (!forcedArea) {
-      // Fallback: detect from column name
+
       if (subCategoryColumn.toLowerCase().includes('terminal')) {
         area = 'TERMINAL';
       } else if (subCategoryColumn.toLowerCase().includes('apron')) {
@@ -253,7 +226,6 @@ function transformToAreaSubCategoryData(result: QueryResult, forcedArea?: string
     };
   }).filter(item => item.subCategory && item.subCategory !== 'null' && item.subCategory !== 'undefined' && item.subCategory !== '');
 
-  console.log('First 2 transformed items:', transformed.slice(0, 2));
   console.groupEnd();
 
   return transformed;
@@ -261,7 +233,6 @@ function transformToAreaSubCategoryData(result: QueryResult, forcedArea?: string
 
 function transformToPriorityData(result: QueryResult) {
   if (!result?.rows || result.rows.length === 0) {
-    console.warn('PriorityChart: No data available');
     return [];
   }
   const total = result.rows.reduce((sum, row) => {
@@ -278,11 +249,8 @@ function transformToPriorityData(result: QueryResult) {
   });
 }
 
-
-
 function transformToAirlineTypeCategoryData(result: QueryResult) {
   if (!result?.rows || result.rows.length === 0) {
-    console.warn('AirlineTypeCategoryChart: No data available');
     return [];
   }
   const total = result.rows.reduce((sum, row) => {
@@ -302,7 +270,6 @@ function transformToAirlineTypeCategoryData(result: QueryResult) {
 
 function transformToMonthlyTrendData(result: QueryResult) {
   if (!result?.rows || result.rows.length === 0) {
-    console.warn('MonthlyTrendChart: No data available');
     return [];
   }
   const sortedRows = [...result.rows].sort((a, b) => {
@@ -310,13 +277,13 @@ function transformToMonthlyTrendData(result: QueryResult) {
     const bMonth = String(b.month || b.MONTH || b.Month || '00').padStart(2, '0');
     return aMonth.localeCompare(bMonth);
   });
-  
+
   return sortedRows.map((row, idx) => {
     const currentCount = Number(row.jumlah) || Number(row.count) || Number(row.JUMLAH) || Number(row.COUNT) || 0;
     const previousCount = idx > 0 ? (Number(sortedRows[idx - 1].jumlah) || Number(sortedRows[idx - 1].count) || Number(sortedRows[idx - 1].JUMLAH) || Number(sortedRows[idx - 1].COUNT) || 0) : currentCount;
     const change = currentCount - previousCount;
     const changePercent = previousCount > 0 ? (change / previousCount) * 100 : 0;
-    
+
     return {
       month: String(row.month || row.MONTH || row.Month || '00').padStart(2, '0'),
       year: Number(row.year || row.YEAR || row.Year) || new Date().getFullYear(),
@@ -330,7 +297,6 @@ function transformToMonthlyTrendData(result: QueryResult) {
 
 function transformToCategoryDistributionData(result: QueryResult) {
   if (!result?.rows || result.rows.length === 0) {
-    console.warn('CategoryDistributionChart: No data available');
     return [];
   }
   const total = result.rows.reduce((sum, row) => {
@@ -347,8 +313,6 @@ function transformToCategoryDistributionData(result: QueryResult) {
   });
 }
 
-// Calculate dynamic height based on chart type and data
-// For supporting charts, we use fixed heights to prevent overflow
 function calculateChartHeight(chartType: string, rowCount: number): string {
   switch (chartType) {
     case 'horizontal_bar': {
@@ -359,7 +323,7 @@ function calculateChartHeight(chartType: string, rowCount: number): string {
     case 'donut':
       return '240px';
     case 'heatmap': {
-      // Heatmap rows need space; scale with data volume
+
       const hmHeight = Math.max(rowCount * 28 + 80, 260);
       return `${Math.min(hmHeight, 500)}px`;
     }
@@ -379,27 +343,6 @@ function calculateChartHeight(chartType: string, rowCount: number): string {
 }
 
 export function SupportingCharts({ charts, dataMap, loading, source = 'ai', viewMode = 'values', normalization = 'none' }: SupportingChartsProps) {
-  
-  // Debug logging - log data structure for custom charts
-  if (typeof window !== 'undefined' && charts.length > 0) {
-    console.group('🔍 SupportingCharts Debug');
-    console.log('Total charts:', charts.length);
-    console.log('DataMap keys:', Object.keys(dataMap));
-    
-    charts.forEach((chart, idx) => {
-      const result = dataMap[idx];
-      if (chart.customChartType && result) {
-        console.group(`Chart ${idx}: ${chart.customChartType}`);
-        console.log('Title:', chart.visualization.title);
-        console.log('Has data:', !!result);
-        console.log('Row count:', result?.rows?.length || 0);
-        console.log('Columns:', result?.columns);
-        console.log('Sample rows (first 2):', result?.rows?.slice(0, 2));
-        console.groupEnd();
-      }
-    });
-    console.groupEnd();
-  }
 
   if (loading) {
     return (
@@ -457,14 +400,12 @@ export function SupportingCharts({ charts, dataMap, loading, source = 'ai', view
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {charts.map((chart, idx) => {
           const result = dataMap[idx];
-          
-          // Calculate dynamic height
+
           const chartHeight = calculateChartHeight(
             chart.visualization.chartType || 'bar',
             result?.rowCount || result?.rows?.length || 0
           );
 
-          // Handle missing data/error state
           if (!result && !loading) {
             return (
               <div 
@@ -480,7 +421,6 @@ export function SupportingCharts({ charts, dataMap, loading, source = 'ai', view
             );
           }
 
-          // Handle custom chart types
           if (chart.customChartType) {
             const customChartProps = {
               title: chart.visualization.title,
@@ -590,16 +530,14 @@ export function SupportingCharts({ charts, dataMap, loading, source = 'ai', view
           if (chart.visualization.chartType === 'kpi') {
             const rawY = chart.visualization.yAxis;
             const rawYArray = Array.isArray(rawY) ? rawY : (rawY ? [String(rawY)] : []);
-            
-            // Try to find the best key for KPI value
+
             let yKey = '';
-            
-            // 1. Exact match
+
             const exactMatch = rawYArray.find(y => result.columns.includes(y));
             if (exactMatch) {
               yKey = exactMatch;
             } else {
-              // 2. Fuzzy match
+
               const targetY = rawYArray[0] || '';
               const normalizedTarget = targetY.toLowerCase().replace(/[_\s]/g, '');
               const matches = result.columns.map(c => {
@@ -610,11 +548,11 @@ export function SupportingCharts({ charts, dataMap, loading, source = 'ai', view
                 if (normalizedC.includes('total') || normalizedC.includes('count') || normalizedC.includes('jumlah')) score += 10;
                 return { col: c, score };
               }).filter(m => m.score > 0).sort((a, b) => b.score - a.score);
-              
+
               if (matches.length > 0) {
                 yKey = matches[0].col;
               } else {
-                // 3. Fallback to first numeric column
+
                 const firstNumeric = result.columns.find(c => {
                   const val = result.rows[0]?.[c];
                   return typeof val === 'number' || (typeof val === 'string' && !isNaN(Number(val)));
@@ -636,7 +574,7 @@ export function SupportingCharts({ charts, dataMap, loading, source = 'ai', view
                   </h4>
                   <div className="w-1.5 h-1.5 rounded-full bg-[#6b8e3d]" />
                 </div>
-                
+
                 <div className="p-6 flex flex-col justify-center items-center min-h-[200px] text-center">
                   <span className="text-4xl font-black text-[#333] tracking-tighter">
                     {value.toLocaleString('id-ID')}
@@ -666,7 +604,7 @@ export function SupportingCharts({ charts, dataMap, loading, source = 'ai', view
                 </h4>
                 <div className="w-1.5 h-1.5 rounded-full bg-[#6b8e3d]" />
               </div>
-              
+
               <div 
                 className="p-3 pt-6 overflow-hidden"
                 style={{ height: chartHeight }}

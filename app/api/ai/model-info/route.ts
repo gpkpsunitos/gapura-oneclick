@@ -7,17 +7,11 @@ import { resolveCachedAI } from '@/lib/ai-route-cache';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * GET /api/ai/model-info
- * 
- * Get detailed model information and metrics
- * Fetches actual data from Google Sheets to show real statistics
- */
 export async function GET(request: Request) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
-    
+
     if (!token) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -82,7 +76,7 @@ export async function GET(request: Request) {
       });
     } catch (error) {
       console.error('[AI Model Info] AI service unavailable:', error);
-      
+
       return NextResponse.json(
         { 
           error: 'AI service tidak tersedia. Pastikan service AI berjalan di localhost:8000',

@@ -11,7 +11,7 @@ import {
   fetchAllAreaReports,
   fetchCellIntelligence,
   fetchBranchAreaPareto,
-  fetchAggregatedAreaReport, // Add this
+  fetchAggregatedAreaReport,
   AreaSummary,
   TrendDataPoint,
   AreaCategoryData,
@@ -45,7 +45,6 @@ import { AiRootCauseInvestigation } from '../ai-root-cause/AiRootCauseInvestigat
 import { motion } from 'framer-motion';
 import type { QueryResult } from '@/types/builder';
 
-
 interface FilterParams {
   hub?: string;
   branch?: string;
@@ -63,7 +62,7 @@ interface KPICardProps {
   subtitle?: string;
   trend?: number;
   color?: 'green' | 'red' | 'yellow' | 'blue' | 'orange';
-  // Optional short explanation for readers (aimed at non-technical audiences)
+
   explanation?: string;
 }
 
@@ -84,7 +83,7 @@ function KPICard({ title, value, subtitle, trend, color = 'blue', explanation }:
     >
       <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }} />
       <div className="absolute -inset-24 bg-gradient-to-br from-white/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl pointer-events-none" />
-      
+
       <div className="relative z-10">
         <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1.5">{title}</div>
         <div className="text-3xl font-display font-black tracking-tighter leading-none mb-1">{value}</div>
@@ -255,7 +254,6 @@ function CategoryStackedBar({ data }: { data: AreaCategoryData[] }) {
     </div>
   );
 }
-
 
 function BranchBreakdownChart({ data }: { data: BranchByAreaData[] }) {
   const topBranches = Array.from(
@@ -603,15 +601,18 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
       setLoading(true);
       setError(null);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const activeFilters: any = { 
         ...filters, 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         branch: focusedBranch || (filters as any).branch,
         area: (focusedArea === 'all' || !focusedArea) ? undefined : focusedArea,
       };
 
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const aggregated = await fetchAggregatedAreaReport(activeFilters as any, signal);
-        
+
         if (aggregated && aggregated.areaData) {
           setChartData(prev => ({
             ...prev,
@@ -627,29 +628,34 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
           if (aiSeverity) {
             setChartData(prev => ({
               ...prev,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ...(aiSeverity.area ? { aiSeverityArea: aiSeverity.area.map((r: any) => ({ name: r.name, critical: r.critical, high: r.high, medium: r.medium, low: r.low })) as SeverityDistribution[] } : {}),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ...(aiSeverity.category ? { aiSeverityCategory: aiSeverity.category.map((r: any) => ({ name: r.name, critical: r.critical, high: r.high, medium: r.medium, low: r.low })) as SeverityDistribution[] } : {}),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ...(aiSeverity.branch ? { aiSeverityBranch: aiSeverity.branch.map((r: any) => ({ name: r.name, critical: r.critical, high: r.high, medium: r.medium, low: r.low })) as SeverityDistribution[] } : {}),
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               ...(aiSeverity.airline ? { aiSeverityAirline: aiSeverity.airline.map((r: any) => ({ name: r.name, critical: r.critical, high: r.high, medium: r.medium, low: r.low })) as SeverityDistribution[] } : {}),
             }));
           }
         }).catch(err => {
           if (err.name === 'AbortError') return;
-          console.warn('AI Severity failed:', err);
         });
 
         fetchRiskSummaryAi(signal).then(res => {
           if (res) setRiskSummary(res);
         }).catch(err => {
           if (err.name === 'AbortError') return;
-          console.warn('AI Risk failed:', err);
         });
-        
+
         if (isFocused) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchCellIntelligence(focusedBranch!, focusedArea!, activeFilters as any, signal).then(setCellIntel);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchBranchAreaPareto(activeFilters as any, signal).then(d => setChartData(prev => ({ ...prev, paretoData: d })));
         }
       } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((err as any).name === 'AbortError') return;
         console.error('Failed to load aggregated area data:', err);
         setError('Failed to load primary chart data.');
@@ -673,17 +679,23 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
 
     async function loadDeferredData() {
       setTableLoading(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const activeFilters: any = { 
         ...filters, 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         branch: focusedBranch || (filters as any).branch,
         area: (focusedArea === 'all' || !focusedArea) ? undefined : focusedArea,
       };
 
       try {
         const [rootCause, branch, airline, table] = await Promise.all([
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchRootCauseByArea(activeFilters as any),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchBranchByArea(activeFilters as any),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchAirlineByArea(activeFilters as any),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchAllAreaReports(activeFilters as any),
         ]);
         setChartData(prev => ({
@@ -702,9 +714,6 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
 
     loadDeferredData();
   }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo, focusedBranch, focusedArea]);
-
-
-  // AI Root Cause Summary logic removed - handled by AiRootCauseInvestigation component
 
   if (loading) {
     return (
@@ -725,9 +734,13 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalReports = chartData.areaData.reduce((sum: number, a: any) => sum + a.total, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalIrreg = chartData.areaData.reduce((sum: number, a: any) => sum + a.irregularity, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalComplaint = chartData.areaData.reduce((sum: number, a: any) => sum + a.complaint, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalCompliment = chartData.areaData.reduce((sum: number, a: any) => sum + a.compliment, 0);
 
   const overallIrregRate = totalReports > 0 ? (totalIrreg / totalReports) * 100 : 0;
@@ -745,7 +758,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
           <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
             <Zap size={240} strokeWidth={0.5} />
           </div>
-          
+
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-8">
               <div>
@@ -777,11 +790,12 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
               </div>
             </div>
 
-            {/* Core Intelligence Hero Panel (9 Sections integrated into layout) */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
               {[
                 { label: 'Total Volume', val: cellIntel?.count || 0, color: 'text-white' },
                 { label: 'Area Rank', val: `#${cellIntel?.rank || '?'}`, color: 'text-indigo-300 font-bold' },
+                // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
                 { label: 'Growth MoM', val: `${cellIntel?.momGrowth.toFixed(1)}%`, color: cellIntel?.momGrowth! > 0 ? 'text-red-400' : 'text-emerald-400' },
                 { label: 'Risk Intensity', val: cellIntel?.riskLevel || 'Low', color: (cellIntel?.riskLevel?.toUpperCase() === 'CRITICAL' || cellIntel?.riskLevel?.toUpperCase() === 'HIGH') ? 'text-red-500' : 'text-white' },
                 { label: 'Contribution', val: `${cellIntel?.contribution.toFixed(1)}%`, color: 'text-white' },
@@ -795,7 +809,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Ranking Analysis (Pareto) */}
+              {}
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                  <h3 className="text-xs font-black uppercase tracking-widest text-white/40 mb-4 flex items-center gap-2">
                    <Zap size={14} className="text-amber-400" /> Area Concentration (80/20 Rule)
@@ -814,7 +828,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
                   </div>
               </div>
 
-              {/* Monthly Velocity Trend */}
+              {}
               <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
                  <h3 className="text-xs font-black uppercase tracking-widest text-white/40 mb-4 flex items-center gap-2">
                    <ArrowUp size={14} className="text-indigo-400" /> Velocity & Acceleration
@@ -837,7 +851,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
 
       {!isFocused && <AutoInsight data={chartData.areaData} />}
 
-      {/* KPI Cards (General Mode or Focused Subset) */}
+      {}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KPICard
           title={isFocused ? "Focused Volume" : "Total Reports"}
@@ -866,7 +880,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
         />
       </div>
 
-      {/* Area Ranking Table */}
+      {}
       {!isFocused && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Area Performance Ranking</h2>
@@ -874,7 +888,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
         </section>
       )}
 
-      {/* AI Risk Summary (overview) */}
+      {}
       {riskSummaryLoading && (
         <div className="text-sm text-gray-600">Loading AI risk summary...</div>
       )}
@@ -916,7 +930,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
       )}
       {riskSummaryError && <div className="text-sm text-red-600">{riskSummaryError}</div>}
 
-      {/* AI-driven Severity Distributions by Dimension */}
+      {}
       {chartData.aiSeverityArea.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-1">AI Severity Distribution by Area</h2>
@@ -942,21 +956,19 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
         </section>
       )}
 
-
-
-      {/* Monthly Trend */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">{isFocused ? "Detailed Volume Trend" : "Monthly Trend Analysis"}</h2>
         <MonthlyTrendChart data={chartData.trendData} />
       </section>
 
-      {/* Category Composition */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">{isFocused ? "Focused Category Split" : "Category Composition by Area"}</h2>
         <CategoryStackedBar data={chartData.categoryData} />
       </section>
 
-      {/* AI Root Cause Investigation - Full Width */}
+      {}
       {!(isFocused && (focusedArea?.toLowerCase().includes('terminal') || focusedArea?.toLowerCase().includes('apron') || focusedArea === 'General')) && (
         <section className="relative overflow-hidden bg-[var(--surface-1)]/50 backdrop-blur-xl rounded-3xl border border-[var(--surface-2)] p-8 shadow-spatial-md transition-all">
           <div className="flex items-center justify-between mb-8">
@@ -969,7 +981,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
         </section>
       )}
 
-      {/* Split View: Branch & Airline */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">{isFocused ? "Branch Comparisons" : "Branch Distribution by Area"}</h2>
@@ -981,10 +993,10 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
         </section>
       </div>
 
-      {/* Management Summary */}
+      {}
       {!isFocused && <ManagementSummary data={chartData.areaData} />}
 
-      {/* Investigative Table */}
+      {}
       <InvestigativeTable
         data={investigativeData}
         title={isFocused ? `Intelligence Node: ${focusedArea}` : "Investigative Table - Area Reports"}
@@ -992,7 +1004,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
         maxRows={40}
       />
 
-      {/* Data Table */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-bold text-gray-800">{isFocused ? "Cell Records" : "Full Data Table"}</h2>

@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk menyinkronkan data laporan berdasarkan hak akses pengguna
- */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
@@ -10,21 +5,9 @@ import { verifySession } from '@/lib/auth-utils';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { reportsService } from '@/lib/services/reports-service';
 
-/**
- * GET /api/reports/sync
- * 
- * Mengambil semua laporan yang dapat diakses oleh pengguna berdasarkan role
- * Super Admin dan HQ users dapat melihat semua laporan
- * Manager Cabang dan Staff Cabang hanya dapat melihat laporan dari cabang mereka
- * 
- * @param request - Objek request HTTP
- * @returns Promise<NextResponse> - Response JSON berisi daftar laporan yang dapat diakses atau error
- * @throws Mengembalikan 401 jika tidak terautentikasi
- * @throws Mengembalikan 500 jika terjadi error server
- */
 export async function GET(request: NextRequest) {
   try {
-    // Auth check
+
     const cookieStore = await cookies();
     const session = cookieStore.get('session')?.value;
     if (!session) {
@@ -37,36 +20,30 @@ export async function GET(request: NextRequest) {
     }
 
     const role = String(payload.role).trim().toUpperCase();
-    // Allow ANALYST, SUPER_ADMIN, CABANG, etc.
-    // Basically any authenticated user can sync their own data view
-    
-    // Determine access scope
+
     let canViewAll = role === 'SUPER_ADMIN';
     let userStationCode: string | null = null;
-    
-    // Fetch user details to get station_id/code if not Super Admin
+
     if (!canViewAll) {
         const { data: user } = await supabaseAdmin
             .from('users')
             .select('id, role, stations(code)')
             .eq('id', payload.id)
             .single();
-            
+
         if (user && user.stations) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             userStationCode = user.stations.code;
-            
-            // Check if user is from HQ (GPS)
+
             if (userStationCode === 'GPS' || userStationCode === 'PUSAT') {
                 canViewAll = true;
             }
         }
     }
 
-    // Fetch all reports
     const reports = await reportsService.getReports();
 
-    // Filter by RBAC
     let accessibleReports = reports;
     if (!canViewAll) {
       if (userStationCode) {
@@ -82,7 +59,7 @@ export async function GET(request: NextRequest) {
       reports: accessibleReports
     }, {
       headers: {
-        // Cache for 5 minutes (stale-while-revalidate for 10 mins)
+
         'Cache-Control': 'private, max-age=300, stale-while-revalidate=600',
       }
     });

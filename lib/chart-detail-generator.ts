@@ -1,10 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi fungsi untuk generate chart analitik secara otomatis
- * berdasarkan tile dashboard yang ada, dengan dukungan cross-analysis
- * dan visualisasi alternative
- */
 
 'use client';
 
@@ -21,56 +14,34 @@ import type {
 } from '@/types/builder';
 import type { CustomChartType } from '@/components/chart-detail/SupportingCharts';
 
-// ── Analytical chart spec ────────────────────────────────────────────────────
-/**
- * Interface untuk chart analitik
- */
 export interface AnalyticalChart {
-  /** Konfigurasi visualisasi chart */
+
   visualization: ChartVisualization;
-  /** Definisi query untuk mengambil data chart */
+
   query: QueryDefinition;
-  /** Penjelasan insight dari chart */
+
   explanation: string;
-  /** Tipe chart kustom untuk komponen khusus */
+
   customChartType?: CustomChartType;
 }
 
-/**
- * Hasil generate chart analitik
- */
 export interface AnalyticalChartsResult {
-  /** Daftar chart analitik yang di-generate */
+
   charts: AnalyticalChart[];
-  /** Mapping dari index chart ke hasil query */
+
   dataMap: Record<number, QueryResult>;
 }
 
-// ── Dimension alias map ──────────────────────────────────────────────────────
-// Template uses inconsistent field names (airline vs airlines, main_category vs
-// category). This map normalizes to the canonical REPORT_DIMENSIONS key.
-// Complexity: Time O(1) | Space O(1)
 const DIM_ALIASES: Record<string, string> = {
   airline: 'airlines',
   main_category: 'category',
   date_of_event: 'month',
 };
 
-/**
- * Normalisasi field dimension ke nama kanonik
- * 
- * @param field - Field yang dinormalisasi
- * @returns Field kanonik
- */
 function normalizeDimField(field: string): string {
   return DIM_ALIASES[field] || field;
 }
 
-// ── Known dimensions in reports table ────────────────────────────────────────
-// Complexity: O(1) for the dimension registry lookup
-/**
- * Registry dimensi yang dikenali di tabel reports
- */
 const REPORT_DIMENSIONS: Record<string, { label: string; isDate?: boolean }> = {
   branch:                        { label: 'Cabang (Bandara)' },
   station_code:                  { label: 'Kode Bandara' },
@@ -89,7 +60,6 @@ const REPORT_DIMENSIONS: Record<string, { label: string; isDate?: boolean }> = {
   day:                           { label: 'Hari' },
 };
 
-// ── Color Constants for Supporting Charts ────────────────────────────────────
 const GAPURA_GREEN_LIGHT = '#7cb342';
 const GAPURA_GREEN_DARK = '#558b2f';
 const GAPURA_BLUE = '#42a5f5';
@@ -100,9 +70,6 @@ const GAPURA_GREY = '#bdbdbd';
 const GAPURA_AMBER = '#ffca28';
 const GAPURA_PURPLE = '#ab47bc';
 
-/**
- * Mapping warna semantik untuk nilai tertentu
- */
 const SEMANTIC_COLORS: Record<string, string> = {
   'irregularity': GAPURA_RED,
   'complaint': GAPURA_ORANGE,
@@ -119,9 +86,6 @@ const SEMANTIC_COLORS: Record<string, string> = {
   'done': GAPURA_GREEN_LIGHT,
 };
 
-// ── Preferred cross-analysis order ───────────────────────────────────────────
-// When the main chart shows dimension X, these are the dimensions we'll use
-// for cross-analyses, in priority order. We skip X itself.
 const CROSS_ANALYSIS_PRIORITY = [
   'branch',
   'category',
@@ -134,22 +98,10 @@ const CROSS_ANALYSIS_PRIORITY = [
   'month',
 ];
 
-// ── Helper: detect SEMANTIC main dimension ───────────────────────────────────
-// For pivots/tables: xAxis is the column header (analytical focus), so we
-// prioritize it over raw query dimension order.
-// For standard charts: first matching query dimension is the main one.
-// Complexity: Time O(d) where d = number of dimensions | Space O(1)
-/**
- * Mendeteksi dimensi utama dari tile
- * 
- * @param tile - Tile dashboard yang dianalisis
- * @returns Dimensi utama atau null jika tidak ditemukan
- */
 function detectMainDimension(tile: DashboardTile): string | null {
   const chartType = tile.visualization.chartType;
   const isPivotOrTable = chartType === 'pivot' || chartType === 'table';
 
-  // Pivots: xAxis = column header = the dimension the chart is "about"
   if (isPivotOrTable) {
     const xAxis = tile.visualization.xAxis;
     if (xAxis) {
@@ -158,7 +110,6 @@ function detectMainDimension(tile: DashboardTile): string | null {
     }
   }
 
-  // Standard charts / fallback: first recognized query dimension
   for (const d of tile.query.dimensions || []) {
     if (d.table === 'reports') {
       const normalized = normalizeDimField(d.field);
@@ -166,7 +117,6 @@ function detectMainDimension(tile: DashboardTile): string | null {
     }
   }
 
-  // Last resort: check visualization xAxis for non-pivots too
   const xAxis = tile.visualization.xAxis;
   if (xAxis) {
     const normalized = normalizeDimField(xAxis);
@@ -175,16 +125,6 @@ function detectMainDimension(tile: DashboardTile): string | null {
   return null;
 }
 
-// ── Helper: detect ALL dimensions the chart already covers ───────────────────
-// Used to skip redundant supporting charts. A pivot with [branch, category]
-// should NOT generate a "Komposisi Kategori" donut.
-// Complexity: Time O(d) | Space O(d)
-/**
- * Mendeteksi semua dimensi yang sudah dicakup oleh tile
- * 
- * @param tile - Tile dashboard yang dianalisis
- * @returns Set berisi semua dimensi yang terpakai
- */
 function detectAllDimensions(tile: DashboardTile): Set<string> {
   const dims = new Set<string>();
   for (const d of tile.query.dimensions || []) {
@@ -196,18 +136,6 @@ function detectAllDimensions(tile: DashboardTile): Set<string> {
   return dims;
 }
 
-// ── Helper: build cross-cut queries using the main chart's filters ───────────
-// Key insight: we inherit ALL filters from the parent chart (date range, source_sheet, etc.)
-// and only swap out the dimension+measure to get a different analytical cut.
-// Complexity: Time O(1) per query build | Space O(filters)
-/**
- * Membuat query untuk cross-analysis
- * 
- * @param parentFilters - Filter dari chart utama
- * @param dimension - Dimensi untuk cross-analysis
- * @param limit - Batas jumlah baris (optional)
- * @returns Definisi query untuk cross-analysis
- */
 function buildCrossQuery(
   parentFilters: QueryFilter[],
   dimension: string,
@@ -233,18 +161,6 @@ function buildCrossQuery(
   };
 }
 
-// ── Helper: build stacked (2-dim) query ──────────────────────────────────────
-// e.g. category × branch → stacked bar breakdown
-// Complexity: Time O(1) | Space O(filters)
-/**
- * Membuat query stacked untuk 2 dimensi
- * 
- * @param parentFilters - Filter dari chart utama
- * @param dim1 - Dimensi pertama
- * @param dim2 - Dimensi kedua
- * @param limit - Batas jumlah baris (optional)
- * @returns Definisi query stacked
- */
 function buildStackedQuery(
   parentFilters: QueryFilter[],
   dim1: string,
@@ -270,15 +186,6 @@ function buildStackedQuery(
   };
 }
 
-// ── Helper: build time-trend query ───────────────────────────────────────────
-// Complexity: Time O(1) | Space O(filters)
-/**
- * Membuat query untuk tren waktu
- * 
- * @param parentFilters - Filter dari chart utama
- * @param granularity - Granularitas waktu ('month' atau 'day')
- * @returns Definisi query time-trend
- */
 function buildTimeTrendQuery(
   parentFilters: QueryFilter[],
   granularity: 'month' | 'day' = 'month',
@@ -299,15 +206,6 @@ function buildTimeTrendQuery(
   };
 }
 
-// ── Helper: build report table query ─────────────────────────────────────────
-// Mimics the "Report Landside & Airside" structure from the dashboard template
-// Complexity: Time O(1) | Space O(filters)
-/**
- * Membuat query untuk tabel laporan detail
- * 
- * @param parentFilters - Filter dari chart utama
- * @returns Definisi query tabel laporan
- */
 function buildReportTableQuery(parentFilters: QueryFilter[]): QueryDefinition {
   return {
     source: 'reports',
@@ -330,22 +228,6 @@ function buildReportTableQuery(parentFilters: QueryFilter[]): QueryDefinition {
   };
 }
 
-// ── Core: Generate analytical chart definitions ──────────────────────────────
-// Generates up to 6 cross-dimensional charts like a senior data analyst would:
-// 1. Alternative viz of the same data (donut / bar swap)
-// 2. Top Bandara (branch) penyumbang — which airport contributes most?
-// 3. Top Maskapai (airline) — which airline has most cases?
-// 4. Severity distribution — how severe are the cases?
-// 5. Time trend — when do cases peak?
-// 6. Stacked breakdown — category × branch heatmap
-// Complexity: Time O(1) per chart | Space O(charts)
-/**
- * Generate chart analitik dari tile dashboard
- * 
- * @param tile - Tile dashboard yang dianalisis
- * @param result - Hasil query dari tile utama
- * @returns Object berisi charts dan dataMap
- */
 export function generateAnalyticalCharts(
   tile: DashboardTile,
   result: QueryResult,
@@ -354,16 +236,12 @@ export function generateAnalyticalCharts(
   const mainType = viz.chartType || 'bar';
   const mainDimension = detectMainDimension(tile);
   let parentFilters = tile.query.filters || [];
-  
-  // ── Context Check: Ensure "Non Cargo" consistency ──────────────────────────
-  // User Requirement: "if using chart detail for page besides CGO, use data from sheets non cargo"
-  // We check if the current context is explicitly CGO. If not, we enforce the Non-Cargo filter.
-  // This prevents analytical charts (Top Maskapai, etc.) from mixing Cargo data inadvertently.
+
   const isCgoContext = parentFilters.some(f => f.field === 'source_sheet' && f.value === 'CGO');
-  
+
   if (!isCgoContext) {
     const hasNonCargo = parentFilters.some(f => (f.field === 'source_sheet' || f.field === 'sheet_name') && f.value === 'NON CARGO');
-    
+
     if (!hasNonCargo) {
        parentFilters = [
          ...parentFilters, 
@@ -379,8 +257,6 @@ export function generateAnalyticalCharts(
   }
   const title = viz.title || 'Data';
 
-  // KPI shows a single aggregate number — no dimension to cross-analyse
-
   if (result.rows.length < 1) {
     return { charts: [], dataMap: {} };
   }
@@ -389,11 +265,6 @@ export function generateAnalyticalCharts(
   const dataMap: Record<number, QueryResult> = {};
   let idx = 0;
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CHART 1: Alternative visualization of the same data
-  // Skip for table/pivot/heatmap — bar↔donut swap is meaningless for these.
-  // For high-cardinality visual charts → use heatmap (dim × category) instead.
-  // ═══════════════════════════════════════════════════════════════════════════
   const NON_VISUAL_TYPES = new Set(['table', 'pivot', 'heatmap']);
 
   if (!NON_VISUAL_TYPES.has(mainType)) {
@@ -438,11 +309,6 @@ export function generateAnalyticalCharts(
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CHARTS 2-5: Cross-dimensional analytics
-  // Pick top 4 dimensions that DIFFER from the main chart dimension
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Skip ALL dimensions the chart already covers, not just mainDimension
   const usedDims = detectAllDimensions(tile);
   const crossDimensions = CROSS_ANALYSIS_PRIORITY.filter(d => !usedDims.has(d));
 
@@ -462,13 +328,12 @@ export function generateAnalyticalCharts(
     const dimInfo = REPORT_DIMENSIONS[dim];
     if (!dimInfo) continue;
 
-    // Branch breakdown chart removed per user request
     if (dim === 'branch' || dim === 'station_code') {
       continue;
     } else if (dim === 'airlines') {
       crossChartConfigs.push({
         dimension: dim,
-        chartType: 'grouped_bar', // Updated to grouped triple bar
+        chartType: 'grouped_bar',
         titlePrefix: `Top Maskapai Penyumbang`,
         explanation: `Maskapai mana yang paling sering terlibat? Data ini membantu prioritisasi engagement dengan mitra.`,
         limit: 10000,
@@ -484,11 +349,11 @@ export function generateAnalyticalCharts(
     } else if (dim === 'area') {
       crossChartConfigs.push({
         dimension: dim,
-        chartType: 'grouped_bar', // Kept as fallback
+        chartType: 'grouped_bar',
         titlePrefix: `Kategori per Area`,
         explanation: `Distribusi Irregularity, Complaint, dan Compliment di Terminal, Apron, dan General Area.`,
         limit: 10000,
-        customChartType: 'area_breakdown', // Use specialized component
+        customChartType: 'area_breakdown',
       });
     } else if (dim === 'jenis_maskapai') {
       crossChartConfigs.push({
@@ -536,7 +401,7 @@ export function generateAnalyticalCharts(
 
     const isHeatmapOrGrouped = config.chartType === 'heatmap' || config.chartType === 'grouped_bar';
     if (isHeatmapOrGrouped) {
-       // Heatmap and grouped bar need specific stacked query (Dimension x Category)
+
        query = buildStackedQuery(parentFilters, config.dimension, 'category', config.limit);
     } else {
        query = isTimeSeries
@@ -552,23 +417,18 @@ export function generateAnalyticalCharts(
         title: config.titlePrefix,
         showLegend: config.chartType === 'donut',
         showLabels: true,
-        colors: (config as any).colors, // Inject semantic colors if defined
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        colors: (config as any).colors,
       },
       query,
       explanation: config.explanation,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       customChartType: (config as any).customChartType,
     });
-    // dataMap will be filled by the caller after fetching
+
     idx++;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CUSTOM CHARTS: Detailed analytical charts for specific dimensions
-  // These provide deep insights with custom visualizations
-  // ═══════════════════════════════════════════════════════════════════════════
-  
-  // CHART 6: Severity Distribution (if severity not already used)
-  // DISABLED per user request
   if (!usedDims.has('severity') && false) {
     const severityQuery = buildCrossQuery(parentFilters, 'severity', 10000);
     charts.push({
@@ -588,7 +448,6 @@ export function generateAnalyticalCharts(
     idx++;
   }
 
-  // CHART 7: Status Breakdown (if status not already used)
   if (!usedDims.has('status') && idx < 10) {
     const statusQuery = buildCrossQuery(parentFilters, 'status', 10000);
     charts.push({
@@ -608,7 +467,6 @@ export function generateAnalyticalCharts(
     idx++;
   }
 
-  // CHART 8: Sub-Category Detail (if irregularity_complain_category not already used)
   if (!usedDims.has('irregularity_complain_category') && idx < 10) {
     const subCategoryQuery: QueryDefinition = {
       source: 'reports',
@@ -647,33 +505,6 @@ export function generateAnalyticalCharts(
     idx++;
   }
 
-  // CHART 9: Target Division Distribution (DISABLED - data is empty in Google Sheets)
-  // According to debug analysis: Target Division column has 0 valid values (all 426 rows are null)
-  // Uncomment below if data is populated in the future
-  /*
-  if (!usedDims.has('target_division') && idx < 10) {
-    const divisionQuery = buildCrossQuery(parentFilters, 'target_division', 10000);
-    charts.push({
-      visualization: {
-        chartType: 'bar',
-        xAxis: 'target_division',
-        yAxis: ['jumlah'],
-        title: 'Distribusi per Divisi',
-        showLegend: false,
-        showLabels: true,
-        colors: [GAPURA_BLUE, GAPURA_PURPLE, GAPURA_ORANGE, GAPURA_RED],
-      },
-      query: divisionQuery,
-      explanation: 'Distribusi kasus per divisi penanganan: OS (Services), OP (Operasi), HC, dan HT. Analisis beban kerja divisi.',
-      customChartType: 'target_division',
-    });
-    idx++;
-  }
-  */
-
-  // CHART 10: Area Sub-Category Analysis (detailed area breakdown)
-  // Use terminal_area_category with is_not_null filter (following customer-feedback-template pattern)
-  // Increased limit to 15 to ensure these charts appear
   if (!usedDims.has('terminal_area_category') && idx < 15) {
     const terminalAreaQuery: QueryDefinition = {
       source: 'reports',
@@ -714,7 +545,6 @@ export function generateAnalyticalCharts(
     idx++;
   }
 
-  // CHART 10b: Apron Area Sub-Category
   if (!usedDims.has('apron_area_category') && idx < 15) {
     const apronAreaQuery: QueryDefinition = {
       source: 'reports',
@@ -755,7 +585,6 @@ export function generateAnalyticalCharts(
     idx++;
   }
 
-  // CHART 10c: General Category Sub-Category
   if (!usedDims.has('general_category') && idx < 15) {
     const generalCategoryQuery: QueryDefinition = {
       source: 'reports',
@@ -796,13 +625,6 @@ export function generateAnalyticalCharts(
     idx++;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // CHART N: Heatmap cross-tabulation (dim × category)
-  // stacked_bar has no renderer in ChartPreview → use heatmap instead
-  // ═══════════════════════════════════════════════════════════════════════════
-  // Pick is best two dimensions for a heatmap cross-tabulation.
-  // Strategy: use mainDimension as one axis and find best complementary
-  // dimension that isn't already used by chart.
   const HEATMAP_CONFIGS: Record<string, { crossDim: string; title: string; explanation: string; limit: number }> = {
     category:  { crossDim: 'branch',   title: 'Kategori per Bandara',           explanation: 'Bandara mana paling banyak Irregularity/Complaint/Compliment?', limit: 10000 },
     branch:    { crossDim: 'category', title: 'Komposisi Kategori per Bandara',  explanation: 'Breakdown Irregularity/Complaint/Compliment per bandara.',       limit: 10000 },
@@ -817,7 +639,7 @@ export function generateAnalyticalCharts(
 
   if (mainDimension && HEATMAP_CONFIGS[mainDimension]) {
     let config = HEATMAP_CONFIGS[mainDimension];
-    // If cross dimension is already used by chart, pick a fallback
+
     if (usedDims.has(config.crossDim)) {
       const fallback = mainDimension === 'category' ? 'airlines' : 'area';
       if (!usedDims.has(fallback)) {
@@ -830,8 +652,7 @@ export function generateAnalyticalCharts(
       const dim1 = mainDimension;
       const dim2 = config.crossDim;
       const hmQuery = buildStackedQuery(parentFilters, dim1, dim2, config.limit);
-      
-      // Determine color based on main dimension for heatmap
+
       let hmColor = GAPURA_BLUE;
       let configChartType = 'heatmap';
 
@@ -850,7 +671,7 @@ export function generateAnalyticalCharts(
           title: config.title,
           showLegend: true,
           showLabels: true,
-          colors: [hmColor], // Base color for heatmap intensity
+          colors: [hmColor],
         },
         query: hmQuery,
         explanation: config.explanation,
@@ -859,13 +680,6 @@ export function generateAnalyticalCharts(
     }
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // ADDITIONAL CUSTOM CHARTS
-  // These provide additional deep insights beyond standard charts
-  // ═══════════════════════════════════════════════════════════════════════════
-
-  // CHART: Priority Analysis
-  // DISABLED per user request
   if (!usedDims.has('priority') && idx < 12 && false) {
     const priorityQuery = buildCrossQuery(parentFilters, 'priority', 10000);
     charts.push({
@@ -885,7 +699,6 @@ export function generateAnalyticalCharts(
     idx++;
   }
 
-  // CHART: Airline Type vs Category
   if (!usedDims.has('jenis_maskapai') && idx < 12) {
     const airlineTypeQuery = buildStackedQuery(parentFilters, 'jenis_maskapai', 'category', 10000);
     charts.push({
@@ -904,8 +717,6 @@ export function generateAnalyticalCharts(
     idx++;
   }
 
-
-  // CHART: Monthly Trend
   if (!usedDims.has('month') && idx < 12) {
     const monthlyQuery = buildTimeTrendQuery(parentFilters, 'month');
     charts.push({
@@ -924,7 +735,6 @@ export function generateAnalyticalCharts(
     idx++;
   }
 
-  // CHART: Category Distribution (donut chart)
   if (!usedDims.has('category') && idx < 12) {
     const categoryQuery = buildCrossQuery(parentFilters, 'category', 10000);
     charts.push({
@@ -944,10 +754,6 @@ export function generateAnalyticalCharts(
     idx++;
   }
 
-  // ═══════════════════════════════════════════════════════════════════════════
-  // FINAL CHART: Detailed Report Table (Linked to all contexts)
-  // Always included as final exhaustive deep-dive at the bottom
-  // ═══════════════════════════════════════════════════════════════════════════
   const reportTableQuery = buildReportTableQuery(parentFilters);
   charts.push({
     visualization: {
@@ -966,17 +772,6 @@ export function generateAnalyticalCharts(
   return { charts, dataMap };
 }
 
-// ── Fetch supporting chart data from query API ───────────────────────────
-// Each cross-dimensional chart needs its own query execution because it uses
-// a different dimension than the main chart.
-// Complexity: Time O(k * API_latency) parallelized | Space O(k * n)
-/**
- * Fetch data untuk chart analitik secara paralel
- * 
- * @param charts - Daftar chart yang datanya perlu di-fetch
- * @param existingDataMap - Mapping data yang sudah ada
- * @returns Promise berisi dataMap lengkap dengan semua hasil query
- */
 export async function fetchAnalyticalChartData(
   charts: AnalyticalChart[],
   existingDataMap: Record<number, QueryResult>,
@@ -985,13 +780,12 @@ export async function fetchAnalyticalChartData(
   const fetchTasks: Array<{ idx: number; query: QueryDefinition }> = [];
 
   for (let i = 0; i < charts.length; i++) {
-    if (dataMap[i]) continue; // Already have data (e.g., alt viz reuses main data)
+    if (dataMap[i]) continue;
     fetchTasks.push({ idx: i, query: charts[i].query });
   }
 
   if (fetchTasks.length === 0) return dataMap;
 
-  // Batch fetch via Promise.allSettled — resilient to individual failures
   const results = await Promise.allSettled(
     fetchTasks.map(async (task) => {
       const normalizedQuery = {
@@ -1003,7 +797,6 @@ export async function fetchAnalyticalChartData(
         sorts: task.query.sorts || [],
       };
 
-      // DEBUG: Log query for area subcategory charts
       const chartTitle = charts[task.idx]?.visualization?.title || '';
       if (chartTitle.includes('Area') || chartTitle.includes('Sub-Kategori')) {
         console.log(`🔍 Query for "${chartTitle}":`, JSON.stringify(normalizedQuery, null, 2));
@@ -1017,8 +810,7 @@ export async function fetchAnalyticalChartData(
 
       if (!res.ok) throw new Error(`Query failed: ${res.status}`);
       const result: QueryResult = await res.json();
-      
-      // DEBUG: Log result for area subcategory charts
+
       if (chartTitle.includes('Area') || chartTitle.includes('Sub-Kategori')) {
         console.log(`📊 Result for "${chartTitle}":`, {
           columns: result.columns,
@@ -1026,7 +818,7 @@ export async function fetchAnalyticalChartData(
           firstRow: result.rows?.[0],
         });
       }
-      
+
       return { idx: task.idx, result };
     }),
   );

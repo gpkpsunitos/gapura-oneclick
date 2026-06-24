@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk mengelola event kalender per ID
- */
 
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
@@ -11,26 +6,12 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { CalendarEvent, UpdateCalendarEventInput } from '@/types';
 import { isValidUrl } from '@/lib/utils/calendar-utils';
 
-/**
- * GET /api/calendar/events/[id]
- * 
- * Mengambil satu event kalender berdasarkan ID
- * Hanya role ANALYST dan DIVISI_OS yang dapat mengakses
- * 
- * @param request - Objek request HTTP
- * @param params - Parameter route berisi ID event
- * @returns Promise<NextResponse> - Response JSON berisi data event atau error
- * @throws Mengembalikan 401 jika tidak terautentikasi
- * @throws Mengembalikan 403 jika role tidak memiliki izin
- * @throws Mengembalikan 404 jika event tidak ditemukan
- * @throws Mengembalikan 500 jika terjadi error server
- */
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. Authentication
+
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
 
@@ -43,7 +24,6 @@ export async function GET(
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    // 2. Authorization - Check role
     const role = String(payload.role).trim().toUpperCase();
     if (role !== 'ANALYST' && role !== 'DIVISI_OS') {
       return NextResponse.json(
@@ -52,10 +32,8 @@ export async function GET(
       );
     }
 
-    // 3. Get event ID from params (Next.js 15+ requires await)
     const { id } = await params;
 
-    // 4. Fetch event with user join
     const { data, error } = await supabaseAdmin
       .from('calendar_events')
       .select(`
@@ -73,7 +51,6 @@ export async function GET(
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
-    // 5. Map response to CalendarEvent format
     const event: CalendarEvent = {
       id: data.id,
       title: data.title,
@@ -107,33 +84,12 @@ export async function GET(
   }
 }
 
-/**
- * PATCH /api/calendar/events/[id]
- * 
- * Memperbarui event kalender (single atau semua recurring)
- * Hanya role ANALYST yang dapat memperbarui event
- * 
- * @param request - Objek request HTTP dengan body berisi data update:
- *   - title: Judul event (max 200 karakter)
- *   - event_date: Tanggal event (ISO date YYYY-MM-DD)
- *   - event_time: Waktu event (HH:MM format)
- *   - notes: Catatan (max 2000 karakter)
- *   - meeting_minutes_link: Link notulen rapat (valid HTTP(S) URL)
- *   - edit_scope: 'single' | 'all' untuk event recurring
- * @param params - Parameter route berisi ID event
- * @returns Promise<NextResponse> - Response JSON berisi event yang diperbarui atau error
- * @throws Mengembalikan 401 jika tidak terautentikasi
- * @throws Mengembalikan 403 jika role bukan ANALYST
- * @throws Mengembalikan 400 jika data tidak valid
- * @throws Mengembalikan 404 jika event tidak ditemukan
- * @throws Mengembalikan 500 jika terjadi error server
- */
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. Authentication
+
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
 
@@ -146,7 +102,6 @@ export async function PATCH(
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    // 2. Authorization - Only ANALYST can update events
     const role = String(payload.role).trim().toUpperCase();
     if (role !== 'ANALYST') {
       return NextResponse.json(
@@ -155,14 +110,11 @@ export async function PATCH(
       );
     }
 
-    // 3. Get event ID from params
     const { id } = await params;
 
-    // 4. Parse request body
     const body: UpdateCalendarEventInput = await request.json();
     const edit_scope = body.edit_scope || 'single';
 
-    // 5. Validate field constraints
     if (body.title && body.title.length > 200) {
       return NextResponse.json(
         { error: 'Title must not exceed 200 characters' },
@@ -184,7 +136,6 @@ export async function PATCH(
       );
     }
 
-    // 6. Get current event to check if it's part of a recurring series
     const { data: currentEvent, error: fetchError } = await supabaseAdmin
       .from('calendar_events')
       .select('id, is_recurring, parent_event_id')
@@ -197,7 +148,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
-    // 7. Prepare update payload
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updatePayload: any = {};
     if (body.title !== undefined) updatePayload.title = body.title;
     if (body.event_date !== undefined) updatePayload.event_date = body.event_date;
@@ -212,11 +163,10 @@ export async function PATCH(
 
     updatePayload.updated_at = new Date().toISOString();
 
-    // 8. Handle edit scope logic
     if (edit_scope === 'all') {
-      // Case 1: This is a child event, update parent + all siblings
+
       if (currentEvent.parent_event_id) {
-        // Update parent event
+
         const { error: parentError } = await supabaseAdmin
           .from('calendar_events')
           .update(updatePayload)
@@ -231,7 +181,6 @@ export async function PATCH(
           );
         }
 
-        // Update all sibling events (including current)
         const { error: siblingsError } = await supabaseAdmin
           .from('calendar_events')
           .update(updatePayload)
@@ -250,9 +199,8 @@ export async function PATCH(
         return NextResponse.json({ success: true, updated: 'all' });
       }
 
-      // Case 2: This is a parent event, update self + all children
       if (currentEvent.is_recurring) {
-        // Update parent event
+
         const { error: parentError } = await supabaseAdmin
           .from('calendar_events')
           .update(updatePayload)
@@ -267,7 +215,6 @@ export async function PATCH(
           );
         }
 
-        // Update all child events
         const { error: childrenError } = await supabaseAdmin
           .from('calendar_events')
           .update(updatePayload)
@@ -287,7 +234,6 @@ export async function PATCH(
       }
     }
 
-    // Case 3: Single event update (or edit_scope='single')
     const { data, error } = await supabaseAdmin
       .from('calendar_events')
       .update(updatePayload)
@@ -309,7 +255,6 @@ export async function PATCH(
       );
     }
 
-    // Map response to CalendarEvent format
     const event: CalendarEvent = {
       id: data.id,
       title: data.title,
@@ -341,27 +286,12 @@ export async function PATCH(
   }
 }
 
-/**
- * DELETE /api/calendar/events/[id]
- * 
- * Melakukan soft delete pada event kalender (single atau semua recurring)
- * Hanya role ANALYST yang dapat menghapus event
- * 
- * @param request - Objek request HTTP dengan query parameters:
- *   - scope: 'single' | 'all' (default: 'single')
- * @param params - Parameter route berisi ID event
- * @returns Promise<NextResponse> - Response JSON berisi status penghapusan atau error
- * @throws Mengembalikan 401 jika tidak terautentikasi
- * @throws Mengembalikan 403 jika role bukan ANALYST
- * @throws Mengembalikan 404 jika event tidak ditemukan
- * @throws Mengembalikan 500 jika terjadi error server
- */
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // 1. Authentication
+
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
 
@@ -374,7 +304,6 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
     }
 
-    // 2. Authorization - Only ANALYST can delete events
     const role = String(payload.role).trim().toUpperCase();
     if (role !== 'ANALYST') {
       return NextResponse.json(
@@ -383,12 +312,10 @@ export async function DELETE(
       );
     }
 
-    // 3. Get event ID from params and scope from query
     const { id } = await params;
     const { searchParams } = new URL(request.url);
     const scope = searchParams.get('scope') || 'single';
 
-    // 4. Get current event to check if it's part of a recurring series
     const { data: currentEvent, error: fetchError } = await supabaseAdmin
       .from('calendar_events')
       .select('id, is_recurring, parent_event_id')
@@ -401,17 +328,15 @@ export async function DELETE(
       return NextResponse.json({ error: 'Event not found' }, { status: 404 });
     }
 
-    // 5. Prepare soft delete payload
     const deletePayload = {
       deleted_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
-    // 6. Handle delete scope logic
     if (scope === 'all') {
-      // Case 1: This is a child event, delete parent + all siblings
+
       if (currentEvent.parent_event_id) {
-        // Soft delete parent event
+
         const { error: parentError } = await supabaseAdmin
           .from('calendar_events')
           .update(deletePayload)
@@ -426,7 +351,6 @@ export async function DELETE(
           );
         }
 
-        // Soft delete all sibling events (including current)
         const { error: siblingsError } = await supabaseAdmin
           .from('calendar_events')
           .update(deletePayload)
@@ -445,9 +369,8 @@ export async function DELETE(
         return NextResponse.json({ success: true, deleted: 'all' });
       }
 
-      // Case 2: This is a parent event, delete self + all children
       if (currentEvent.is_recurring) {
-        // Soft delete parent event
+
         const { error: parentError } = await supabaseAdmin
           .from('calendar_events')
           .update(deletePayload)
@@ -462,7 +385,6 @@ export async function DELETE(
           );
         }
 
-        // Soft delete all child events
         const { error: childrenError } = await supabaseAdmin
           .from('calendar_events')
           .update(deletePayload)
@@ -482,7 +404,6 @@ export async function DELETE(
       }
     }
 
-    // Case 3: Single event deletion (or scope='single')
     const { error } = await supabaseAdmin
       .from('calendar_events')
       .update(deletePayload)

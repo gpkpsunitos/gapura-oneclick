@@ -1,17 +1,6 @@
-/**
- * @file
- * Halaman offline fallback untuk PWA.
- *
- * Menggunakan inline SVG agar tetap tampil tanpa jaringan
- * (logo.png tidak ada di precache manifest).
- */
 
 import Link from 'next/link';
 
-/**
- * Inline logo SVG — tidak bergantung pada aset eksternal
- * sehingga selalu tampil saat offline.
- */
 function LogoInline() {
   return (
     <svg

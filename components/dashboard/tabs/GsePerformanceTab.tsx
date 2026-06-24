@@ -351,7 +351,6 @@ function CrossMatrix({
     );
   }
 
-  // Max cell value for shading intensity
   let maxCell = 0;
   categories.forEach((c) => {
     const row = matrix[c.id];
@@ -484,7 +483,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
         nTot += 1;
         gTot += 1;
       } else {
-        gTot += 1; // category counted even when neither column populated
+        gTot += 1;
       }
     });
     return { matrix: m, motorizedTotal: mTot, nonMotorizedTotal: nTot, grandTotal: gTot };
@@ -510,7 +509,6 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
     [categoryRows, motorizedRows, nonMotorizedRows]
   );
 
-  // ── 2025 GSE data: apron_area_category containing "gse" (e.g. "GSE Cleanliness") ──
   const gse2025Reports = useMemo(
     () => deferredReports.filter((r) => yearOf(r) === 2025 && val(r.apron_area_category).toLowerCase().includes('gse')),
     [deferredReports]
@@ -548,7 +546,6 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
       .sort((a, b) => a.sortKey - b.sortKey);
   }, [gse2025Reports]);
 
-  // Cross matrix: apron_area_category × top airlines (capped at 8 cols)
   const { matrix2025, rowLabels2025, colLabels2025, rowTotals2025, colTotals2025, grand2025 } = useMemo(() => {
     const topAirlines = airline2025Rows.slice(0, 8).map((r) => r.label);
     const topAirlineKeys = new Set(topAirlines.map((a) => a.toLowerCase()));
@@ -574,7 +571,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
 
     const rows = Object.keys(rt).sort((a, b) => rt[b] - rt[a]);
     const allCols = Array.from(new Set(Object.values(cells).flatMap(Object.keys)));
-    // put named airlines first, Others/Unknown last
+
     const cols = [
       ...topAirlines.filter((a) => allCols.includes(a)),
       ...allCols.filter((c) => c === 'Others' || c === 'Unknown'),
@@ -583,7 +580,6 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
     return { matrix2025: cells, rowLabels2025: rows, colLabels2025: cols, rowTotals2025: rt, colTotals2025: ct, grand2025: grand };
   }, [gse2025Reports, airline2025Rows]);
 
-  // Cross matrix: apron_area_category × top stations
   const { stationMatrix, stationRowLabels, stationColLabels, stationRowTotals, stationColTotals } = useMemo(() => {
     const topStations = branch2025Rows.slice(0, 8).map((r) => r.label);
     const topStationKeys = new Set(topStations.map((s) => s.toLowerCase()));
@@ -756,7 +752,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
         </div>
       </section>
 
-      {/* ──────────────── 2025 GSE REPORT — expand toggle ──────────────── */}
+      {}
       {gse2025Reports.length > 0 && (
         <div className="flex justify-center pt-2">
           <button
@@ -772,7 +768,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
         </div>
       )}
 
-      {/* ──────────────── 2025 GSE REPORT SECTION ──────────────── */}
+      {}
       {gse2025Reports.length > 0 && expanded2025 && (
         <>
           <div className="sr-card relative flex flex-col gap-4 overflow-hidden px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
@@ -793,7 +789,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
             <SectionAiSummaryInsightButton context={section2025AiContext} />
           </div>
 
-          {/* KPI badges — drilldown enabled */}
+          {}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatBadge label="Total Cases" value={grand2025} onClick={() => openDrilldown(gse2025Reports, '2025 GSE — All Cases')} />
             <StatBadge label="Incident Categories" value={apron2025Rows.length} onClick={() => openDrilldown(gse2025Reports, '2025 GSE — All Categories')} />
@@ -801,7 +797,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
             <StatBadge label="Stations / Branches" value={branch2025Rows.length} onClick={() => openDrilldown(gse2025Reports.filter((r) => !!(val(r.branch) || val(r.station_code) || val(r.branch_code))), '2025 GSE — Station Cases')} />
           </div>
 
-          {/* Carrier & Station Exposure Analysis — 2 half-width matrices */}
+          {}
           <section>
             <div className="sr-section-h">
               <span className="sr-section-rule" aria-hidden="true" />
@@ -860,7 +856,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
             </div>
           </section>
 
-          {/* Category & Carrier Breakdown */}
+          {}
           <section>
             <div className="sr-section-h">
               <span className="sr-section-rule" aria-hidden="true" />
@@ -893,7 +889,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
             </div>
           </section>
 
-          {/* Monthly Trend */}
+          {}
           <section>
             <div className="sr-section-h">
               <span className="sr-section-rule" aria-hidden="true" />

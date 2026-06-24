@@ -1,57 +1,36 @@
-/**
- * @file
- * 
- * File ini berisi fungsi untuk kompresi gambar menggunakan library Sharp,
- * termasuk kompresi adaptif dan target ukuran file spesifik
- */
 
 import sharp from 'sharp';
 
-/**
- * Opsi untuk konfigurasi kompresi gambar
- */
 export interface CompressionOptions {
-  /** Ukuran file maksimum dalam KB */
+
   maxSizeKB?: number;
-  /** Kualitas kompresi (0-100) */
+
   quality?: number;
-  /** Lebar target dalam piksel */
+
   width?: number;
-  /** Tinggi target dalam piksel */
+
   height?: number;
-  /** Format output gambar */
+
   format?: 'jpeg' | 'png' | 'webp';
 }
 
-/**
- * Hasil kompresi gambar
- */
 export interface CompressionResult {
-  /** Buffer gambar yang dikompresi */
+
   buffer: Buffer;
-  /** Ukuran file dalam byte */
+
   size: number;
-  /** Format output */
+
   format: string;
-  /** Lebar gambar hasil */
+
   width: number;
-  /** Tinggi gambar hasil */
+
   height: number;
-  /** Ukuran file asli dalam byte */
+
   originalSize: number;
-  /** Persentase rasio kompresi */
+
   compressionRatio: number;
 }
 
-/**
- * Compress image to target size while maintaining quality
- * Uses iterative compression to hit target file size
- * 
- * @param input - Buffer gambar input atau ArrayBuffer
- * @param options - Opsi konfigurasi kompresi
- * @returns Promise berisi hasil kompresi
- * @throws Error jika format gambar tidak valid
- */
 export async function compressImage(
   input: Buffer | ArrayBuffer,
   options: CompressionOptions = {}
@@ -69,22 +48,19 @@ export async function compressImage(
 
   let image = sharp(inputBuffer);
   const metadata = await image.metadata();
-  
+
   const originalWidth = metadata.width || 800;
   const originalHeight = metadata.height || 600;
 
-  // Calculate resize dimensions if needed
   let targetWidth = width || originalWidth;
   let targetHeight = height || originalHeight;
 
-  // Auto-resize if image is too large
   if (originalWidth > 1920 || originalHeight > 1080) {
     const ratio = Math.min(1920 / originalWidth, 1080 / originalHeight);
     targetWidth = Math.round(originalWidth * ratio);
     targetHeight = Math.round(originalHeight * ratio);
   }
 
-  // Apply custom dimensions if specified
   if (width || height) {
     targetWidth = width || Math.round(originalWidth * (height! / originalHeight));
     targetHeight = height || Math.round(originalHeight * (width! / originalWidth));
@@ -96,7 +72,6 @@ export async function compressImage(
   let attempts = 0;
   const maxAttempts = 10;
 
-  // Iterative compression to hit target size
   do {
     image = sharp(inputBuffer)
       .resize(targetWidth, targetHeight, {
@@ -104,7 +79,6 @@ export async function compressImage(
         withoutEnlargement: true
       });
 
-    // Apply format-specific compression
     switch (format) {
       case 'jpeg':
         image = image.jpeg({ 
@@ -128,10 +102,9 @@ export async function compressImage(
     }
 
     outputBuffer = await image.toBuffer();
-    
-    // If still too large and can reduce quality
+
     if (outputBuffer.length > maxSizeBytes && currentQuality > 10 && attempts < maxAttempts) {
-      // Reduce quality by 10% each iteration
+
       currentQuality = Math.max(10, currentQuality - 10);
       attempts++;
     } else {
@@ -139,7 +112,6 @@ export async function compressImage(
     }
   } while (true);
 
-  // If still too large, reduce dimensions
   if (outputBuffer.length > maxSizeBytes) {
     const scaleFactor = Math.sqrt(maxSizeBytes / outputBuffer.length);
     targetWidth = Math.round(targetWidth * scaleFactor);
@@ -179,22 +151,13 @@ export async function compressImage(
   };
 }
 
-/**
- * Compress image to exact target size (aggressive compression)
- * Sacrifices quality to hit exact file size target
- * 
- * @param input - Buffer gambar input atau ArrayBuffer
- * @param targetSizeKB - Ukuran file target dalam KB (default: 5)
- * @returns Promise berisi hasil kompresi
- * @throws Error jika format gambar tidak valid
- */
 export async function compressToExactSize(
   input: Buffer | ArrayBuffer,
   targetSizeKB: number = 5
 ): Promise<CompressionResult> {
   const inputBuffer = Buffer.isBuffer(input) ? input : Buffer.from(input);
   const originalSize = inputBuffer.length;
-  
+
   let metadata;
   try {
     metadata = await sharp(inputBuffer).metadata();
@@ -204,31 +167,27 @@ export async function compressToExactSize(
 
   const originalWidth = metadata.width || 800;
   const originalHeight = metadata.height || 600;
-  
-  // Start with reasonable dimensions
+
   let targetWidth = Math.min(originalWidth, 1280);
   let targetHeight = Math.min(originalHeight, 720);
-  
+
   const targetSizeBytes = targetSizeKB * 1024;
   let outputBuffer: Buffer;
   let quality = 70;
-  
-  // Try WebP first (best compression)
+
   outputBuffer = await sharp(inputBuffer)
     .resize(targetWidth, targetHeight, { fit: 'inside', withoutEnlargement: true })
     .webp({ quality })
     .toBuffer();
 
-  // If still too large, iteratively reduce
   let attempts = 0;
   while (outputBuffer.length > targetSizeBytes && attempts < 15) {
     attempts++;
-    
-    // Reduce quality
+
     if (quality > 10) {
       quality -= 10;
     } else {
-      // Reduce dimensions instead
+
       targetWidth = Math.round(targetWidth * 0.8);
       targetHeight = Math.round(targetHeight * 0.8);
     }
@@ -252,12 +211,6 @@ export async function compressToExactSize(
   };
 }
 
-/**
- * Get optimal format based on image content
- * 
- * @param mimeType - MIME type gambar
- * @returns Format optimal untuk kompresi (jpeg, png, atau webp)
- */
 export function getOptimalFormat(mimeType: string): 'jpeg' | 'png' | 'webp' {
   if (mimeType.includes('webp')) return 'webp';
   if (mimeType.includes('png')) return 'png';

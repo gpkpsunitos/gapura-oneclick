@@ -12,15 +12,16 @@ export default function AIReportsPage() {
   const [analysisFilters, setAnalysisFilters] = useState<AnalysisFilters | null>(null);
   const [filtersApplied, setFiltersApplied] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  
+
   const [availableHubs, setAvailableHubs] = useState<string[]>([]);
   const availableBranches = ['CGK', 'HLP', 'DPS', 'SUB', 'KNO', 'UPG', 'YIA', 'BPN'];
   const availableAirlines = ['GA', 'QZ', 'JT', 'ID', 'IU', 'SJ'];
   const availableCategories = ['Baggage Handling', 'Passenger Handling', 'Ramp Handling', 'Cargo Handling', 'GSE', 'Delay'];
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
-    // Load hubs from server action
+
     getAvailableHubs().then(hubs => {
       setAvailableHubs(hubs);
     }).catch(err => {
@@ -34,20 +35,20 @@ export default function AIReportsPage() {
 
   return (
     <div className="relative flex-1 h-screen w-full overflow-hidden bg-slate-50 selection:bg-emerald-500/30">
-      
-      {/* Immersive Atmospheric Background */}
+
+      {}
       <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-        {/* Soft, glowing orbs for light mode */}
+        {}
         <div className="absolute -top-[20%] -left-[10%] h-[60%] w-[50%] rounded-full bg-emerald-300/20 blur-[100px]" />
         <div className="absolute top-[20%] right-[10%] h-[40%] w-[40%] rounded-full bg-purple-300/20 blur-[100px]" />
         <div className="absolute -bottom-[20%] left-[20%] h-[50%] w-[60%] rounded-full bg-blue-300/20 blur-[100px]" />
-        {/* Subtle noise overlay for texture */}
+        {}
         <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] mix-blend-overlay" />
       </div>
 
       <div className="relative z-10 flex h-full flex-col lg:flex-row">
-        
-        {/* --- LEFT PANEL: FILTER & HEADER (Desktop Sidebar, Mobile Drawer) --- */}
+
+        {}
         <AnimatePresence>
           {(showMobileFilters || typeof window !== 'undefined' && window.innerWidth >= 1024) && (
             <motion.div
@@ -62,8 +63,8 @@ export default function AIReportsPage() {
               `}
             >
               <div className="flex flex-col h-full p-6 lg:p-8 space-y-8">
-                
-                {/* Header Profile */}
+
+                {}
                 <div className="flex justify-between items-start shrink-0">
                   <div className="space-y-2">
                     <div className="inline-flex items-center justify-center rounded-xl bg-emerald-50 p-2 ring-1 ring-emerald-100 shadow-sm mb-4">
@@ -76,8 +77,8 @@ export default function AIReportsPage() {
                       Intelligent Risk Analytics
                     </p>
                   </div>
-                  
-                  {/* Close button on mobile */}
+
+                  {}
                   <button 
                     onClick={() => setShowMobileFilters(false)}
                     className="lg:hidden p-2 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
@@ -86,7 +87,7 @@ export default function AIReportsPage() {
                   </button>
                 </div>
 
-                {/* Filter Component */}
+                {}
                 <div className="flex-1 overflow-visible">
                   <AIAnalysisFilterPanel 
                     onApply={(filters) => {
@@ -107,10 +108,10 @@ export default function AIReportsPage() {
           )}
         </AnimatePresence>
 
-        {/* --- RIGHT PANEL: CHAT INTERFACE --- */}
+        {}
         <div className="flex flex-1 flex-col h-full relative overflow-hidden">
-          
-          {/* Mobile floating header (visible only on small screens when filters are closed) */}
+
+          {}
           <div className="lg:hidden absolute top-4 left-4 right-4 z-40">
             <button 
               onClick={() => setShowMobileFilters(true)}
@@ -129,10 +130,10 @@ export default function AIReportsPage() {
             </button>
           </div>
 
-          {/* Spacer block for mobile header so chat doesn't underlap */}
+          {}
           <div className="h-20 lg:hidden w-full shrink-0" />
 
-          {/* The Chat Area itself */}
+          {}
           <div className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-6 lg:p-8 overflow-hidden flex flex-col min-h-0">
             <motion.div 
               initial={{ opacity: 0, y: 20 }}

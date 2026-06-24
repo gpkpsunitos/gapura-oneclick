@@ -3,10 +3,6 @@ import { verifySession } from '@/lib/auth-utils';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logSecurityAudit } from '@/lib/security/audit-logger';
 
-/**
- * POST /api/security/actions/alert-control
- * Acknowledge or Resolve security alerts.
- */
 export async function POST(request: Request) {
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.split(' ')[1] || request.headers.get('cookie')?.split('session=')[1]?.split(';')[0];

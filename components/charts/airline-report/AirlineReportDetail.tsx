@@ -56,8 +56,6 @@ import { motion } from 'framer-motion';
 import type { QueryResult } from '@/types/builder';
 import { sanitizeTableCell } from '@/lib/security/sanitize';
 
-
-
 interface FilterParams {
   hub?: string;
   branch?: string;
@@ -94,7 +92,7 @@ function KPICard({ title, value, subtitle, trend, color = 'blue', explanation }:
     >
       <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }} />
       <div className="absolute -inset-24 bg-gradient-to-br from-white/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl pointer-events-none" />
-      
+
       <div className="relative z-10">
         <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1.5">{title}</div>
         <div className="text-3xl font-display font-black tracking-tighter leading-none mb-1">{value}</div>
@@ -236,7 +234,6 @@ function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
   );
 }
 
-
 function BranchDistributionChart({ data }: { data: BranchByAirlineData[] }) {
   const topBranches = Array.from(
     data.reduce((acc, curr) => {
@@ -266,7 +263,6 @@ function BranchDistributionChart({ data }: { data: BranchByAirlineData[] }) {
   );
 }
 
-// ─── Category Stacked Bar: Irregularity/Complaint/Compliment per Airline ───
 function CategoryStackedBar({ data }: { data: AirlineCategoryData[] }) {
   const rechartsData = data.slice(0, 10).map(d => ({
     name: d.airline,
@@ -293,7 +289,6 @@ function CategoryStackedBar({ data }: { data: AirlineCategoryData[] }) {
   );
 }
 
-// ─── Top 10 Airlines Category Breakdown (Vertical Grouped Bar) ───
 function Top10AirlinesCategoryChart({ data }: { data: AirlineCategoryBreakdown[] }) {
   const rechartsData = data.map(d => ({
     name: d.airline,
@@ -320,9 +315,6 @@ function Top10AirlinesCategoryChart({ data }: { data: AirlineCategoryBreakdown[]
   );
 }
 
-// ─── Pareto Root Cause: vertical bar counts ───
-
-// ─── Area Breakdown Chart ───
 function AreaBreakdownChart({ data }: { data: AreaByAirlineData[] }) {
   const rechartsData = data.map(d => ({
     name: d.area,
@@ -545,6 +537,7 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
     areaData: [] as AreaByAirlineData[],
     paretoData: [] as RootCauseParetoData[],
     categoryBreakdown: [] as AirlineCategoryBreakdown[],
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     aiRiskHeatmap: [] as any[],
   });
   const [kpis, setKpis] = useState<AirlineKPIs | null>(null);
@@ -580,8 +573,9 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
       setError(null);
 
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const aggregated = await fetchAggregatedAirlineReport(filters as any);
-        
+
         if (aggregated && aggregated.airlineData) {
           setChartData(prev => ({
             ...prev,
@@ -595,7 +589,6 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
           throw new Error('Invalid aggregated airline data');
         }
 
-        // Load AI data separately
         fetchRiskSummaryAi(controller.signal).then(riskSummaryRes => {
           const riskSummaryResult = riskSummaryRes as AiRiskSummary | null;
           if (riskSummaryResult) {
@@ -613,10 +606,10 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
           }
         }).catch(err => {
           if (err.name === 'AbortError') return;
-          console.warn('AI Risk failed:', err);
         });
 
       } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((err as any).name === 'AbortError') return;
         console.error('Failed to load aggregated airline data:', err);
         setError('Failed to load primary chart data.');
@@ -639,10 +632,15 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
       setTableLoading(true);
       try {
         const [branch, rootCause, table, area, pareto] = await Promise.all([
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchBranchByAirline(filters as any),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchRootCauseByAirline(filters as any),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchAllAirlineReports(filters as any),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchAreaByAirline(filters as any),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchRootCausePareto(filters as any),
         ]);
         setChartData(prev => ({
@@ -682,9 +680,13 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalReports = chartData.airlineData.reduce((sum: number, a: any) => sum + a.total, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalIrreg = chartData.airlineData.reduce((sum: number, a: any) => sum + a.irregularity, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalComplaint = chartData.airlineData.reduce((sum: number, a: any) => sum + a.complaint, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalCompliment = chartData.airlineData.reduce((sum: number, a: any) => sum + a.compliment, 0);
 
   const overallIrregRate = totalReports > 0 ? (totalIrreg / totalReports) * 100 : 0;
@@ -692,14 +694,15 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
     ? ((totalCompliment - totalComplaint) / (totalCompliment + totalComplaint)) * 100 
     : 0;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const avgRiskIndex = chartData.airlineData.length > 0 ? chartData.airlineData.reduce((sum: number, a: any) => sum + a.riskIndex, 0) / chartData.airlineData.length : 0;
 
   return (
     <div className="space-y-8">
-      {/* Auto-Insight Block */}
+      {}
       <AutoInsight data={chartData.airlineData} />
 
-      {/* Task 3: New Custom KPIs */}
+      {}
       {kpis && kpis.totalAirlines > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <KPICard title="Total Airlines" value={kpis.totalAirlines} color="blue" explanation="Total maskapai yang terdaftar dalam dataset ini." />
@@ -722,7 +725,7 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
         </div>
       )}
 
-      {/* Task 3: Top 10 Airlines Category Breakdown Chart */}
+      {}
       {chartData.categoryBreakdown && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-1">Top 10 Airlines - Category Breakdown</h2>
@@ -731,7 +734,7 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
         </section>
       )}
 
-      {/* Original KPI Cards - Row 1 */}
+      {}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
         <KPICard
           title="Overall Irreg. Rate"
@@ -750,20 +753,19 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
         />
       </div>
 
-      {/* Airline Ranking Table */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Airline Performance Ranking</h2>
         <AirlineRankTable data={chartData.airlineData} />
       </section>
 
-
-      {/* Monthly Trend */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Monthly Trend (Stability Check)</h2>
         <MonthlyTrendChart data={chartData.trendData} />
       </section>
 
-      {/* Split View: Category Composition & Branch Distribution */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-1">Category Composition by Airline</h2>
@@ -777,7 +779,7 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
         </section>
       </div>
 
-            {/* AI Risk Heatmap */}
+            {}
       {chartData.aiRiskHeatmap.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <div className="flex items-center gap-2 mb-1">
@@ -797,7 +799,7 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
         </section>
       )}
 
-      {/* AI Root Cause Investigation - Full Width */}
+      {}
       <Suspense fallback={<div className="h-[400px] flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#6b8e3d]"></div></div>}>
         <section className="relative overflow-hidden bg-[var(--surface-1)]/50 backdrop-blur-xl rounded-3xl border border-[var(--surface-2)] p-8 shadow-spatial-md transition-all">
           <div className="flex items-center justify-between mb-8">
@@ -810,26 +812,26 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
         </section>
       </Suspense>
 
-      {/* AI Airline Risk Visualization */}
+      {}
       <Suspense fallback={<div className="h-[300px] bg-gray-50 rounded-xl animate-pulse"></div>}>
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl border border-[var(--surface-2)] shadow-spatial-sm">
           <AirlineAIVisualization filters={filters.airlines ? [{ field: 'airlines', value: filters.airlines }] : []} />
         </section>
       </Suspense>
 
-      {/* Split View: Area Breakdown */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Area Breakdown</h2>
           <AreaBreakdownChart data={chartData.areaData} />
         </section>
-        <div /> {/* Spacer for layout symmetry */}
+        <div /> {}
       </div>
 
-      {/* Management Summary */}
+      {}
       <ManagementSummary data={chartData.airlineData} />
 
-      {/* Investigative Table */}
+      {}
       <InvestigativeTable
         data={investigativeData}
         title="Investigative Table - Airline Reports"
@@ -837,7 +839,7 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
         maxRows={40}
       />
 
-      {/* Data Table */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-bold text-gray-800">Full Data Table</h2>

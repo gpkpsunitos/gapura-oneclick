@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen bar chart responsif yang menggunakan Recharts
- * untuk visualisasi data dalam format horizontal atau vertical.
- */
 
 'use client';
 
@@ -11,49 +5,30 @@ import { BarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip, Leg
 import { generateChartColors } from './chartConfig';
 import { cn } from '@/lib/utils';
 
-/**
- * Props untuk komponen ResponsiveBarChart
- * @interface ResponsiveBarChartProps
- */
 interface ResponsiveBarChartProps {
-  /** Data chart */
+
   data: Array<Record<string, string | number | null | undefined>>;
-  /** Key untuk axis X */
+
   xAxisKey?: string;
-  /** Array key untuk series data */
+
   dataKeys: string[];
-  /** Layout chart: horizontal atau vertical */
+
   layout?: 'horizontal' | 'vertical';
-  /** Judul chart */
+
   title?: string;
-  /** Class CSS tambahan */
+
   className?: string;
-  /** Tinggi chart */
+
   height?: string;
-  /** Tampilkan legenda */
+
   showLegend?: boolean;
-  /** Stack bar */
+
   stacked?: boolean;
-  /** Callback ketika bar di klik */
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onBarClick?: (payload: any) => void;
 }
 
-/**
- * Komponen bar chart responsif
- * Menampilkan bar chart horizontal atau vertical dengan dukungan multiple series
- * @param ResponsiveBarChartProps - Props komponen
- * @returns JSX element bar chart
- * @example
- * ```tsx
- * <ResponsiveBarChart
- *   data={chartData}
- *   xAxisKey="month"
- *   dataKeys={['value1', 'value2']}
- *   layout="vertical"
- *   showLegend={true}
- * />
- * ```
- */
 export function ResponsiveBarChart({
   data,
   xAxisKey = 'name',
@@ -127,6 +102,7 @@ export function ResponsiveBarChart({
               fill={colors[index]}
               radius={[4, 4, 0, 0]}
               stackId={stacked ? 'stack' : undefined}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               onClick={onBarClick ? (data: any) => onBarClick(data) : undefined}
               cursor={onBarClick ? 'pointer' : 'default'}
             />

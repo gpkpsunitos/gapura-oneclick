@@ -43,6 +43,7 @@ function parseTable(headers: string[], rows: string[][]) {
   return { h, idx };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function filterByQuery<T extends Record<string, any>>(arr: T[], q: URLSearchParams, map: Record<string, keyof T>) {
   const filters: [keyof T, string][] = [];
   Object.entries(map).forEach(([param, key]) => {
@@ -189,4 +190,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-

@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk registrasi pengguna baru
- * Melakukan validasi data, hashing password, dan pembuatan user di database
- */
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabase-admin';
@@ -11,27 +5,6 @@ import { hashPassword } from '@/lib/auth-utils';
 import { enforceBotProtection } from '@/lib/security/botid';
 import { checkRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
 
-/**
- * Menangani request POST untuk registrasi pengguna baru
- * Memvalidasi field-field registrasi, mengecek duplikasi email/NIK,
- * dan membuat user baru dengan role sesuai email domain dan stasiun
- * @param request - Request object berisi data registrasi di body JSON
- * @returns Response JSON dengan status registrasi
- * @throws {Error} Jika terjadi kesalahan server
- * @example
- * ```json
- * {
- *   "email": "user@example.com",
- *   "password": "password123",
- *   "full_name": "John Doe",
- *   "nik": "12345",
- *   "phone": "08123456789",
- *   "station_id": "JKT-001",
- *   "unit_id": "UNIT-001",
- *   "position_id": "POS-001"
- * }
- * ```
- */
 export async function POST(request: Request) {
     try {
         const botProtectionResponse = await enforceBotProtection();
@@ -55,26 +28,27 @@ export async function POST(request: Request) {
             station_id, 
             unit_id, 
             position_id,
-            division // Only for GPS (central office)
+            division
         } = body;
 
-        // Resolve station by ID or CODE; derive isGPS by station.code
         let stationRow: { id: string; code: string } | null = null;
-        // Try by ID first
+
         const { data: byId } = await supabase
             .from('stations')
             .select('id, code')
             .eq('id', station_id)
             .single();
         if (byId) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             stationRow = byId as any;
         } else {
-            // Fallback by CODE (accept uppercase/lowercase)
+
             const { data: byCode } = await supabase
                 .from('stations')
                 .select('id, code')
                 .eq('code', String(station_id).toUpperCase())
                 .single();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             if (byCode) stationRow = byCode as any;
         }
 
@@ -87,8 +61,6 @@ export async function POST(request: Request) {
 
         const isGPS = String(stationRow.code || '').toUpperCase() === 'GPS';
 
-        // Basic field validation
-        // unit_id is NOT required if isGPS is true
         if (!email || !password || !full_name || !nik || !phone || !station_id || !position_id) {
              return NextResponse.json(
                 { error: 'Semua field wajib diisi' },
@@ -103,7 +75,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Password validation
         if (password.length < 8) {
             return NextResponse.json(
                 { error: 'Password minimal 8 karakter' },
@@ -123,7 +94,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // NIK validation: alphanumeric, 5-10 characters
         const nikRegex = /^[A-Z0-9]{5,10}$/i;
         if (!nikRegex.test(nik)) {
             return NextResponse.json(
@@ -132,7 +102,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Phone validation: starts with 08, 10-13 digits
         const phoneRegex = /^08\d{8,11}$/;
         if (!phoneRegex.test(phone)) {
             return NextResponse.json(
@@ -141,7 +110,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
             return NextResponse.json(
@@ -150,7 +118,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check if email already exists
         const { data: existingEmail } = await supabase
             .from('users')
             .select('id')
@@ -164,7 +131,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check if NIK already exists
         const { data: existingNik } = await supabase
             .from('users')
             .select('id')
@@ -178,23 +144,19 @@ export async function POST(request: Request) {
             );
         }
 
-
-
-        // Hash password
         const hashedPassword = await hashPassword(password);
 
-        // Determine role and division based on station and email
         const isGapuraEmail = email.toLowerCase().endsWith('@gapura.id');
 
         let role: string;
         let userDivision: string;
 
         if (isGPS) {
-            // GPS users: role can be central roles based on position/division
-            role = 'ANALYST'; // Default role, admin can upgrade to central division roles.
+
+            role = 'ANALYST';
             userDivision = body.division || 'GENERAL';
         } else {
-            // Branch users: role based on email domain
+
             if (isGapuraEmail) {
                 role = 'MANAGER_CABANG';
             } else {

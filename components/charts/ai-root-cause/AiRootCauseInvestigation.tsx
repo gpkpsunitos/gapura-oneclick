@@ -78,6 +78,7 @@ export function AiRootCauseInvestigation({
     if (!stats?.top_categories) return [];
     return stats.top_categories.map(([name, data]) => ({ 
       name, 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       value: typeof data === 'object' ? (data as any).count : data 
     }));
   }, [stats]);
@@ -116,7 +117,7 @@ export function AiRootCauseInvestigation({
 
   return (
     <div className="space-y-6">
-      {/* ─── Header Stat Strip ─── */}
+      {}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Total Records', value: stats.total_records, highlight: false },
@@ -142,7 +143,7 @@ export function AiRootCauseInvestigation({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* ─── Left Panel: Distribution ─── */}
+        {}
         <div className="lg:col-span-5 bg-[var(--surface-1)] backdrop-blur-3xl rounded-3xl border border-[var(--surface-border)] p-8 shadow-spatial-md overflow-hidden relative isolate">
           <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }} />
           <div className="absolute top-0 left-0 w-64 h-64 bg-amber-500/5 blur-[100px] rounded-full pointer-events-none" />
@@ -220,7 +221,7 @@ export function AiRootCauseInvestigation({
           </div>
         </div>
 
-        {/* ─── Right Panel: Deep Dive ─── */}
+        {}
         <div className="lg:col-span-7 space-y-6">
           <AnimatePresence mode="wait">
             <motion.div
@@ -232,8 +233,8 @@ export function AiRootCauseInvestigation({
               className="bg-[#0a0f16] rounded-3xl p-8 lg:p-10 text-white relative overflow-hidden shadow-2xl isolate h-full border border-white/5"
             >
               <div className="absolute inset-0 opacity-[0.05] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }} />
-              
-              {/* Dynamic flares */}
+
+              {}
               <div 
                 className="absolute -top-32 -right-32 w-[600px] h-[600px] blur-[140px] rounded-full opacity-20 pointer-events-none transition-colors duration-1000 mix-blend-screen"
                 style={{ backgroundColor: activeColor }}
@@ -263,7 +264,7 @@ export function AiRootCauseInvestigation({
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  {/* Top Areas */}
+                  {}
                   <div className="bg-white/[0.03] backdrop-blur-md p-6 rounded-3xl border border-white/5 shadow-inner">
                     <h5 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-6 flex items-center gap-2">
                        <Activity size={12} style={{ color: activeColor }} />
@@ -292,7 +293,7 @@ export function AiRootCauseInvestigation({
                     </div>
                   </div>
 
-                  {/* Top Airlines */}
+                  {}
                   <div className="bg-white/[0.03] backdrop-blur-md p-6 rounded-3xl border border-white/5 shadow-inner">
                     <h5 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-6 flex items-center gap-2">
                        <Activity size={12} style={{ color: activeColor }} />
@@ -322,7 +323,7 @@ export function AiRootCauseInvestigation({
                   </div>
                 </div>
 
-                {/* Issue Categories */}
+                {}
                 {activeCategoryData && Object.keys(activeCategoryData.top_issue_categories || {}).length > 0 && (
                   <div className="mt-8 pt-6 border-t border-white/10">
                     <h5 className="text-[9px] font-black uppercase tracking-[0.2em] text-white/40 mb-4">

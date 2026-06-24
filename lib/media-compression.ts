@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi fungsi-fungsi untuk kompresi media (gambar dan video) menggunakan sharp dan ffmpeg
- */
 
 import sharp from 'sharp';
 import ffmpeg from 'fluent-ffmpeg';
@@ -14,71 +9,46 @@ import os from 'os';
 
 const execAsync = promisify(exec);
 
-/**
- * Tipe media yang didukung
- * @type MediaType
- */
 export type MediaType = 'image' | 'video';
 
-/**
- * Opsi untuk kompresi media
- * @interface MediaCompressionOptions
- */
 export interface MediaCompressionOptions {
-  /** Ukuran maksimum gambar dalam KB (default: 5) */
+
   maxSizeKB?: number;
-  /** Kualitas gambar 0-100 (default: 70) */
+
   quality?: number;
-  /** Ukuran maksimum video dalam MB (default: 50) */
+
   videoMaxSizeMB?: number;
-  /** CRF video untuk encoding (default: 28, lower = better quality) */
+
   videoCRF?: number;
 }
 
-/**
- * Hasil kompresi media
- * @interface MediaCompressionResult
- */
 export interface MediaCompressionResult {
-  /** Buffer data yang sudah dikompresi */
+
   buffer: Buffer;
-  /** Ukuran hasil kompresi dalam bytes */
+
   size: number;
-  /** Tipe media (image atau video) */
+
   type: MediaType;
-  /** MIME type hasil */
+
   mimeType: string;
-  /** Lebar media dalam pixels (untuk image/video) */
+
   width?: number;
-  /** Tinggi media dalam pixels (untuk image/video) */
+
   height?: number;
-  /** Durasi video dalam seconds (untuk video) */
+
   duration?: number;
-  /** Ukuran asli dalam bytes */
+
   originalSize: number;
-  /** Persentase reduksi ukuran */
+
   compressionRatio: number;
 }
 
-/**
- * Mendeteksi tipe media dari MIME type
- * @param mimeType - MIME type dari file
- * @returns Tipe media (image atau video)
- * @throws {Error} Jika MIME type tidak didukung
- */
 export function detectMediaType(mimeType: string): MediaType {
   if (mimeType.startsWith('image/')) return 'image';
   if (mimeType.startsWith('video/')) return 'video';
   throw new Error(`Unsupported media type: ${mimeType}`);
 }
 
-/**
- * Mengompresi gambar menggunakan sharp
- * @param input - Buffer gambar asli
- * @param options - Opsi kompresi (opsional)
- * @returns Hasil kompresi gambar
- * @throws {Error} Jika gagal mengompresi gambar
- */
 async function compressImage(
   input: Buffer,
   options: MediaCompressionOptions = {}
@@ -87,10 +57,10 @@ async function compressImage(
 
   const originalSize = input.length;
   const metadata = await sharp(input).metadata();
-  
+
   let targetWidth = Math.min(metadata.width || 1280, 1280);
   let targetHeight = Math.min(metadata.height || 720, 720);
-  
+
   const maxSizeBytes = maxSizeKB * 1024;
   let currentQuality = quality;
   let outputBuffer: Buffer;
@@ -139,24 +109,15 @@ async function compressImage(
   };
 }
 
-/**
- * Mengompresi video menggunakan ffmpeg
- * Fallback ke validasi saja jika ffmpeg tidak tersedia
- * @param input - Buffer video asli
- * @param options - Opsi kompresi (opsional)
- * @returns Hasil kompresi video atau data asli jika ffmpeg tidak tersedia
- * @throws {Error} Jika video terlalu besar dan ffmpeg tidak tersedia
- */
 async function compressVideo(
   input: Buffer,
   options: MediaCompressionOptions = {}
 ): Promise<MediaCompressionResult> {
   const { videoMaxSizeMB = 50, videoCRF = 28 } = options;
-  
+
   const originalSize = input.length;
   const maxSizeBytes = videoMaxSizeMB * 1024 * 1024;
 
-  // Check if ffmpeg is available
   let ffmpegAvailable = false;
   try {
     await execAsync('which ffmpeg');
@@ -166,7 +127,7 @@ async function compressVideo(
   }
 
   if (!ffmpegAvailable) {
-    // Just validate size and return original
+
     if (originalSize > maxSizeBytes) {
       throw new Error(`Video too large (${(originalSize / 1024 / 1024).toFixed(2)}MB). Max: ${videoMaxSizeMB}MB`);
     }
@@ -181,16 +142,15 @@ async function compressVideo(
     };
   }
 
-  // Create temp files for processing
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'video-compress-'));
   const inputPath = path.join(tmpDir, 'input.mp4');
   const outputPath = path.join(tmpDir, 'output.mp4');
 
   try {
-    // Write input buffer to temp file
+
     await fs.writeFile(inputPath, input);
 
-    // Get video metadata
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const metadata = await new Promise<any>((resolve, reject) => {
       ffmpeg.ffprobe(inputPath, (err, data) => {
         if (err) reject(err);
@@ -198,6 +158,7 @@ async function compressVideo(
       });
     });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const videoStream = metadata.streams.find((s: any) => s.codec_type === 'video');
     const duration = metadata.format.duration;
     const width = videoStream?.width;
@@ -205,7 +166,6 @@ async function compressVideo(
 
     console.log(`[VIDEO] Original: ${width}x${height}, ${duration}s, ${(originalSize / 1024 / 1024).toFixed(2)}MB`);
 
-    // Compress video
     await new Promise<void>((resolve, reject) => {
       ffmpeg(inputPath)
         .output(outputPath)
@@ -223,13 +183,11 @@ async function compressVideo(
         .run();
     });
 
-    // Read compressed video
     const compressedBuffer = await fs.readFile(outputPath);
     const compressionRatio = (1 - compressedBuffer.length / originalSize) * 100;
 
     console.log(`[VIDEO] Compressed: ${(compressedBuffer.length / 1024 / 1024).toFixed(2)}MB (${compressionRatio.toFixed(1)}% reduction)`);
 
-    // Check if still too large
     if (compressedBuffer.length > maxSizeBytes) {
       console.warn(`[VIDEO] Still larger than ${videoMaxSizeMB}MB after compression`);
     }
@@ -247,19 +205,11 @@ async function compressVideo(
     };
 
   } finally {
-    // Cleanup temp files
+
     await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
   }
 }
 
-/**
- * Mengompresi media berdasarkan tipe (image atau video)
- * @param input - Buffer media asli
- * @param mimeType - MIME type dari media
- * @param options - Opsi kompresi (opsional)
- * @returns Hasil kompresi media
- * @throws {Error} Jika MIME type tidak didukung atau kompresi gagal
- */
 export async function compressMedia(
   input: Buffer,
   mimeType: string,
@@ -274,14 +224,6 @@ export async function compressMedia(
   }
 }
 
-/**
- * Memvalidasi file media
- * @param file - File yang akan divalidasi
- * @param options - Opsi validasi (opsional)
- * @param options.maxImageSizeMB - Ukuran maksimum gambar dalam MB (default: 10)
- * @param options.maxVideoSizeMB - Ukuran maksimum video dalam MB (default: 100)
- * @returns Object dengan status valid dan error message jika ada
- */
 export function validateMedia(
   file: File,
   options: { maxImageSizeMB?: number; maxVideoSizeMB?: number } = {}

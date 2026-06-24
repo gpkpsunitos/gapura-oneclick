@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen untuk menampilkan dashboard overview dengan berbagai statistik dan chart
- */
 
 'use client';
 
@@ -17,18 +12,12 @@ import {
   Area, AreaChart
 } from 'recharts';
 
-/**
- * Interface untuk item distribusi statistik
- */
 interface DistributionItem {
   name: string;
   count: number;
   percentage: number;
 }
 
-/**
- * Interface untuk data statistik
- */
 interface StatsData {
   type: string;
   range: string;
@@ -37,46 +26,34 @@ interface StatsData {
   trendData: { date: string; count: number }[];
 }
 
-/** Warna chart untuk berbagai kategori */
 const CHART_COLORS = [
   '#60a5fa', '#a78bfa', '#34d399', '#fbbf24', '#f87171',
   '#2dd4bf', '#f472b6', '#818cf8', '#fb923c', '#4ade80'
 ];
 
-/** Warna donut chart tetap untuk ranking */
 const FIXED_DONUT_RANK_COLORS = ['#81c784', '#13b5cb', '#cddc39'];
 
-/** Mapping status dengan label */
 const STATUS_MAP: Record<string, string> = {
   'OPEN': 'Open',
   'ON PROGRESS': 'Dalam Proses',
   'CLOSED': 'Selesai'
 };
 
-/**
- * Komponen untuk menampilkan dashboard overview
- * Menampilkan KPI cards, trend chart, dan distribusi berdasarkan airline, kategori, status, dan severity
- * @returns JSX element berisi dashboard overview
- */
 export function OverviewContent() {
   const searchParams = useSearchParams();
   const range = searchParams.get('range') || '7d';
-  
+
   const [airlineData, setAirlineData] = useState<StatsData | null>(null);
   const [categoryData, setCategoryData] = useState<StatsData | null>(null);
   const [statusData, setStatusData] = useState<StatsData | null>(null);
   const [severityData, setSeverityData] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  /**
-   * Mengambil data statistik dari API
-   * @param signal - AbortSignal untuk membatalkan request
-   */
+
   const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const [airline, category, status, severity] = await Promise.all([
         fetch(`/api/embed/stats?type=airline&range=${range}`, { signal }).then(r => r.json()),
@@ -84,7 +61,7 @@ export function OverviewContent() {
         fetch(`/api/embed/stats?type=status&range=${range}`, { signal }).then(r => r.json()),
         fetch(`/api/embed/stats?type=severity&range=${range}`, { signal }).then(r => r.json())
       ]);
-      
+
       setAirlineData(airline);
       setCategoryData(category);
       setStatusData(status);
@@ -96,7 +73,7 @@ export function OverviewContent() {
       setLoading(false);
     }
   }, [range]);
-  
+
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -109,7 +86,7 @@ export function OverviewContent() {
       clearInterval(interval);
     };
   }, [fetchData]);
-  
+
   if (loading && !airlineData) {
     return (
       <div className="embed-loading">
@@ -118,7 +95,7 @@ export function OverviewContent() {
       </div>
     );
   }
-  
+
   if (error) {
     return (
       <div className="embed-error">
@@ -129,7 +106,7 @@ export function OverviewContent() {
       </div>
     );
   }
-  
+
   const totalReports = airlineData?.totalCount || 0;
   const statusCounts = statusData?.distribution || [];
   const pendingCount = statusCounts.find(s => s.name === 'OPEN')?.count || 0;
@@ -139,17 +116,17 @@ export function OverviewContent() {
   const statusDonutData = [...(statusData?.distribution || [])]
     .map((s) => ({ ...s, name: STATUS_MAP[s.name] || s.name }))
     .sort((a, b) => b.count - a.count);
-  
+
   return (
     <>
       <header className="page-header">
         <h1 className="page-title">Dashboard Overview</h1>
         <p className="page-subtitle">Ringkasan laporan {range === '7d' ? '7 hari' : '30 hari'} terakhir</p>
       </header>
-      
+
       <DateRangeFilter />
-      
-      {/* KPI Cards */}
+
+      {}
       <div className="kpi-grid">
         <div className="kpi-card">
           <div className="kpi-value">{totalReports}</div>
@@ -168,8 +145,8 @@ export function OverviewContent() {
           <div className="kpi-label">High Severity</div>
         </div>
       </div>
-      
-      {/* Trend Chart */}
+
+      {}
       <EmbedCard title="Trend Laporan" subtitle="Jumlah laporan per hari">
         <div className="chart-container">
           <ResponsiveContainer width="100%" height="100%">
@@ -197,10 +174,10 @@ export function OverviewContent() {
           </ResponsiveContainer>
         </div>
       </EmbedCard>
-      
-      {/* Charts Grid */}
+
+      {}
       <div className="embed-grid embed-grid-2" style={{ marginTop: '1.5rem' }}>
-        {/* Airline Distribution */}
+        {}
         <Link href={`/embed/airline?range=${range}`} style={{ textDecoration: 'none' }}>
           <EmbedCard title="Per Airline" subtitle="Klik untuk detail">
             <div className="chart-container">
@@ -225,8 +202,8 @@ export function OverviewContent() {
             </div>
           </EmbedCard>
         </Link>
-        
-        {/* Category Distribution */}
+
+        {}
         <Link href={`/embed/category?range=${range}`} style={{ textDecoration: 'none' }}>
           <EmbedCard title="Per Kategori" subtitle="Klik untuk detail">
             <div className="chart-container">
@@ -250,8 +227,8 @@ export function OverviewContent() {
             </div>
           </EmbedCard>
         </Link>
-        
-        {/* Status Distribution */}
+
+        {}
         <Link href={`/embed/status?range=${range}`} style={{ textDecoration: 'none' }}>
           <EmbedCard title="Per Status" subtitle="Klik untuk detail">
             <div className="chart-container">
@@ -279,8 +256,8 @@ export function OverviewContent() {
             </div>
           </EmbedCard>
         </Link>
-        
-        {/* Severity Distribution */}
+
+        {}
         <Link href={`/embed/severity?range=${range}`} style={{ textDecoration: 'none' }}>
           <EmbedCard title="Per Severity" subtitle="Klik untuk detail">
             <div className="chart-container">

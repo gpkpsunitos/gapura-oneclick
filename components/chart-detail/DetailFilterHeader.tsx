@@ -17,7 +17,9 @@ interface FilterState {
 interface DetailFilterHeaderProps {
   title: string;
   subtitle: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filters: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setFilters: (update: (prev: any) => any) => void;
   sourcePage?: string;
   hideFilters?: boolean;
@@ -53,9 +55,9 @@ export default function DetailFilterHeader({
       className="fixed top-6 left-1/2 -translate-x-1/2 z-[100] w-[95%] max-w-[1400px]"
     >
       <div className="relative group">
-        {/* Dynamic Island Capsule */}
+        {}
         <div className="absolute inset-0 bg-[var(--surface-0)]/80 backdrop-blur-2xl rounded-[2.5rem] border border-[var(--glass-rim)] shadow-spatial-lg" />
-        
+
         <div className="relative px-6 py-4 flex flex-col lg:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-6">
             <motion.button
@@ -66,7 +68,7 @@ export default function DetailFilterHeader({
             >
               <ArrowLeft size={20} className="text-[var(--text-muted)] group-hover:text-[var(--brand-primary)]" />
             </motion.button>
-            
+
             <div className="flex flex-col">
               <div className="flex items-center gap-3">
                 <h1 className="text-xl font-black tracking-tighter text-[var(--text-primary)]">
@@ -124,12 +126,12 @@ export default function DetailFilterHeader({
                 </motion.button>
               </div>
             )}
-            
+
             {extraFilters}
           </div>
         </div>
       </div>
-      
+
       {extraHeaderInfo && (
         <motion.div 
           initial={{ opacity: 0, y: -10 }}

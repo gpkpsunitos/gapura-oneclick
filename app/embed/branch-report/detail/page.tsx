@@ -1,9 +1,4 @@
-/**
- * @file
- * 
- * File ini berisi halaman detail branch report dengan Suspense boundary
- * dan filter dinamis untuk analisis performa branch
- */
+
 'use client';
 
 import { useState, Suspense } from 'react';
@@ -11,9 +6,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import BranchReportDetail from '@/components/charts/branch-report/BranchReportDetail';
 import { EmbedDetailLayout } from '@/components/EmbedDetailLayout';
 
-/**
- * Interface untuk state filter
- */
 interface FilterState {
   hub: string;
   branch: string;
@@ -24,32 +16,21 @@ interface FilterState {
   dateTo: string;
 }
 
-/**
- * Komponen konten detail branch report
- * @returns Komponen React
- */
 function EmbedBranchReportContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sourceSheet = searchParams.get('sourceSheet') === 'CGO' ? 'CGO' : 'NON CARGO';
   const sourcePage = searchParams.get('sourcePage') || 'customer-feedback-main';
-  
-  /**
-   * Mendapatkan URL kembali ke dashboard
-   * @returns URL dashboard
-   */
+
   const getBackUrl = () => {
     const baseUrl = sourcePage && sourcePage !== 'main' 
       ? `/embed/custom/${sourcePage.toLowerCase().replace(/\s+/g, '-')}`
       : '/embed/custom/customer-feedback-main';
     return `${baseUrl}?${searchParams.toString()}`;
   };
-  
+
   const isStatic = searchParams.get('viewMode') === 'static';
-  
-  /**
-   * State filter branch report
-   */
+
   const filters: FilterState = {
     hub: searchParams.get('hub') || 'all',
     branch: searchParams.get('branch') || 'all',
@@ -73,10 +54,6 @@ function EmbedBranchReportContent() {
   );
 }
 
-/**
- * Halaman detail branch report dengan Suspense
- * @returns Komponen React
- */
 export default function EmbedBranchReportPage() {
   return (
     <Suspense fallback={

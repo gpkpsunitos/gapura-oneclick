@@ -23,7 +23,7 @@ interface DocxEditorModalProps {
 
 export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: DocxEditorModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const [formData, setFormData] = useState({
     description: reportData?.description || '',
     root_cause: reportData?.root_caused || reportData?.root_cause || '',
@@ -39,7 +39,6 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
-  // Sync formData whenever reportData changes (e.g. modal reopened with fresh data)
   useEffect(() => {
     if (reportData) {
       setFormData({
@@ -74,15 +73,13 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
       if (!response.ok) {
         throw new Error('Failed to update report data');
       }
-      
+
       const { data } = await response.json();
-      
-      // Merge: backend data + explicit formData edits to guarantee DOCX uses latest values
-      // (backend may return field names differently, e.g. root_caused vs root_cause)
+
       const updatedReportBase = {
         ...reportData,
         ...data,
-        // Explicitly overlay formData fields so DOCX always reflects what the user typed
+
         description: formData.description || data?.description || reportData?.description,
         root_cause: formData.root_cause || data?.root_caused || data?.root_cause || reportData?.root_caused,
         root_caused: formData.root_cause || data?.root_caused || reportData?.root_caused,
@@ -105,7 +102,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
           evidence_urls: [...new Set([...(updatedReport.evidence_urls || []), url])],
         };
       }
-      
+
       onSuccess(updatedReport);
       onClose();
     } catch (error) {
@@ -130,11 +127,10 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
     setUploadSuccess(false);
 
     try {
-      // 1. Upload the file
+
       const uploadForm = new FormData();
       uploadForm.append('file', file);
 
-      // Simulate progress
       const progressInterval = setInterval(() => {
         setUploadProgress((prev) => Math.min(prev + 10, 90));
       }, 200);
@@ -153,7 +149,6 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
 
       const { url, size } = await uploadResponse.json();
 
-      // 2. Attach to report
       const newAttachment = {
         name: file.name,
         url: url,
@@ -176,7 +171,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
       }
 
       setUploadSuccess(true);
-      
+
       const { data } = await patchResponse.json();
       onSuccess({ ...reportData, ...data });
 
@@ -222,15 +217,15 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-8 bg-gray-50/50">
-            
-            {/* Editor Form */}
+
+            {}
             <div className="space-y-6">
               <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wider flex items-center gap-2">
                 <FileText className="w-4 h-4 text-gray-400"/> DOCX Fill Form
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 {/* Evidence Links */}
+                 {}
                  {(reportData?.evidence_url || (reportData?.evidence_urls && reportData.evidence_urls.length > 0)) && (
                   <div className="col-span-full space-y-2">
                     <label className="text-sm font-medium text-gray-700">Evidence Photo Links</label>
@@ -260,7 +255,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
                   </div>
                 )}
 
-                 {/* Chronology */}
+                 {}
                 <div className="col-span-full space-y-2">
                   <label className="text-sm font-medium text-gray-700">Chronology of Event</label>
                   <textarea
@@ -272,7 +267,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
                   />
                 </div>
 
-                {/* Root Cause */}
+                {}
                 <div className="col-span-full space-y-2">
                   <label className="text-sm font-medium text-gray-700">Potential / Root Cause</label>
                   <textarea
@@ -284,7 +279,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
                   />
                 </div>
 
-                {/* Action Taken */}
+                {}
                 <div className="col-span-full space-y-2">
                   <label className="text-sm font-medium text-gray-700">Corrective Action (Immediate Action)</label>
                   <textarea
@@ -296,7 +291,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
                   />
                 </div>
 
-                {/* Preventive Action */}
+                {}
                 <div className="col-span-full space-y-2">
                   <label className="text-sm font-medium text-gray-700">Preventive Action</label>
                   <textarea
@@ -308,7 +303,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
                   />
                 </div>
 
-                {/* Reporter / Signee */}
+                {}
                 <div className="space-y-4 pt-2">
                   <PrismInput
                     type="text"
@@ -321,7 +316,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
                   />
                 </div>
 
-                {/* Location */}
+                {}
                 <div className="space-y-4 pt-2">
                   <PrismInput
                     type="text"
@@ -334,7 +329,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
                   />
                 </div>
 
-                {/* Signature Pad */}
+                {}
                 <div className="col-span-full space-y-2">
                   <SignaturePad 
                     onEnd={(dataUrl) => setSignatureData(dataUrl)}
@@ -346,7 +341,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
 
             <hr className="border-gray-200" />
 
-            {/* Upload Area */}
+            {}
             <div className="space-y-4">
                <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wider flex items-center gap-2">
                 <Upload className="w-4 h-4 text-gray-400"/> Upload Latest Document

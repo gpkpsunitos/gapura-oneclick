@@ -1,29 +1,8 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk mengambil dan memvalidasi session pengguna saat ini
- */
 
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 
-/**
- * Menangani request GET untuk mengambil informasi session pengguna saat ini
- * Memvalidasi token session dan mengembalikan data user jika valid
- * @returns Response JSON berisi data user atau error jika session invalid
- * @throws {Error} Jika terjadi kesalahan internal server
- * @example
- * ```json
- * {
- *   "user": {
- *     "id": "user-123",
- *     "role": "DIVISI_OS",
- *     "full_name": "John Doe"
- *   }
- * }
- * ```
- */
 export async function GET() {
     try {
         const cookieStore = await cookies();

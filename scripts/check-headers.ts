@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi skrip untuk mengecek header kolom di Google Sheets
- */
 
 import { google } from 'googleapis';
 import * as dotenv from 'dotenv';
@@ -13,11 +8,6 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const SHEET_ID = process.env.GOOGLE_SHEET_ID || '1TFPZOAWAKubPl7iaUk8BXt2BabY1N-AcLgi-_zBQGzk';
 
-/**
- * Mendapatkan autentikasi Google Service Account
- * @returns {any} Objek autentikasi JWT Google
- * @throws {Error} Jika kredensial tidak ditemukan
- */
 function getGoogleAuth() {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   const privateKey = process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n');
@@ -25,20 +15,15 @@ function getGoogleAuth() {
   return new google.auth.JWT({ email, key: privateKey, scopes: SCOPES });
 }
 
-/**
- * Fungsi utama untuk mengecek header di Google Sheets
- * @async
- * @returns {Promise<void>}
- */
 async function main() {
   const auth = getGoogleAuth();
   const sheets = google.sheets({ version: 'v4', auth });
-  
+
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: SHEET_ID,
-    range: "'NON CARGO'!1:1", // Get first row
+    range: "'NON CARGO'!1:1",
   });
-  
+
   console.log('Headers:', response.data.values?.[0]);
 }
 

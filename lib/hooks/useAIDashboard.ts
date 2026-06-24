@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi React hook untuk pembuatan dashboard berbasis AI,
- * termasuk generate dari prompt dan generate khusus Customer Feedback
- */
 
 'use client';
 
@@ -11,21 +5,10 @@ import { useState } from 'react';
 import type { DashboardDefinition } from '@/types/builder';
 import { fetchWithDemo } from '@/lib/utils';
 
-/**
- * Hook untuk pembuatan dashboard berbasis AI
- * 
- * @returns Object berisi fungsi dan state untuk generate AI dashboard
- */
 export function useAIDashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Generate dashboard dari prompt AI
-   * 
-   * @param prompt - Prompt teks untuk generate dashboard
-   * @returns Promise berisi definisi dashboard atau null jika gagal
-   */
   async function generate(prompt: string): Promise<DashboardDefinition | null> {
     setLoading(true);
     setError(null);
@@ -56,13 +39,6 @@ export function useAIDashboard() {
     }
   }
 
-  /**
-   * Generate dashboard khusus Customer Feedback dengan filter tanggal
-   * 
-   * @param dateFrom - Tanggal awal (format YYYY-MM-DD)
-   * @param dateTo - Tanggal akhir (format YYYY-MM-DD)
-   * @returns Promise berisi definisi dashboard atau null jika gagal
-   */
   async function generateCustomerFeedback(dateFrom: string, dateTo: string): Promise<DashboardDefinition | null> {
     setLoading(true);
     setError(null);
@@ -90,9 +66,6 @@ export function useAIDashboard() {
     }
   }
 
-  /**
-   * Membersihkan pesan error
-   */
   function clearError() {
     setError(null);
   }

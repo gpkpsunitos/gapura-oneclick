@@ -27,11 +27,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Data is required' }, { status: 400 });
     }
 
-    // Sampling to avoid token limits.
     const sampleSize = 30;
     const sampledData = data.slice(0, sampleSize).map(row => {
-      // Remove large text fields if they are not essential for immediate insight
-      // This keeps the context window clean
+
       const { id, evidence_url, ...rest } = row;
       return rest;
     });
@@ -63,7 +61,7 @@ export async function POST(request: NextRequest) {
     const userPrompt = `
       DATA SAMPLE (Top ${sampleSize} rows):
       ${JSON.stringify(sampledData, null, 2)}
-      
+
       Provide investigative insights based on this specific sample.
     `;
 
@@ -72,7 +70,6 @@ export async function POST(request: NextRequest) {
       { role: 'user', content: userPrompt }
     ]);
 
-    // Cleanup response from possible markdown or prefixing
     const insights = response
       .split('\n')
       .map(line => line.replace(/^[-*•\d.]+\s*/, '').trim())

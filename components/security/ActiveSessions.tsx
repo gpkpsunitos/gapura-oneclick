@@ -13,10 +13,6 @@ interface Session {
     isCurrent: boolean;
 }
 
-/**
- * Sentinel Active Sessions Component
- * Design: Spatial glassmorphism with kinetic feedback.
- */
 export function ActiveSessions() {
     const [sessions, setSessions] = useState<Session[]>([]);
     const [loading, setLoading] = useState(true);
@@ -39,9 +35,9 @@ export function ActiveSessions() {
 
     const handleRevoke = async (id: string) => {
         try {
-            // Optimistic update
+
             setSessions(prev => prev.filter(s => s.id !== id));
-            
+
             await fetch('/api/security/sessions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -49,7 +45,7 @@ export function ActiveSessions() {
             });
         } catch (err) {
             console.error('Failed to revoke session', err);
-            fetchSessions(); // Rollback
+            fetchSessions();
         }
     };
 

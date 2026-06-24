@@ -10,12 +10,6 @@ function yearOf(r: Report): number | null {
   return Number.isNaN(d.getTime()) ? null : d.getUTCFullYear();
 }
 
-/**
- * Per-card year scope. Each card calls this with the raw reports it wants
- * to consider; the hook owns a LOCAL year state so toggling one card does
- * not affect any other card. Returns the filtered subset plus a small
- * <toggle/> ReactNode ready to drop into the card's header.
- */
 export function useCardYear(reports: Report[]) {
   const availableYears = useMemo(() => {
     const set = new Set<number>();
@@ -33,7 +27,6 @@ export function useCardYear(reports: Report[]) {
   return { filtered, year, toggle, availableYears };
 }
 
-/** Render-prop wrapper: gives any card local year state + a toggle node. */
 export function YearCard({
   reports, children,
 }: {

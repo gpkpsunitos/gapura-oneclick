@@ -75,7 +75,6 @@ export function AiBranchSummary({ source }: { source?: string }) {
     return null;
   }
 
-  // Implementation of context-aware filtering
   const showLandside = !source || source === 'NON CARGO';
   const showCGO = !source || source === 'CGO';
   const showComparison = !source;
@@ -128,7 +127,7 @@ export function AiBranchSummary({ source }: { source?: string }) {
         )}
       </div>
 
-      {/* Comparison Metrics - Only show when no specific source is filtered */}
+      {}
       <AnimatePresence>
         {showComparison && (
           <motion.div 
@@ -210,7 +209,7 @@ function CategoryCard({
       </div>
 
       <div className="grid grid-cols-2 gap-4">
-        {/* Risk Distribution */}
+        {}
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
             <AlertTriangle size={12} />
@@ -249,7 +248,7 @@ function CategoryCard({
           </div>
         </div>
 
-        {/* Trend Insights */}
+        {}
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest">
             <Activity size={12} />

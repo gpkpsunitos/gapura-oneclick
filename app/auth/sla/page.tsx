@@ -1,9 +1,4 @@
-/**
- * @file
- * 
- * File ini berisi halaman menu pengisian report SLA untuk Landside dan Airside
- * yang mengarahkan ke formulir Google Forms
- */
+
 'use client';
 
 import GuestNav from '@/components/GuestNav';
@@ -11,10 +6,6 @@ import { ClipboardList, ExternalLink } from 'lucide-react';
 import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
 import { getLinkUrl } from '@/lib/external-links';
 
-/**
- * Halaman menu pengisian report SLA
- * @returns Komponen React
- */
 export default function PublicSLAMenuPage() {
     const externalLinks = useExternalLinks();
     const LANDSIDE_URL = getLinkUrl(externalLinks, 'sla-landside-page');

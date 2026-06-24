@@ -14,8 +14,7 @@ export async function GET() {
         if (!payload) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        
-        // Only SUPER_ADMIN can clear cache
+
         if (payload.role !== 'SUPER_ADMIN') {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }

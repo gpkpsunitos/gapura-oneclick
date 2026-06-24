@@ -19,6 +19,7 @@ interface AreaSubCategoryChartProps {
 const AREA_CONFIG: Record<string, { 
   color: string; 
   bgColor: string; 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   icon: any;
   label: string;
   description: string;
@@ -51,7 +52,7 @@ export function AreaSubCategoryChart({
   title = 'Sub-Kategori per Area',
   explanation 
 }: AreaSubCategoryChartProps) {
-  // Handle empty data
+
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-100 flex flex-col overflow-hidden h-full shadow-sm">
@@ -74,26 +75,24 @@ export function AreaSubCategoryChart({
   }
 
   const total = data.reduce((sum, item) => sum + item.count, 0);
-  
-  // Determine area config from title or data
+
   const primaryAreaKey = data[0]?.area?.toUpperCase() || 'GENERAL';
-  // Fallback: Check title if data area is generic
+
   let areaConfig = AREA_CONFIG[primaryAreaKey] || AREA_CONFIG['GENERAL'];
-  
-  // Override config if title suggests specific area but data is generic
+
   if (title.toUpperCase().includes('TERMINAL')) areaConfig = AREA_CONFIG['TERMINAL'];
   else if (title.toUpperCase().includes('APRON')) areaConfig = AREA_CONFIG['APRON'];
-  
+
   const sortedData = [...data].sort((a, b) => b.count - a.count);
   const maxCount = Math.max(...sortedData.map(d => d.count), 1);
   const Icon = areaConfig.icon;
 
   return (
     <div className={`bg-white rounded-xl border border-gray-100 flex flex-col overflow-hidden transition-all hover:shadow-md h-full relative`}>
-      {/* Accent Line */}
+      {}
       <div className="absolute top-0 left-0 w-1 h-full" style={{ backgroundColor: areaConfig.color }} />
-      
-      {/* Header */}
+
+      {}
       <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between bg-white/50 backdrop-blur-sm ml-1">
         <div className="flex items-center gap-2">
           <div className={`p-1.5 rounded-lg ${areaConfig.bgColor}`}>
@@ -107,13 +106,13 @@ export function AreaSubCategoryChart({
           Total: {total.toLocaleString('id-ID')}
         </div>
       </div>
-      
+
       <div className="flex-1 flex flex-col p-0 min-h-[300px] ml-1">
         <div className="flex-1 overflow-y-auto max-h-[400px] p-5 space-y-4">
           {sortedData.map((item, idx) => {
             const percentage = total > 0 ? (item.count / total) * 100 : 0;
             const barWidth = (item.count / maxCount) * 100;
-            
+
             return (
               <div key={idx} className="group">
                 <div className="flex justify-between items-end mb-1.5">
@@ -125,7 +124,7 @@ export function AreaSubCategoryChart({
                     <span className="text-[9px] text-gray-400">({percentage.toFixed(1)}%)</span>
                   </div>
                 </div>
-                
+
                 <div className="h-2 w-full bg-gray-50 rounded-full overflow-hidden">
                   <div 
                     className="h-full rounded-full transition-all duration-500 ease-out group-hover:brightness-95"

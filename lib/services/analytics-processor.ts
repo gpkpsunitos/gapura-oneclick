@@ -25,14 +25,8 @@ type TitleCategoryCounts = {
   'Accident / Incident': number;
 };
 
-/**
- * AnalyticsProcessor
- * 
- * Provides server-side aggregation for Intelligence dashboards to minimize client-side processing
- * and reduce network payload size by several orders of magnitude.
- */
 export class AnalyticsProcessor {
-  
+
   private static normalizeCategory(category: string | undefined): string | null {
     const normalized = normalizeReportCategory(category);
     return normalized ? String(normalized) : null;
@@ -80,7 +74,7 @@ export class AnalyticsProcessor {
       } else {
           date = new Date(dateStr);
       }
-      
+
       if (isNaN(date.getTime())) return '';
       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
     } catch {
@@ -97,23 +91,19 @@ export class AnalyticsProcessor {
 
   private static getBranch(report: Report): string {
     return resolveReportBranch(report) || 'Unknown';
-    // Complexity: Time O(1) | Space O(1)
+
   }
 
   private static getHub(report: Report): string {
     return resolveReportHub(report) || 'Unknown';
-    // Complexity: Time O(1) | Space O(1)
+
   }
 
   private static getAirline(report: Report): string {
     return resolveReportAirline(report) || 'Unknown';
-    // Complexity: Time O(1) | Space O(1)
+
   }
 
-  /**
-   * Aggregates data for the Report By Case Category dashboard
-   * Complexity: Time O(N) | Space O(K) where N is reports count, K is unique categories/months
-   */
   public static processCaseCategory(reports: Report[]) {
     const categoryMap = new Map<string, { count: number }>();
     const monthMap = new Map<string, TitleCategoryCounts>();
@@ -125,11 +115,9 @@ export class AnalyticsProcessor {
       const category = this.getCategory(report);
       if (!category) return;
 
-      // Category Breakdown
       if (!categoryMap.has(category)) categoryMap.set(category, { count: 0 });
       categoryMap.get(category)!.count++;
 
-      // Monthly Trend
       const monthKey = this.getMonthKey(report.date_of_event || report.created_at);
       if (monthKey) {
         if (!monthMap.has(monthKey)) monthMap.set(monthKey, this.emptyTitleCounts());
@@ -137,7 +125,6 @@ export class AnalyticsProcessor {
         this.bumpCategory(mData, category);
       }
 
-      // Branch Distribution
       const branch = this.getBranch(report);
       if (branch !== 'Unknown') {
         if (!branchMap.has(branch)) branchMap.set(branch, this.emptyTitleCounts());
@@ -145,7 +132,6 @@ export class AnalyticsProcessor {
         this.bumpCategory(bData, category);
       }
 
-      // Airline Distribution
       const airline = this.getAirline(report);
       if (airline !== 'Unknown') {
         if (!airlineMap.has(airline)) airlineMap.set(airline, { ...this.emptyTitleCounts(), total: 0 });
@@ -154,7 +140,6 @@ export class AnalyticsProcessor {
         this.bumpCategory(aData, category);
       }
 
-      // Root Causes
       const rootCause = resolveRootCause(report);
       if (this.isValidRootCause(rootCause)) {
         const rcKey = `${rootCause}-${category}`;
@@ -165,12 +150,11 @@ export class AnalyticsProcessor {
 
     const totalCount = reports.length;
 
-    // Format Outputs
     const categoryData = Array.from(categoryMap.entries()).map(([name, d]) => ({
       name,
       count: d.count,
       percentage: totalCount > 0 ? (d.count / totalCount) * 100 : 0,
-      growth: 0 // Simplification: handle growth if needed in next version
+      growth: 0
     })).sort((a, b) => b.count - a.count);
 
     const trendData = Array.from(monthMap.entries())
@@ -204,17 +188,13 @@ export class AnalyticsProcessor {
     };
   }
 
-  /**
-   * Aggregates data for the Monthly Report dashboard
-   * Complexity: Time O(N) | Space O(M) where N is reports, M is unique months
-   */
   public static processMonthlyReport(reports: Report[]) {
     const monthMap = new Map<string, LowerCategoryCounts & { 
       total: number;
       prevMonthTotal?: number;
       prevYearTotal?: number;
     }>();
-    
+
     const dateMap = new Map<string, TitleCategoryCounts & { total: number }>();
     const branchCounters = new Map<string, number>();
     const airlineCounters = new Map<string, number>();
@@ -246,23 +226,22 @@ export class AnalyticsProcessor {
     });
 
     const sortedMonths = Array.from(monthMap.keys()).sort();
-    
-    // Calculate MoM and YoY for each month
+
     const summary = sortedMonths.map((month) => {
       const data = monthMap.get(month)!;
-      
+
       const [year, monthNum] = month.split('-').map(Number);
       const prevMonthNum = monthNum === 1 ? 12 : monthNum - 1;
       const prevYearNum = monthNum === 1 ? year - 1 : year;
       const prevMonthKey = `${prevYearNum}-${String(prevMonthNum).padStart(2, '0')}`;
       const prevYearKey = `${year - 1}-${String(monthNum).padStart(2, '0')}`;
-      
+
       const prevMonthData = monthMap.get(prevMonthKey);
       const prevYearData = monthMap.get(prevYearKey);
-      
+
       const prevMonthTotal = prevMonthData?.total || 0;
       const prevYearTotal = prevYearData?.total || 0;
-      
+
       return {
         month,
         total: data.total,
@@ -290,7 +269,6 @@ export class AnalyticsProcessor {
       highestPeakMonth: summary.reduce((max, m) => (m.total > max.count ? { month: m.month, count: m.total } : max), { month: '-', count: 0 })
     };
 
-    // Rolling Average (3m, 6m)
     const rollingData = summary.map((m, idx) => {
       const prev3 = summary.slice(Math.max(0, idx - 2), idx + 1).map(v => v.total);
       const prev6 = summary.slice(Math.max(0, idx - 5), idx + 1).map(v => v.total);
@@ -307,7 +285,6 @@ export class AnalyticsProcessor {
       .slice(-60)
       .map(([date, data]) => ({ date, ...data }));
 
-    // Peak Day
     let peakCount = 0;
     let peakDate = '-';
     dateMap.forEach((data, date) => {
@@ -342,19 +319,15 @@ export class AnalyticsProcessor {
     };
   }
 
-  /**
-   * Aggregates data for the Area Intelligence dashboard
-   * Complexity: Time O(N) | Space O(A) where A is unique areas
-   */
   public static processAreaReport(reports: Report[]) {
     const areaMap = new Map<string, LowerCategoryCounts & { total: number }>();
-    
+
     reports.forEach(report => {
       const area = report.area || 'Unknown';
       if (!areaMap.has(area)) areaMap.set(area, { total: 0, ...this.emptyLowerCounts() });
       const data = areaMap.get(area)!;
       data.total++;
-      
+
       this.bumpCategory(data, this.getCategory(report));
     });
 
@@ -365,7 +338,7 @@ export class AnalyticsProcessor {
         const netSentiment = (data.compliment + data.complaint) > 0 
           ? ((data.compliment - data.complaint) / (data.compliment + data.complaint)) * 100 : 0;
         const riskIndex = (irregularityRate * 0.7) + (data.total > 0 ? (data.complaint / data.total * 30) : 0);
-        
+
         return {
           area,
           ...data,
@@ -379,7 +352,6 @@ export class AnalyticsProcessor {
       .sort((a, b) => b.total - a.total)
       .map((item, idx) => ({ ...item, rank: idx + 1 }));
 
-    // Trend by month
     const monthMap = new Map<string, TitleCategoryCounts & { total: number }>();
     reports.forEach(report => {
       const monthKey = this.getMonthKey(report.date_of_event || report.created_at);
@@ -414,21 +386,17 @@ export class AnalyticsProcessor {
     };
   }
 
-  /**
-   * Aggregates data for the Airline Intelligence dashboard
-   * Complexity: Time O(N) | Space O(L) where L is unique airlines
-   */
   public static processAirlineReport(reports: Report[]) {
     const airlineMap = new Map<string, LowerCategoryCounts & { total: number }>();
-    
+
     reports.forEach(report => {
       const airline = this.getAirline(report);
       if (airline === 'Unknown') return;
-      
+
       if (!airlineMap.has(airline)) airlineMap.set(airline, { total: 0, ...this.emptyLowerCounts() });
       const data = airlineMap.get(airline)!;
       data.total++;
-      
+
       this.bumpCategory(data, this.getCategory(report));
     });
 
@@ -454,7 +422,6 @@ export class AnalyticsProcessor {
       .sort((a, b) => b.total - a.total)
       .map((item, idx) => ({ ...item, rank: idx + 1 }));
 
-    // Monthly Trend
     const monthMap = new Map<string, TitleCategoryCounts & { total: number }>();
     reports.forEach(report => {
       const monthKey = this.getMonthKey(report.date_of_event || report.created_at);
@@ -499,10 +466,6 @@ export class AnalyticsProcessor {
     };
   }
 
-  /**
-   * Aggregates data for the Hub Intelligence dashboard
-   * Complexity: Time O(N) | Space O(H) where H is unique hubs
-   */
   public static processHubReport(reports: Report[]) {
     const hubMap = new Map<string, LowerCategoryCounts & { total: number }>();
 
@@ -518,11 +481,11 @@ export class AnalyticsProcessor {
     reports.forEach(report => {
       const hub = this.getHub(report);
       if (hub === 'Unknown') return;
-      
+
       if (!hubMap.has(hub)) hubMap.set(hub, { total: 0, ...this.emptyLowerCounts() });
       const data = hubMap.get(hub)!;
       data.total++;
-      
+
       const category = this.getCategory(report);
       this.bumpCategory(data, category);
 
@@ -560,18 +523,16 @@ export class AnalyticsProcessor {
       .sort((a, b) => b.total - a.total)
       .map((item, idx) => ({ ...item, rank: idx + 1 }));
 
-    // Monthly Trend
     const trendData = Array.from(monthMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
       .slice(-14)
       .map(([month, data]) => ({ month, ...data }));
 
-    // KPIs
     const totalHubs = hubMap.size;
     const sortedByCount = [...hubSummaries].sort((a, b) => a.total - b.total);
     const topPerformer = sortedByCount[0] || { hub: '-', total: 0 };
     const worstPerformer = sortedByCount[sortedByCount.length - 1] || { hub: '-', total: 0 };
-    
+
     const momChange = lastMonthCount > 0 ? ((currentMonthCount - lastMonthCount) / lastMonthCount) * 100 : 0;
 
     return {
@@ -595,10 +556,6 @@ export class AnalyticsProcessor {
     };
   }
 
-  /**
-   * Aggregates data for the Branch Intelligence dashboard
-   * Complexity: Time O(N) | Space O(B) where B is unique branches
-   */
   public static processBranchReport(reports: Report[]) {
     const branchMap = new Map<string, LowerCategoryCounts & { total: number }>();
 
@@ -614,11 +571,11 @@ export class AnalyticsProcessor {
     reports.forEach(report => {
       const branch = this.getBranch(report);
       if (branch === 'Unknown') return;
-      
+
       if (!branchMap.has(branch)) branchMap.set(branch, { total: 0, ...this.emptyLowerCounts() });
       const data = branchMap.get(branch)!;
       data.total++;
-      
+
       const category = this.getCategory(report);
       this.bumpCategory(data, category);
 
@@ -661,12 +618,11 @@ export class AnalyticsProcessor {
       .slice(-14)
       .map(([month, data]) => ({ month, ...data }));
 
-    // KPIs
     const totalBranches = branchMap.size;
     const sortedByCount = [...branchSummaries].sort((a, b) => a.total - b.total);
     const topPerformer = sortedByCount[0] || { branch: '-', total: 0 };
     const worstPerformer = sortedByCount[sortedByCount.length - 1] || { branch: '-', total: 0 };
-    
+
     const momChange = lastMonthCount > 0 ? ((currentMonthCount - lastMonthCount) / lastMonthCount) * 100 : 0;
 
     return {

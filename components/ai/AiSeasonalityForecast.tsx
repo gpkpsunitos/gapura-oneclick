@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
-// Fallback data
 const FALLBACK_DATA: SeasonalityForecastResponse = {
   "landside_airside": {
     "category_type": "landside_airside",
@@ -192,7 +191,6 @@ export function AiSeasonalityForecast() {
         if (result) {
           setData(result);
         } else {
-          console.warn('Using fallback data for seasonality forecast');
           setData(FALLBACK_DATA);
         }
       } catch (err) {
@@ -215,7 +213,7 @@ export function AiSeasonalityForecast() {
       className="bg-white rounded-2xl border border-indigo-100 p-6 shadow-sm relative overflow-hidden mt-6"
     >
       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-emerald-500" />
-      
+
       <div className="flex items-center gap-3 mb-6">
         <div className="p-2 bg-indigo-50 rounded-lg text-indigo-600">
           <Brain size={20} />

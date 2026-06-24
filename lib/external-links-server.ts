@@ -1,15 +1,7 @@
-/**
- * Server-only external links utilities.
- * This file imports supabaseAdmin and must NOT be imported from client components.
- */
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { DEFAULT_EXTERNAL_LINKS, type ExternalLinksMap, type ExternalLinkEntry } from '@/lib/external-links';
 
-/**
- * Server-side: fetch external links from DB and merge with defaults.
- * Returns the merged map. Falls back to defaults on any error.
- */
 export async function getExternalLinks(): Promise<ExternalLinksMap> {
   try {
     const { data, error } = await supabaseAdmin
@@ -37,9 +29,6 @@ export async function getExternalLinks(): Promise<ExternalLinksMap> {
   }
 }
 
-/**
- * Get all default entries as an array (for seeding via admin API).
- */
 export function getDefaultLinksArray(): ExternalLinkEntry[] {
   return Object.values(DEFAULT_EXTERNAL_LINKS);
 }

@@ -4,15 +4,10 @@ import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { SecurityAlert } from '@/types/security';
 
-/**
- * Spatial Threat Heatmap
- * Visualizes attack intensity across different system facets.
- * Design: Noise-textured cells with oklch-based heat expansion.
- */
 export function ThreatPatternHeatMap({ events }: { events: SecurityAlert[] }) {
-    // Generate data based on recent alerts instead of random
+
     const timeSlots = useMemo(() => ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00'], []);
-    
+
     const heatmapData = useMemo(() => {
         const categoriesMap: Record<string, string[]> = {
             'Auth': ['login', 'access', 'auth'],
@@ -25,18 +20,16 @@ export function ThreatPatternHeatMap({ events }: { events: SecurityAlert[] }) {
 
         const dims = Object.keys(categoriesMap);
         const counts: Record<string, Record<string, number>> = {};
-        
-        // Initialize counts
+
         dims.forEach(d => {
             counts[d] = {};
             timeSlots.forEach(t => counts[d][t] = 0);
         });
 
-        // O(E) aggregation
         events?.forEach(alert => {
             const hour = new Date(alert.created_at).getHours();
             const timeSlot = timeSlots[Math.floor(hour / 4)];
-            
+
             dims.forEach(dim => {
                 const keywords = categoriesMap[dim];
                 if (keywords.some(k => 
@@ -47,7 +40,7 @@ export function ThreatPatternHeatMap({ events }: { events: SecurityAlert[] }) {
                 }
             });
         });
-        
+
         return dims.map(dim => 
             timeSlots.map(time => ({
                 dim,
@@ -73,11 +66,11 @@ export function ThreatPatternHeatMap({ events }: { events: SecurityAlert[] }) {
 
             <div className="grid grid-cols-6 gap-2">
                 {heatmapData.map((cell, idx) => {
-                    // Complexity: Time O(n) | Space O(1) for color mapping
+
                     const color = cell.intensity < 30 ? 'bg-emerald-50 text-emerald-700' 
                                 : cell.intensity < 70 ? 'bg-amber-100 text-amber-700' 
                                 : 'bg-rose-500 text-white';
-                    
+
                     return (
                         <motion.div 
                             key={`${cell.dim}-${cell.time}`}
@@ -95,7 +88,7 @@ export function ThreatPatternHeatMap({ events }: { events: SecurityAlert[] }) {
                     );
                 })}
             </div>
-            
+
             <div className="flex justify-between pt-4 border-t border-slate-50">
                 {timeSlots.map(t => (
                     <span key={t} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t}</span>

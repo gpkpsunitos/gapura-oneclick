@@ -6,7 +6,7 @@ import { canApproveStaff } from '@/lib/permissions';
 
 export async function POST(request: Request) {
     try {
-        // Verify session
+
         const cookieStore = await cookies();
         const token = cookieStore.get('session')?.value;
         if (!token) {
@@ -26,7 +26,6 @@ export async function POST(request: Request) {
         const currentUserRole = session.role;
         const currentUserStationId = session.station_id || null;
 
-        // Get staff user data
         const { data: staffUser, error: staffUserError } = await supabase
             .from('users')
             .select('role, station_id, status')
@@ -37,7 +36,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Staff user not found' }, { status: 404 });
         }
 
-        // Check if staff is STAFF_CABANG and pending
         if (staffUser.role !== 'STAFF_CABANG') {
             return NextResponse.json(
                 { error: 'Can only approve STAFF_CABANG users' },
@@ -52,7 +50,7 @@ export async function POST(request: Request) {
             );
         }
 
-        // Check permission
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if (!canApproveStaff(currentUserRole as any, currentUserStationId, staffUser.station_id)) {
             return NextResponse.json(
                 { error: 'You can only approve staff from your station' },
@@ -60,7 +58,6 @@ export async function POST(request: Request) {
             );
         }
 
-        // Approve staff
         const { error: updateError } = await supabase
             .from('users')
             .update({ status: 'active', updated_at: new Date().toISOString() })

@@ -1,14 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi konstanta status laporan dan fungsi terkait untuk
- * manajemen lifecycle, SLA, dan transisi status laporan
- */
-
-/**
- * Report Status Constants
- * Simplified 3-status lifecycle system
- */
 
 import {
     AlertTriangle,
@@ -19,44 +8,35 @@ import {
     LucideIcon
 } from 'lucide-react';
 
-/**
- * Konstanta status laporan yang tersedia
- */
 export const REPORT_STATUS = {
     OPEN: 'OPEN',
     'ON PROGRESS': 'ON PROGRESS',
     CLOSED: 'CLOSED',
 } as const;
 
-/**
- * Tipe data status laporan
- */
 export type ReportStatus = typeof REPORT_STATUS[keyof typeof REPORT_STATUS];
 
-/**
- * Konfigurasi status untuk tampilan UI
- */
 export const STATUS_CONFIG: Record<ReportStatus, {
-    /** Label tampilan status */
+
     label: string;
-    /** Warna utama */
+
     color: string;
-    /** Warna background transparan */
+
     bgColor: string;
-    /** Icon komponen Lucide */
+
     icon: LucideIcon;
-    /** Deskripsi status */
+
     description: string;
-    /** Class CSS background untuk Tailwind */
+
     bgClass?: string;
-    /** Class CSS teks untuk Tailwind */
+
     textClass?: string;
-    /** Class CSS border untuk Tailwind */
+
     borderClass?: string;
 }> = {
     OPEN: {
         label: 'Open',
-        color: 'oklch(0.65 0.20 240)',     // Blue
+        color: 'oklch(0.65 0.20 240)',
         bgColor: 'oklch(0.65 0.20 240 / 0.1)',
         icon: AlertCircle,
         description: 'New or open report',
@@ -66,7 +46,7 @@ export const STATUS_CONFIG: Record<ReportStatus, {
     },
     'ON PROGRESS': {
         label: 'On Progress',
-        color: 'oklch(0.65 0.18 85)',      // Amber
+        color: 'oklch(0.65 0.18 85)',
         bgColor: 'oklch(0.65 0.18 85 / 0.1)',
         icon: Clock,
         description: 'Being handled by analyst',
@@ -76,7 +56,7 @@ export const STATUS_CONFIG: Record<ReportStatus, {
     },
     CLOSED: {
         label: 'Closed',
-        color: 'oklch(0.55 0.18 145)',     // Green
+        color: 'oklch(0.55 0.18 145)',
         bgColor: 'oklch(0.55 0.18 145 / 0.1)',
         icon: CheckCircle2,
         description: 'Case has been resolved',
@@ -86,26 +66,20 @@ export const STATUS_CONFIG: Record<ReportStatus, {
     },
 };
 
-/**
- * Priority levels for SLA calculation
- */
 export type ReportPriority = 'low' | 'medium' | 'high' | 'urgent';
 
-/**
- * Konfigurasi prioritas laporan dengan SLA
- */
 export const PRIORITY_CONFIG: Record<ReportPriority, {
-    /** Label lengkap dalam Bahasa Indonesia */
+
     label: string;
-    /** Label pendek dalam Bahasa Inggris */
+
     labelShort: string;
-    /** Warna prioritas */
+
     color: string;
-    /** Warna background transparan */
+
     bgColor: string;
-    /** SLA dalam jam */
+
     slaHours: number;
-    /** Deskripsi prioritas */
+
     description: string;
 }> = {
     low: {
@@ -142,15 +116,12 @@ export const PRIORITY_CONFIG: Record<ReportPriority, {
     },
 };
 
-/**
- * @deprecated Legacy config for backward compatibility.
- */
 export const SEVERITY_CONFIG = {
     'CRITICAL': { label: 'CRITICAL', color: 'oklch(0.55 0.22 25)', bg: 'oklch(0.55 0.22 25 / 0.12)', icon: AlertTriangle },
     'HIGH': { label: 'HIGH', color: 'oklch(0.55 0.18 25)', bg: 'oklch(0.55 0.18 25 / 0.12)', icon: AlertTriangle },
     'MEDIUM': { label: 'MEDIUM', color: 'oklch(0.70 0.14 75)', bg: 'oklch(0.70 0.14 75 / 0.12)', icon: AlertCircle },
     'LOW': { label: 'LOW', color: 'oklch(0.55 0.14 160)', bg: 'oklch(0.55 0.14 160 / 0.12)', icon: Shield },
-    // Aliases for backward compatibility
+
     'HIGH RISK': { label: 'HIGH RISK', color: 'oklch(0.58 0.2 35)', bg: 'oklch(0.58 0.2 35 / 0.12)', icon: AlertTriangle },
     'TOP RISK': { label: 'CRITICAL', color: 'oklch(0.55 0.22 25)', bg: 'oklch(0.55 0.22 25 / 0.12)', icon: AlertTriangle },
 };
@@ -181,31 +152,18 @@ export function getSeverityConfig(level: unknown) {
     return SEVERITY_CONFIG[normalized as SeverityLevel] || SEVERITY_CONFIG.LOW;
 }
 
-/**
- * Calculate SLA deadline from creation time and priority
- * 
- * @param createdAt - Tanggal pembuatan laporan (Date object atau string)
- * @param priority - Prioritas laporan
- * @returns Tanggal deadline SLA
- */
 export function calculateSlaDeadline(createdAt: Date | string, priority: ReportPriority): Date {
     const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
     const slaHours = PRIORITY_CONFIG[priority].slaHours;
     return new Date(created.getTime() + slaHours * 60 * 60 * 1000);
 }
 
-/**
- * Get SLA status (remaining time or breach)
- * 
- * @param slaDeadline - Tanggal deadline SLA
- * @returns Object status SLA dengan isBreached, remainingMs, dan remainingText
- */
 export function getSlaStatus(slaDeadline: Date | string | null): {
-    /** Apakah SLA sudah terlewati */
+
     isBreached: boolean;
-    /** Sisa waktu dalam milidetik (negatif jika sudah lewat) */
+
     remainingMs: number;
-    /** Teks sisa waktu yang diformat */
+
     remainingText: string;
 } {
     if (!slaDeadline) {
@@ -239,19 +197,11 @@ export function getSlaStatus(slaDeadline: Date | string | null): {
     };
 }
 
-/**
- * Normalize system status strings to canonical ReportStatus
- * 
- * @param status - String status dalam format apa saja
- * @returns Status kanonik (OPEN, ON PROGRESS, atau CLOSED)
- */
 export function normalizeStatus(status: unknown): ReportStatus {
     if (!status) return 'OPEN';
-    
-    // Convert to upper case and replace spaces/underscores
+
     const s = String(status).trim().toUpperCase().replace(/\s+/g, '_');
-    
-    // Map of variations to canonical statuses
+
     if ([
         'OPEN', 
         'BARU', 
@@ -263,7 +213,7 @@ export function normalizeStatus(status: unknown): ReportStatus {
     ].includes(s)) {
         return 'OPEN';
     }
-    
+
     if ([
         'ON_PROGRESS', 
         'ONPROGRESS', 
@@ -274,7 +224,7 @@ export function normalizeStatus(status: unknown): ReportStatus {
     ].includes(s)) {
         return 'ON PROGRESS';
     }
-    
+
     if ([
         'CLOSED', 
         'SELESAI', 
@@ -282,18 +232,10 @@ export function normalizeStatus(status: unknown): ReportStatus {
     ].includes(s)) {
         return 'CLOSED';
     }
-    
-    return 'OPEN'; // Default fallback
+
+    return 'OPEN';
 }
 
-/**
- * Get allowed status transitions based on current status and user role
- * Only ANALYST can change statuses
- * 
- * @param currentStatus - Status saat ini
- * @param userRole - Role pengguna
- * @returns Array status yang diizinkan untuk transisi
- */
 export function getAllowedTransitions(
     currentStatus: string | ReportStatus,
     userRole: string
@@ -312,22 +254,13 @@ export function getAllowedTransitions(
             return ['CLOSED'];
 
         case 'CLOSED':
-            return ['OPEN']; // Reopen
+            return ['OPEN'];
 
         default:
             return [];
     }
 }
 
-/**
- * Check if user can perform specific action on report
- * Analyst controls ALL status changes. Other roles can only view and comment.
- * 
- * @param action - Tipe aksi yang ingin dilakukan
- * @param currentStatus - Status saat ini
- * @param userRole - Role pengguna
- * @returns Boolean true jika aksi diizinkan, false jika tidak
- */
 export function canPerformAction(
     action: 'update_progress' | 'close' | 'reopen' | 'comment',
     currentStatus: string | ReportStatus,
@@ -347,7 +280,7 @@ export function canPerformAction(
             return isAnalyst && normalized === 'CLOSED';
 
         case 'comment':
-            return true; // Everyone can comment
+            return true;
 
         default:
             return false;

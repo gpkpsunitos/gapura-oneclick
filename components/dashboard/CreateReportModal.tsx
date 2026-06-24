@@ -22,13 +22,13 @@ export function CreateReportModal({ isOpen, onClose }: CreateReportModalProps) {
 
     return (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-            {/* Backdrop */}
+            {}
             <div 
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                 onClick={onClose}
             />
 
-            {/* Modal Content */}
+            {}
             <div className="bg-[var(--surface-1)] rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6 relative z-10 animate-scale-in border border-[var(--border-subtle)]">
                 <button 
                     onClick={onClose} 
@@ -41,7 +41,7 @@ export function CreateReportModal({ isOpen, onClose }: CreateReportModalProps) {
                     <div className="w-16 h-16 bg-[var(--brand-primary)]/10 rounded-full flex items-center justify-center mx-auto mb-4">
                         <Plus size={32} className="text-[var(--brand-primary)]" />
                     </div>
-                    
+
                     <h2 className="text-xl font-bold text-[var(--text-primary)]">Create New Report</h2>
                     <p className="text-[var(--text-secondary)]">
                         You will be redirected to the irregularity report creation form. Please ensure you have photo evidence ready for upload.

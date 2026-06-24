@@ -49,10 +49,8 @@ export async function GET(request: Request) {
         const sourceParam = searchParams.get('source');
         const source: 'sheets' | 'sync' = sourceParam === 'sync' ? 'sync' : 'sheets';
 
-        // 1. Fetch all reports from current Google Sheets schema by default.
         const allReports = await reportsService.getReports({ source });
 
-        // 2. Filter by Date Range
         let filteredReports = allReports;
         let dateFrom: Date | null = null;
         let dateTo: Date | null = null;
@@ -80,14 +78,13 @@ export async function GET(request: Request) {
             });
         }
 
-        // --- Station Stats + Summary Stats (single-pass) ---
         const stationMap = new Map<string, StationStats>();
         let summaryResolved = 0;
         let summaryPending = 0;
         let summaryHighSeverity = 0;
 
         filteredReports.forEach(r => {
-            // Summary counters (eliminates 3 separate .filter() passes)
+
             if (r.status === REPORT_STATUS.CLOSED) summaryResolved++;
             if (r.status === REPORT_STATUS.OPEN) summaryPending++;
             if (r.severity === 'HIGH' || r.severity === 'CRITICAL' || r.severity === 'TOP RISK') summaryHighSeverity++;
@@ -118,11 +115,10 @@ export async function GET(request: Request) {
         });
 
         const stationData = Array.from(stationMap.values())
-            .sort((a, b) => b.total - a.total); // Sort by total descending
+            .sort((a, b) => b.total - a.total);
 
-        // --- Division Stats ---
         const divisionMap = new Map<string, DivisionStats>();
-        
+
         filteredReports.forEach(r => {
             const divName = r.target_division || 'Unassigned';
             if (!divisionMap.has(divName)) {
@@ -146,34 +142,26 @@ export async function GET(request: Request) {
         const divisionData = Array.from(divisionMap.values())
             .sort((a, b) => b.total - a.total);
 
-        // --- Summary Stats (computed in single-pass above) ---
         const summary = {
             totalReports: filteredReports.length,
             resolvedReports: summaryResolved,
             pendingReports: summaryPending,
             highSeverity: summaryHighSeverity,
             avgResolutionRate: 0,
-            slaBreachCount: 0 // Not calculated yet
+            slaBreachCount: 0
         };
 
         if (summary.totalReports > 0) {
             summary.avgResolutionRate = (summary.resolvedReports / summary.totalReports) * 100;
         }
 
-        // --- Trend Data (Last 6 Months) ---
-        // This usually ignores the filter to show trend context, or respects it?
-        // Usually trend is fixed 6 months back from NOW, regardless of filter, 
-        // OR it respects the filter if the filter is wider.
-        // Let's stick to the previous logic: explicitly calculate last 6 months trend
-        
         const now = new Date();
         const trendMap = new Map<string, { month: string; total: number; resolved: number }>();
-        
-        // Initialize last 6 months
+
         for (let i = 5; i >= 0; i--) {
             const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
             const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-            const label = `${d.getFullYear()} ${d.toLocaleString('en-US', { month: 'short' })}`; // YYYY MMM
+            const label = `${d.getFullYear()} ${d.toLocaleString('en-US', { month: 'short' })}`;
             trendMap.set(key, { month: label, total: 0, resolved: 0 });
         }
 
@@ -189,13 +177,12 @@ export async function GET(request: Request) {
 
         const trendData = Array.from(trendMap.values());
 
-        // --- Status Distribution ---
         const statusMap = new Map<string, number>();
         filteredReports.forEach(r => {
             const s = r.status || 'Unknown';
             statusMap.set(s, (statusMap.get(s) || 0) + 1);
         });
-        
+
         const statusData = Array.from(statusMap.entries()).map(([name, value]) => ({
             name: name.replace(/_/g, ' '),
             value,
@@ -220,9 +207,9 @@ export async function GET(request: Request) {
 
 function getStatusColor(status: string): string {
     switch (status) {
-        case REPORT_STATUS.OPEN: return '#f59e0b'; // amber-500
-        case REPORT_STATUS['ON PROGRESS']: return '#8b5cf6'; // violet-500
-        case REPORT_STATUS.CLOSED: return '#22c55e'; // green-500
-        default: return '#94a3b8'; // slate-400
+        case REPORT_STATUS.OPEN: return '#f59e0b';
+        case REPORT_STATUS['ON PROGRESS']: return '#8b5cf6';
+        case REPORT_STATUS.CLOSED: return '#22c55e';
+        default: return '#94a3b8';
     }
 }

@@ -72,8 +72,8 @@ interface BaseFilters {
   dateTo?: string;
 }
 
-let reportsCache: Record<string, { data: Report[], ts: number }> = {};
-let inflightRequests: Record<string, Promise<Report[]>> = {};
+const reportsCache: Record<string, { data: Report[], ts: number }> = {};
+const inflightRequests: Record<string, Promise<Report[]>> = {};
 const CACHE_DURATION = 1000 * 60 * 5;
 
 const CORE_FIELDS = [
@@ -114,13 +114,13 @@ function getMonthKey(dateStr: string | undefined): string {
 
 function getArea(report: Report): string | undefined {
   const rawArea = (report.area || report.terminal_area_category || report.apron_area_category || report.general_category || '').toString().trim().toLowerCase();
-  
+
   if (!rawArea || rawArea === 'null' || rawArea === 'undefined') return undefined;
-  
+
   if (rawArea.includes('terminal')) return 'Terminal Area';
   if (rawArea.includes('apron')) return 'Apron Area';
   if (rawArea.includes('general')) return 'General';
-  
+
   return undefined;
 }
 
@@ -149,8 +149,7 @@ async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report
   if (filters.area && filters.area !== 'all') query.append('area', filters.area);
   if (filters.airlines && filters.airlines !== 'all') query.append('airlines', filters.airlines);
   if (filters.sourceSheet) query.append('sourceSheet', filters.sourceSheet);
-  
-  // Minimize payload size
+
   query.append('fields', CORE_FIELDS.join(','));
 
   const cacheKey = query.toString() || 'default';
@@ -192,7 +191,7 @@ async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report
 
 function filterReports(reports: Report[], filters: BaseFilters): Report[] {
   return reports.filter(report => {
-    // Filter by source sheet (default NON CARGO for backward compatibility)
+
     const sheet = filters.sourceSheet || 'NON CARGO';
     if (report.source_sheet && report.source_sheet !== sheet) return false;
 
@@ -204,13 +203,11 @@ function filterReports(reports: Report[], filters: BaseFilters): Report[] {
   });
 }
 
-// ─── Area Overview ───
 export async function fetchAreaOverview(filters: BaseFilters = {}): Promise<AreaSummary[]> {
   const reports = await fetchReportsFromSheets(filters);
   const allFiltered = filterReports(reports, filters);
   const totalSystem = allFiltered.length;
 
-  // Build per-area aggregation
   const areaMap = new Map<string, {
     total: number;
     irregularity: number;
@@ -218,7 +215,6 @@ export async function fetchAreaOverview(filters: BaseFilters = {}): Promise<Area
     compliment: number;
   }>();
 
-  // Also build monthly data for MoM growth
   const areaMonthMap = new Map<string, Map<string, number>>();
 
   allFiltered.forEach(report => {
@@ -238,7 +234,6 @@ export async function fetchAreaOverview(filters: BaseFilters = {}): Promise<Area
     else if (category === 'Complaint') data.complaint++;
     else if (category === 'Compliment') data.compliment++;
 
-    // Monthly tracking for MoM growth
     const monthKey = getMonthKey(report.date_of_event || report.created_at);
     if (monthKey) {
       if (!areaMonthMap.has(areaKey)) {
@@ -255,7 +250,6 @@ export async function fetchAreaOverview(filters: BaseFilters = {}): Promise<Area
     .map(([area, data]) => {
       const total = data.total;
 
-      // Calculate MoM growth
       const monthData = areaMonthMap.get(area);
       let momGrowth = 0;
       if (monthData) {
@@ -286,7 +280,6 @@ export async function fetchAreaOverview(filters: BaseFilters = {}): Promise<Area
     .map((item, idx) => ({ ...item, rank: idx + 1 }));
 }
 
-// ─── Category Breakdown by Area (stacked) ───
 export async function fetchCategoryBreakdownByArea(filters: BaseFilters = {}): Promise<AreaCategoryBreakdown[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -314,7 +307,6 @@ export async function fetchCategoryBreakdownByArea(filters: BaseFilters = {}): P
     .sort((a, b) => (b.Irregularity + b.Complaint + b.Compliment) - (a.Irregularity + a.Complaint + a.Compliment));
 }
 
-// ─── Branch Distribution within filtered Area ───
 export async function fetchBranchWithinArea(filters: BaseFilters = {}): Promise<BranchWithinAreaData[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -333,7 +325,6 @@ export async function fetchBranchWithinArea(filters: BaseFilters = {}): Promise<
     .slice(0, 15);
 }
 
-// ─── Airline Distribution within filtered Area ───
 export async function fetchAirlineWithinArea(filters: BaseFilters = {}): Promise<AirlineWithinAreaData[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -352,7 +343,6 @@ export async function fetchAirlineWithinArea(filters: BaseFilters = {}): Promise
     .slice(0, 15);
 }
 
-// ─── Monthly Trend for Area (last 14 months) ───
 export async function fetchMonthlyTrendForArea(filters: BaseFilters = {}): Promise<TrendDataPoint[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -382,7 +372,6 @@ export async function fetchMonthlyTrendForArea(filters: BaseFilters = {}): Promi
     .map(([month, data]) => ({ month, ...data }));
 }
 
-// ─── Root Cause Pareto with cumulative % ───
 export async function fetchRootCauseForArea(filters: BaseFilters = {}): Promise<RootCauseParetoData[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -416,7 +405,6 @@ export async function fetchRootCauseForArea(filters: BaseFilters = {}): Promise<
   return sorted;
 }
 
-// ─── Branch x Category Heatmap ───
 export async function fetchBranchCategoryHeatmap(filters: BaseFilters = {}): Promise<HeatmapMatrix> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -448,14 +436,12 @@ export async function fetchBranchCategoryHeatmap(filters: BaseFilters = {}): Pro
     grandTotal++;
   });
 
-  // Sort rows by total descending
   const rows = Array.from(rowSet).sort((a, b) => (rowTotals.get(b) || 0) - (rowTotals.get(a) || 0));
   const cols = ['Irregularity', 'Complaint', 'Compliment'].filter(c => colSet.has(c));
 
   return { rows, cols, cells, rowTotals, colTotals, grandTotal };
 }
 
-// ─── Flat records for data table ───
 export async function fetchAllAreaIntelReports(filters: BaseFilters = {}): Promise<AreaReportRecord[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);

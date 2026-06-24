@@ -6,7 +6,6 @@ import { reportsService } from '@/lib/services/reports-service';
 import { getSyncState } from '@/lib/sync-state';
 import type { Report } from '@/types';
 
-// Complexity: Time O(N) | Space O(N) where N = report count
 export async function GET() {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
@@ -26,13 +25,11 @@ export async function GET() {
 
   const reports = await reportsService.getReports({ source: 'sync' });
 
-  // RBAC filtering — server enforces access boundaries before client receives data
   const accessibleReports = applyRbacFilter(reports, role, session.id as string, userStationId, userEmail);
 
   const syncState = await getSyncState('reports');
   const cacheVersion = syncState.sync_version || 0;
 
-  // SHA-256 integrity hash for client-side corruption detection
   const serialized = JSON.stringify(accessibleReports);
   const hashBuffer = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(serialized));
   const integrity = Array.from(new Uint8Array(hashBuffer))
@@ -53,7 +50,6 @@ export async function GET() {
   });
 }
 
-// Complexity: Time O(N) | Space O(N)
 function applyRbacFilter(
   reports: Report[],
   role: string,

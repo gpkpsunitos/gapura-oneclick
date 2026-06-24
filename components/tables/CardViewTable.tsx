@@ -5,20 +5,14 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
-/**
- * Column definition for responsive table
- */
 export interface TableColumn<T> {
   key: string;
   header: string;
   accessor: (row: T) => ReactNode;
-  priority?: 'high' | 'medium' | 'low'; // For mobile visibility
+  priority?: 'high' | 'medium' | 'low';
   width?: string;
 }
 
-/**
- * Action definition for table rows
- */
 export interface TableAction<T> {
   label: string;
   icon?: ReactNode;
@@ -37,10 +31,6 @@ interface CardViewTableProps<T> {
   showHeader?: boolean;
 }
 
-/**
- * Card-based table view optimized for mobile
- * Displays data as a list of cards instead of a traditional table
- */
 export function CardViewTable<T>({
   data,
   columns,
@@ -51,12 +41,11 @@ export function CardViewTable<T>({
   emptyMessage = 'Tidak ada data',
   showHeader = false,
 }: CardViewTableProps<T>) {
-  // Filter columns for mobile (show high and medium priority only)
+
   const mobileColumns = columns.filter(
     (col) => !col.priority || col.priority !== 'low'
   );
 
-  // Get primary column (usually the title/name)
   const primaryColumn = mobileColumns.find((col) => col.priority === 'high') || mobileColumns[0];
   const metaColumns = mobileColumns.filter((col) => col.key !== primaryColumn?.key);
 
@@ -75,7 +64,7 @@ export function CardViewTable<T>({
           {primaryColumn.header}
         </div>
       )}
-      
+
       {data.map((row) => (
         <CardItem
           key={keyExtractor(row)}
@@ -90,9 +79,6 @@ export function CardViewTable<T>({
   );
 }
 
-/**
- * Individual card item
- */
 interface CardItemProps<T> {
   row: T;
   primaryColumn: TableColumn<T>;
@@ -121,15 +107,15 @@ function CardItem<T>({
       )}
       style={{ minHeight: '80px' }}
     >
-      {/* Primary content (title/header) */}
+      {}
       <div className="flex justify-between items-start gap-3 mb-3">
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-gray-900 text-sm line-clamp-2">
             {primaryColumn.accessor(row)}
           </div>
         </div>
-        
-        {/* Status/action indicator if no explicit actions */}
+
+        {}
         {!actions && clickable && (
           <div className="text-gray-400">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -139,7 +125,7 @@ function CardItem<T>({
         )}
       </div>
 
-      {/* Meta information */}
+      {}
       {metaColumns.length > 0 && (
         <div className="flex flex-wrap gap-x-4 gap-y-2 mb-3">
           {metaColumns.slice(0, 3).map((column) => (
@@ -153,7 +139,7 @@ function CardItem<T>({
         </div>
       )}
 
-      {/* Actions */}
+      {}
       {actions && actions.length > 0 && (
         <div className="flex gap-2 pt-3 border-t border-gray-100">
           {actions.map((action, index) => (
@@ -182,24 +168,18 @@ function CardItem<T>({
   );
 }
 
-/**
- * Helper function to format date for mobile display
- */
 export function formatMobileDate(date: string | Date): string {
   const d = new Date(date);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-  
+
   if (diffDays === 0) return 'Hari ini';
   if (diffDays === 1) return 'Kemarin';
   if (diffDays < 7) return `${diffDays} hari lalu`;
-  
+
   return format(d, 'dd MMM', { locale: id });
 }
 
-/**
- * Helper function to truncate text for mobile
- */
 export function truncateMobile(text: string, maxLength: number = 50): string {
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength - 3) + '...';

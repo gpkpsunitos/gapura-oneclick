@@ -22,37 +22,38 @@ const AIRLINE_TYPE_CONFIG: Record<string, {
   label: string;
 }> = {
   'LOKAL': { 
-    color: '#0ea5e9', // Sky Blue
+    color: '#0ea5e9',
     bgColor: 'bg-sky-50', 
     label: 'Lokal'
   },
   'MPA': { 
-    color: '#3b82f6', // Blue
+    color: '#3b82f6',
     bgColor: 'bg-blue-50', 
     label: 'MPA'
   },
   'GARUDA INDONESIA': { 
-    color: '#0891b2', // Cyan
+    color: '#0891b2',
     bgColor: 'bg-cyan-50', 
     label: 'Garuda'
   },
   'CITILINK': { 
-    color: '#16a34a', // Green
+    color: '#16a34a',
     bgColor: 'bg-green-50', 
     label: 'Citilink'
   },
   'PELITA AIR': { 
-    color: '#8b5cf6', // Violet
+    color: '#8b5cf6',
     bgColor: 'bg-violet-50', 
     label: 'Pelita Air'
   },
   'LION AIR': { 
-    color: '#f97316', // Orange
+    color: '#f97316',
     bgColor: 'bg-orange-50', 
     label: 'Lion Air'
   },
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const CATEGORY_STYLES: Record<string, { color: string; bg: string; icon: any; label: string }> = {
   'IRREGULARITY': { color: '#ef4444', bg: 'bg-red-500', icon: AlertCircle, label: 'Irregularity' },
   'COMPLAINT': { color: '#f59e0b', bg: 'bg-amber-500', icon: MessageSquare, label: 'Complaint' },
@@ -64,7 +65,7 @@ export function AirlineTypeCategoryChart({
   title = 'Analisis Jenis Maskapai',
   explanation 
 }: AirlineTypeCategoryChartProps) {
-  // Handle empty data
+
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col overflow-hidden h-full">
@@ -85,13 +86,12 @@ export function AirlineTypeCategoryChart({
   }
 
   const total = data.reduce((sum, item) => sum + item.count, 0);
-  
-  // Group and Aggregate Data
+
   const groupedByType = data.reduce((acc, item) => {
     const type = item.airlineType?.toUpperCase() || 'LAINNYA';
     if (!acc[type]) acc[type] = { total: 0, categories: {} };
     if (!acc[type].categories[item.category]) acc[type].categories[item.category] = 0;
-    
+
     acc[type].categories[item.category] += item.count;
     acc[type].total += item.count;
     return acc;
@@ -106,7 +106,7 @@ export function AirlineTypeCategoryChart({
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col overflow-hidden h-full">
-      {/* Header */}
+      {}
       <div className="px-5 py-4 border-b border-slate-50 flex items-center justify-between bg-gradient-to-r from-white to-slate-50/50">
         <div>
           <h4 className="text-xs font-black text-slate-800 uppercase tracking-wider flex items-center gap-2">
@@ -116,7 +116,7 @@ export function AirlineTypeCategoryChart({
           <p className="text-[10px] text-slate-400 mt-0.5">Distribusi kasus berdasarkan afiliasi maskapai</p>
         </div>
         <div className="flex items-center gap-2">
-           {/* Mini Legend */}
+           {}
            {categories.map(cat => (
              <div key={cat} className="flex items-center gap-1">
                <div className={`w-1.5 h-1.5 rounded-full ${CATEGORY_STYLES[cat]?.bg.replace('500', '400')}`} />
@@ -125,14 +125,14 @@ export function AirlineTypeCategoryChart({
            ))}
         </div>
       </div>
-      
+
       <div className="flex-1 flex flex-col p-5 overflow-hidden">
-        {/* Top Stats Row */}
+        {}
         <div className="flex gap-3 mb-6 overflow-x-auto pb-2 scrollbar-hide">
           {sortedTypes.slice(0, 3).map((type, idx) => {
             const config = AIRLINE_TYPE_CONFIG[type] || { color: '#64748b', bgColor: 'bg-slate-100', label: type };
             const typeStats = groupedByType[type];
-            // Find dominant category
+
             const dominantCat = categories.reduce((a, b) => (typeStats.categories[a] || 0) > (typeStats.categories[b] || 0) ? a : b);
             const domCount = typeStats.categories[dominantCat] || 0;
             const domRate = (domCount / typeStats.total) * 100;
@@ -159,15 +159,15 @@ export function AirlineTypeCategoryChart({
           })}
         </div>
 
-        {/* Detailed Progress Bars */}
+        {}
         <div className="flex-1 overflow-y-auto space-y-5 pr-2 custom-scrollbar">
           {sortedTypes.map((type) => {
             const config = AIRLINE_TYPE_CONFIG[type] || { color: '#64748b', bgColor: 'bg-slate-100', label: type };
             const typeStats = groupedByType[type];
-            
+
             return (
               <div key={type} className="group">
-                {/* Row Header */}
+                {}
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2.5">
                     <div 
@@ -188,20 +188,20 @@ export function AirlineTypeCategoryChart({
                   </div>
                 </div>
 
-                {/* Main Stacked Bar */}
+                {}
                 <div className="relative h-2.5 bg-slate-100 rounded-full overflow-hidden flex w-full">
                   {categories.map((cat, idx) => {
                     const count = typeStats.categories[cat] || 0;
                     const pct = (count / typeStats.total) * 100;
                     if (pct === 0) return null;
-                    
+
                     return (
                       <div 
                         key={cat}
                         className={`h-full ${CATEGORY_STYLES[cat]?.bg} relative group/bar`}
                         style={{ width: `${pct}%` }}
                       >
-                         {/* Hover Tooltip for Segment */}
+                         {}
                          <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[9px] px-1.5 py-0.5 rounded opacity-0 group-hover/bar:opacity-100 whitespace-nowrap z-10 pointer-events-none transition-opacity">
                            {count} {CATEGORY_STYLES[cat]?.label}
                          </div>
@@ -209,8 +209,8 @@ export function AirlineTypeCategoryChart({
                     );
                   })}
                 </div>
-                
-                {/* Category Legend Below Row */}
+
+                {}
                 <div className="flex justify-start gap-4 mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                    {categories.map(cat => {
                      const count = typeStats.categories[cat] || 0;
@@ -228,7 +228,7 @@ export function AirlineTypeCategoryChart({
           })}
         </div>
       </div>
-      
+
       {explanation && (
         <div className="px-5 py-3 bg-slate-50 border-t border-slate-100 flex gap-3 items-start">
           <Info className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />

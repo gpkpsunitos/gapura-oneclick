@@ -1,15 +1,6 @@
-/**
- * @file
- * 
- * File ini berisi data master airlines domestik dan internasional
- */
 
-/**
- * Daftar airlines dengan kode, nama, dan tipe
- * @constant AIRLINES
- */
 export const AIRLINES = [
-    // --- Domestic (Major) ---
+
     { code: 'GA', name: 'Garuda Indonesia', type: 'Full Service', logo: '' },
     { code: 'QG', name: 'Citilink', type: 'LCC', logo: '' },
     { code: 'JT', name: 'Lion Air', type: 'LCC', logo: '' },
@@ -22,7 +13,6 @@ export const AIRLINES = [
     { code: 'IP', name: 'Pelita Air', type: 'Medium Service', logo: '' },
     { code: '8B', name: 'TransNusa', type: 'Medium Service', logo: '' },
 
-    // --- International (Frequent to Indonesia) ---
     { code: 'SQ', name: 'Singapore Airlines', type: 'International', logo: '' },
     { code: 'MH', name: 'Malaysia Airlines', type: 'International', logo: '' },
     { code: 'TR', name: 'Scoot', type: 'International', logo: '' },
@@ -39,8 +29,7 @@ export const AIRLINES = [
     { code: 'MU', name: 'China Eastern Airlines', type: 'International', logo: '' },
     { code: 'CA', name: 'Air China', type: 'International', logo: '' },
     { code: 'MF', name: 'Xiamen Air', type: 'International', logo: '' },
-    
-    // Middle East
+
     { code: 'EK', name: 'Emirates', type: 'International', logo: '' },
     { code: 'QR', name: 'Qatar Airways', type: 'International', logo: '' },
     { code: 'EY', name: 'Etihad Airways', type: 'International', logo: '' },
@@ -48,7 +37,6 @@ export const AIRLINES = [
     { code: 'TK', name: 'Turkish Airlines', type: 'International', logo: '' },
     { code: 'WY', name: 'Oman Air', type: 'International', logo: '' },
 
-    // Europe / Australia
     { code: 'KL', name: 'KLM Royal Dutch Airlines', type: 'International', logo: '' },
     { code: 'QF', name: 'Qantas', type: 'International', logo: '' },
     { code: 'JQ', name: 'Jetstar Airways', type: 'International', logo: '' },

@@ -127,7 +127,6 @@ export default function ExternalLinksAdminPage() {
 
   const dirtyCount = links.filter((l) => l.isDirty).length;
 
-  // Add new link
   const handleAddLink = async (entry: { id: string; label: string; url: string; category: string; description: string }) => {
     setSaving('__add__');
     try {
@@ -148,7 +147,7 @@ export default function ExternalLinksAdminPage() {
 
   return (
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
-      {/* Header */}
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-3">
@@ -183,14 +182,14 @@ export default function ExternalLinksAdminPage() {
         </div>
       </div>
 
-      {/* Error */}
+      {}
       {error && (
         <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-bold flex items-center gap-2">
           <AlertCircle className="w-4 h-4 shrink-0" /> {error}
         </div>
       )}
 
-      {/* Unsaved Changes Banner */}
+      {}
       {dirtyCount > 0 && (
         <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between">
           <span className="text-sm font-bold text-amber-700">{dirtyCount} perubahan belum disimpan</span>
@@ -202,13 +201,13 @@ export default function ExternalLinksAdminPage() {
         </div>
       )}
 
-      {/* Loading */}
+      {}
       {loading && links.length === 0 ? (
         <div className="flex items-center justify-center py-24">
           <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
         </div>
       ) : (
-        /* Category Groups */
+
         Object.entries(CATEGORY_LABELS).map(([catKey, catLabel]) => {
           const catLinks = grouped[catKey] || [];
           if (catLinks.length === 0) return null;
@@ -216,7 +215,7 @@ export default function ExternalLinksAdminPage() {
 
           return (
             <div key={catKey} className="rounded-2xl border border-black/10 bg-white overflow-hidden">
-              {/* Category Header */}
+              {}
               <button
                 onClick={() => toggleCategory(catKey)}
                 className="w-full flex items-center justify-between px-5 py-4 hover:bg-black/[0.02] transition-colors"
@@ -231,7 +230,7 @@ export default function ExternalLinksAdminPage() {
                 {isOpen ? <ChevronUp className="w-4 h-4 text-black/40" /> : <ChevronDown className="w-4 h-4 text-black/40" />}
               </button>
 
-              {/* Links */}
+              {}
               {isOpen && (
                 <div className="divide-y divide-black/5">
                   {catLinks.map((link) => {
@@ -240,7 +239,7 @@ export default function ExternalLinksAdminPage() {
 
                     return (
                       <div key={link.id} className="p-5 space-y-3">
-                        {/* Label row */}
+                        {}
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
                             <input
@@ -280,7 +279,7 @@ export default function ExternalLinksAdminPage() {
                           </div>
                         </div>
 
-                        {/* URL input */}
+                        {}
                         <div className="flex gap-2">
                           <span className="shrink-0 text-[10px] font-black uppercase tracking-widest text-black/40 pt-3 w-8">URL</span>
                           <input
@@ -290,7 +289,7 @@ export default function ExternalLinksAdminPage() {
                           />
                         </div>
 
-                        {/* Description */}
+                        {}
                         <div className="flex gap-2">
                           <span className="shrink-0 text-[10px] font-black uppercase tracking-widest text-black/40 pt-3 w-16">Desc</span>
                           <input
@@ -301,7 +300,7 @@ export default function ExternalLinksAdminPage() {
                           />
                         </div>
 
-                        {/* ID badge */}
+                        {}
                         <div className="flex items-center gap-2">
                           <span className="text-[10px] font-mono text-black/30">ID: {link.id}</span>
                         </div>
@@ -315,7 +314,7 @@ export default function ExternalLinksAdminPage() {
         })
       )}
 
-      {/* Add Link Modal */}
+      {}
       {addModalOpen && (
         <AddLinkModal
           onSave={handleAddLink}

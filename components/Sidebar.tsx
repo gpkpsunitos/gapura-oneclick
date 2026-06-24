@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen Sidebar untuk navigasi utama aplikasi dengan dukungan responsive dan mobile
- */
 
 'use client';
 
@@ -22,36 +17,30 @@ declare global {
         toggleMobileSidebar: () => void;
     }
 }
-/**
- * Props untuk komponen NavContent
- * @interface NavContentProps
- */
+
 interface NavContentProps {
-    /** Array grup navigasi */
+
     groups: NavGroup[];
-    /** Current pathname */
+
     pathname: string;
-    /** Current search params */
+
     searchParams: URLSearchParams;
-    /** Role user saat ini */
+
     role: string;
-    /** Handler saat logout */
+
     onLogout: () => void;
-    /** Handler saat kembali ke akun asal */
+
     onReturnToOrigin: () => void;
-    /** Flag apakah bisa kembali ke akun asal */
+
     canReturnToOrigin: boolean;
-    /** Status loading logout */
+
     loading: boolean;
-    /** Status switching origin */
+
     switchingOrigin: boolean;
-    /** Setter untuk state mobile sidebar open */
+
     setMobileOpen: (value: boolean) => void;
 }
 
-
-// Maps raw DB role strings to human-readable display names
-// Complexity: Time O(1) | Space O(1)
 const ROLE_DISPLAY: Record<string, string> = {
     DIVISI_OS: 'Unit Service',
     PARTNER_OS: 'Unit Service',
@@ -68,27 +57,11 @@ const ROLE_DISPLAY: Record<string, string> = {
     ANALYST: 'Analyst',
 };
 
-/**
- * Mendapatkan nama display role yang human-readable
- * @param role - Role string dari database
- * @returns Nama role yang sudah diformat
- * @example
- * ```tsx
- * const displayName = resolveRoleDisplayName('DIVISI_OS');
- * // returns: 'Unit Service'
- * ```
- */
 function resolveRoleDisplayName(role: string): string {
     const upper = role.toUpperCase();
     return ROLE_DISPLAY[upper] ?? role.replace(/_/g, ' ');
 }
 
-/**
- * Komponen konten navigasi untuk sidebar
- * Menampilkan logo, menu navigasi, dan user info
- * @param props - Props untuk NavContent
- * @returns JSX element konten navigasi
- */
 const NavContent = memo(function NavContent({
     groups,
     pathname,
@@ -271,17 +244,6 @@ const NavContent = memo(function NavContent({
 );
 });
 
-/**
- * Komponen Sidebar utama untuk navigasi aplikasi
- * Mendukung tampilan desktop dan mobile dengan animasi smooth
- * @param props - Props untuk Sidebar
- * @param props.role - Role user untuk menentukan menu navigasi
- * @returns JSX element sidebar responsive
- * @example
- * ```tsx
- * <Sidebar role="DIVISI_OS" />
- * ```
- */
 export default function Sidebar({ role }: { role: string }) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
@@ -290,7 +252,6 @@ export default function Sidebar({ role }: { role: string }) {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [switchingOrigin, setSwitchingOrigin] = useState(false);
 
-    // Use SWR for bundle info — cached, deduplicated, no re-fetch on pathname change
     const { data: bundleInfo } = useStaticData<{
         active: string | null;
         origin: string | null;
@@ -360,8 +321,6 @@ export default function Sidebar({ role }: { role: string }) {
         }
     }, []);
 
-    // Eskalasi has no bottom nav fallback (its links don't fit that pattern), so it
-    // needs the drawer's hamburger trigger and a wider collapse breakpoint (covers iPad).
     const isEskalasi = role === 'DIVISI_ESKALASI';
     const collapseBp = isEskalasi ? 'lg' : 'md';
 
@@ -376,7 +335,7 @@ export default function Sidebar({ role }: { role: string }) {
                 </button>
             </div>
 
-            {/* Mobile drawer overlay — CSS transitions replace framer-motion */}
+            {}
             <div
                 className={cn(`fixed inset-0 bg-black/20 backdrop-blur-sm z-40 ${collapseBp}:hidden transition-opacity duration-300`, mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none')}
                 onClick={() => setMobileOpen(false)}

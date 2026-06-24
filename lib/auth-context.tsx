@@ -43,10 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         }
         try {
-            // [FIX] Pass AbortSignal to fetch so the request is cancelled
-            // when the component unmounts. Without this, the response
-            // callback continues to execute after unmount, retaining
-            // the response body and triggering setState on a stale reference.
+
             const res = await fetch('/api/auth/me', { signal });
             if (res.ok) {
                 const data = await res.json();
@@ -55,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(null);
             }
         } catch (err) {
-            // [FIX] Don't update state if the request was deliberately aborted
+
             if (err instanceof DOMException && err.name === 'AbortError') return;
             setUser(null);
         } finally {
@@ -64,10 +61,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     useEffect(() => {
-        // [FIX] Create an AbortController tied to this effect's lifecycle.
-        // When the effect cleanup runs (component unmount or re-render),
-        // the controller aborts, cancelling any in-flight fetch and
-        // preventing setState on an unmounted component.
+
         const controller = new AbortController();
         fetchUser(controller.signal);
 

@@ -1,9 +1,5 @@
-/**
- * Client-side wizard for the public irregularity report page.
- * Dynamically imported to keep the initial FCP fast.
- */
-'use client';
 
+'use client';
 
 import { useEffect, useRef, useState, useMemo, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -58,11 +54,10 @@ const QRCodeWithLogo = dynamic(
   }
 );
 
-
 export function PublicReportWizard() {
   const router = useRouter();
 
-  // Hide the static SSR bento grid once the interactive client version mounts.
+  
   useEffect(() => {
     const ssrGrid = document.getElementById('bento-grid-ssr');
     if (ssrGrid) ssrGrid.style.display = 'none';
@@ -181,7 +176,6 @@ export function PublicReportWizard() {
       officers: prev.officers.filter((_, i) => i !== index)
     }));
   };
-
 
   const CATEGORIES = useMemo<QuickAccessCategory[]>(() => [
     {
@@ -339,7 +333,7 @@ export function PublicReportWizard() {
     return () => controller.abort();
   }, [formData.main_category, stations.length]);
 
-  // Ensure mobile bottom nav (GuestNav) remains visible on public access pages
+  
 
   const getUploadToken = async () => {
     if (uploadToken) return uploadToken;
@@ -355,12 +349,7 @@ export function PublicReportWizard() {
     return data.token as string;
   };
 
-  /**
-   * Mengompres gambar sebelum diunggah
-   * @param file - File gambar
-   * @param opts - Opsi kompresi (maxWidth, maxHeight, quality, mimeType)
-   * @returns Promise<File> File yang sudah dikompres
-   */
+  
   const compressImage = (file: File, opts: { maxWidth?: number; maxHeight?: number; quality?: number; mimeType?: string } = {}) => {
     const { maxWidth = 1600, maxHeight = 1600, quality = 0.8, mimeType = 'image/webp' } = opts;
     return new Promise<File>((resolve, reject) => {
@@ -535,7 +524,6 @@ export function PublicReportWizard() {
       setDuplicateCandidates(Array.isArray(data?.candidates) ? data.candidates : []);
       setDuplicateCheckDone(true);
     } catch (err) {
-      console.warn('[PublicReportWizard] Duplicate check failed:', err);
       setDuplicateCandidates([]);
       setDuplicateCheckDone(false);
     } finally {

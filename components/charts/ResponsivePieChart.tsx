@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen pie/donut chart responsif yang menggunakan Recharts
- * untuk visualisasi data proporsional dengan dukungan labels dan legenda.
- */
 
 'use client';
 
@@ -11,12 +5,10 @@ import { useMemo } from 'react';
 import { PieChart, Pie as RechartsPie, Cell, Tooltip, Legend, ResponsiveContainer as RechartsContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 
-/** Warna fixed untuk rank donut chart */
 const FIXED_DONUT_RANK_COLORS = ['#81c784', '#13b5cb', '#cddc39'];
-/** Warna fallback untuk donut chart */
+
 const DONUT_FALLBACK_COLORS = ['#66bb6a', '#9ccc65', '#aed581', '#4db6ac', '#80cbc4'];
 
-/** Palet warna untuk chart */
 const chartColors = {
   primary: [
     '#059669',
@@ -30,65 +22,43 @@ const chartColors = {
   ],
 };
 
-/**
- * Payload untuk label pie chart
- * @type PieLabelPayload
- */
 type PieLabelPayload = {
-  /** Koordinat X center */
+
   cx?: number;
-  /** Koordinat Y center */
+
   cy?: number;
-  /** Sudut tengah */
+
   midAngle?: number;
-  /** Radius luar */
+
   outerRadius?: number;
-  /** Nilai data */
+
   value?: number | string;
 };
 
-/**
- * Props untuk komponen ResponsivePieChart
- * @interface ResponsivePieChartProps
- */
 interface ResponsivePieChartProps {
-  /** Data chart */
+
   data: { name: string; value: number }[];
-  /** Judul chart */
+
   title?: string;
-  /** Class CSS tambahan */
+
   className?: string;
-  /** Tinggi chart */
+
   height?: string;
-  /** Tampilkan sebagai donut */
+
   donut?: boolean;
-  /** Tampilkan legenda */
+
   showLegend?: boolean;
-  /** Radius dalam untuk donut */
+
   innerRadius?: number;
-  /** Tampilkan label sebagai persentase */
+
   percentageLabels?: boolean;
-  /** Tampilkan label data */
+
   showDataLabels?: boolean;
-  /** Callback ketika slice di klik */
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSliceClick?: (payload: any) => void;
 }
 
-/**
- * Komponen pie/donut chart responsif
- * Menampilkan pie chart atau donut chart dengan dukungan labels dan legenda
- * @param ResponsivePieChartProps - Props komponen
- * @returns JSX element pie chart atau placeholder jika tidak ada data
- * @example
- * ```tsx
- * <ResponsivePieChart
- *   data={pieData}
- *   donut={true}
- *   showLegend={true}
- *   percentageLabels={true}
- * />
- * ```
- */
 export function ResponsivePieChart({
   data,
   title,
@@ -131,6 +101,7 @@ export function ResponsivePieChart({
             dataKey="value"
             labelLine={false}
             cursor={onSliceClick ? 'pointer' : 'default'}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onClick={onSliceClick ? ((data: any, _index: number, event: any) => { if (event) event.stopPropagation(); onSliceClick(data); }) as any : undefined}
             label={donut && showDataLabels ? ({ cx, cy, midAngle, outerRadius, value }: PieLabelPayload) => {
               const RADIAN = Math.PI / 180;

@@ -1,9 +1,3 @@
-/**
- * @file
- *
- * File ini berisi fungsi-fungsi untuk generate dokumen PDF dan Word dari data report
- * Digunakan untuk membuat laporan irregularity dalam format PDF dan DOCX
- */
 
 import { saveAs } from 'file-saver';
 import { Report } from '@/types';
@@ -15,6 +9,7 @@ interface GenerateWordOptions {
     filename?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getWordFilename = (report: any) => `Irregularity_Report_${report.flight_number || 'Ref'}.docx`;
 
 const normalizeUrlList = (value: unknown): string[] => {
@@ -23,6 +18,7 @@ const normalizeUrlList = (value: unknown): string[] => {
     return [];
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function findSavedEditedWordUrl(report: any): string | null {
     const urls = [
         ...normalizeUrlList(report?.evidence_urls),
@@ -53,7 +49,6 @@ export async function persistEditedWordDocument(reportId: string, blob: Blob, fi
         throw new Error(uploadResult?.error || 'Gagal menyimpan dokumen Word');
     }
 
-    // Fetch existing report to get current evidence_urls so we don't overwrite them
     let existingEvidenceUrls: string[] = [];
     try {
         const existingRes = await fetch(`/api/reports/${encodeURIComponent(reportId)}`, {
@@ -65,10 +60,9 @@ export async function persistEditedWordDocument(reportId: string, blob: Blob, fi
                 .concat(normalizeUrlList(existingData?.evidence_url));
         }
     } catch {
-        // Non-blocking: if we can't fetch existing, just use new url only
+
     }
 
-    // Merge: remove old edited docx urls (replace with latest), keep all other evidence
     const filteredExisting = existingEvidenceUrls.filter((url) => {
         const decoded = decodeURIComponent(String(url || '')).toUpperCase();
         return !(decoded.includes('IRREGULARITY_REPORT_EDITED') && decoded.includes('.DOCX'));
@@ -94,29 +88,29 @@ export async function persistEditedWordDocument(reportId: string, blob: Blob, fi
     return uploadResult.url;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function downloadSavedWordOrGenerate(report: any, signatureDataUrl?: string | null) {
     const savedUrl = findSavedEditedWordUrl(report);
     if (savedUrl) {
         try {
-            // Use a longer timeout for large documents
+
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds
-            
-            // Try to fetch the file to ensure the download is triggered properly
+            const timeoutId = setTimeout(() => controller.abort(), 30000);
+
             const response = await fetch(savedUrl, { mode: 'cors', signal: controller.signal });
             clearTimeout(timeoutId);
-            
+
             if (response.ok) {
                 const blob = await response.blob();
                 saveAs(blob, getWordFilename(report));
                 return;
             }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (error: any) {
             console.warn('[DOCX] Download fetch failed or timed out:', error);
-            // Fallback: direct download via link if fetch fails
+
         }
-        
-        // Final Fallback: try direct download via <a> tag if fetch is restricted or fails
+
         const link = document.createElement('a');
         link.href = savedUrl;
         link.download = getWordFilename(report);
@@ -130,6 +124,7 @@ export async function downloadSavedWordOrGenerate(report: any, signatureDataUrl?
     await generateWord(report, signatureDataUrl);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function downloadLatestSavedWordOrGenerate(report: any, signatureDataUrl?: string | null) {
     const reportId = report?.id;
     if (!reportId) {
@@ -153,16 +148,6 @@ export async function downloadLatestSavedWordOrGenerate(report: any, signatureDa
     await downloadSavedWordOrGenerate(report, signatureDataUrl);
 }
 
-/**
- * Fungsi helper untuk memformat tanggal ke format Indonesia
- *
- * @param dateString - String tanggal yang akan diformat (ISO format)
- * @returns String tanggal yang diformat dalam format Indonesia (DD MMM YYYY)
- * @example
- * ```typescript
- * formatDate('2024-01-15') // '15 JAN 2024'
- * ```
- */
 const formatDate = (dateString?: string) => {
     if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('id-ID', {
@@ -172,34 +157,11 @@ const formatDate = (dateString?: string) => {
     }).toUpperCase();
 };
 
-/**
- * Fungsi helper untuk mendapatkan nama bulan dalam format singkat Indonesia
- *
- * @param date - Objek Date
- * @returns String nama bulan dalam format 3 huruf (JAN, FEB, MAR, dll)
- * @example
- * ```typescript
- * const date = new Date('2024-01-15');
- * getMonthName(date) // 'JAN'
- * ```
- */
 const getMonthName = (date: Date) => {
     const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
     return months[date.getMonth()];
 };
 
-/**
- * Fungsi helper untuk menghasilkan nomor referensi laporan
- * Format: CABANG {branch}/LK/       /       / {month}/{year}
- *
- * @param report - Object data report
- * @returns String nomor referensi
- * @example
- * ```typescript
- * generateRefNo({ branch: 'CGK', date_of_event: '2024-01-15' })
- * // 'CABANG CGK/LK/       /       / JAN/2024'
- * ```
- */
 const generateRefNo = (report: Report) => {
     const date = report.date_of_event ? new Date(report.date_of_event) : new Date();
     const branch = report.branch || report.station_code || 'CGK';
@@ -226,6 +188,7 @@ const toDateOnlyString = (value: string) => {
     return date.toISOString().slice(0, 10);
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const normalizeWordReport = (report: any) => {
     const eventDate = toDateOnlyString(firstValue(report.incident_date, report.date_of_event, report.created_at));
     const branch = firstValue(report.branch, report.station_code, report.stations?.code, report.location);
@@ -281,19 +244,7 @@ const normalizeWordReport = (report: any) => {
     };
 };
 
-/**
- * Menghasilkan dokumen PDF dari data report
- * PDF berisi formulir laporan irregularity lengkap dengan signature
- *
- * @param report - Object data report yang akan dijadikan PDF
- * @param signatureDataUrl - Data URL untuk gambar tanda tangan (optional)
- * @returns Promise yang resolve setelah PDF dibuat dan di-download
- * @throws Error jika library jsPDF atau jspdf-autotable gagal di-load
- * @example
- * ```typescript
- * await generatePDF(report, signatureDataUrl);
- * ```
- */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const generatePDF = async (report: any, signatureDataUrl?: string | null) => {
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
@@ -304,7 +255,6 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
     const pageWidth = doc.internal.pageSize.getWidth();
     const contentWidth = pageWidth - (marginX * 2);
 
-    // Title Section - Load logo dynamically
     try {
         const logoResponse = await fetch('/logo.png');
         if (logoResponse.ok) {
@@ -321,7 +271,6 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
 
     currentY += 28;
 
-    // Header Table
     autoTable(doc, {
         startY: currentY,
         body: [
@@ -342,10 +291,10 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
         margin: { left: marginX, right: marginX }
     });
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     currentY = doc.lastAutoTable.finalY + 8;
 
-    // Section I
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('I. FLIGHT DATA', marginX, currentY);
@@ -375,15 +324,16 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
         margin: { left: marginX, right: marginX }
     });
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     currentY = doc.lastAutoTable.finalY + 8;
 
-    // Section II
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('II. OFFICER(S) ON DUTY', marginX, currentY);
     currentY += 4;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const officersData = (report.officers || []).map((o: any, i: number) => [
         (i + 1).toString(),
         o.name || '',
@@ -391,7 +341,6 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
         o.function || ''
     ]);
 
-    // Fill up to 10 rows if needed
     for (let i = officersData.length + 1; i <= 10; i++) {
         officersData.push([i.toString(), '', '', '']);
     }
@@ -412,21 +361,21 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
         margin: { left: marginX, right: marginX }
     });
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     currentY = doc.lastAutoTable.finalY + 4;
 
-    // Section III
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text('III. CHRONOLOGY OF EVENT', marginX, currentY);
     currentY += 4;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const chronologyData = (report.chronology || []).map((c: any) => [
         c.time || '',
         c.description || ''
     ]);
 
-    // Fill up to 8 rows if needed
     for (let i = chronologyData.length; i < 8; i++) {
         chronologyData.push(['', '']);
     }
@@ -445,11 +394,12 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
         margin: { left: marginX, right: marginX }
     });
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     currentY = doc.lastAutoTable.finalY + 8;
 
-    // Helper for Sections IV, V, VI
     const addBoxSection = (title: string, content: string) => {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         if (currentY > doc.internal.pageSize.getHeight() - 60) {
             doc.addPage();
@@ -469,6 +419,7 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
             margin: { left: marginX, right: marginX }
         });
 
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         currentY = doc.lastAutoTable.finalY + 8;
     };
@@ -477,7 +428,7 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
     addBoxSection('V. CORRECTIVE ACTION(S)', report.action_taken || '');
     addBoxSection('VI. PREVENTIVE ACTION(S)', report.preventive_action || '');
 
-    // Signature Area
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     if (currentY > doc.internal.pageSize.getHeight() - 80) {
         doc.addPage();
@@ -486,7 +437,6 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
 
     const startSignatureY = currentY;
 
-    // Bottom border box for signature area
     doc.setLineWidth(0.5);
     doc.rect(marginX, startSignatureY, contentWidth, 50);
 
@@ -504,7 +454,6 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
     doc.line(marginX, startSignatureY + 15, marginX + contentWidth, startSignatureY + 15);
     doc.line(marginX + (contentWidth / 2), startSignatureY + 15, marginX + (contentWidth / 2), startSignatureY + 50);
 
-    // Columns headers
     doc.text('Prepared by,', marginX + (contentWidth / 4), startSignatureY + 22, { align: 'center' });
     doc.text(report.reporter_title || 'Controller Operation Airside', marginX + (contentWidth / 4), startSignatureY + 30, { align: 'center' });
 
@@ -532,30 +481,17 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
     doc.setFont('helvetica', 'bold');
     doc.text('F-OP-02', marginX, currentY);
 
-    // Save
     doc.save(`Irregularity_Report_${report.flight_number || 'Ref'}.pdf`);
 };
 
-/**
- * Menghasilkan dokumen Word (.docx) dari data report
- * Word berisi formulir laporan irregularity lengkap dengan signature
- *
- * @param report - Object data report yang akan dijadikan Word
- * @param signatureDataUrl - Data URL untuk gambar tanda tangan (optional)
- * @returns Promise yang resolve setelah Word dibuat dan di-download
- * @throws Error jika library docx gagal di-load
- * @example
- * ```typescript
- * await generateWord(report, signatureDataUrl);
- * ```
- */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const generateWord = async (report: any, signatureDataUrl?: string | null, options: GenerateWordOptions = {}) => {
     const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle, ImageRun } = await import('docx');
     const docData = normalizeWordReport(report);
 
     const createBoldText = (text: string) => new TextRun({ text, bold: true });
 
-    // Custom function to create a cell with consistent margins
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const createTextCell = (text: string, isBold: boolean = false, options: any = {}) => {
         return new TableCell({
             children: [new Paragraph({
@@ -568,7 +504,6 @@ export const generateWord = async (report: any, signatureDataUrl?: string | null
         });
     };
 
-    // Title Section
     const titleSection = [];
 
     try {
@@ -604,7 +539,6 @@ export const generateWord = async (report: any, signatureDataUrl?: string | null
         })
     );
 
-    // --- Header Table ---
     const headerTable = new Table({
         width: { size: 100, type: WidthType.PERCENTAGE },
         rows: [
@@ -695,6 +629,7 @@ export const generateWord = async (report: any, signatureDataUrl?: string | null
         ]
     }));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     docData.officers.forEach((officer: any, idx: number) => {
         officerRows.push(new TableRow({
             children: [
@@ -745,6 +680,7 @@ export const generateWord = async (report: any, signatureDataUrl?: string | null
         ]
     }));
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     docData.chronology.forEach((entry: any) => {
         chronologyRows.push(new TableRow({
             children: [

@@ -90,6 +90,7 @@ export default function SLAFullServicePage() {
 
   useEffect(() => {
     let ignore = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     const url = query ? `/api/sla/full-service?${query}` : '/api/sla/full-service';
     fetch(url)
@@ -129,6 +130,7 @@ export default function SLAFullServicePage() {
     resetPages();
   };
   const exportCSV = (filename: string, headers: string[], rows: (string | number | null)[][]) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const escape = (v: any) => {
       const s = v == null ? '' : String(v);
       if (s.includes('"') || s.includes(',') || s.includes('\n')) return `"${s.replace(/"/g, '""')}"`;

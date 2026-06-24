@@ -63,8 +63,8 @@ interface BaseFilters {
   dateTo?: string;
 }
 
-let reportsCache: Record<string, { data: Report[], ts: number }> = {};
-let inflightRequests: Record<string, Promise<Report[]>> = {};
+const reportsCache: Record<string, { data: Report[], ts: number }> = {};
+const inflightRequests: Record<string, Promise<Report[]>> = {};
 const CACHE_DURATION = 1000 * 60 * 5;
 
 const CORE_FIELDS = [
@@ -82,11 +82,6 @@ export interface SeverityDistribution {
   medium: number;
   low: number;
 }
-
-/**
- * Fetches severity distribution for top 10 hubs.
- * Complexity: Time O(N + K log K) | Space O(K)
- */
 
 const INVALID_CAUSE_VALUES = ['#n/a', 'unknown', 'nil', '-', '', 'null', 'none', 'na', 'n/a', 'tidak ada', 'belum diketahui'];
 const INVALID_VALUES = ['unknown', 'nil', '-', '', 'null', 'none', 'na', 'n/a', '#n/a'];
@@ -139,8 +134,7 @@ async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report
   if (filters.area && filters.area !== 'all') query.append('area', filters.area);
   if (filters.airlines && filters.airlines !== 'all') query.append('airlines', filters.airlines);
   if (filters.sourceSheet) query.append('sourceSheet', filters.sourceSheet);
-  
-  // Minimize payload size
+
   query.append('fields', CORE_FIELDS.join(','));
 
   try {
@@ -202,10 +196,10 @@ export async function fetchAggregatedHubReport(filters: BaseFilters, signal?: Ab
 
 function filterReports(reports: Report[], filters: BaseFilters): Report[] {
   return reports.filter(report => {
-    // Filter by source sheet (default NON CARGO for backward compatibility)
+
     const sheet = filters.sourceSheet || 'NON CARGO';
     if (report.source_sheet && report.source_sheet !== sheet) return false;
-    
+
     if (filters.hub && filters.hub !== 'all' && report.hub !== filters.hub) return false;
     if (filters.branch && filters.branch !== 'all' && report.branch !== filters.branch) return false;
     if (filters.airlines && filters.airlines !== 'all' && report.airlines !== filters.airlines) return false;
@@ -328,8 +322,9 @@ export async function fetchRootCauseByHub(filters: BaseFilters = {}): Promise<Ro
 
   filtered.forEach(report => {
     const hub = report.hub;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rootCause = report.root_caused || (report as any).root_cause;
-    
+
     if (!isValidValue(hub) || !isValidRootCause(rootCause)) return;
 
     const category = normalizeCategory(report.main_category || report.category || report.irregularity_complain_category || '') || 'Other';
@@ -359,7 +354,7 @@ export async function fetchAirlineByHub(filters: BaseFilters = {}): Promise<Airl
   filtered.forEach(report => {
     const hub = report.hub;
     const airline = report.airlines || report.airline;
-    
+
     if (!hub || !airline || !isValidValue(hub) || !isValidValue(airline)) return;
 
     const key = `${airline}-${hub}`;
@@ -384,7 +379,7 @@ export async function fetchAreaByHub(filters: BaseFilters = {}): Promise<AreaByH
   filtered.forEach(report => {
     const hub = report.hub;
     const area = report.area || report.terminal_area_category || report.apron_area_category || report.general_category;
-    
+
     if (!isValidValue(hub) || !isValidValue(area)) return;
 
     const key = `${area || 'Unknown'}-${hub || 'Unknown'}`;
@@ -409,16 +404,16 @@ export async function fetchAllHubReports(filters: BaseFilters = {}): Promise<Hub
     let evidenceLink = '-';
     if (evidenceUrls) {
       if (Array.isArray(evidenceUrls) && evidenceUrls.length > 0) {
-        // Only show first link
+
         const url = evidenceUrls[0];
         evidenceLink = url;
       } else if (typeof evidenceUrls === 'string') {
         const trimmed = evidenceUrls.trim();
-        // Check if it contains multiple URLs separated by delimiters
+
         if (trimmed.includes(';') || trimmed.includes(',') || trimmed.includes(' ')) {
           const urls = trimmed.split(/[;,\s]+/).filter(u => u.startsWith('http'));
           if (urls.length > 0) {
-            // Create clickable links for each URL
+
              evidenceLink = urls.map((url, i) => 
                `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Evidence ${i + 1}</a>`
              ).join(', ');
@@ -445,21 +440,18 @@ export async function fetchAllHubReports(filters: BaseFilters = {}): Promise<Hub
   });
 }
 
-// New interfaces and functions for enhanced KPIs
-
 export interface HubKPIs {
   totalHubs: number;
   topPerformer: { name: string; count: number };
   worstPerformer: { name: string; count: number };
   avgReportsPerHub: number;
-  momChange: number; // Month-over-month change percentage
+  momChange: number;
 }
 
 export async function fetchHubKPIs(filters: BaseFilters = {}): Promise<HubKPIs> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
 
-  // Count by hub
   const hubCounts = new Map<string, number>();
   filtered.forEach(report => {
     const hub = report.hub;
@@ -471,13 +463,12 @@ export async function fetchHubKPIs(filters: BaseFilters = {}): Promise<HubKPIs> 
   const totalHubs = hubEntries.length;
   const topPerformer = hubEntries.length > 0
     ? { name: hubEntries[0][0], count: hubEntries[0][1] }
-    : { name: 'None', count: 0 }; // Lowest count = best performer
+    : { name: 'None', count: 0 };
   const worstPerformer = hubEntries.length > 0
     ? { name: hubEntries[hubEntries.length - 1][0], count: hubEntries[hubEntries.length - 1][1] }
-    : { name: 'None', count: 0 }; // Highest count = worst
+    : { name: 'None', count: 0 };
   const avgReportsPerHub = totalHubs > 0 ? filtered.length / totalHubs : 0;
 
-  // Calculate MoM change
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   const lastMonth = `${now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()}-${String(now.getMonth() === 0 ? 12 : now.getMonth()).padStart(2, '0')}`;
@@ -500,7 +491,7 @@ export async function fetchHubKPIs(filters: BaseFilters = {}): Promise<HubKPIs> 
     topPerformer,
     worstPerformer,
     avgReportsPerHub: Math.round(avgReportsPerHub),
-    momChange: Math.round(momChange * 10) / 10, // Round to 1 decimal place
+    momChange: Math.round(momChange * 10) / 10,
   };
 }
 

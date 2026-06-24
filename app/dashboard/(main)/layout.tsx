@@ -11,11 +11,6 @@ function DashboardSkeleton() {
     return <DashboardWorkspaceSkeleton title="Opening workspace" subtitle="Staging the dashboard shell before interactive modules hydrate." />;
 }
 
-/**
- * Streams a full session verification (checks is_revoked in DB).
- * If the session is revoked, redirects to login via client-side navigation.
- * This runs behind Suspense so the shell renders immediately.
- */
 async function SessionGuard({ token }: { token: string }) {
     const session = await verifySession(token);
     if (!session) {
@@ -32,8 +27,6 @@ export default async function MainDashboardLayout({
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
 
-    // Fast path: JWT-only verification (~5ms, no DB call) for immediate shell render.
-    // Full revocation check streams in via SessionGuard behind Suspense.
     const payload = token ? await readSessionPayload(token) : null;
 
     if (!payload) {
@@ -51,4 +44,3 @@ export default async function MainDashboardLayout({
         </DashboardFrame>
     );
 }
-

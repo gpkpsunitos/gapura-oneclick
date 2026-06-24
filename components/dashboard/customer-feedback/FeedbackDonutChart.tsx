@@ -31,6 +31,7 @@ export function FeedbackDonutChart({ title, data, colors = [], height = 170 }: F
     return fallbackPalette[(index - FIXED_DONUT_RANK_COLORS.length) % fallbackPalette.length];
   };
 
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const rankedData = useMemo(() => {
     return [...data]
       .sort((a, b) => b.value - a.value)

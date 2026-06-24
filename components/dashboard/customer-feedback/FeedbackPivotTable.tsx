@@ -56,6 +56,7 @@ export function FeedbackPivotTable({ title, result, rowKey, colKey, valueKey, co
     const uniqueCols = new Set<string>();
     let maxVal = 0;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rows.forEach((r: any) => {
       const rowVal = formatAxisLabel(String(r[keys.rk] ?? ''));
       const colVal = formatAxisLabel(String(r[keys.ck] ?? ''));
@@ -90,6 +91,7 @@ export function FeedbackPivotTable({ title, result, rowKey, colKey, valueKey, co
   }, [rows, keys]);
 
   const handleCellClick = (rowVal: string, colVal: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const filteredData = rows.filter((row: any) => {
       const rowValue = formatAxisLabel(String(row[keys.rk] ?? ''));
       const colValue = formatAxisLabel(String(row[keys.ck] ?? ''));

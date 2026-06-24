@@ -23,16 +23,13 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
     const router = useRouter();
     const searchParams = useSearchParams();
     const selectedId = searchParams.get('id');
-    
-    // Derived state
+
     const [searchTerm, setSearchTerm] = useState('');
     const [activeFilter, setActiveFilter] = useState<ReportStatus | 'ALL'>('ALL');
-    
-    // Local state for full report details (to get comments etc)
+
     const [fullReport, setFullReport] = useState<Report | null>(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
 
-    // Fetch full detail when ID changes
     useEffect(() => {
         if (!selectedId) {
             setFullReport(null);
@@ -57,20 +54,18 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
         fetchFullDetail();
     }, [selectedId]);
 
-    // Handle refresh from the detail view (e.g. after posting comment)
     const handleDetailRefresh = () => {
-        // Refresh the single report
+
         if (selectedId) {
             fetch(`/api/reports/${selectedId}`)
                 .then(res => res.json())
                 .then(data => setFullReport(data))
                 .catch(err => console.error(err));
         }
-        // Also refresh the master list if provided
+
         if (onRefresh) onRefresh();
     };
 
-    // Filter reports
     const filteredReports = reports.filter(r => {
         const matchesSearch = r.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                               (r.flight_number && r.flight_number.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -78,7 +73,6 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
         return matchesSearch && matchesFilter;
     });
 
-    // Use fullReport if available and matches ID, otherwise fallback to list data (incomplete)
     const listReport = reports.find(r => r.id === selectedId) || null;
     const displayReport = (fullReport && fullReport.id === selectedId) ? fullReport : listReport;
 
@@ -90,15 +84,15 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
 
     return (
         <div className="flex flex-col lg:flex-row h-[calc(100dvh-6rem)] lg:h-[calc(100vh-8rem)] gap-4">
-            {/* List Column (Left) */}
+            {}
             <div className="w-full lg:w-[420px] shrink-0 flex flex-col rounded-2xl border border-white/20 bg-white/40 backdrop-blur-xl shadow-xl overflow-hidden max-h-[40vh] lg:max-h-full">
-                {/* Header & Filter */}
+                {}
                 <div className="p-6 border-b border-white/10 space-y-5 bg-white/40">
                     <h1 className="text-2xl font-display font-bold tracking-tight text-[var(--text-primary)]">
                         {title}
                     </h1>
-                    
-                    {/* Search Field */}
+
+                    {}
                     <div className="relative group">
                         <div className="absolute inset-0 bg-white/50 rounded-xl blur opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--brand-primary)] transition-colors" size={18} />
@@ -111,7 +105,7 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                         />
                     </div>
 
-                    {/* Filter Pills */}
+                    {}
                     <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar mask-gradient-right">
                         <button
                             onClick={() => setActiveFilter('ALL')}
@@ -142,7 +136,7 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                     </div>
                 </div>
 
-                {/* Report List */}
+                {}
                 <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {loading ? (
                         <div className="p-8 text-center text-[var(--text-muted)] flex flex-col items-center justify-center h-full">
@@ -162,10 +156,10 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                             {filteredReports.map((report) => {
                                 const isSelected = report.id === selectedId;
                                 const statusCfg = STATUS_CONFIG[report.status as ReportStatus];
-                                // Fallback to medium if severity/priority not found, check both fields
+
                                 const severityKey = report.severity || report.priority || 'medium';
                                 const severityCfg = SEVERITY_CONFIG[severityKey as keyof typeof SEVERITY_CONFIG] || SEVERITY_CONFIG.MEDIUM;
-                                
+
                                 return (
                                     <div
                                         key={report.id}
@@ -192,7 +186,7 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                                                 {new Date(report.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                                             </span>
                                         </div>
-                                        
+
                                         <div className="flex items-center gap-2 mb-2">
                                             {report.primary_tag === 'CGO' ? (
                                                 <span className="text-[8px] font-extrabold px-1 py-0.5 rounded bg-emerald-100 text-emerald-700 border border-emerald-200 uppercase">CGO</span>
@@ -206,7 +200,7 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                                                 {report.report || report.title || '(Tanpa Judul)'}
                                             </h3>
                                         </div>
-                                        
+
                                         <p className="text-xs text-[var(--text-secondary)] line-clamp-2 mb-4 leading-relaxed opacity-80">
                                             {report.description}
                                         </p>
@@ -234,7 +228,7 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                 </div>
             </div>
 
-            {/* Detail Column (Right) */}
+            {}
             <div className="hidden lg:flex flex-1 rounded-2xl overflow-hidden border border-white/20 bg-white/40 backdrop-blur-xl shadow-xl h-full relative">
                 {loadingDetail && (
                     <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -255,7 +249,7 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                 />
             </div>
 
-            {/* Mobile Detail Overlay — shows on small screens when a report is selected */}
+            {}
             {selectedId && (
                 <div className="lg:hidden fixed inset-0 z-50 bg-white overflow-y-auto">
                     <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center gap-3">

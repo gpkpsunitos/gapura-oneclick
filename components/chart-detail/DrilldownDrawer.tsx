@@ -215,7 +215,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop — full-viewport black smoke */}
+          {}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -237,7 +237,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
             }}
           />
 
-          {/* Center Modal — 20% side gutters */}
+          {}
           <motion.div
             initial={{ opacity: 0, scale: 0.94, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -266,7 +266,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
               className="pointer-events-auto flex w-full max-w-[1140px] flex-col overflow-hidden rounded-3xl border border-slate-200/60 bg-white shadow-[0_32px_80px_rgba(15,23,42,0.22),0_0_0_1px_rgba(255,255,255,0.8)_inset]"
               style={{ maxHeight: 'min(88vh, 860px)', pointerEvents: 'auto' }}
             >
-              {/* Header */}
+              {}
               <div className="flex shrink-0 items-center justify-between border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-7 py-5">
                 <div className="flex items-center gap-4">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100">
@@ -286,7 +286,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                 </button>
               </div>
 
-              {/* Scrollable Content */}
+              {}
               <div className="flex-1 overflow-y-auto p-5 space-y-4 bg-[#f8f9fb]">
                 {isRiskSelectorDrawer && (
                   <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_2px_10px_rgba(15,23,42,0.05)]">
@@ -326,9 +326,9 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
 
                   const station = getStation(record);
                   const airline = getText(record, ['Airlines', 'airlines', 'airline', 'maskapai_lookup'], 'Unknown Airline');
-                  const classification = getText(record, ['case_classification', 'Case Classification', 'Case_Classification'], 'N/A');
+                  const classification = getText(record, ['case_classification', 'Case Classification', 'Case_Classification', 'case_category', 'remarks_case', 'category_case_gse', 'category_case_joumpa', 'category_case_cargo', 'terminal_area_category', 'apron_area_category', 'general_category'], 'N/A');
                   const category = getText(record, ['category', 'main_category', 'case_category', 'irregularity_complain_category', 'Category'], 'N/A');
-                  const identificationOfRoot = getText(record, ['identification_of_root', 'Identification of Root', 'Identification_of_Root'], '-');
+                  const identificationOfRoot = getText(record, ['identification_of_root', 'Identification of Root', 'Identification_of_Root', 'root_caused', 'root_cause', 'issue_caused', 'breakdown_caused'], '-');
                   const rootCaused = getText(record, ['root_caused', 'root_cause', 'Root Cause', 'Root Caused', 'Root_Caused', 'breakdown_caused', 'issue_caused'], '-');
                   const reportText = getText(record, ['report', 'description', 'Report', 'title'], '-');
                   const terminalAreaCategory = getText(record, ['terminal_area_category', 'Terminal Area Category', 'Terminal_Area_Category']);
@@ -357,7 +357,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                       key={rowKey}
                       className="rounded-2xl border border-slate-200/80 bg-white shadow-[0_2px_12px_rgba(15,23,42,0.06)] transition-shadow hover:shadow-[0_4px_20px_rgba(15,23,42,0.10)] overflow-hidden"
                     >
-                      {/* Card Top Bar */}
+                      {}
                       <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-3 bg-gradient-to-r from-slate-50/80 to-white">
                         <div className="flex items-center gap-3 min-w-0">
                           <div className="flex items-center gap-1.5 text-[11px] font-black uppercase tracking-[0.12em] text-slate-500">
@@ -395,7 +395,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                         </div>
                       </div>
 
-                      {/* Status Update Inline Form */}
+                      {}
                       <AnimatePresence initial={false}>
                         {isStatusOpen && (
                           <motion.div
@@ -474,9 +474,9 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                         )}
                       </AnimatePresence>
 
-                      {/* Card Body */}
+                      {}
                       <div className="p-5">
-                        {/* Meta row */}
+                        {}
                         <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-6 mb-4">
                           {[
                             { icon: Plane, label: 'Airline', val: airline },
@@ -507,7 +507,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                           </div>
                         </div>
 
-                        {/* Classification + Root */}
+                        {}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-3">
                           <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
                             <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-1">
@@ -523,7 +523,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                           </div>
                         </div>
 
-                        {/* Evidence links */}
+                        {}
                         {evidenceUrls.length > 0 && (
                           <div className="mb-3 flex flex-wrap gap-2">
                             {evidenceUrls.map((url, uIdx) => (
@@ -541,7 +541,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                           </div>
                         )}
 
-                        {/* Expand toggle */}
+                        {}
                         <div className="flex items-center justify-between pt-1">
                           <button
                             type="button"
@@ -553,7 +553,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                           </button>
                         </div>
 
-                        {/* Expandable details */}
+                        {}
                         <AnimatePresence initial={false}>
                           {isExpanded && (
                             <motion.div

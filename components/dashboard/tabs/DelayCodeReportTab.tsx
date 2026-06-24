@@ -1,7 +1,5 @@
 'use client';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { Fragment, useEffect, useDeferredValue, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   Bar,
@@ -32,8 +30,6 @@ import {
   resolveReportBranch,
   resolveReportCategory,
 } from '@/lib/report-normalization';
-
-// ── Resolvers ─────────────────────────────────────────────────────────────────
 
 const MISSING_VALUES = new Set(['', '-', '#n/a', 'n/a', 'null', 'undefined', 'nil']);
 
@@ -140,8 +136,6 @@ function parseDurationMinutes(value: string): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-
 interface DelayCodeReportTabProps {
   reports: Report[];
 }
@@ -155,8 +149,6 @@ const DONUT_COLORS = ['var(--sr-accent)', 'var(--sr-gold)', 'var(--sr-chart-3)',
 const REPORT_CATEGORIES = ['Irregularity', 'Complaint', 'Compliment', 'Occurrence', 'Accident / Incident'] as const;
 const SEVERITY_ORDER = ['TOP RISK', 'HIGH RISK', 'HIGH', 'MEDIUM', 'LOW', '-'] as const;
 const STATUSES = ['CLOSED', 'OPEN'] as const;
-
-// ── Visual primitives (cloned from CGO Cargo Report) ─────────────────────────
 
 function delayAiContext(chartTitle: string, chartType: string, chartData: unknown): ChartAiContext {
   return {
@@ -534,8 +526,6 @@ function HeatMatrix({
   );
 }
 
-// ── Detail Report Table ───────────────────────────────────────────────────────
-
 type DetailRow = {
   id: string;
   ts: number;
@@ -748,8 +738,6 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
   );
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
-
 export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
   const deferredReports = useDeferredValue(reports);
   const { openDrilldown, DrilldownRenderer } = useDrilldown();
@@ -773,7 +761,6 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
     [scopedReports]
   );
 
-  // Monthly trend with year toggle
   const currentYear = new Date().getFullYear();
   const previousYear = currentYear - 1;
   const [monthlyYear, setMonthlyYear] = useState<number>(currentYear);
@@ -793,7 +780,6 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
     }));
   }, [delayCodeReports, monthlyYear]);
 
-  // Aggregations
   function aggregate(records: Report[], getValue: (r: Report) => string): CountRow[] {
     const buckets = new Map<string, CountRow>();
     records.forEach((r) => {
@@ -835,7 +821,6 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
       .filter((r) => r.total > 0);
   }, [delayCodeReports]);
 
-  // Duration metrics
   const durationStats = useMemo(() => {
     let total = 0;
     let count = 0;
@@ -854,7 +839,6 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
     };
   }, [delayCodeReports]);
 
-  // Heat matrix: Top delay codes × report category
   const delayCodeByCategory = useMemo(() => {
     const cells: Record<string, Record<string, MatrixCell>> = {};
     delayCodeReports.forEach((r) => {
@@ -870,7 +854,6 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
     return cells;
   }, [delayCodeReports]);
 
-  // Heat matrix: Branch × status (operational health view)
   const branchByStatus = useMemo(() => {
     const cells: Record<string, Record<string, MatrixCell>> = {};
     delayCodeReports.forEach((r) => {
@@ -936,7 +919,7 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
 
   return (
     <div className="sr-scope space-y-6 bg-[color:var(--sr-canvas)] px-4 py-6 pb-10 text-[color:var(--sr-text)] sm:px-6 lg:px-8">
-      {/* Header */}
+      {}
       <div className="sr-card relative flex flex-col gap-4 overflow-hidden px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="absolute inset-x-0 top-0 h-[5px] bg-[color:var(--sr-accent)]" aria-hidden="true" />
         <div className="flex min-w-0 items-center gap-4">
@@ -984,7 +967,7 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
         </div>
       </div>
 
-      {/* KPI Strip */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
@@ -998,7 +981,7 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
         </div>
       </section>
 
-      {/* Volume Overview */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
@@ -1082,7 +1065,7 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
         </div>
       </section>
 
-      {/* Where & Who */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
@@ -1132,7 +1115,7 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
         </div>
       </section>
 
-      {/* Cross-Tab Analysis */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
@@ -1171,7 +1154,7 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
         </div>
       </section>
 
-      {/* Detail Report */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />

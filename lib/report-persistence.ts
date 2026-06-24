@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi utilitas untuk persistensi data laporan ke database
- */
 
 import 'server-only';
 
@@ -10,11 +5,6 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { buildReportFingerprint, resolveReportCategory } from '@/lib/report-fingerprint';
 import type { Report } from '@/types';
 
-/**
- * Mengonversi nilai ke string ISO date atau menggunakan tanggal sekarang
- * @param value - Nilai yang akan dikonversi
- * @returns String ISO date
- */
 function toIsoOrNow(value: unknown): string {
     if (typeof value === 'string' && value.trim()) {
         const parsed = new Date(value);
@@ -38,15 +28,6 @@ function normalizeTextArray(value: unknown, separator = /\s*(?:\||;|\n+)\s*/): s
     return values.length > 0 ? [...new Set(values)] : null;
 }
 
-/**
- * Mendapatkan sheet_id dari laporan
- * @param report - Objek laporan parsial
- * @returns Sheet ID atau null
- * @example
- * ```ts
- * const sheetId = resolveReportSheetId(report);
- * ```
- */
 export function resolveReportSheetId(report: Partial<Report>): string | null {
     const sheetId = report.sheet_id || report.original_id || report.id;
     if (!sheetId) return null;
@@ -55,29 +36,10 @@ export function resolveReportSheetId(report: Partial<Report>): string | null {
     return trimmed || null;
 }
 
-/**
- * Mendapatkan source fingerprint dari laporan
- * @param report - Objek laporan parsial
- * @returns Source fingerprint
- * @example
- * ```ts
- * const fingerprint = resolveReportSourceFingerprint(report);
- * ```
- */
 export function resolveReportSourceFingerprint(report: Partial<Report>): string {
     return String(report.source_fingerprint || buildReportFingerprint(report));
 }
 
-/**
- * Membangun row untuk tabel reports_sync
- * @param report - Objek laporan parsial
- * @returns Object row untuk database
- * @throws Error jika sheet_id tidak tersedia
- * @example
- * ```ts
- * const syncRow = buildReportsSyncRow(report);
- * ```
- */
 export function buildReportsSyncRow(report: Partial<Report>): Record<string, unknown> {
     const sheetId = resolveReportSheetId(report);
     if (!sheetId) {
@@ -199,17 +161,6 @@ export function buildReportsSyncRow(report: Partial<Report>): Record<string, unk
     };
 }
 
-/**
- * Membangun row untuk tabel reports (legacy)
- * @param report - Objek laporan parsial
- * @param options - Opsi tambahan
- * @param options.userId - ID user (opsional)
- * @returns Object row untuk database
- * @example
- * ```ts
- * const legacyRow = buildLegacyReportRow(report, { userId: '123' });
- * ```
- */
 export function buildLegacyReportRow(
     report: Partial<Report>,
     options?: { userId?: string | null }
@@ -304,17 +255,6 @@ async function upsertReportsSyncRow(payload: Record<string, unknown>) {
     }
 }
 
-/**
- * Menyimpan metadata laporan ke database (tabel reports dan reports_sync)
- * @param report - Objek laporan parsial
- * @param options - Opsi tambahan
- * @param options.userId - ID user (opsional)
- * @returns Promise yang resolve setelah persistensi berhasil
- * @example
- * ```ts
- * await persistReportMetadata(report, { userId: '123' });
- * ```
- */
 export async function persistReportMetadata(
     report: Partial<Report>,
     options?: { userId?: string | null }

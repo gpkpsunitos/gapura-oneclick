@@ -1,13 +1,7 @@
-/**
- * @file
- * 
- * File ini berisi skrip debugging untuk menampilkan header dari semua sheet di Google Sheets
- */
 
 import { config } from 'dotenv';
 import { resolve } from 'path';
 
-// Load env vars
 config({ path: resolve(process.cwd(), '.env') });
 config({ path: resolve(process.cwd(), '.env.local') });
 
@@ -21,11 +15,6 @@ if (PRIVATE_KEY) {
   PRIVATE_KEY = PRIVATE_KEY.replace(/\\n/g, '\n');
 }
 
-/**
- * Fungsi debugging untuk menampilkan header dari semua sheet
- * @async
- * @returns {Promise<void>}
- */
 async function debugSheets() {
   if (!SPREADSHEET_ID || !CLIENT_EMAIL || !PRIVATE_KEY) {
     console.error('Missing Google Sheets credentials');
@@ -44,14 +33,14 @@ async function debugSheets() {
 
   try {
     const metaRsp = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
-    
+
     console.log("SHEETS AVAILABLE:");
     const sheetTitles = metaRsp.data.sheets?.map(s => s.properties?.title) || [];
     console.log(sheetTitles.join('\n'));
 
     for (const title of sheetTitles) {
       if (!title) continue;
-      
+
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: `'${title}'!1:1`, 

@@ -13,12 +13,6 @@ interface QRCodeWithLogoProps {
   className?: string;
 }
 
-/**
- * QR Code component with Gapura logo embedded in the center.
- *
- * Uses 'H' (High) error correction level by default to ensure
- * the QR code remains scannable even with the logo overlay.
- */
 export function QRCodeWithLogo({
   value,
   size = 156,
@@ -28,7 +22,7 @@ export function QRCodeWithLogo({
   logoSize,
   className,
 }: QRCodeWithLogoProps) {
-  // Calculate logo size as percentage of QR code size (default ~25%)
+
   const actualLogoSize = logoSize || Math.floor(size * 0.25);
 
   return (
@@ -41,11 +35,11 @@ export function QRCodeWithLogo({
         level={level}
         imageSettings={{
           src: '/logo.png',
-          x: undefined, // Centered automatically
-          y: undefined, // Centered automatically
+          x: undefined,
+          y: undefined,
           height: actualLogoSize,
           width: actualLogoSize,
-          excavate: true, // Creates a white background around the logo
+          excavate: true,
         }}
       />
     </div>

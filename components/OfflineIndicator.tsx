@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen indikator status koneksi dan offline queue
- */
 
 'use client';
 
@@ -12,33 +7,19 @@ import { WifiOff, Wifi, CloudOff, RefreshCw } from 'lucide-react';
 import { PWA_QUEUE_EVENT } from '@/lib/pwa/constants';
 import { refreshOfflineQueueSummary } from '@/lib/pwa/offline-queue';
 
-/**
- * Summary offline queue
- * @type QueueSummary
- */
 type QueueSummary = {
-  /** Jumlah item dalam queue */
+
   queued: number;
-  /** Jumlah item sedang sinkronisasi */
+
   syncing: number;
-  /** Jumlah item gagal sinkronisasi */
+
   failed: number;
-  /** Jumlah item berhasil sinkronisasi */
+
   synced: number;
-  /** Total semua item */
+
   total: number;
 };
 
-/**
- * Komponen indikator status offline/online
- * Menampilkan banner notifikasi dan floating badge untuk status koneksi
- * @returns JSX element indikator status
- * @example
- * ```tsx
- * // Letakkan di layout root
- * <OfflineIndicator />
- * ```
- */
 export default function OfflineIndicator() {
   const [isOnline, setIsOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
   const [showReconnected, setShowReconnected] = useState(false);
@@ -67,7 +48,6 @@ export default function OfflineIndicator() {
         const summary = await refreshOfflineQueueSummary();
         setQueueSummary(summary);
       } catch (error) {
-        console.warn('[PWA] Failed to sync queue summary:', error);
       }
     };
 
@@ -95,7 +75,7 @@ export default function OfflineIndicator() {
 
   return (
     <AnimatePresence>
-      {/* Offline banner */}
+      {}
       {!isOnline && (
         <motion.div
           key="offline-banner"
@@ -118,7 +98,7 @@ export default function OfflineIndicator() {
         </motion.div>
       )}
 
-      {/* Reconnected notification */}
+      {}
       {showReconnected && (
         <motion.div
           key="reconnected-banner"
@@ -139,7 +119,7 @@ export default function OfflineIndicator() {
         </motion.div>
       )}
 
-      {/* Floating offline status indicator */}
+      {}
       {!isOnline && (
         <motion.div
           key="offline-fab"

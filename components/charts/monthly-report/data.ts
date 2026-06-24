@@ -91,8 +91,8 @@ interface BaseFilters {
   dateTo?: string;
 }
 
-let reportsCache: Record<string, { data: Report[], ts: number }> = {};
-let inflightRequests: Record<string, Promise<Report[]>> = {};
+const reportsCache: Record<string, { data: Report[], ts: number }> = {};
+const inflightRequests: Record<string, Promise<Report[]>> = {};
 const CACHE_DURATION = 1000 * 60 * 5;
 
 const CORE_FIELDS = [
@@ -170,7 +170,7 @@ async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report
   if (filters.area && filters.area !== 'all') query.append('area', filters.area);
   if (filters.airlines && filters.airlines !== 'all') query.append('airlines', filters.airlines);
   if (filters.sourceSheet) query.append('sourceSheet', filters.sourceSheet);
-  
+
   query.append('fields', CORE_FIELDS.join(','));
 
   const response = await fetch(`/api/reports/analytics?${query.toString()}`, {
@@ -211,10 +211,10 @@ export async function fetchAggregatedMonthlyReport(filters: BaseFilters, signal?
 
 function filterReports(reports: Report[], filters: BaseFilters): Report[] {
   return reports.filter(report => {
-    // Filter by source sheet (default NON CARGO for backward compatibility)
+
     const sheet = filters.sourceSheet || 'NON CARGO';
     if (report.source_sheet && report.source_sheet !== sheet) return false;
-    
+
     if (filters.hub && filters.hub !== 'all' && report.hub !== filters.hub) return false;
     if (filters.branch && filters.branch !== 'all' && report.branch !== filters.branch) return false;
     if (filters.airlines && filters.airlines !== 'all' && report.airlines !== filters.airlines) return false;
@@ -229,11 +229,10 @@ function filterReports(reports: Report[], filters: BaseFilters): Report[] {
 
 export async function fetchMonthlySummary(filters: BaseFilters = {}): Promise<MonthlySummary[]> {
   const reports = await fetchReportsFromSheets(filters);
-  // Filter other criteria but NOT month yet to allow context for MoM/YoY
+
   const monthFilter = filters.month;
   const filtered = filterReports(reports, { ...filters, month: undefined });
 
-  // First pass: count all data by month
   const monthMap = new Map<string, { 
     total: number; 
     irregularity: number; 
@@ -258,37 +257,29 @@ export async function fetchMonthlySummary(filters: BaseFilters = {}): Promise<Mo
     else if (category === 'Compliment') data.compliment++;
   });
 
-  // Sort months
   const sortedMonths = Array.from(monthMap.keys()).sort();
 
-  // Second pass: calculate MoM and YoY growth
   const result = sortedMonths.map((month) => {
     const data = monthMap.get(month)!;
     const total = data.total;
-    
-    // Calculate previous month key
+
     const [year, monthNum] = month.split('-').map(Number);
     const prevMonth = monthNum === 1 ? 12 : monthNum - 1;
     const prevYear = monthNum === 1 ? year - 1 : year;
     const prevMonthKey = `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
-    
-    // Previous year same month key
+
     const prevYearKey = `${year - 1}-${String(monthNum).padStart(2, '0')}`;
-    
-    // Get previous month and previous year totals
+
     const prevMonthData = monthMap.get(prevMonthKey);
     const prevYearData = monthMap.get(prevYearKey);
-    
+
     const prevMonthTotal = prevMonthData?.total || 0;
     const prevYearTotal = prevYearData?.total || 0;
-    
-    // MoM Growth: (current - previous) / previous * 100
+
     const momGrowth = prevMonthTotal > 0 ? ((total - prevMonthTotal) / prevMonthTotal) * 100 : total > 0 ? 100 : 0;
-    
-    // YoY Growth: (current - same month last year) / same month last year * 100
-    // Suppress if no data for last year (e.g. for 2025 if 2024 is missing)
+
     const yoyGrowth = prevYearTotal > 0 ? ((total - prevYearTotal) / prevYearTotal) * 100 : undefined;
-    
+
     return {
       month,
       total,
@@ -304,7 +295,6 @@ export async function fetchMonthlySummary(filters: BaseFilters = {}): Promise<Mo
     };
   });
 
-  // Final filter by month if specific month requested
   if (monthFilter && monthFilter !== 'all') {
     return result.filter(r => r.month === monthFilter);
   }
@@ -349,7 +339,7 @@ export async function fetchBranchByMonth(filters: BaseFilters = {}): Promise<Bra
   filtered.forEach(report => {
     const monthKey = getMonthKey(report.date_of_event || report.created_at);
     const branch = report.branch || report.reporting_branch || report.station_code;
-    
+
     if (!monthKey || !branch) return;
 
     const key = `${branch}-${monthKey}`;
@@ -374,7 +364,7 @@ export async function fetchAirlineByMonth(filters: BaseFilters = {}): Promise<Ai
   filtered.forEach(report => {
     const monthKey = getMonthKey(report.date_of_event || report.created_at);
     const airline = report.airlines || report.airline;
-    
+
     if (!monthKey || !airline) return;
 
     const key = `${airline}-${monthKey}`;
@@ -524,7 +514,6 @@ export async function fetchMonthlyKPIs(filters: BaseFilters = {}): Promise<Month
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
 
-  // Group by month
   const monthCounts = new Map<string, number>();
   filtered.forEach(report => {
     const monthKey = getMonthKey(report.date_of_event || report.created_at);

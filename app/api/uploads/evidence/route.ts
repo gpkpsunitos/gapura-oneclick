@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk upload file evidence/bukti
- * Melakukan validasi file, kompresi otomatis, dan upload ke Supabase Storage
- */
 
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
@@ -14,21 +8,6 @@ import { enforceBotProtection } from '@/lib/security/botid';
 import { normalizeEvidenceSubmissionId, recordEvidenceUpload } from '@/lib/evidence-files';
 import { deleteDriveFile, sha256Hex, uploadEvidenceToDrive } from '@/lib/google-drive';
 
-/**
- * Menangani request POST untuk upload file evidence/bukti
- * Melakukan validasi file (tipe, ukuran, magic bytes), kompresi otomatis
- * ke ukuran kurang dari 5KB, dan upload ke Supabase Storage
- * @param request - Request object berisi file di formData
- * @returns Response JSON dengan URL publik file yang diupload
- * @throws {Error} Jika terjadi kesalahan upload atau kompresi
- * @example
- * ```http
- * POST /api/uploads/evidence
- * Content-Type: multipart/form-data
- * 
- * file: [binary]
- * ```
- */
 export async function POST(request: Request) {
   let uploadedDriveFileId: string | null = null;
 
@@ -54,7 +33,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Only image files are allowed' }, { status: 400 });
     }
 
-    // Server guard: max 10MB before compression
     const MAX_BYTES = 10 * 1024 * 1024;
     if (file.size > MAX_BYTES) {
       return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 413 });
@@ -65,14 +43,12 @@ export async function POST(request: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // Server-side magic byte validation
     const validation = validateImageFile(buffer, file.type);
     if (!validation.valid) {
         console.warn(`[UPLOAD] File validation failed: ${validation.error}`);
         return NextResponse.json({ error: 'Invalid image file' }, { status: 400 });
     }
 
-    // Compress image to <5KB
     let compressedBuffer: Buffer;
     let contentType: string;
 
@@ -80,7 +56,7 @@ export async function POST(request: Request) {
       const result = await compressToExactSize(buffer, 5);
       compressedBuffer = result.buffer;
       contentType = 'image/webp';
-      
+
       console.log(`[UPLOAD] Compressed from ${result.originalSize}B to ${result.size}B (${result.compressionRatio.toFixed(1)}% reduction)`);
       console.log(`[UPLOAD] Final dimensions: ${result.width}x${result.height}`);
     } catch (error) {
@@ -89,7 +65,6 @@ export async function POST(request: Request) {
       contentType = file.type;
     }
 
-    // Final size check (should be <5KB after compression)
     if (compressedBuffer.length > 5 * 1024) {
       console.warn(`[UPLOAD] Compressed file still large: ${(compressedBuffer.length / 1024).toFixed(2)}KB`);
     }

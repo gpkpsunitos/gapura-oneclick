@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi halaman detail laporan untuk analyst dengan komponen ReportDetailView
- */
 
 'use client';
 
@@ -15,11 +10,6 @@ import { supabase } from '@/lib/supabase';
 import { Report, User } from '@/types';
 import { ReportDetailView, type StatusUpdateDetails } from '@/components/dashboard/ReportDetailView';
 
-/**
- * Komponen halaman detail laporan untuk analyst
- * Menggunakan ReportDetailView komponen yang sama dengan admin
- * @returns JSX element halaman detail laporan analyst
- */
 export default function AnalystReportDetailPage() {
     const params = useParams();
     const router = useRouter();
@@ -31,10 +21,6 @@ export default function AnalystReportDetailPage() {
     const [error, setError] = useState('');
     const [user, setUser] = useState<User | null>(null);
 
-    /**
-     * Mengambil data user saat ini dari session
-     * @param signal - AbortSignal untuk membatalkan request
-     */
     const fetchUser = useCallback(async (signal?: AbortSignal) => {
         try {
             const res = await fetch('/api/auth/me', { signal });
@@ -48,11 +34,6 @@ export default function AnalystReportDetailPage() {
         }
     }, []);
 
-    /**
-     * Mengambil data laporan berdasarkan ID
-     * @param updatedData - Data laporan yang sudah diupdate (opsional)
-     * @param signal - AbortSignal untuk membatalkan request
-     */
     const fetchReport = useCallback(async (updatedData?: Report, signal?: AbortSignal) => {
         if (updatedData) {
             setReport(updatedData);
@@ -71,9 +52,6 @@ export default function AnalystReportDetailPage() {
         }
     }, [reportId]);
 
-    /**
-     * Setup real-time subscription dan inisialisasi data
-     */
     useEffect(() => {
         const controller = new AbortController();
         const { signal } = controller;
@@ -99,13 +77,6 @@ export default function AnalystReportDetailPage() {
         };
     }, [reportId, fetchReport, fetchUser]);
 
-    /**
-     * Menangani update status laporan
-     * @param id - ID laporan
-     * @param status - Status baru laporan
-     * @param notes - Catatan tambahan (opsional)
-     * @param evidenceUrl - URL bukti (opsional)
-     */
     const handleStatusUpdate = async (id: string, status: string, notes?: string, evidenceUrl?: string, details?: StatusUpdateDetails) => {
         setActionLoading(true);
         try {
@@ -118,8 +89,7 @@ export default function AnalystReportDetailPage() {
                 remarks_by: details?.remarksBy,
             };
             if (evidenceUrl) body.resolution_evidence_url = evidenceUrl;
-            
-            // Analyst uses same endpoint as Admin for status updates
+
             const res = await fetch('/api/admin/reports', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },

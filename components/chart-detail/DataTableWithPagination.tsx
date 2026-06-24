@@ -25,7 +25,6 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const pageSize = rowsPerPage;
 
-  // Deduplication & Column filtering
   const uniqueColumns = useMemo(() => {
     const unique = Array.from(new Set(data.columns));
     return unique.filter(c => c !== 'id' && (c !== 'count' || !unique.includes('Count')));
@@ -33,10 +32,9 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
 
   const rows = data.rows as Record<string, unknown>[];
 
-  // Filter and sort
   const filteredRows = useMemo(() => {
     let filtered = rows;
-    
+
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(row =>
@@ -45,24 +43,24 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
         )
       );
     }
-    
+
     if (sortColumn) {
       filtered = [...filtered].sort((a, b) => {
         const aVal = a[sortColumn];
         const bVal = b[sortColumn];
-        
+
         const aIsTotal = Object.values(a).some(v => String(v).toLowerCase().includes('total'));
         const bIsTotal = Object.values(b).some(v => String(v).toLowerCase().includes('total'));
         if (aIsTotal) return 1;
         if (bIsTotal) return -1;
-        
+
         if (typeof aVal === 'number' && typeof bVal === 'number') {
           return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
         }
-        
+
         const aStr = String(aVal).toLowerCase();
         const bStr = String(bVal).toLowerCase();
-        
+
         if (sortDirection === 'asc') {
           return aStr.localeCompare(bStr);
         } else {
@@ -70,15 +68,14 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
         }
       });
     }
-    
+
     return filtered;
   }, [rows, uniqueColumns, searchTerm, sortColumn, sortDirection]);
 
-  // Pagination
   const totalPages = Math.ceil(filteredRows.length / pageSize);
   const MathMaxPage = Math.max(1, totalPages);
   const safeCurrentPage = Math.min(currentPage, MathMaxPage);
-  
+
   const paginatedRows = filteredRows.slice(
     (safeCurrentPage - 1) * pageSize,
     safeCurrentPage * pageSize
@@ -102,7 +99,7 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
         return str.includes(',') ? `"${str}"` : str;
       }).join(',')
     );
-    
+
     const csv = [headers, ...csvRows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -130,7 +127,7 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
           : 'bg-[var(--surface-1)] backdrop-blur-3xl rounded-3xl border border-[var(--surface-2)] shadow-spatial-md'
       } ${className || ''}`}
     >
-      {/* Glow Ornament */}
+      {}
       {variant === 'default' && (
         <>
           <div className="absolute inset-x-0 -top-24 h-48 bg-gradient-to-b from-[var(--brand-primary)]/10 to-transparent blur-3xl opacity-50 pointer-events-none" />
@@ -138,7 +135,7 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
         </>
       )}
 
-      {/* Header */}
+      {}
       <div className={`relative z-10 px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b ${
         variant === 'minimal' ? 'border-slate-200/50 bg-white/30 backdrop-blur-md' : 'border-[var(--surface-border)]/50 bg-[var(--surface-0)]/30 backdrop-blur-md'
       }`}>
@@ -161,7 +158,7 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
             </div>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-3">
           <div className="relative group/search">
             <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 transition-colors ${variant === 'minimal' ? 'text-slate-400 group-focus-within/search:text-slate-700' : 'text-[var(--text-tertiary)] group-focus-within/search:text-[var(--brand-primary)]'}`} />
@@ -180,7 +177,7 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
               }`}
             />
           </div>
-          
+
           <button
             onClick={exportCSV}
             className={`flex items-center gap-2 px-5 py-2 text-[10px] font-black rounded-full transition-all shadow-sm active:scale-95 uppercase tracking-[0.15em] ${
@@ -195,7 +192,7 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
         </div>
       </div>
 
-      {/* Table Content */}
+      {}
       <div className={`flex-1 overflow-auto custom-scrollbar relative z-10 ${variant === 'minimal' ? '' : 'bg-[var(--surface-0)]/20'}`}>
         <table className="w-full border-separate border-spacing-0">
           <thead className="sticky top-0 z-20">
@@ -363,7 +360,7 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
         </table>
       </div>
 
-      {/* Pagination Controls */}
+      {}
       <div className={`relative z-10 px-6 py-5 border-t flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
         variant === 'minimal' ? 'border-slate-200/50 bg-white/50 backdrop-blur-xl' : 'border-[var(--surface-border)]/50 bg-[var(--surface-0)]/50 backdrop-blur-xl'
       }`}>
@@ -372,7 +369,7 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
             ? `SYNCING ${((safeCurrentPage - 1) * pageSize + 1).toString().padStart(3, '0')} — ${Math.min(safeCurrentPage * pageSize, filteredRows.length).toString().padStart(3, '0')} / ${filteredRows.length.toString().padStart(3, '0')} RECORDS`
             : 'NULL SET'}
         </div>
-        
+
         <div className="flex items-center gap-2">
           <button
             onClick={() => setCurrentPage(1)}
@@ -385,7 +382,7 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
           >
             Start
           </button>
-          
+
           <div className={`flex items-center gap-1 px-4 py-2 rounded-full border shadow-inner-rim ${
             variant === 'minimal' ? 'bg-white border-slate-200' : 'bg-[var(--surface-0)] border-[var(--surface-border)]'
           }`}>
@@ -393,7 +390,7 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
             <span className={`text-[10px] font-black mx-1 ${variant === 'minimal' ? 'text-slate-300' : 'text-[var(--text-tertiary)]'}`}>/</span>
             <span className={`text-[10px] font-black ${variant === 'minimal' ? 'text-slate-500' : 'text-[var(--text-secondary)]'}`}>{MathMaxPage}</span>
           </div>
-          
+
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}

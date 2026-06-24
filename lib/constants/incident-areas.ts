@@ -1,8 +1,3 @@
-/**
- * Shared area + category schema for irregularity report forms.
- * Mirrors Google Sheet "NON CARGO" columns: Area, Terminal/Apron/General Category,
- * GSE Available & Requirement, GSE MOTORIZED, GSE NON - MOTORIZED, Category Case GSE.
- */
 
 export const AREA_IDS = ['TERMINAL', 'APRON', 'CARGO', 'GENERAL', 'GSE'] as const;
 export type AreaId = typeof AREA_IDS[number];

@@ -21,9 +21,7 @@ export function AiSeasonalForecast() {
         if (result) {
           setData(result);
         } else {
-          // Fallback data if API fails (for development/demo purposes)
-          // This ensures the component shows something if the API is not ready
-          console.warn('Using fallback data for seasonal forecast');
+
           setData({
              "monthly_averages": { 
                "January": 19, 

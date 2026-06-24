@@ -27,6 +27,7 @@ export default function PerformanceTelemetry() {
 
     useEffect(() => {
         if (process.env.NODE_ENV !== 'production' || isLightweightRoute) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setIsIdle(false);
             return;
         }

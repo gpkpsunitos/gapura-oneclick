@@ -1,49 +1,32 @@
-/**
- * @file
- * 
- * File ini berisi utility untuk normalisasi query dan visualisasi dashboard
- * Memastikan data konsisten dan valid untuk SQL builder dan chart renderer
- */
 
 import type { QueryDefinition, QueryMeasure, ChartVisualization, DashboardTile } from '@/types/builder';
 import { TABLES, JOINS, getFieldDef } from './schema';
 
-/**
- * Mapping nama field report ke nama kolom database
- * Menangani variasi penulisan dan alias dari berbagai sumber data
- * @param field - Nama field dari query
- * @returns Nama kolom database yang sudah dimapping
- * @example
- * ```ts
- * const dbField = mapReportsField('tipemaskapai');
- * // returns: 'jenis_maskapai'
- * ```
- */
 function mapReportsField(field: string): string {
   if (!field) return field;
   const fieldLower = field.toLowerCase().replace(/[\s\-_]/g, '');
-  
+
   const mapping: Record<string, string> = {
     'tipemaskapai': 'jenis_maskapai',
     'airlinetype': 'jenis_maskapai',
     'jenismaskapai': 'jenis_maskapai',
-    
+
     'maskapai': 'airlines',
     'masapai': 'airlines',
     'maskapaiid': 'airlines',
     'airline': 'airlines',
     'airlines': 'airlines',
-    
+
     'flight': 'flight_number',
     'flightnumber': 'flight_number',
     'penerbangan': 'flight_number',
     'nomorpenerbangan': 'flight_number',
-    
+
     'cabang': 'branch',
     'branch': 'branch',
-    
+
     'unit': 'unit_id',
-    
+
     'total': 'id',
     'volume': 'id',
     'jumlah': 'id',
@@ -57,60 +40,59 @@ function mapReportsField(field: string): string {
     'idlaporan': 'id',
     'uuid': 'id',
     'id': 'id',
-    
+
     'tanggal': 'date_of_event',
     'date': 'date_of_event',
     'incidentdate': 'date_of_event',
     'tanggalinsiden': 'date_of_event',
-    
+
     'tanggalkejadian': 'event_date',
     'eventdate': 'event_date',
     'waktu': 'event_date',
     'time': 'event_date',
-    
+
     'kategori': 'category',
     'category': 'category',
     'maincategory': 'category',
     'kategoriutama': 'category',
     'reportcategory': 'category',
-    
+
     'subkategori': 'irregularity_complain_category',
     'subcategory': 'irregularity_complain_category',
     'irregularitycomplaincategory': 'irregularity_complain_category',
-    
+
     'stasiun': 'station_code',
     'station': 'station_code',
     'stationcode': 'station_code',
     'kodestasiun': 'station_code',
-    
+
     'stationid': 'station_id',
     'idstasiun': 'station_id',
-    
+
     'incidenttypeid': 'incident_type_id',
     'idtipeinsiden': 'incident_type_id',
     'tipeinsidenid': 'incident_type_id',
-    
+
     'locationid': 'location_id',
     'idlokasi': 'location_id',
-    
+
     'userid': 'user_id',
     'iduser': 'user_id',
     'idpelapor': 'user_id',
-    
+
     'pelapor': 'reporter_name',
     'reporter': 'reporter_name',
     'reportername': 'reporter_name',
     'namapelapor': 'reporter_name',
     'reportby': 'reporter_name',
-    
+
     'hub': 'hub',
-    
+
     'waktuinsiden': 'incident_time',
     'incidenttime': 'incident_time',
     'jamkejadian': 'incident_time',
     'jam': 'incident_time',
 
-    // Hallucination mappings
     'monthly_compliments': 'id',
     'compliments_count': 'id',
     'total_compliments': 'id',
@@ -121,49 +103,48 @@ function mapReportsField(field: string): string {
     'location': 'specific_location',
     'specificlocation': 'specific_location',
     'lokasispesifik': 'specific_location',
-    
+
     'deskripsi': 'description',
     'description': 'description',
     'desc': 'description',
-    
+
     'isilaporan': 'report',
     'report': 'report',
     'reportcontent': 'report',
-    
+
     'severity': 'severity',
     'tingkatkeparahan': 'severity',
-    
+
     'priority': 'priority',
     'prioritas': 'priority',
-    
+
     'status': 'status',
-    
+
     'rute': 'route',
     'route': 'route',
-    
+
     'aircraft': 'aircraft_reg',
     'aircraftreg': 'aircraft_reg',
     'registrasipesawat': 'aircraft_reg',
-    
+
     'rootcause': 'root_caused',
     'akaramsalah': 'root_caused',
     'rootcaused': 'root_caused',
-    
+
     'actiontaken': 'action_taken',
     'gapurakpsactiontaken': 'gapura_kps_action_taken',
-    
+
     'terminalareacategory': 'terminal_area_category',
     'apronareacategory': 'apron_area_category',
     'generalcategory': 'general_category',
-    
+
     'uploadirregularityphoto': 'evidence_url',
-    
+
     'sourcesheet': 'source_sheet',
     'sheet': 'source_sheet',
     'sumberdata': 'source_sheet',
     'source_sheet': 'source_sheet',
 
-    // Virtual Fields (Time)
     'bulan': 'month',
     'month': 'month',
     'tahun': 'year',
@@ -179,16 +160,7 @@ function mapReportsField(field: string): string {
   return mapping[fieldLower] || field;
 }
 
-/**
- * Normalisasi nilai bulan ke format konsisten
- * @param val - Nilai bulan dalam format apapun
- * @returns Nilai bulan yang sudah dinormalisasi
- * @example
- * ```ts
- * const month = normalizeMonthValue('januari');
- * // returns: 'januari'
- * ```
- */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function normalizeMonthValue(val: any): any {
   if (typeof val !== 'string') return val;
   const lower = val.toLowerCase().trim();
@@ -209,34 +181,23 @@ function normalizeMonthValue(val: any): any {
   return months[lower] || val;
 }
 
-/**
- * Normalisasi definisi query untuk memastikan validitas
- * @param query - Definisi query yang akan dinormalisasi
- * @returns QueryDefinition yang sudah dinormalisasi
- * @throws Error jika query tidak valid
- * @example
- * ```ts
- * const normalized = normalizeQuery(queryDef);
- * ```
- */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normalizeQuery(query: any): QueryDefinition {
   if (!query || typeof query !== 'object') {
     throw new Error('Invalid query definition');
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const normalized: any = { ...query };
 
-  // 1. Ensure source exists and is valid
   if (!normalized.source || !TABLES.some(t => t.name === normalized.source)) {
     normalized.source = 'reports';
   }
-  
-  // Force map legacy/AI-hallucinated table names to 'reports'
+
   if (normalized.source === 'raw_data_sample' || normalized.source === 'raw_data' || normalized.source === 'data' || normalized.source === 'data_sample') {
     normalized.source = 'reports';
   }
 
-  // 2. Initialize arrays if missing
   normalized.dimensions = Array.isArray(normalized.dimensions) ? normalized.dimensions : [];
   normalized.measures = Array.isArray(normalized.measures) ? normalized.measures : [];
   normalized.filters = Array.isArray(normalized.filters) ? normalized.filters : [];
@@ -245,18 +206,17 @@ export function normalizeQuery(query: any): QueryDefinition {
 
   const usedTables = new Set<string>([normalized.source]);
 
-  // Helper to normalize table name
   const normalizeTableName = (t: string | undefined): string => {
     if (!t) return normalized.source;
     if (t === 'raw_data_sample' || t === 'raw_data' || t === 'data' || t === 'data_sample') return 'reports';
     return t;
   };
 
-  // 3. Normalize dimensions
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   normalized.dimensions = normalized.dimensions.map((d: any) => {
     const table = normalizeTableName(d.table);
     usedTables.add(table);
-    
+
     let field = d.field;
     let dateGranularity = d.dateGranularity;
 
@@ -264,7 +224,6 @@ export function normalizeQuery(query: any): QueryDefinition {
       field = mapReportsField(field);
     }
 
-    // Auto-map virtual time fields to date_of_event
     if (table === 'reports') {
       if (field === 'month') {
         field = 'date_of_event';
@@ -283,27 +242,26 @@ export function normalizeQuery(query: any): QueryDefinition {
         dateGranularity = 'week';
       }
     }
-    
+
     return { ...d, table, field, dateGranularity };
   });
 
-  // 4. Normalize measures
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   normalized.measures = normalized.measures.map((m: any) => {
     const table = normalizeTableName(m.table);
     usedTables.add(table);
-    
+
     let field = m.field;
     if (table === 'reports') {
       field = mapReportsField(field);
-      // Default to 'id' if field is missing or generic 'total'/'count'
+
       if (field === 'total' || field === 'count' || !field) {
         field = 'id';
       }
     }
 
     let func = (m.function || 'COUNT').toUpperCase();
-    
-    // Type-aware aggregation correction
+
     if (func === 'SUM' || func === 'AVG') {
       const fieldDef = getFieldDef(table, field);
       if (fieldDef) {
@@ -314,7 +272,6 @@ export function normalizeQuery(query: any): QueryDefinition {
       }
     }
 
-    // Ensure alias exists to prevent collisions
     const alias = m.alias || `${func.toLowerCase()}_${table}_${field}`;
 
     return { 
@@ -326,9 +283,9 @@ export function normalizeQuery(query: any): QueryDefinition {
     };
   });
 
-  // 5. Auto-add missing joins based on used tables
   usedTables.forEach(table => {
     if (table !== normalized.source) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const alreadyJoined = normalized.joins.some((j: any) => {
         const joinKey = j.joinKey;
         const joinDef = JOINS.find(jd => jd.key === joinKey);
@@ -348,20 +305,20 @@ export function normalizeQuery(query: any): QueryDefinition {
     }
   });
 
-  // 6. Normalize filters
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   normalized.filters = normalized.filters.map((f: any) => {
     const table = normalizeTableName(f.table);
-    usedTables.add(table); // Track tables used in filters too!
-    
+    usedTables.add(table);
+
     let field = f.field;
     let value = f.value;
 
     if (table === 'reports') {
       field = mapReportsField(field);
-      
-      // Normalize month values (names -> numbers)
+
       if (field === 'month') {
         if (Array.isArray(value)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           value = value.map((v: any) => normalizeMonthValue(v));
         } else {
           value = normalizeMonthValue(value);
@@ -379,7 +336,7 @@ export function normalizeQuery(query: any): QueryDefinition {
     };
   });
 
-  // 7. Ensure sorts use aliases if available
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   normalized.sorts = normalized.sorts.map((s: any) => {
     const table = normalizeTableName(s.table);
     let field = s.field;
@@ -387,12 +344,12 @@ export function normalizeQuery(query: any): QueryDefinition {
       field = mapReportsField(field);
     }
 
-    // If sorting by a measure, try to match the measure's field OR alias
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const measureMatch = normalized.measures.find((m: any) => 
       (m.field === field || m.alias === field) && 
       m.table === table
     );
-    
+
     if (measureMatch && !s.alias) {
       return { ...s, table, field, alias: measureMatch.alias };
     }
@@ -402,26 +359,16 @@ export function normalizeQuery(query: any): QueryDefinition {
   return normalized as QueryDefinition;
 }
 
-/**
- * Normalisasi konfigurasi visualisasi tile
- * Memastikan konfigurasi kompatibel dengan data yang tersedia
- * @param tile - Definisi tile dashboard
- * @returns Tile dashboard yang sudah dinormalisasi
- * @example
- * ```ts
- * const normalizedTile = normalizeVisualization(tileDef);
- * ```
- */
 export function normalizeVisualization(tile: DashboardTile): DashboardTile {
   if (!tile.visualization) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (tile as any).visualization = { chartType: 'bar', title: 'Untitled Chart' };
   }
-  
+
   const { chartType } = tile.visualization;
   const dimensions = tile.query.dimensions || [];
   const measures = tile.query.measures || [];
 
-  // 1. Heatmap Fail-safe
   if (chartType === 'heatmap') {
     if (dimensions.length < 2 || measures.length < 1) {
 
@@ -433,7 +380,6 @@ export function normalizeVisualization(tile: DashboardTile): DashboardTile {
     }
   }
 
-  // 2. Axis Sync for Bar/Line/Area/Radar
   const categoricalTypes = ['bar', 'horizontal_bar', 'line', 'area', 'radar', 'pie', 'donut'];
   if (categoricalTypes.includes(tile.visualization.chartType)) {
     if (dimensions.length > 0) {
@@ -442,22 +388,16 @@ export function normalizeVisualization(tile: DashboardTile): DashboardTile {
     if (measures.length > 0) {
       tile.visualization.yAxis = measures.map(m => m.alias || m.field);
     }
-    
-    // Pie/Donut specifics
+
     if (tile.visualization.chartType === 'pie' || tile.visualization.chartType === 'donut') {
       tile.visualization.showLabels = true;
     }
   }
 
-  // 3. KPI Fallback
   if (chartType === 'kpi' && measures.length === 0) {
     tile.visualization.chartType = 'table';
   }
 
-  // 4. Heatmap Promotion (Heuristic)
-  // If we have exactly 2 dimensions and 1 measure, and it's currently a Pie or Bar chart
-  // where the dimensions are categorical (no dateGranularity), promote to Heatmap
-  // for much clearer cross-dimensional analysis.
   if ((chartType === 'pie' || chartType === 'donut' || chartType === 'bar' || chartType === 'horizontal_bar')) {
     const isTemporal = dimensions.some(d => d.dateGranularity);
     if (dimensions.length === 2 && measures.length === 1 && !isTemporal) {

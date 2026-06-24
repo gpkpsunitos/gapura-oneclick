@@ -48,7 +48,6 @@ export interface AreaByAirlineData {
   count: number;
 }
 
-
 export interface RootCauseParetoData {
   rootCause: string;
   count: number;
@@ -70,8 +69,8 @@ interface BaseFilters {
   dateTo?: string;
 }
 
-let reportsCache: Record<string, { data: Report[], ts: number }> = {};
-let inflightRequests: Record<string, Promise<Report[]>> = {};
+const reportsCache: Record<string, { data: Report[], ts: number }> = {};
+const inflightRequests: Record<string, Promise<Report[]>> = {};
 const CACHE_DURATION = 1000 * 60 * 5;
 
 const CORE_FIELDS = [
@@ -141,7 +140,7 @@ async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report
   if (filters.area && filters.area !== 'all') query.append('area', filters.area);
   if (filters.airlines && filters.airlines !== 'all') query.append('airlines', filters.airlines);
   if (filters.sourceSheet) query.append('sourceSheet', filters.sourceSheet);
-  
+
   query.append('fields', CORE_FIELDS.join(','));
 
   const response = await fetch(`/api/reports/analytics?${query.toString()}`, {
@@ -182,10 +181,10 @@ export async function fetchAggregatedAirlineReport(filters: BaseFilters, signal?
 
 function filterReports(reports: Report[], filters: BaseFilters): Report[] {
   return reports.filter(report => {
-    // Filter by source sheet (default NON CARGO for backward compatibility)
+
     const sheet = filters.sourceSheet || 'NON CARGO';
     if (report.source_sheet && report.source_sheet !== sheet) return false;
-    
+
     if (filters.hub && filters.hub !== 'all' && report.hub !== filters.hub) return false;
     if (filters.branch && filters.branch !== 'all' && report.branch !== filters.branch) return false;
     if (filters.airlines && filters.airlines !== 'all' && report.airlines !== filters.airlines) return false;
@@ -325,8 +324,6 @@ export async function fetchRootCauseByAirline(filters: BaseFilters = {}): Promis
     .slice(0, 15);
 }
 
-
-
 export async function fetchCategoryByAirline(filters: BaseFilters = {}): Promise<AirlineCategoryData[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -437,7 +434,6 @@ export async function fetchAllAirlineReports(filters: BaseFilters = {}): Promise
   });
 }
 
-// ─── Custom KPIs for Task 3 Enhancement ───
 export interface AirlineKPIs {
   totalAirlines: number;
   topAirline: { name: string; count: number };
@@ -477,7 +473,6 @@ export async function fetchAirlineKPIs(filters: BaseFilters = {}): Promise<Airli
     ? { name: airlineEntries[0].name, count: airlineEntries[0].total }
     : { name: 'None', count: 0 };
 
-  // Best performer = airline with LEAST reports (sorted ascending)
   const bestPerformerEntries = [...airlineEntries].sort((a, b) => a.total - b.total);
   const bestPerformer = bestPerformerEntries.length > 0
     ? { name: bestPerformerEntries[0].name, count: bestPerformerEntries[0].total }
@@ -496,7 +491,6 @@ export async function fetchAirlineKPIs(filters: BaseFilters = {}): Promise<Airli
   };
 }
 
-// ─── Category Breakdown for Top 10 Airlines ───
 export interface AirlineCategoryBreakdown {
   airline: string;
   irregularity: number;

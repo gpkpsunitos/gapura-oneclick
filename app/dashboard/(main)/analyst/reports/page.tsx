@@ -1,13 +1,6 @@
-/**
- * @file
- * 
- * File ini berisi halaman manajemen laporan untuk analyst,
- * menampilkan daftar laporan dengan fitur filter, search, dan manajemen status.
- */
 
 'use client';
 
-// --- Imports --- (Existing imports slightly expanded)
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   FileText, Search, Filter, ChevronDown,
@@ -25,16 +18,10 @@ import { useReportsData } from '@/hooks/use-reports-cache';
 import { ReportsDetailTable } from '@/components/dashboard/analyst/ReportsDetailTable';
 import { cn } from '@/lib/utils';
 
-/**
- * Komponen halaman manajemen laporan untuk analyst
- * Menampilkan daftar laporan dengan fitur filter, search, dan manajemen status
- * @returns {JSX.Element} Tampilan halaman manajemen laporan analyst
- */
 export default function AnalystReportsPage() {
-  // --- Data Fetching ---
+
   const { reports: allReports, isLoading: loading, refresh } = useReportsData('/api/admin/reports');
-  
-  // --- State ---
+
   const [stationFilter, setStationFilter] = useState('all');
   const [filter, setFilter] = useState('all');
   const [severityFilter, setSeverityFilter] = useState('all');
@@ -44,10 +31,6 @@ export default function AnalystReportsPage() {
   const [period, setPeriod] = useState<TimePeriod>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // --- Effects ---
-  /**
-   * Mengambil daftar station dari API master data
-   */
   const fetchStations = useCallback(async () => {
     try {
       const res = await fetch('/api/master-data?type=stations');
@@ -61,16 +44,12 @@ export default function AnalystReportsPage() {
 
   useEffect(() => { fetchStations(); }, [fetchStations]);
 
-  /**
-   * Handler untuk refresh data laporan
-   */
   const handleRefresh = async () => {
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
   };
 
-  // --- Filtering Logic ---
   const filteredReports = useMemo(() => {
     return allReports.filter(report => {
       if (filter !== 'all' && report.status !== filter) return false;
@@ -85,27 +64,17 @@ export default function AnalystReportsPage() {
         report.id.toLowerCase().includes(search.toLowerCase()) ||
         (report.reference_number || '').toLowerCase().includes(search.toLowerCase()) ||
         (report.flight_number || '').toLowerCase().includes(search.toLowerCase());
-      
+
       return matchesSearch;
     });
   }, [allReports, filter, stationFilter, severityFilter, search]);
 
-  /**
-   * Statistik laporan yang difilter
-   */
   const stats = useMemo(() => ({
     total: filteredReports.length,
     pending: filteredReports.filter(r => r.status === 'OPEN').length,
     resolved: filteredReports.filter(r => r.status === 'CLOSED').length
   }), [filteredReports]);
 
-  /**
-   * Handler untuk update status laporan
-   * @param {string} reportId - ID laporan yang akan diupdate
-   * @param {string} status - Status baru untuk laporan
-   * @param {string} [notes] - Catatan tindakan yang diambil
-   * @param {string} [evidenceUrl] - URL bukti/evidence
-   */
   const handleUpdateStatus = async (reportId: string, status: string, notes?: string, evidenceUrl?: string, details?: StatusUpdateDetails) => {
     try {
       const res = await fetch(`/api/reports/${reportId}`, {
@@ -130,9 +99,9 @@ export default function AnalystReportsPage() {
 
   return (
     <div className="min-h-screen bg-[var(--surface-0)] pb-24 overflow-x-hidden">
-      {/* 1. Kinetic Hero Header */}
+      {}
       <div className="relative overflow-hidden rounded-b-[48px] px-4 md:px-8 pt-12 pb-24 bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-400">
-        {/* Abstract Background Noise & Depth */}
+        {}
         <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay">
           <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-white rounded-full blur-[120px]" />
           <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] bg-teal-200 rounded-full blur-[140px]" />
@@ -167,7 +136,7 @@ export default function AnalystReportsPage() {
               </motion.p>
             </div>
 
-            {/* Quick Stats Grid */}
+            {}
             <div className="flex flex-wrap gap-4">
                {[
                  { label: 'Total', value: stats.total, color: 'emerald' },
@@ -190,11 +159,11 @@ export default function AnalystReportsPage() {
         </div>
       </div>
 
-      {/* 2. Unified Filter Bar - Integrated & Elevated */}
+      {}
       <div className="max-w-[1700px] mx-auto px-4 md:px-8 -mt-12 relative z-20">
         <div className="bg-white p-4 rounded-[40px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] border border-gray-100 space-y-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center">
-             {/* Search */}
+             {}
              <div className="relative flex-1 w-full group">
                 <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 transition-colors group-focus-within:text-emerald-500" />
                 <input
@@ -207,7 +176,7 @@ export default function AnalystReportsPage() {
              </div>
 
              <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                {/* Station Filter */}
+                {}
                 <div className="relative flex-1 min-w-[180px]">
                   <select 
                     value={stationFilter} 
@@ -221,7 +190,7 @@ export default function AnalystReportsPage() {
                   <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 </div>
 
-                {/* Status Filter */}
+                {}
                 <div className="relative flex-1 min-w-[160px]">
                   <select 
                     value={filter} 
@@ -255,7 +224,7 @@ export default function AnalystReportsPage() {
         </div>
       </div>
 
-      {/* 3. Main Content: Kinetic Reports List */}
+      {}
       <main className="max-w-[1700px] mx-auto px-4 md:px-8 mt-12">
         <div className="mb-6 flex items-center justify-between">
            <div className="flex items-center gap-3">
@@ -276,7 +245,7 @@ export default function AnalystReportsPage() {
          />
       </main>
 
-      {/* 4. Modals */}
+      {}
       <AnimatePresence>
         {selectedReport && (
           <ReportDetailModal
@@ -291,5 +260,3 @@ export default function AnalystReportsPage() {
     </div>
   );
 }
-// Complexity: Time O(n) | Space O(m)
-// Design: PRISM PROTOCOL V3 - High Contrast / High Motion

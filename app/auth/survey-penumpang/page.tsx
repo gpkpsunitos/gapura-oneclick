@@ -1,9 +1,4 @@
-/**
- * @file
- * 
- * File ini berisi halaman Survey Penumpang dengan tampilan QR code
- * untuk scan dan mengisi survey kepuasan penumpang
- */
+
 'use client';
 
 import GuestNav from '@/components/GuestNav';
@@ -11,10 +6,6 @@ import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
 import { getLinkUrl } from '@/lib/external-links';
 import { QRCodeWithLogo } from '@/components/ui/QRCodeWithLogo';
 
-/**
- * Halaman Survey Penumpang
- * @returns Komponen React
- */
 export default function SurveyPenumpangPage() {
   const externalLinks = useExternalLinks();
 

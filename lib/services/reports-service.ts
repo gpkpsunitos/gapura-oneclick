@@ -19,11 +19,8 @@ import {
   resolveRootCause,
 } from '@/lib/report-normalization';
 
-// Deterministic Namespace for Google Sheets ID Mapping (Fixed UUID)
-const IRRS_NAMESPACE_UUID = '6ba7b810-9dad-11d1-80b4-00c04fd430c8'; // Shared namespace for consistently mapping string IDs
+const IRRS_NAMESPACE_UUID = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
-// ─── Inline TTL Cache ──────────────────────────────────────────────────────
-// Complexity: Time O(1) per get/set | Space O(entries)
 interface CacheEntry { data: unknown; ts: number }
 const ttlCache = new Map<string, CacheEntry>();
 const MAX_CACHE_ENTRIES = 100;
@@ -64,20 +61,16 @@ export function getCacheStats() {
   };
 }
 
-
-
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 const REPORT_SHEETS = ['NON CARGO', 'CGO'];
-const SHEET_IDS: Record<string, number> = {}; // Empty to force dynamic lookup for new sheet
+const SHEET_IDS: Record<string, number> = {};
 
-// Mapping from Report properties to likely Header names (for writing/reading)
-// Note: Google Sheets headers use underscores (e.g., "Date_of_Event") not spaces
 const PROP_TO_HEADER: Partial<Record<keyof Report, string[]>> = {
-  // Key: Report Property, Value: Possible Header Names
+
   date_of_event: ['Date_of_Event', 'Date of Event', 'Date', 'Tanggal', 'Tanggal Kejadian', 'Incident Date'],
   jenis_maskapai: ['Jenis_Maskapai', 'Jenis Maskapai'],
   airline: ['Airlines', 'Airline', 'Maskapai'],
-  airlines: ['Airlines', 'Airline', 'Maskapai'], // Dual mapping
+  airlines: ['Airlines', 'Airline', 'Maskapai'],
   flight_number: ['Flight_Number', 'Flight Number', 'No Penerbangan'],
   reporting_branch: ['Reporting_Branch', 'Reporting Branch'],
   branch: ['Branch', 'Cabang', 'Reporting_Branch', 'Reporting Branch', 'Station', 'Branch '],
@@ -137,14 +130,12 @@ const PROP_TO_HEADER: Partial<Record<keyof Report, string[]>> = {
   gse_non_motorized: ['GSE NON - MOTORIZED', 'GSE NON MOTORIZED', 'GSE Non-Motorized'],
   category_case_gse: ['Category Case GSE'],
   category_case_cargo: ['Category Case Cargo (CGO)', 'Category Case Cargo'],
-  
-  // Triage Columns
+
   primary_tag: ['Primary Tag', 'Primary_Tag', 'Area Category', 'Area_Category'],
   sub_category_note: ['Sub Category Note', 'Sub_Category_Note', 'Sub Category', 'Additional Note'],
   esklasi_divisi: ['ESKLASI DIVISI', 'ESKLASI_DIVISI'],
   target_division: [],
-  
-  // Standard fields
+
   id: ['ID'],
   user_id: ['User ID'],
   title: ['Title', 'Judul'],
@@ -154,10 +145,9 @@ const PROP_TO_HEADER: Partial<Record<keyof Report, string[]>> = {
   created_at: ['Created_At', 'Created At'],
   updated_at: ['Updated_At', 'Updated At'],
   report: ['Report', 'Judul Laporan'],
-  // Add other fields as needed
+
 };
 
-// Inverse mapping for writing (Property -> Preferred Header)
 const WRITE_MAPPING: Record<string, string> = {
   date_of_event: 'Date of Event',
   jenis_maskapai: 'Jenis Maskapai',
@@ -177,13 +167,13 @@ const WRITE_MAPPING: Record<string, string> = {
   preventive_action: 'Preventive Action',
   reporter_name: 'Report By',
   reporter_email: 'Reporter Email',
-  // Prefer writing the concatenated evidence_urls over single evidence_url
+
   evidence_urls: 'Upload Irregularity Photo',
   evidence_url: 'Upload Irregularity Photo',
   evidence_file_ids: 'Evidence File IDs',
   evidence_submission_id: 'Evidence Submission ID',
-  video_urls: 'Upload Irregularity Photo', // Same column for videos
-  video_url: 'Upload Irregularity Photo', // Same column for videos
+  video_urls: 'Upload Irregularity Photo',
+  video_url: 'Upload Irregularity Photo',
   area: 'Area',
   terminal_area_category: 'Terminal Area Category',
   apron_area_category: 'Apron Area Category',
@@ -211,13 +201,11 @@ const WRITE_MAPPING: Record<string, string> = {
   maskapai_lookup: 'MASKAPAI (VLOOKUP)',
   lokal_mpa_lookup: 'Lokal / MPA (VLOOKUP)',
 
-  // Triage Write Mappings
   primary_tag: 'Primary Tag',
   sub_category_note: 'Sub Category Note',
   esklasi_divisi: 'ESKLASI DIVISI',
   target_division: 'ESKLASI DIVISI',
 
-  // System Fields
   user_id: 'User ID',
   created_at: 'Created At',
   updated_at: 'Updated At',
@@ -227,7 +215,7 @@ const WRITE_MAPPING: Record<string, string> = {
 };
 
 const CACHE_KEY_ALL_REPORTS = 'reports:all:v3';
-const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+const CACHE_TTL = 1000 * 60 * 5;
 const VALID_DIVISIONS = ['OP', 'OS', 'HT', 'HC'] as const;
 const GSE_KEYWORDS = [
   'gse',
@@ -280,11 +268,10 @@ const MonthMap: Record<string, number> = {
   desember: 11, des: 11
 };
 
-// Helper to parse dates robustly
 function parseDate(dateStr: string | number | Date): Date | null {
   if (!dateStr) return null;
   if (dateStr instanceof Date) return isNaN(dateStr.getTime()) ? null : dateStr;
-  
+
   if (typeof dateStr === 'number') {
     return new Date(Math.round((dateStr - 25569) * 86400 * 1000));
   }
@@ -292,15 +279,12 @@ function parseDate(dateStr: string | number | Date): Date | null {
   const str = String(dateStr).trim();
   if (!str) return null;
 
-  // 1. ISO Patterns (YYYY-MM-DD, YYYY-MM)
-  // Match common ISO-like strings from spreadsheets
   const isoMatch = str.match(/^(\d{4})[\-\/](\d{1,2})[\-\/](\d{1,2})/);
   if (isoMatch) {
     const d = new Date(parseInt(isoMatch[1]), parseInt(isoMatch[2]) - 1, parseInt(isoMatch[3]));
     if (!isNaN(d.getTime())) return d;
   }
 
-  // 2. DD Mon YYYY or Mon YYYY (Indonesian/English)
   const parts = str.toLowerCase().split(/[\s,/-]+/);
   if (parts.length >= 2) {
     let day = 1;
@@ -328,7 +312,6 @@ function parseDate(dateStr: string | number | Date): Date | null {
     }
   }
 
-  // 3. DD/MM/YYYY
   const ddmmyyyy = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
   if (ddmmyyyy) {
     const day = parseInt(ddmmyyyy[1], 10);
@@ -338,7 +321,6 @@ function parseDate(dateStr: string | number | Date): Date | null {
     if (!isNaN(d.getTime())) return d;
   }
 
-  // Fallback to native Date
   const d = new Date(str);
   return isNaN(d.getTime()) ? null : d;
 }
@@ -443,21 +425,15 @@ function firstMeaningfulSheetValue(...values: unknown[]): string | undefined {
   return undefined;
 }
 
-
 export class ReportsService {
-  
+
   private hubMap: Record<string, string> = {};
   private hubMapTs = 0;
-  
+
   private async getSheets() {
     return await getGoogleSheets();
   }
 
-  /**
-   * Generates a stable UUID from a source string ID (e.g. "NON CARGO!row_2")
-   * This is critical for mapping Google Sheets "IDs" to Supabase UUID fields
-   * so that comments and other relational data remain stable.
-   */
   private getReportUuid(sourceId: string): string {
       return uuidv5(sourceId, IRRS_NAMESPACE_UUID);
   }
@@ -476,13 +452,15 @@ export class ReportsService {
     const rows = res.data.values || [];
     if (!rows.length) return {};
     let dataStart = 1;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let headers = (rows[0] || []).map((h: any) => String(h).trim().toLowerCase());
     let codeIdx = headers.findIndex(h => /kode|code|station|branch/.test(h));
     let hubIdx = headers.findIndex(h => /hub/.test(h));
-    // If first row doesn't contain headers, try to detect header row and column positions
+
     if (codeIdx === -1 && hubIdx === -1) {
-      // Find a row that contains 'hub' or 'branch'
+
       for (let i = 0; i < Math.min(rows.length, 10); i++) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const r = (rows[i] || []).map((h: any) => String(h).trim().toLowerCase());
         const bIdx = r.findIndex(h => /^branch$|^station$|^kode/.test(h));
         const hIdx = r.findIndex(h => /^hub$/.test(h));
@@ -495,7 +473,7 @@ export class ReportsService {
         }
       }
     }
-    // Heuristic fallback: many HUB sheets place data in columns B (code) and C (hub)
+
     if (codeIdx === -1 && hubIdx === -1) {
       codeIdx = 1;
       hubIdx = 2;
@@ -543,51 +521,52 @@ export class ReportsService {
     return columnMapping;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapRowToReport(row: any[], columnMapping: Record<string, number>, sheetName: string, rowIndex: number): Report {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const report: any = {
       _source: 'SHEETS',
       _sheet: sheetName,
       row_number: rowIndex + 2
     };
 
-    // Fast mapping using pre-calculated indices
     Object.entries(columnMapping).forEach(([prop, colIdx]) => {
         if (row[colIdx] !== undefined) {
             let val = row[colIdx];
-            
-            // Clean up text if any
+
             if (typeof val === 'string') {
                 val = val.trim();
-                
-                // Specific validation for area category fields to filter out garbage data
+
                 const areaProps = ['terminal_area_category', 'apron_area_category', 'general_category'];
                 if (areaProps.includes(prop)) {
                     const lowVal = val.toLowerCase();
-                    // Filter out URLs or obviously non-category data
+
                     if (lowVal.startsWith('http') || 
                         lowVal.includes('www.') || 
                         val.length > 100 ||
                         lowVal === 'null' ||
                         lowVal === 'undefined') {
-                        val = ''; // Clear garbage data
+                        val = '';
                     }
                 }
             }
-            
+
             report[prop] = val;
         }
     });
 
-    // Post-parse evidence & video URLs into arrays and primary values for compatibility
     const parseUrlField = (pluralKey: keyof Report, singularKey: keyof Report) => {
       const val = report[pluralKey] || report[singularKey];
       if (val && typeof val === 'string') {
         const parts = val.split(/\s*(?:\||;|\n+)\s*/).map(s => s.trim()).filter(Boolean);
         if (parts.length) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           report[pluralKey] = parts as any;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           report[singularKey] = parts[0] as any;
         }
       } else if (report[singularKey] && typeof report[singularKey] === 'string' && !report[pluralKey]) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         report[pluralKey] = [report[singularKey]] as any;
       }
     };
@@ -595,21 +574,18 @@ export class ReportsService {
     parseUrlField('evidence_urls', 'evidence_url');
     parseUrlField('video_urls', 'video_url');
 
-    // Handle internal IDs
     if (report.row_number) {
         const sourceId = `${sheetName}!row_${report.row_number}`;
         report.original_id = sourceId;
-        report.id = this.getReportUuid(sourceId); // Generate stable UUID for Supabase persistence
+        report.id = this.getReportUuid(sourceId);
     }
     report.source_sheet = sheetName;
 
-    // Ensure title is never undefined or empty
     if (report.report && report.report.trim()) {
         report.title = report.report.trim();
     }
     if (!report.title) report.title = '(Tanpa Judul)';
 
-    // Post-processing & Defaults
     const parsedEventDate = parseDate(report.date_of_event as string);
     if (parsedEventDate) {
       report.date_of_event = parsedEventDate.toISOString();
@@ -632,18 +608,17 @@ export class ReportsService {
       }
     }
 
-    // Status Normalization
     const statusMapping: Record<string, string> = {
       'Closed': 'CLOSED', 'Open': 'OPEN', 'OPEN': 'OPEN',
       'CLOSED': 'CLOSED', 'closed': 'CLOSED', 'open': 'OPEN',
       'Selesai': 'CLOSED', 'selesai': 'CLOSED', 'Menunggu': 'OPEN',
       'menunggu': 'OPEN', 'On Progress': 'ON PROGRESS', 'ON PROGRESS': 'ON PROGRESS'
     };
-    
+
     if (report.status) {
       let normalizedStatus = resolveReportStatus(report);
       normalizedStatus = statusMapping[normalizedStatus] || normalizedStatus;
-      
+
       if (normalizedStatus === 'SELESAI' || normalizedStatus === 'CLOSED') {
           normalizedStatus = 'CLOSED';
       } else if (normalizedStatus === 'OPEN' || normalizedStatus === 'MENUNGGU' || normalizedStatus === 'ACTIVE' || normalizedStatus === 'MENUNGGU_FEEDBACK' || normalizedStatus === 'MENUNGGU FEEDBACK') {
@@ -655,8 +630,7 @@ export class ReportsService {
     } else {
       report.status = 'OPEN';
     }
-    
-    // Severity Normalization
+
     if (!report.severity && report.severity_level) report.severity = report.severity_level;
     if (report.severity || report.severity_level || report.priority) {
       const severityMap: Record<string, string> = {
@@ -673,10 +647,9 @@ export class ReportsService {
     } else {
       report.severity = 'LOW';
     }
-    
+
     if (!report.priority) report.priority = 'low';
-    
-    // Critical aliases and field mapping
+
     if (!report.main_category && report.irregularity_complain_category) report.main_category = report.irregularity_complain_category;
     if (report.main_category && !report.category) report.category = report.main_category;
     if (report.category && !report.main_category) report.main_category = report.category;
@@ -707,7 +680,7 @@ export class ReportsService {
       else if (sheetName === 'CGO' || cgoCategory || report.case_cgo) report.service_business_type = 'Cargo Service';
     }
     if (gseCategory) report.is_gse_related = true;
-    
+
     const normalizedCategory = resolveReportCategory(report);
     if (normalizedCategory) {
       report.main_category = normalizedCategory;
@@ -716,7 +689,7 @@ export class ReportsService {
 
     if (report.airline && !report.airlines) report.airlines = report.airline;
     if (report.airlines && !report.airline) report.airline = report.airlines;
-    
+
     if (!report.branch && report.reporting_branch) report.branch = report.reporting_branch;
     if (!report.branch && report.station_code) report.branch = report.station_code;
     if (!report.station_code && report.branch) report.station_code = report.branch;
@@ -729,12 +702,13 @@ export class ReportsService {
 
     if (!report.sla_deadline && report.created_at) {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         report.sla_deadline = calculateSlaDeadline(report.created_at as string, report.priority as any).toISOString();
       } catch {
         report.sla_deadline = undefined;
       }
     }
-    
+
     if (sheetName === 'CGO' && !report.area) report.area = 'CARGO';
     else if (sheetName === 'NON CARGO' && !report.area) {
          if (report.terminal_area_category) report.area = 'TERMINAL';
@@ -785,16 +759,24 @@ export class ReportsService {
       source_sheet: targetSheet,
     } as Report;
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!(newReport as any).root_caused && (newReport as any).root_cause) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (newReport as any).root_caused = (newReport as any).root_cause;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!(newReport as any).action_taken && (newReport as any).immediate_action) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (newReport as any).action_taken = (newReport as any).immediate_action;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!(newReport as any).airline && (newReport as any).airlines) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (newReport as any).airline = (newReport as any).airlines;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if (!(newReport as any).airlines && (newReport as any).airline) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (newReport as any).airlines = (newReport as any).airline;
     }
 
@@ -813,12 +795,14 @@ export class ReportsService {
     if (rowNumber) {
       const originalId = `${targetSheet}!row_${rowNumber}`;
       report.original_id = originalId;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       report.sheet_id = originalId as any;
       report.id = this.getReportUuid(originalId);
       report.row_number = rowNumber;
     } else {
       const fallbackId = `${targetSheet}!row_pending_${Date.now()}`;
       report.original_id = fallbackId;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       report.sheet_id = fallbackId as any;
       report.id = this.getReportUuid(fallbackId);
       report.row_number = undefined;
@@ -826,14 +810,15 @@ export class ReportsService {
 
     report.source_sheet = targetSheet;
     report.source_fingerprint = buildReportFingerprint(report);
-    
+
     if (report.id && report.original_id) {
         setCache(`uuid_to_original:${report.id}`, report.original_id);
     }
-    
+
     return report;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private buildSheetRow(headers: string[], report: Report): any[] {
     return headers.map((header: string) => {
       const normalizedHeader = header.trim().toLowerCase();
@@ -846,11 +831,16 @@ export class ReportsService {
         const prop = propEntry[0] as keyof Report;
 
         if (prop === 'evidence_url' || prop === 'evidence_urls') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const urls = Array.isArray((report as any).evidence_urls)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ? (report as any).evidence_urls
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             : ((report as any).evidence_url ? [(report as any).evidence_url] : []);
 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const videoUrls = Array.isArray((report as any).video_urls)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ? (report as any).video_urls
             : [];
 
@@ -879,7 +869,9 @@ export class ReportsService {
         return val !== undefined ? val : '';
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if ((report as any)[header]) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const v = (report as any)[header];
         if (Array.isArray(v)) return v.join(' | ');
         if (v && typeof v === 'object') return JSON.stringify(v);
@@ -902,7 +894,7 @@ export class ReportsService {
 
   private async getHeaderRow(sheetName: string): Promise<string[]> {
     const cacheKey = `headers:${sheetName}`;
-    const cached = getCache<string[]>(cacheKey, 1000 * 60 * 60); // 1 hour cache for headers
+    const cached = getCache<string[]>(cacheKey, 1000 * 60 * 60);
     if (cached) return cached;
 
     const sheets = await this.getSheets();
@@ -911,11 +903,13 @@ export class ReportsService {
       spreadsheetId: SPREADSHEET_ID,
       range: `${sheetName}!1:1`,
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const headers = (response.data.values?.[0] || []).map((h: any) => String(h).trim());
     setCache(cacheKey, headers);
     return headers;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private async fetchSheetWithRetry(sheetName: string, retries = 3, delay = 1000): Promise<any[][]> {
       const sheets = await this.getSheets();
       if (!SPREADSHEET_ID) throw new Error('GOOGLE_SHEET_ID is not defined');
@@ -956,9 +950,8 @@ export class ReportsService {
   }): Promise<Report[]> {
     const { refresh, filters, fields, source = 'auto' } = options || {};
 
-    // --- DATA SOURCE SELECTION ---
     let selectedReports: Report[] = [];
-    
+
     if (source === 'sheets') {
       try {
         selectedReports = await this.fetchGoogleSheetsReports();
@@ -972,20 +965,19 @@ export class ReportsService {
       console.log(`[ReportsService] Using ${selectedReports.length} reports from reports_sync (${source})`);
     }
 
-    // --- FILTERING ---
     const filteredReports = selectedReports.filter(report => {
-        // ... (existing filtering logic)
+
         if (filters) {
-          // Date filtering
+
           if (filters.dateFrom || filters.dateTo) {
             const reportDate = parseDate(report.date_of_event || report.created_at);
             if (!reportDate) return false;
-            
+
             if (filters.dateFrom) {
               const fromDate = new Date(filters.dateFrom);
               if (reportDate < fromDate) return false;
             }
-            
+
             if (filters.dateTo) {
               const toDate = new Date(filters.dateTo);
               toDate.setHours(23, 59, 59, 999);
@@ -993,58 +985,50 @@ export class ReportsService {
             }
           }
 
-          // Hub filtering
           if (filters.hub && filters.hub !== 'all' && (report.hub !== filters.hub)) return false;
 
-          // Branch filtering
           if (filters.branch && filters.branch !== 'all') {
             const reportBranch = report.branch || report.reporting_branch || report.station_code;
             if (reportBranch !== filters.branch) return false;
           }
 
-          // Area filtering
           if (filters.area && filters.area !== 'all') {
             const reportArea = report.area || report.terminal_area_category || report.apron_area_category || report.general_category || '';
             if (reportArea !== filters.area) return false;
           }
 
-          // Airlines filtering
           if (filters.airlines && filters.airlines !== 'all' && report.airlines !== filters.airlines) return false;
-          
-          // Source Sheet filtering
+
           if (filters.sourceSheet && report.source_sheet !== filters.sourceSheet) return false;
 
-          // Raw escalation regex filtering on Google Sheets column ESKLASI DIVISI
           if (filters.esklasiRegex && !matchesEsklasiRegex(report, filters.esklasiRegex)) return false;
 
-          // Division filtering
           if (filters.targetDivision) {
             const reportDivision = resolveReportEscalationDivision(report);
             if (reportDivision !== normalizeDivisionCode(filters.targetDivision)) return false;
           }
 
-          // GSE filtering
           if (filters.gseOnly && !isGseRelatedReport(report)) return false;
         }
         return true;
     });
 
-    // --- SORTING ---
     filteredReports.sort((a, b) => {
       const dateA = a.date_of_event ? new Date(a.date_of_event).getTime() : 0;
       const dateB = b.date_of_event ? new Date(b.date_of_event).getTime() : 0;
       return dateB - dateA;
     });
 
-    // --- FIELD PROJECTION ---
     const finalReports = fields && fields.length > 0 
       ? filteredReports.map(r => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const projected: any = {};
           fields.forEach(f => {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             if (r[f] !== undefined) projected[f] = r[f];
           });
-          projected.id = r.id; // Always keep ID
+          projected.id = r.id;
           return projected as Report;
         })
       : filteredReports;
@@ -1055,12 +1039,10 @@ export class ReportsService {
     return this.fetchGoogleSheetsReports();
   }
 
-  // Extracted Google Sheets Fetch Logic
   private async fetchGoogleSheetsReports(): Promise<Report[]> {
     if (!SPREADSHEET_ID) throw new Error('GOOGLE_SHEET_ID is not defined');
     const sheets = await this.getSheets();
-    
-    // Batch fetch for performance consolidation (O(1) HTTP requests)
+
     const ranges = REPORT_SHEETS.map(name => `${name}`);
     const batchRes = await sheets.spreadsheets.values.batchGet({
       spreadsheetId: SPREADSHEET_ID,
@@ -1075,6 +1057,7 @@ export class ReportsService {
       const data = valueRanges[i]?.values || [];
       if (data.length === 0) continue;
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const headers = (data[0] || []).map((h: any) => String(h).trim());
       const rows = data.slice(1);
       const columnMapping = this.buildColumnMapping(headers);
@@ -1088,7 +1071,6 @@ export class ReportsService {
     return allReports;
   }
 
-  // Fetch from reports_sync table (fast path - synced from Google Sheets)
   private async fetchReportsFromSync(filters?: ReportQueryFilters): Promise<Report[]> {
     try {
       const buildQuery = () => {
@@ -1106,6 +1088,7 @@ export class ReportsService {
         return q;
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const allReports: any[] = [];
       const batchSize = 1000;
       let offset = 0;
@@ -1135,6 +1118,7 @@ export class ReportsService {
 
       console.log(`[ReportsService] Fetched ${allReports.length} reports from reports_sync`);
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return allReports.map((row: any) => syncEscalationDivisionAliases({
         ...row,
         id: row.id,
@@ -1154,9 +1138,9 @@ export class ReportsService {
     }
   }
 
-  // Supabase Fetch Logic (legacy reports table)
   private async fetchSupabaseReports(): Promise<Report[]> {
-    // Fetch using pagination to avoid 1000 row limit
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const allReports: any[] = [];
     const batchSize = 1000;
     let offset = 0;
@@ -1185,27 +1169,23 @@ export class ReportsService {
 
     if (allReports.length === 0) return [];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return allReports.map((row: any) => syncEscalationDivisionAliases({
       ...row,
-      // Map DB fields to Report interface if needed
-      // Most fields should match due to direct mapping in POST
-      id: row.id, // UUID
-      sheet_id: row.sheet_id, // Reference to Google Sheet ID
+
+      id: row.id,
+      sheet_id: row.sheet_id,
       source_fingerprint: row.source_fingerprint || buildReportFingerprint(row),
-      
-      // Ensure specific fields are present
+
       evidence_urls: row.evidence_urls || (row.evidence_url ? [row.evidence_url] : []),
-      
-      // Fallbacks
+
       status: row.status || 'OPEN',
       severity: row.severity || 'low',
       priority: row.priority || 'low',
-      
-      // Date Normalization
+
       date_of_event: row.date_of_event || row.event_date || row.created_at,
       created_at: row.created_at || new Date().toISOString(),
 
-      // Re-construct nested objects if needed
       stations: row.station_id ? { code: row.station_id, name: row.station_id } : undefined,
     })) as Report[];
   }
@@ -1218,6 +1198,7 @@ export class ReportsService {
     try {
       const { data, error } = await supabaseAdmin.from('stations').select('id, code, name').order('code');
       if (!error && Array.isArray(data) && data.length > 0) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const stationsDb: Station[] = data.map((row: any) => ({
           id: row.id,
           code: row.code,
@@ -1240,22 +1221,22 @@ export class ReportsService {
 
     if (stations.length === 0) {
       const fallbackCodes = [
-        'GPS', // Head Office
-        // Hub Utama
+        'GPS',
+
         'CGK', 'DPS', 'SUB',
-        // Hub Sekunder
+
         'UPG', 'KNO', 'BPN',
-        // Jawa
+
         'JOG', 'SOC', 'SRG', 'BDO', 'MLG', 'YIA',
-        // Sumatera
+
         'MDC', 'PDG', 'PKU', 'BTH', 'PLM', 'TKG', 'BKS', 'DJB', 'PGK', 'SBG', 'TNJ',
-        // Kalimantan
+
         'PNK', 'BJM', 'TRK', 'AAP',
-        // Sulawesi
+
         'PLW', 'GTO', 'KDI', 'MKS',
-        // Nusa Tenggara
+
         'LOP', 'KOE', 'BMU',
-        // Maluku & Papua
+
         'AMQ', 'TTE', 'SOR', 'TIM', 'DJJ', 'MKQ',
       ];
       stations = fallbackCodes.map(code => ({ id: code, code, name: code }));
@@ -1265,7 +1246,6 @@ export class ReportsService {
     return stations;
   }
 
-  // Helper metadata fetchers to consolidate logic
   async getUnits(): Promise<Unit[]> {
     const { data } = await supabaseAdmin.from('units').select('*').order('name');
     return data || [];
@@ -1281,6 +1261,7 @@ export class ReportsService {
     return data || [];
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getLocations(stationCode?: string): Promise<any[]> {
     let query = supabaseAdmin.from('locations').select('*').order('name');
     if (stationCode) {
@@ -1289,9 +1270,6 @@ export class ReportsService {
     const { data } = await query;
     return data || [];
   }
-
-  // NOTE: Create/Update implementation below assumes headers match WRITE_MAPPING.
-  // We prefer writing to 'NON CARGO' or 'CGO' based on Logic, using preferred headers.
 
   async createReport(reportData: Partial<Report>): Promise<Report> {
     const sheets = await this.getSheets();
@@ -1309,11 +1287,9 @@ export class ReportsService {
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [row] },
     });
-    
-    // Invalidate cache
+
     this.invalidateCache();
-    
-    // Attempt to set ID (with fallback when updatedRange is missing)
+
     let updatedRowNumber: string | null = null;
     const updatedRange = appendRes.data.updates?.updatedRange || null;
     if (updatedRange) {
@@ -1324,8 +1300,7 @@ export class ReportsService {
     }
     if (!updatedRowNumber) {
         try {
-            // Fallback: read first column to infer last non-empty row (includes header)
-            // We use COLUMNS dimension to get just the first column efficiently
+
             const colA = await sheets.spreadsheets.values.get({
                 spreadsheetId: SPREADSHEET_ID,
                 range: `${targetSheet}!A:A`,
@@ -1340,8 +1315,6 @@ export class ReportsService {
         }
     }
 
-    // CRITICAL: If we STILL don't have a row number, we MUST use a random UUID to avoid overwriting 
-    // a previous "rowNumber=null" entry in Supabase (which would happen if we use the same temp_ prefix).
     if (!updatedRowNumber) {
         return this.assignSheetIdentity(newReport, targetSheet, null);
     }
@@ -1352,30 +1325,29 @@ export class ReportsService {
   async getReportById(id: string): Promise<Report | null> {
     const safeId = `"${id.replace(/"/g, '""')}"`;
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    
+
     let query = supabaseAdmin.from('reports_sync').select('*').limit(1);
-    
+
     if (isUuid) {
         query = query.or(`id.eq.${safeId},original_id.eq.${safeId},sheet_id.eq.${safeId}`);
     } else {
         query = query.or(`original_id.eq.${safeId},sheet_id.eq.${safeId}`);
     }
-    
+
     const { data, error } = await query;
     if (error || !data || data.length === 0) return null;
     const dbRow = data[0];
 
-    // Attempt to fetch LIVE data from Google Sheets if we have a valid sheet identity
     const originalId = dbRow.sheet_id || dbRow.original_id;
     if (originalId && originalId.includes('!row_')) {
         try {
             const liveData = await this.fetchLiveFromSheet(originalId);
             if (liveData) {
-                // Merge live data with DB metadata (like comments, user_id, etc)
+
                 return syncEscalationDivisionAliases({
                     ...dbRow,
                     ...liveData,
-                    id: dbRow.id, // Preserve UUID
+                    id: dbRow.id,
                     sheet_id: originalId,
                     source_fingerprint: dbRow.source_fingerprint || buildReportFingerprint(dbRow),
                 } as Report);
@@ -1400,9 +1372,6 @@ export class ReportsService {
     } as Report);
   }
 
-  /**
-   * Fetches a specific row directly from Google Sheets
-   */
   private async fetchLiveFromSheet(originalId: string): Promise<Partial<Report> | null> {
     const info = this.parseId(originalId);
     if (!info) return null;
@@ -1416,7 +1385,6 @@ export class ReportsService {
     const rows = response.data.values;
     if (!rows || rows.length === 0) return null;
 
-    // Fetch headers to map correctly
     const headerResponse = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
         range: `${info.sheetName}!1:1`,
@@ -1426,13 +1394,11 @@ export class ReportsService {
     return this.mapLiveRowToReport(rows[0], headers);
   }
 
-  /**
-   * Maps a Google Sheets row array to a Partial<Report> object based on headers
-   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private mapLiveRowToReport(row: any[], headers: string[]): Partial<Report> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const report: any = {};
-    
-    // Invert the PROP_TO_HEADER map for efficient lookup
+
     const headerToProp: Record<string, keyof Report> = {};
     Object.entries(PROP_TO_HEADER).forEach(([prop, hList]) => {
         hList!.forEach(h => {
@@ -1444,7 +1410,7 @@ export class ReportsService {
         const prop = headerToProp[header.toLowerCase()];
         if (prop) {
             let value = row[index];
-            // Basic normalization for date
+
             if (prop === 'date_of_event' && value) {
                 try {
                     const d = new Date(value);
@@ -1455,10 +1421,9 @@ export class ReportsService {
         }
     });
 
-    // Special handling for legacy fields if needed
     if (report.root_caused && !report.root_cause) report.root_cause = report.root_caused;
     if (report.root_cause && !report.root_caused) report.root_caused = report.root_cause;
-    
+
     return report;
   }
 
@@ -1472,12 +1437,10 @@ export class ReportsService {
 
   private async resolveIdToOriginal(id: string): Promise<string | null> {
     if (id.includes('!row_')) return id;
-    
-    // Fallback 1: Check in-memory cache (useful immediately after report creation)
+
     const cached = getCache<string>(`uuid_to_original:${id}`, 1000 * 60 * 5);
     if (cached) return cached;
-    
-    // Fallback 2: Check database
+
     const report = await this.getReportById(id);
     return report?.original_id || null;
   }
@@ -1488,7 +1451,7 @@ export class ReportsService {
         console.error('Invalid ID format for update:', id);
         return null; 
     }
-    
+
     const parsed = this.parseId(originalId);
     if (!parsed) return null;
 
@@ -1496,10 +1459,10 @@ export class ReportsService {
     if (!SPREADSHEET_ID) throw new Error('GOOGLE_SHEET_ID is not defined');
     const { sheetName, rowIndex } = parsed;
 
-    // Check for Report Transfer Trigger (NON CARGO -> CGO)
     if (updates.primary_tag === 'CGO' && sheetName !== 'CGO') {
         const currentReport = await this.getReportById(id);
         if (currentReport) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const newReportPayload: any = {
                 ...currentReport,
                 ...updates,
@@ -1516,8 +1479,7 @@ export class ReportsService {
     }
 
     const headers = await this.getHeaderRow(sheetName);
-    // Handles columns beyond Z (AA, AB, ..., AZ, BA, ...)
-    // Complexity: Time O(log26(n)) | Space O(log26(n))
+
     const getColLetter = (index: number): string => {
         let col = '';
         let n = index;
@@ -1550,12 +1512,12 @@ export class ReportsService {
                 ...(Array.isArray(effectiveUpdates.video_urls) ? effectiveUpdates.video_urls : []),
                 ...(effectiveUpdates.video_url ? [effectiveUpdates.video_url] : [])
             ];
-            
+
             const hasNewEditedDocx = newUrls.some(u => {
                 const dec = decodeURIComponent(String(u||'')).toUpperCase();
                 return dec.includes('IRREGULARITY_REPORT_EDITED') && dec.includes('.DOCX');
             });
-            
+
             let filteredExisting = existingUrls;
             if (hasNewEditedDocx) {
                  filteredExisting = existingUrls.filter(u => {
@@ -1563,7 +1525,7 @@ export class ReportsService {
                     return !(dec.includes('IRREGULARITY_REPORT_EDITED') && dec.includes('.DOCX'));
                  });
             }
-            
+
             effectiveUpdates.evidence_urls = [...new Set([...filteredExisting, ...newUrls])].filter(Boolean);
         }
     }
@@ -1576,7 +1538,7 @@ export class ReportsService {
 
         let colIndex = -1;
         const propHeaders = PROP_TO_HEADER[key as keyof Report];
-        
+
         if (propHeaders) {
             colIndex = headers.findIndex(h => 
                 propHeaders.some(name => h.trim().toLowerCase() === name.trim().toLowerCase())
@@ -1594,7 +1556,8 @@ export class ReportsService {
 
         const colLetter = getColLetter(colIndex);
         const cellRange = `${sheetName}!${colLetter}${rowIndex}`;
-        
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let stringValue: any = value;
         if (value === null || value === undefined) stringValue = '';
         else if (Array.isArray(value)) stringValue = value.join('\n');
@@ -1620,8 +1583,6 @@ export class ReportsService {
         return syncEscalationDivisionAliases({ ...existing, ...effectiveUpdates });
     }
 
-    // Fallback: If report is not in reports_sync yet but update succeeded, return a synthetic object
-    // This allows the caller (route.ts) to proceed and persist the metadata.
     return {
         id: id,
         original_id: originalId,
@@ -1668,7 +1629,6 @@ export class ReportsService {
     const sheets = await this.getSheets();
     if (!SPREADSHEET_ID) throw new Error('GOOGLE_SHEET_ID is not defined');
 
-    // Group by target sheet to minimize API calls
     const grouped: Record<string, Array<{ index: number; report: Report }>> = {
       'NON CARGO': [],
       'CGO': []
@@ -1719,7 +1679,6 @@ export class ReportsService {
     return createdReports.filter((report): report is Report => Boolean(report));
   }
 
-  // New: severity distribution helper for analytics
   async getSeverityDistribution(filters: {
     hub?: string;
     branch?: string;
@@ -1741,7 +1700,6 @@ export class ReportsService {
       .map((s) => ({ severity: s, count: map.get(s) ?? 0 }))
       .filter((x) => true);
 
-    // Return as array sorted by count desc (non-zero first)
     return result
       .sort((a, b) => b.count - a.count)
       .map(r => ({ severity: r.severity, count: r.count }));

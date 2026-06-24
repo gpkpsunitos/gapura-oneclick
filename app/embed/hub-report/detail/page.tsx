@@ -20,19 +20,18 @@ function EmbedHubReportContent() {
   const searchParams = useSearchParams();
   const sourceSheet = searchParams.get('sourceSheet') === 'CGO' ? 'CGO' : 'NON CARGO';
   const sourcePage = searchParams.get('sourcePage') || 'customer-feedback-main';
-  
+
   const getBackUrl = () => {
-    // If we have a specific source page, try to go back there
+
     const baseUrl = sourcePage && sourcePage !== 'main' 
       ? `/embed/custom/${sourcePage.toLowerCase().replace(/\s+/g, '-')}`
       : '/embed/custom/customer-feedback-main';
-    
-    // Construct the URL with current parameters to preserve state if needed
+
     return `${baseUrl}?${searchParams.toString()}`;
   };
-  
+
   const isStatic = searchParams.get('viewMode') === 'static';
-  
+
   const filters: FilterState = {
     hub: searchParams.get('hub') || 'all',
     branch: searchParams.get('branch') || 'all',

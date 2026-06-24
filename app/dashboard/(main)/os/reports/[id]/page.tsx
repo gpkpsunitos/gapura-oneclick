@@ -36,7 +36,7 @@ export default function OSReportDetailPage() {
         const { signal } = controller;
 
         const fetchInitialData = async () => {
-            // Fetch user and report in parallel
+
             const [userRes, reportRes] = await Promise.allSettled([
                 fetch('/api/auth/me', { signal }),
                 fetch(`/api/reports/${reportId}`, { signal }),

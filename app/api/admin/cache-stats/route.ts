@@ -6,7 +6,7 @@ import { getCacheStats } from '@/lib/services/reports-service';
 export async function GET() {
   const cookieStore = await cookies();
   const session = cookieStore.get('session')?.value;
-  
+
   if (!session) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -17,7 +17,7 @@ export async function GET() {
   }
 
   const stats = getCacheStats();
-  
+
   return NextResponse.json({
     stats,
     timestamp: Date.now()

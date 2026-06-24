@@ -1,11 +1,5 @@
-/**
- * @file
- * 
- * File ini berisi validasi file di sisi server menggunakan magic bytes (file signatures)
- * Digunakan untuk mencegah serangan MIME type spoofing di mana file.type dimanipulasi
- */
 
-// Common image file signatures (magic bytes)
+
 const IMAGE_SIGNATURES: { mime: string; bytes: number[]; offset: number }[] = [
     { mime: 'image/jpeg', bytes: [0xFF, 0xD8, 0xFF], offset: 0 },
     { mime: 'image/png', bytes: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A], offset: 0 },
@@ -16,7 +10,6 @@ const IMAGE_SIGNATURES: { mime: string; bytes: number[]; offset: number }[] = [
     { mime: 'image/tiff', bytes: [0x4D, 0x4D, 0x00, 0x2A], offset: 0 }, // TIFF big-endian
 ];
 
-// Video file signatures
 const VIDEO_SIGNATURES: { mime: string; bytes: number[]; offset: number }[] = [
     { mime: 'video/mp4', bytes: [0x66, 0x74, 0x79, 0x70], offset: 4 }, // ftyp (MP4 container)
     { mime: 'video/webm', bytes: [0x1A, 0x45, 0xDF, 0xA3], offset: 0 }, // EBML (WebM/Matroska)
@@ -26,20 +19,6 @@ const VIDEO_SIGNATURES: { mime: string; bytes: number[]; offset: number }[] = [
 
 const ALL_SIGNATURES = [...IMAGE_SIGNATURES, ...VIDEO_SIGNATURES];
 
-/**
- * Mendeteksi tipe MIME sebenarnya dari file dengan membaca magic bytes-nya
- * Menggunakan teknik file signature detection untuk mengidentifikasi tipe file yang sebenarnya
- * 
- * @param buffer - Buffer binary file yang akan dianalisis
- * @returns String MIME type yang terdeteksi, atau null jika tidak dikenali
- * 
- * @example
- * ```typescript
- * const buffer = fs.readFileSync('image.jpg');
- * const mimeType = detectMimeType(buffer);
- * // 'image/jpeg'
- * ```
- */
 export function detectMimeType(buffer: Buffer): string | null {
     for (const sig of ALL_SIGNATURES) {
         if (buffer.length < sig.offset + sig.bytes.length) continue;
@@ -56,22 +35,6 @@ export function detectMimeType(buffer: Buffer): string | null {
     return null;
 }
 
-/**
- * Memvalidasi bahwa tipe konten file sesuai dengan MIME type yang diklaim
- * Mencegah serangan MIME type spoofing dengan membandingkan magic bytes
- * 
- * @param buffer - Buffer binary file yang akan divalidasi
- * @param claimedType - MIME type yang diklaim (misalnya dari file.type)
- * @returns Object berisi status valid dan MIME type yang terdeteksi
- * 
- * @example
- * ```typescript
- * const result = validateFileMimeType(fileBuffer, 'image/png');
- * if (!result.valid) {
- *   console.error('Tipe file tidak valid!');
- * }
- * ```
- */
 export function validateFileMimeType(buffer: Buffer, claimedType: string): { valid: boolean; detected: string | null } {
     const detected = detectMimeType(buffer);
     
@@ -79,10 +42,10 @@ export function validateFileMimeType(buffer: Buffer, claimedType: string): { val
         return { valid: false, detected: null };
     }
 
-    // For images: check if detected type is an image type when claimed is image/*
+    
     if (claimedType.startsWith('image/')) {
         const isImage = detected.startsWith('image/');
-        // WebP uses RIFF container - accept it if detected RIFF and claimed webp
+        
         if (claimedType === 'image/webp' && detected === 'image/webp') {
             return { valid: true, detected };
         }
@@ -94,31 +57,13 @@ export function validateFileMimeType(buffer: Buffer, claimedType: string): { val
 
     if (claimedType.startsWith('video/')) {
         const isVideo = detected.startsWith('video/');
-        // AVI and WebM also use RIFF/EBML - check specifically
+        
         return { valid: isVideo || detected === 'image/webp' ? false : isVideo, detected };
     }
 
     return { valid: detected === claimedType, detected };
 }
 
-/**
- * Memvalidasi file gambar yang diupload dengan memeriksa magic bytes
- * Memastikan file benar-benar gambar dan bukan file berbahaya dengan ekstensi palsu
- * 
- * @param buffer - Buffer binary file gambar
- * @param claimedType - MIME type yang diklaim
- * @returns Object berisi status valid dan pesan error jika ada
- * 
- * @example
- * ```typescript
- * const result = validateImageFile(fileBuffer, 'image/jpeg');
- * if (result.valid) {
- *   console.log('File gambar valid!');
- * } else {
- *   console.error(result.error);
- * }
- * ```
- */
 export function validateImageFile(buffer: Buffer, claimedType: string): { valid: boolean; error?: string } {
     if (!claimedType.startsWith('image/')) {
         return { valid: false, error: 'Claimed type is not an image' };

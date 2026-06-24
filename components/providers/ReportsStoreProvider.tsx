@@ -18,7 +18,7 @@ import {
   verifyCacheIntegrity,
 } from '@/lib/stores/reports-store';
 
-const REFRESH_INTERVAL_MS = 15 * 60 * 1000; // 15 min background refresh
+const REFRESH_INTERVAL_MS = 15 * 60 * 1000;
 const WARM_ENDPOINT = '/api/reports/warm';
 
 interface WarmResponse {
@@ -40,7 +40,6 @@ interface ReportsStoreContextValue {
 
 const ReportsStoreContext = createContext<ReportsStoreContextValue | null>(null);
 
-// Complexity: Time O(1) | Space O(1)
 export function useReportsStore(): ReportsStoreContextValue {
   const ctx = useContext(ReportsStoreContext);
   if (!ctx) {
@@ -49,8 +48,6 @@ export function useReportsStore(): ReportsStoreContextValue {
   return ctx;
 }
 
-// Optional hook that returns null when provider absent (backward compat)
-// Complexity: Time O(1) | Space O(1)
 export function useReportsStoreOptional(): ReportsStoreContextValue | null {
   return useContext(ReportsStoreContext);
 }
@@ -69,8 +66,6 @@ export function ReportsStoreProvider({ userId, children }: ProviderProps) {
   const fetchInFlight = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Fetch from warm endpoint → store in IndexedDB → update state
-  // Complexity: Time O(N) | Space O(N)
   const fetchAndCache = useCallback(async () => {
     if (fetchInFlight.current) return;
     fetchInFlight.current = true;
@@ -78,7 +73,6 @@ export function ReportsStoreProvider({ userId, children }: ProviderProps) {
     try {
       const res = await fetch(WARM_ENDPOINT, { credentials: 'same-origin' });
       if (!res.ok) {
-        console.warn(`[ReportsStore] Warm fetch failed: ${res.status}`);
         return;
       }
 
@@ -97,13 +91,11 @@ export function ReportsStoreProvider({ userId, children }: ProviderProps) {
         payload.userId
       );
     } catch (err) {
-      console.warn('[ReportsStore] Warm fetch error:', err);
     } finally {
       fetchInFlight.current = false;
     }
   }, []);
 
-  // Hydrate from IndexedDB on mount, then fetch if stale/empty
   useEffect(() => {
     let cancelled = false;
 
@@ -111,7 +103,7 @@ export function ReportsStoreProvider({ userId, children }: ProviderProps) {
       const cached = await getReportsCache(userId);
 
       if (cached && !cancelled) {
-        // Verify integrity before trusting cached data
+
         const valid = await verifyCacheIntegrity(cached.data, cached.integrity);
 
         if (valid && !isCacheStale(cached.timestamp)) {
@@ -124,19 +116,18 @@ export function ReportsStoreProvider({ userId, children }: ProviderProps) {
         }
 
         if (valid) {
-          // Stale but intact — show immediately, refresh in background
+
           setReports(cached.data);
           setCacheVersion(cached.cacheVersion);
           setLastUpdated(cached.timestamp);
           setIsStale(true);
           setIsLoading(false);
         } else {
-          // Corrupted — discard
+
           await clearReportsCache();
         }
       }
 
-      // Cache empty, corrupt, or stale → fetch fresh
       if (!cancelled) {
         await fetchAndCache();
       }
@@ -147,7 +138,6 @@ export function ReportsStoreProvider({ userId, children }: ProviderProps) {
     return () => { cancelled = true; };
   }, [userId, fetchAndCache]);
 
-  // Background refresh interval
   useEffect(() => {
     intervalRef.current = setInterval(() => {
       fetchAndCache();
@@ -158,10 +148,9 @@ export function ReportsStoreProvider({ userId, children }: ProviderProps) {
     };
   }, [fetchAndCache]);
 
-  // Clear cache on unmount (e.g., logout navigation)
   useEffect(() => {
     const handleBeforeUnload = () => {
-      // No-op — Clear-Site-Data header on logout handles this
+
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);

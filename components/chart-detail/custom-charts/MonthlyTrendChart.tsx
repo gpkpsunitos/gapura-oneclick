@@ -38,7 +38,7 @@ export function MonthlyTrendChart({
   title = 'Tren Bulanan',
   explanation 
 }: MonthlyTrendChartProps) {
-  // Handle empty data
+
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-[#e0e0e0] flex flex-col overflow-hidden h-full">
@@ -69,7 +69,6 @@ export function MonthlyTrendChart({
     );
   }
 
-// Sort by year then month robustly
   const sortedData = [...data].sort((a, b) => {
     const ay = Number(a.year ?? 0);
     const by = Number(b.year ?? 0);
@@ -83,8 +82,7 @@ export function MonthlyTrendChart({
   const avg = total / sortedData.length || 0;
   const maxCount = Math.max(...sortedData.map(d => d.count), 1);
   const minCount = Math.min(...sortedData.map(d => d.count));
-  
-  // Calculate overall trend using first vs last data points to avoid division by zero
+
   const firstValue = sortedData.length > 0 ? sortedData[0].count : 0;
   const lastValue = sortedData.length > 0 ? sortedData[sortedData.length - 1].count : 0;
   const overallTrend = lastValue - firstValue;
@@ -101,9 +99,9 @@ export function MonthlyTrendChart({
         </h4>
         <div className="w-1.5 h-1.5 rounded-full bg-[#6b8e3d]" />
       </div>
-      
+
       <div className="p-4 flex flex-col gap-4">
-        {/* Trend Summary */}
+        {}
         <div className="p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -123,9 +121,9 @@ export function MonthlyTrendChart({
           </div>
         </div>
 
-        {/* Line/Bar Chart Area */}
+        {}
         <div className="flex flex-col">
-          {/* Peak indicator */}
+          {}
           <div className="relative flex h-40 md:h-48 items-end gap-1">
         {sortedData.map((item, idx) => {
           const height = (item.count / maxCount) * 100;
@@ -133,10 +131,10 @@ export function MonthlyTrendChart({
           const monthName = MONTH_NAMES[monthKey] ?? monthKey;
           const isPeak = item.count === maxCount;
           const isLow = item.count === minCount;
-              
+
               return (
                 <div key={idx} className="flex-1 flex flex-col items-center h-full">
-                  {/* Change indicator */}
+                  {}
                   {item.change !== undefined && (
                     <div className={`text-[8px] mb-1 ${
                       item.change > 0 ? 'text-red-500' : 
@@ -145,8 +143,8 @@ export function MonthlyTrendChart({
                       {item.change > 0 ? '+' : ''}{item.change}
                     </div>
                   )}
-                  
-                  {/* Bar wrapper to ensure percentage height has a definite parent height */}
+
+                  {}
                   <div className="flex-1 flex items-end w-full">
                     <div 
                       className={`w-full min-h-[6px] rounded-t-md transition-all duration-500 relative group cursor-pointer ${
@@ -159,12 +157,12 @@ export function MonthlyTrendChart({
                       style={{ height: `${Math.max(height, 5)}%` }}
                       aria-label={`${monthName}: ${item.count} kasus`}
                     >
-                      {/* Tooltip on hover */}
+                      {}
                       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-1 opacity-0 group-hover:opacity-100 transition-opacity bg-gray-800 text-white text-[9px] px-2 py-1 rounded whitespace-nowrap z-10">
                         {item.count} kasus
                       </div>
-                      
-                      {/* Value label for significant bars */}
+
+                      {}
                       {height > 40 && (
                         <div className="absolute inset-0 flex items-center justify-center">
                           <span className="text-[9px] font-bold text-white">
@@ -174,8 +172,8 @@ export function MonthlyTrendChart({
                       )}
                     </div>
                   </div>
-                  
-                  {/* Month label */}
+
+                  {}
                   <div className="text-[9px] text-gray-500 mt-1 text-center">
                     {monthName}
                   </div>
@@ -183,8 +181,8 @@ export function MonthlyTrendChart({
               );
             })}
           </div>
-          
-          {/* Peak and Low markers */}
+
+          {}
           <div className="mt-2 flex justify-between text-[9px]">
             <div className="flex items-center gap-1">
               <div className="w-2 h-2 bg-red-500 rounded-full" />
@@ -197,7 +195,7 @@ export function MonthlyTrendChart({
           </div>
         </div>
 
-        {/* Monthly breakdown table */}
+        {}
         <div className="border-t border-gray-100 pt-3">
           <div className="text-[9px] font-bold text-gray-500 uppercase mb-2">3 Bulan Terakhir</div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
@@ -205,7 +203,7 @@ export function MonthlyTrendChart({
               const monthKey = String(item.month ?? '00').padStart(2, '0');
               const monthName = MONTH_NAMES[monthKey] ?? monthKey;
               const changePercent = item.changePercent || 0;
-              
+
               return (
                 <div key={idx} className="min-h-[74px] rounded-lg bg-gray-50 p-2 text-center">
                   <div className="text-[9px] text-gray-500 uppercase">{monthName}</div>
@@ -224,7 +222,7 @@ export function MonthlyTrendChart({
           </div>
         </div>
 
-        {/* Total */}
+        {}
         <div className="flex items-center justify-between">
           <span className="text-[10px] text-gray-500">Total Periode</span>
           <span className="text-sm font-bold text-gray-800">{total.toLocaleString('id-ID')}</span>

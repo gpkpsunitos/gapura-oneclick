@@ -28,7 +28,6 @@ import {
   X,
 } from "lucide-react";
 
-// Cache bust: 2026-03-01T06:58:00
 import {
   STATUS_CONFIG,
   getAllowedTransitions,
@@ -45,10 +44,6 @@ import { EvidenceViewModal } from "@/components/dashboard/EvidenceViewModal";
 import { AIAnalysisSection } from "@/components/dashboard/ai-summary";
 import { AIInsightCard } from "@/components/dashboard/ai-insight";
 import { canExportBranchData, canEditReport } from "@/lib/permissions";
-
-/* ============================================
-   DESIGN TOKENS — PRISM v3 Compliant
-   ============================================ */
 
 const SEVERITY_BADGES: Record<string, { label: string; classes: string }> = {
   'CRITICAL': { label: "CRITICAL", classes: "bg-rose-50 text-rose-600 border border-rose-100" },
@@ -77,9 +72,6 @@ export interface StatusUpdateDetails {
 
 const REMARKS_BY_DIVISIONS = ["OP", "UQ", "OT", "OS", "OCS", "HT", "HC"] as const;
 
-/* ============================================
-   COMPONENT: DataField (Definition List Item)
-   ============================================ */
 function DataField({ 
   label, 
   value, 
@@ -107,9 +99,6 @@ function DataField({
   );
 }
 
-/* ============================================
-   COMPONENT: SectionCard
-   ============================================ */
 function SectionCard({ 
   title, 
   children, 
@@ -141,9 +130,6 @@ function isSafeLocalImage(url: string) {
   return url.startsWith("/") || url.startsWith("data:") || url.startsWith("blob:");
 }
 
-/* ============================================
-   PROPS INTERFACE
-   ============================================ */
 interface ReportDetailViewProps {
   report: Report | null;
   onUpdateStatus?: (reportId: string, status: string, notes?: string, evidenceUrl?: string, details?: StatusUpdateDetails) => Promise<void>;
@@ -156,9 +142,6 @@ interface ReportDetailViewProps {
   currentUserStationId?: string;
 }
 
-/* ============================================
-   MAIN COMPONENT: ReportDetailView
-   ============================================ */
 export function ReportDetailView({
   report,
   onUpdateStatus,
@@ -170,7 +153,7 @@ export function ReportDetailView({
   currentUserStationId,
 }: ReportDetailViewProps) {
   const pathname = usePathname();
-  // State
+  
   const [isDocxModalOpen, setIsDocxModalOpen] = useState(false);
   const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false);
   const [showBriefingEditor, setShowBriefingEditor] = useState(false);
@@ -225,7 +208,7 @@ export function ReportDetailView({
     return () => setMounted(false);
   }, []);
 
-  // Sync edit form with report
+  
   useEffect(() => {
     if (report) {
       setEditForm({
@@ -249,9 +232,7 @@ export function ReportDetailView({
 
   useEffect(() => {}, []);
 
-
-
-  // Handlers
+  
   const handleRefresh = async () => {
     if (!onRefresh || refreshing) return;
     setRefreshing(true);
@@ -358,7 +339,6 @@ export function ReportDetailView({
       alert("Failed to save changes");
     } finally { setActionLoading(false); }
   };
-
 
   // Empty State
   if (!report) {
@@ -546,7 +526,6 @@ export function ReportDetailView({
           </div>
         </div>
 
-
             {/* Row 3: Mobile Status Badges ONLY (No redundant actions) */}
             <div className="flex flex-wrap items-center gap-3 md:hidden border-t border-slate-100 py-6 mt-4 px-8">
               {report.primary_tag && (
@@ -642,7 +621,6 @@ export function ReportDetailView({
                   </div>
                 </div>
               </div>
-
 
               {/* CORE DESCRIPTION */}
               <div className="bg-white p-8 border-l-4 border-indigo-500 shadow-sm">
@@ -1004,8 +982,6 @@ export function ReportDetailView({
           </aside>
         </div>
       </div>
-
-
 
       {/* =============================================
           MODALS

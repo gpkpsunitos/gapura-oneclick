@@ -5,7 +5,9 @@
  * 
  * File ini berisi skrip pengujian konsistensi data untuk memverifikasi pemetaan data
  */
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const fs = require('fs');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const path = require('path');
 
 console.log('🔍 Testing Data Consistency After Fixes\n');

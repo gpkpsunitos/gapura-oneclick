@@ -1,9 +1,4 @@
-/**
- * @file
- *
- * File ini berisi halaman pembuatan laporan baru dengan wizard 5 langkah
- * Mendukung mode offline dengan antrean pelaporan
- */
+
 
 'use client';
 
@@ -32,14 +27,12 @@ import { PRIORITY_CONFIG, type ReportPriority } from '@/lib/constants/report-sta
 import { AIRLINES } from '@/lib/constants/airlines';
 import { AREA_CATEGORIES as AREA_CATEGORIES_SHARED, AREA_LABELS, GSE_TYPES, GSE_EQUIPMENT, type GseType } from '@/lib/constants/incident-areas';
 
-/** Opsi kategori laporan */
 const REPORT_CATEGORIES = [
     { id: 'Irregularity', label: 'Irregularity' },
     { id: 'Complaint', label: 'Complaint' },
     { id: 'Compliment', label: 'Compliment' },
 ];
 
-/** Opsi area operasional */
 const AREA_OPTIONS = [
     { id: 'TERMINAL', label: AREA_LABELS.TERMINAL },
     { id: 'APRON', label: AREA_LABELS.APRON },
@@ -52,25 +45,14 @@ const INTERNAL_SEVERITY_OPTIONS: ReportPriority[] = ['urgent', 'medium', 'low'];
 
 const AREA_CATEGORIES = AREA_CATEGORIES_SHARED as Record<string, string[]>;
 
-// Airlines considered local (Indonesian carriers)
 const LOKAL_AIRLINE_CODES = ['GA', 'QG', 'JT', 'ID', 'IW', 'IU', 'QZ', 'SJ', 'IN', 'IP', '8B', 'SI', 'IL'];
 
-/**
- * Mendapatkan tipe airline (Lokal/MPA)
- * @param airlineName - Nama airline
- * @returns Tipe airline ('Lokal' atau 'MPA')
- */
 function getAirlineType(airlineName: string): 'Lokal' | 'MPA' {
     const airline = AIRLINES.find(a => a.name === airlineName);
     if (!airline) return 'MPA';
     return LOKAL_AIRLINE_CODES.includes(airline.code) ? 'Lokal' : 'MPA';
 }
 
-/**
- * Mendapatkan hub untuk station tertentu
- * @param stationCode - Kode station
- * @returns Kode hub
- */
 function getHubForStation(stationCode: string): string {
     if (['CGK', 'SUB', 'DPS'].includes(stationCode)) return stationCode;
     if (['UPG', 'MDC', 'BPN'].includes(stationCode)) return 'UPG';
@@ -78,19 +60,13 @@ function getHubForStation(stationCode: string): string {
     return 'CGK';
 }
 
-/**
- * Mendapatkan minggu dalam bulan
- * @param date - Tanggal
- * @returns Nomor minggu (1-5)
- */
 function getWeekInMonth(date: Date): number {
     const day = date.getDate();
     return Math.ceil(day / 7);
 }
 
-/** Type untuk data form laporan */
 type FormData = {
-    // Step 1: Detail Report
+    
     incident_date: string;
     airline: string;
     airline_other: string;
@@ -99,33 +75,32 @@ type FormData = {
     route: string;
     main_category: string; // Irregularity/Complaint/Compliment
 
-    // GSE Availability (when area === 'GSE')
+    
     gse_type: GseType | '';
     gse_equipment: string;
 
-    // Delay Info
+    
     delay_code: string;
     delay_duration: string;
 
-    // Step 2: Area
+    
     area: string;
 
-    // Step 3: Area Category
+    
     area_category: string; // Maps to incident_type_id and specific area columns
 
-    // Step 4: Report Details
+    
     description: string; // "Report"
     root_cause: string;
     action_taken: string;
     preventive_action: string;
     severity: ReportPriority; // Replacing SLA
 
-    // Step 5: Evidence
+    
     reporter_name: string;
     evidence_urls: string[];
 };
 
-/** Tipe data untuk pengeditan dokumen */
 type DocEdits = {
   reference_no: string;
   to: string;
@@ -167,12 +142,6 @@ type ReportCreateResponse = {
   error?: string;
 };
 
-/**
- * Komponen wizard pembuatan laporan baru
- * Menggunakan 5 langkah untuk mengumpulkan data laporan
- * Mendukung mode offline dengan antrean pelaporan
- * @returns JSX element wizard pembuatan laporan
- */
 export default function NewReportWizard() {
     const router = useRouter();
     const { user } = useAuth(false);
@@ -194,7 +163,7 @@ export default function NewReportWizard() {
     const reportFinalizedRef = useRef(false);
     const cleanupStartedRef = useRef(false);
 
-    /** State for live document editing at step 6 */
+    
     const [docEdits, setDocEdits] = useState<DocEdits>({
       reference_no: '',
       to: '',
@@ -264,8 +233,7 @@ export default function NewReportWizard() {
                 method: 'DELETE',
                 keepalive: true,
             });
-        } catch (cleanupError) {
-            console.warn('[CREATE_REPORT] Failed to cleanup unfinished report:', cleanupError);
+        } catch {
         }
     }, []);
 
@@ -515,8 +483,7 @@ export default function NewReportWizard() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(syncPayload),
             });
-          } catch (patchErr) {
-            console.warn('[CREATE_REPORT] Non-blocking: failed to sync docEdits to report:', patchErr);
+          } catch {
           }
         }
 
@@ -544,7 +511,6 @@ export default function NewReportWizard() {
         setDocxSaving(false);
       }
     };
-
 
     /** Handle Word Export */
     const handleExportWord = async () => {

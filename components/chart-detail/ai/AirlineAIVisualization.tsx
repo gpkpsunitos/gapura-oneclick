@@ -40,17 +40,18 @@ export function AirlineAIVisualization({ airlineName, filters = [] }: AirlineVis
           throw new Error('Failed to fetch airline risk data');
         }
         const data = await response.json();
-        
+
         let airlines = data.airlines || data;
         if (!Array.isArray(airlines)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           airlines = Object.entries(airlines).map(([name, details]: [string, any]) => ({
             name,
             ...details
           }));
         }
-        
+
         setRiskData(airlines);
-        
+
         if (airlineName && airlines.length > 0) {
           const matched = airlines.find((a: AirlineRiskData) => 
             a.name.toLowerCase() === airlineName.toLowerCase()

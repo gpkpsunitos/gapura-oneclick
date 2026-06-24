@@ -112,7 +112,7 @@ export function CalendarHeader({
 
   return (
     <div className="space-y-4">
-      {/* Row 1: Search + Filter + Add */}
+      {}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex-1 min-w-[220px] max-w-xl relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
@@ -158,9 +158,9 @@ export function CalendarHeader({
         )}
       </div>
 
-      {/* Row 2: View toggle + Navigation */}
+      {}
       <div className="flex items-center justify-between gap-3">
-        {/* View toggle */}
+        {}
         <div className="flex items-center gap-1 bg-[var(--surface-2)] rounded-xl p-1 shadow-[var(--inner-rim)]">
           {viewButtons.map(({ view, label, icon: Icon }) => (
             <button
@@ -186,7 +186,7 @@ export function CalendarHeader({
           ))}
         </div>
 
-        {/* Date navigation */}
+        {}
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={handleToday}

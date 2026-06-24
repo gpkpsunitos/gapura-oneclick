@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen untuk menampilkan detail dan distribusi laporan per airline
- */
 
 'use client';
 
@@ -16,9 +11,6 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 } from 'recharts';
 
-/**
- * Interface untuk data laporan
- */
 interface Report {
   id: string;
   title: string;
@@ -31,9 +23,6 @@ interface Report {
   created_at: string;
 }
 
-/**
- * Interface untuk response API laporan
- */
 interface ReportsResponse {
   range: string;
   summary: {
@@ -44,40 +33,28 @@ interface ReportsResponse {
   reports: Report[];
 }
 
-/** Warna chart untuk berbagai kategori */
 const CHART_COLORS = ['#60a5fa', '#a78bfa', '#34d399', '#fbbf24', '#f87171', '#2dd4bf'];
 
-/** Mapping status dengan label dan class CSS */
 const STATUS_MAP: Record<string, { label: string; class: string }> = {
   'OPEN': { label: 'Open', class: 'pending' },
   'ON PROGRESS': { label: 'Dalam Proses', class: 'verified' },
   'CLOSED': { label: 'Selesai', class: 'completed' }
 };
 
-/** Mapping severity dengan label */
 const SEVERITY_MAP: Record<string, string> = {
   'low': 'low',
   'medium': 'medium', 
   'high': 'high'
 };
 
-/**
- * Komponen untuk menampilkan detail dan distribusi laporan per airline
- * Menampilkan chart distribusi airline, breakdown per kategori, dan daftar laporan
- * @returns JSX element berisi analisis airline
- */
 export function AirlineDetailContent() {
   const searchParams = useSearchParams();
   const range = searchParams.get('range') || '7d';
   const airlineName = searchParams.get('name');
-  
+
   const [data, setData] = useState<ReportsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  /**
-   * Mengambil data laporan dari API
-   * @param signal - AbortSignal untuk membatalkan request
-   */
+
   const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
@@ -93,10 +70,7 @@ export function AirlineDetailContent() {
       setLoading(false);
     }
   }, [range, airlineName]);
-  
-  /**
-   * Setup auto-refresh dan inisialisasi data
-   */
+
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -109,7 +83,7 @@ export function AirlineDetailContent() {
       clearInterval(interval);
     };
   }, [fetchData]);
-  
+
   if (loading && !data) {
     return (
       <div className="embed-loading">
@@ -117,43 +91,42 @@ export function AirlineDetailContent() {
       </div>
     );
   }
-  
-  // Aggregate by airline if no filter
+
   const airlineAggregation = new Map<string, number>();
   const categoryAggregation = new Map<string, number>();
-  
+
   for (const r of data?.reports || []) {
     const airline = r.airline || 'Unknown';
     const category = r.main_category || 'Unknown';
     airlineAggregation.set(airline, (airlineAggregation.get(airline) || 0) + 1);
     categoryAggregation.set(category, (categoryAggregation.get(category) || 0) + 1);
   }
-  
+
   const pieData = Array.from(airlineAggregation.entries())
     .map(([name, value]) => ({ name, value }))
     .sort((a, b) => b.value - a.value)
     .slice(0, 8);
-  
+
   const categoryBarData = Array.from(categoryAggregation.entries())
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count);
-  
+
   const title = airlineName ? `Detail: ${airlineName}` : 'Distribusi per Airline';
-  
+
   return (
     <>
       <Link href={`/embed/overview?range=${range}`} className="back-link">
         ← Kembali ke Overview
       </Link>
-      
+
       <header className="page-header">
         <h1 className="page-title">{title}</h1>
         <p className="page-subtitle">{data?.summary.total || 0} laporan dalam {range === '7d' ? '7 hari' : '30 hari'} terakhir</p>
       </header>
-      
+
       <DateRangeFilter />
-      
-      {/* KPI */}
+
+      {}
       <div className="kpi-grid">
         <div className="kpi-card">
           <div className="kpi-value">{data?.summary.total || 0}</div>
@@ -168,8 +141,8 @@ export function AirlineDetailContent() {
           <div className="kpi-label">High Severity</div>
         </div>
       </div>
-      
-      {/* Charts */}
+
+      {}
       <div className="embed-grid embed-grid-2">
         <EmbedCard title="Distribusi Airline" subtitle="Berdasarkan jumlah laporan">
           <div className="chart-container">
@@ -192,7 +165,7 @@ export function AirlineDetailContent() {
             </ResponsiveContainer>
           </div>
         </EmbedCard>
-        
+
         <EmbedCard title="Per Kategori" subtitle="Breakdown kategori laporan">
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
@@ -207,8 +180,8 @@ export function AirlineDetailContent() {
           </div>
         </EmbedCard>
       </div>
-      
-      {/* Table */}
+
+      {}
       <EmbedCard title="Daftar Laporan" subtitle="Data detail per laporan" className="mt-6">
         <div className="embed-table-container">
           <table className="embed-table">

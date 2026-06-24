@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen modal untuk menyimpan dashboard dengan QR code
- */
 
 'use client';
 
@@ -10,19 +5,6 @@ import { useState, useId } from 'react';
 import { X, Save, Link2, Check, Loader2, LayoutGrid, FileText } from 'lucide-react';
 import { QRCodeWithLogo } from '@/components/ui/QRCodeWithLogo';
 
-/**
- * Props untuk komponen SaveDashboardModal
- * @interface SaveDashboardModalProps
- * @property {boolean} isOpen - Apakah modal terbuka
- * @property {Function} onClose - Fungsi untuk menutup modal
- * @property {string} initialName - Nama awal dashboard
- * @property {string} initialDescription - Deskripsi awal dashboard
- * @property {string} [initialFolder=''] - Folder awal
- * @property {string[]} [existingFolders=[]] - Daftar folder yang sudah ada
- * @property {Function} onSave - Fungsi untuk menyimpan dashboard
- * @property {number} [tileCount=0] - Jumlah tile
- * @property {number} [pageCount=0] - Jumlah halaman
- */
 interface SaveDashboardModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -35,28 +17,6 @@ interface SaveDashboardModalProps {
   pageCount?: number;
 }
 
-/**
- * Komponen modal untuk menyimpan dashboard
- * Menampilkan form untuk memasukkan nama dan deskripsi dashboard
- * Menampilkan QR code dan embed URL setelah berhasil disimpan
- * 
- * @param {SaveDashboardModalProps} props - Props untuk konfigurasi modal
- * @returns {JSX.Element | null} Element React yang berisi modal atau null
- * 
- * @example
- * ```tsx
- * <SaveDashboardModal
- *   isOpen={isModalOpen}
- *   onClose={() => setModalOpen(false)}
- *   initialName="Laporan Bulanan"
- *   initialDescription="Laporan kinerja bulanan"
- *   existingFolders={['Laporan', 'KPI']}
- *   onSave={handleSave}
- *   tileCount={5}
- *   pageCount={2}
- * />
- * ```
- */
 export function SaveDashboardModal({
   isOpen,
   onClose,
@@ -78,11 +38,6 @@ export function SaveDashboardModal({
 
   if (!isOpen) return null;
 
-  /**
-   * Menangani penyimpanan dashboard
-   * @async function handleSave
-   * @returns {Promise<void>}
-   */
   const handleSave = async () => {
     if (!name.trim()) return;
     setSaving(true);
@@ -93,11 +48,6 @@ export function SaveDashboardModal({
     }
   };
 
-  /**
-   * Menangani penyalinan URL embed
-   * @function handleCopy
-   * @returns {void}
-   */
   const handleCopy = () => {
     if (!savedUrl) return;
     const fullUrl = `${window.location.origin}${savedUrl}`;
@@ -112,7 +62,7 @@ export function SaveDashboardModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-[var(--surface-1)] border border-[var(--surface-4)] rounded-2xl shadow-2xl w-full max-w-md mx-4 animate-scale-in">
-        {/* Header */}
+        {}
         <div className="flex items-center justify-between p-4 border-b border-[var(--surface-4)]">
           <h3 className="text-sm font-bold text-[var(--text-primary)]">Simpan Dashboard</h3>
           <button onClick={onClose} className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
@@ -167,7 +117,7 @@ export function SaveDashboardModal({
                 </datalist>
               </div>
 
-              {/* Tile count summary */}
+              {}
               {(tileCount > 0 || pageCount > 0) && (
                 <div className="flex items-center gap-3 px-3 py-2 bg-[var(--surface-2)] rounded-lg text-xs text-[var(--text-secondary)]">
                   <span className="flex items-center gap-1.5">
@@ -198,12 +148,12 @@ export function SaveDashboardModal({
             </>
           ) : (
             <div className="text-center py-4">
-              {/* Success checkmark with celebration dots */}
+              {}
               <div className="relative inline-block mb-3">
                 <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto animate-scale-in">
                   <Check size={28} className="text-emerald-600" />
                 </div>
-                {/* Celebration dots */}
+                {}
                 <div className="absolute top-0 left-1/2 w-2 h-2 rounded-full bg-emerald-400 animate-celebrate-dot" style={{ '--dot-x': '-12px', '--dot-y': '-16px' } as React.CSSProperties} />
                 <div className="absolute top-0 left-1/2 w-2 h-2 rounded-full bg-purple-400 animate-celebrate-dot" style={{ '--dot-x': '14px', '--dot-y': '-12px', animationDelay: '0.1s' } as React.CSSProperties} />
                 <div className="absolute top-0 left-1/2 w-1.5 h-1.5 rounded-full bg-blue-400 animate-celebrate-dot" style={{ '--dot-x': '-16px', '--dot-y': '8px', animationDelay: '0.15s' } as React.CSSProperties} />
@@ -224,7 +174,7 @@ export function SaveDashboardModal({
                 </button>
               </div>
 
-              {/* QR Code */}
+              {}
               {fullUrl && (
                 <div className="flex flex-col items-center gap-2 mb-4">
                   <div className="p-3 bg-white rounded-xl border border-[var(--surface-4)]">

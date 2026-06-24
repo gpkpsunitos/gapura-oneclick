@@ -38,6 +38,12 @@ interface DivisionDocumentRow {
     meeting_date?: string | null;
     activity_pic?: string | null;
     activity_location?: string | null;
+    station_id?: string | null;
+    airline?: string | null;
+    participants?: string | null;
+    materi_url?: string | null;
+    attendance_url?: string | null;
+    recording_url?: string | null;
     audience_label?: string | null;
     meeting_event_id?: string | null;
     source_type: 'upload' | 'link';
@@ -65,10 +71,28 @@ function isValidDivision(value: string): value is DivisionDocumentDivision {
     return VALID_DIVISIONS.some((item) => item === value);
 }
 
+async function fetchStationMap(stationIds: string[]) {
+    const map = new Map<string, { code: string; name: string }>();
+    const ids = Array.from(new Set(stationIds.filter(Boolean)));
+    if (ids.length === 0) return map;
+
+    const { data } = await supabaseAdmin.from('stations').select('id, code, name').in('id', ids);
+    for (const station of data || []) {
+        map.set(station.id, { code: station.code, name: station.name });
+    }
+    return map;
+}
+
 function canViewDocument(user: NonNullable<Awaited<ReturnType<typeof getWorkspaceUser>>>, document: DivisionDocument) {
     if (canManageDivisionDocuments(user.role, document.division)) return true;
     if (normalizeRole(user.role) === 'DIVISI_ESKALASI') return true;
     if (!isBranchRole(user.role)) return false;
+
+    const docStation = document.station_code || document.station_id;
+    if (docStation) {
+        const userStation = user.station_code || user.station_id;
+        if (!userStation || userStation !== docStation) return false;
+    }
     return canViewAudienceScopedItem(
         user,
         document.visibility_scope,
@@ -77,8 +101,9 @@ function canViewDocument(user: NonNullable<Awaited<ReturnType<typeof getWorkspac
     );
 }
 
-function mapDocument(row: DivisionDocumentRow): DivisionDocument {
+function mapDocument(row: DivisionDocumentRow, stationMap: Map<string, { code: string; name: string }>): DivisionDocument {
     const creator = Array.isArray(row.created_by_user) ? row.created_by_user[0] : row.created_by_user;
+    const station = row.station_id ? stationMap.get(row.station_id) : null;
     return {
         id: row.id,
         division: row.division,
@@ -89,6 +114,14 @@ function mapDocument(row: DivisionDocumentRow): DivisionDocument {
         meeting_date: row.meeting_date,
         activity_pic: row.activity_pic,
         activity_location: row.activity_location,
+        station_id: row.station_id,
+        station_code: station?.code || row.station_id || null,
+        station_name: station?.name || null,
+        airline: row.airline,
+        participants: row.participants,
+        materi_url: row.materi_url,
+        attendance_url: row.attendance_url,
+        recording_url: row.recording_url,
         audience_label: row.audience_label,
         source_type: row.source_type,
         file_url: row.file_url,
@@ -146,7 +179,10 @@ export async function GET(request: Request) {
         const { data, error } = await query;
         if (error) throw error;
 
-        const documents = (data || []).map(mapDocument).filter((document) => canViewDocument(user, document));
+        const stationMap = await fetchStationMap((data || []).map((row) => row.station_id));
+        const documents = (data || [])
+            .map((row) => mapDocument(row, stationMap))
+            .filter((document) => canViewDocument(user, document));
         return NextResponse.json(documents);
     } catch (error) {
         console.error('[Division Documents API] Failed to fetch documents:', error);
@@ -220,6 +256,12 @@ export async function POST(request: Request) {
             meeting_date: body.meeting_date ? String(body.meeting_date).trim() : null,
             activity_pic: body.activity_pic ? String(body.activity_pic).trim() : null,
             activity_location: body.activity_location ? String(body.activity_location).trim() : null,
+            station_id: body.station_id ? String(body.station_id) : null,
+            airline: body.airline ? String(body.airline).trim() : null,
+            participants: body.participants ? String(body.participants).trim() : null,
+            materi_url: body.materi_url ? String(body.materi_url).trim() : null,
+            attendance_url: body.attendance_url ? String(body.attendance_url).trim() : null,
+            recording_url: body.recording_url ? String(body.recording_url).trim() : null,
             audience_label: body.audience_label ? String(body.audience_label).trim() : null,
             source_type: sourceType,
             file_url: body.file_url || null,
@@ -252,7 +294,8 @@ export async function POST(request: Request) {
 
         if (error) throw error;
 
-        return NextResponse.json(mapDocument(data), { status: 201 });
+        const stationMap = await fetchStationMap([data.station_id]);
+        return NextResponse.json(mapDocument(data, stationMap), { status: 201 });
     } catch (error) {
         if (uploadedDriveFileId) {
             await deleteDriveFile(uploadedDriveFileId).catch((cleanupError) => {

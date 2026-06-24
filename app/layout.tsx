@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi layout utama aplikasi dengan konfigurasi metadata dan PWA
- */
 
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
@@ -36,9 +31,6 @@ const metadataBaseUrl =
             ? `https://${process.env.VERCEL_URL}`
             : 'http://localhost:3000');
 
-/**
- * Konfigurasi viewport untuk responsivitas
- */
 export const viewport: Viewport = {
     width: 'device-width',
     initialScale: 1,
@@ -46,9 +38,6 @@ export const viewport: Viewport = {
     themeColor: '#0f766e',
 };
 
-/**
- * Metadata aplikasi untuk SEO dan PWA
- */
 export const metadata: Metadata = {
     metadataBase: new URL(metadataBaseUrl),
     title: 'Gapura OneClick',
@@ -99,18 +88,9 @@ export const metadata: Metadata = {
         index: true,
         follow: true,
     },
-    // TODO: Tambahkan google verification code setelah daftar Google Search Console
-    // verification: {
-    //     google: 'ACTUAL_VERIFICATION_CODE',
-    // },
+
 };
 
-/**
- * Komponen layout utama aplikasi
- * Membungkus konten aplikasi dengan PWAProvider untuk PWA support
- * @param children - Child components yang akan dirender
- * @returns JSX element dengan children dibungkus PWAProvider
- */
 export default function RootLayout({
     children,
 }: {

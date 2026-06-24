@@ -44,10 +44,10 @@ export default function NotificationSettings() {
             const url = selectedEntity 
                 ? `/api/admin/notifications/recipients?entity=${encodeURIComponent(selectedEntity)}`
                 : '/api/admin/notifications/recipients';
-            
+
             const res = await fetch(url);
             const data = await res.json();
-            
+
             if (!res.ok || !Array.isArray(data)) {
                 if (data.error === 'Unauthorized') {
                     showMsg('error', 'Silakan login untuk mengelola notifikasi');
@@ -94,6 +94,7 @@ export default function NotificationSettings() {
             setNewEmail('');
             showMsg('success', 'Penerima berhasil ditambahkan');
             fetchRecipients();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             showMsg('error', err.message);
         } finally {
@@ -110,7 +111,7 @@ export default function NotificationSettings() {
             });
 
             if (!res.ok) throw new Error('Gagal update status');
-            
+
             setRecipients(recipients.map(r => 
                 r.id === id ? { ...r, enabled: !currentStatus } : r
             ));
@@ -128,7 +129,7 @@ export default function NotificationSettings() {
             });
 
             if (!res.ok) throw new Error('Gagal menghapus');
-            
+
             showMsg('success', 'Penerima berhasil dihapus');
             setRecipients(recipients.filter(r => r.id !== id));
         } catch (err) {
@@ -155,6 +156,7 @@ export default function NotificationSettings() {
 
             showMsg('success', `Email test berhasil dikirim ke ${testEmail}`);
             setTestEmail('');
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
             showMsg('error', err.message);
         } finally {
@@ -168,7 +170,7 @@ export default function NotificationSettings() {
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            {/* Header Section */}
+            {}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
@@ -177,7 +179,7 @@ export default function NotificationSettings() {
                     </div>
                     <p className="text-slate-500 text-sm">Kelola daftar email yang menerima pemberitahuan setiap ada record baru.</p>
                 </div>
-                
+
                 <button 
                     onClick={fetchRecipients}
                     className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all text-sm font-medium self-start md:self-end"
@@ -187,7 +189,7 @@ export default function NotificationSettings() {
                 </button>
             </div>
 
-            {/* Alert Message */}
+            {}
             {message && (
                 <div className={cn(
                     "flex items-center gap-3 p-4 rounded-xl border animate-in zoom-in-95 duration-300",
@@ -199,9 +201,9 @@ export default function NotificationSettings() {
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Main Recipient List */}
+                {}
                 <div className="lg:col-span-2 space-y-6">
-                    {/* Entity Filter */}
+                    {}
                     <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
                         <div className="flex items-center gap-3">
                             <Filter className="w-4 h-4 text-slate-400" />
@@ -307,15 +309,15 @@ export default function NotificationSettings() {
 
                 </div>
 
-                {/* Sidebar Configuration */}
+                {}
                 <div className="space-y-6">
-                    {/* Add New Section */}
+                    {}
                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xl space-y-4">
                         <div className="flex items-center gap-2 mb-2">
                             <Plus className="w-4 h-4 text-emerald-600" />
                             <h2 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Tambah Baru</h2>
                         </div>
-                        
+
                         <form onSubmit={handleAddRecipient} className="space-y-3">
                             <div className="space-y-1.5">
                                 <label className="text-[10px] uppercase font-bold text-slate-500 ml-1">Entity</label>
@@ -346,7 +348,7 @@ export default function NotificationSettings() {
                                     />
                                 </div>
                             </div>
-                            
+
                             <button 
                                 type="submit"
                                 disabled={submitting}
@@ -363,13 +365,13 @@ export default function NotificationSettings() {
                         </form>
                     </div>
 
-                    {/* SMTP Test Section */}
+                    {}
                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xl space-y-4">
                         <div className="flex items-center gap-2 mb-2">
                             <Shield className="w-4 h-4 text-blue-600" />
                             <h2 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Cek Koneksi SMTP</h2>
                         </div>
-                        
+
                         <p className="text-[11px] text-slate-500 leading-relaxed italic">
                             Pastikan pengaturan SMTP Gmail sudah benar dan dapat mengirim email dari sistem OneClick.
                         </p>
@@ -382,7 +384,7 @@ export default function NotificationSettings() {
                                 onChange={(e) => setTestEmail(e.target.value)}
                                 className="w-full px-4 py-2.5 rounded-lg border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-500 outline-none transition-all text-sm font-medium"
                             />
-                            
+
                             <button 
                                 onClick={handleSendTest}
                                 disabled={testLoading}

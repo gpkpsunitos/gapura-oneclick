@@ -1,59 +1,39 @@
-/**
- * @file
- * 
- * File ini berisi engine pemrosesan query yang berjalan di-memory
- * untuk eksekusi query filter, aggregasi, grouping, sorting, dan limit
- */
 
 import type { QueryDefinition } from '@/types/builder';
 import type { Report } from '@/types';
 
-/**
- * Interface hasil query
- */
 interface QueryResult {
-  /** Daftar nama kolom */
+
   columns: string[];
-  /** Daftar baris data */
+
   rows: Record<string, unknown>[];
-  /** Jumlah baris */
+
   rowCount: number;
-  /** Waktu eksekusi dalam milidetik */
+
   executionTimeMs: number;
-  /** Pesan error jika ada */
+
   error?: string;
 }
 
-// Helper to safely get values
-/**
- * Helper untuk mendapatkan nilai dari row dengan handling alias
- * 
- * @param row - Object row data
- * @param field - Field yang ingin diambil
- * @returns Nilai field atau undefined
- */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getVal = (row: any, field: string) => {
-  // Handle known category aliases
+
   if (field === 'category' || field === 'main_category') {
     return row.category || row.main_category || row[field];
   }
 
-  // Handle airline aliases
   if (field === 'airline' || field === 'airlines') {
     return row.airline || row.airlines || row[field];
   }
 
-  // Handle branch aliases
   if (field === 'branch' || field === 'station_code' || field === 'station') {
     return row.branch || row.station_code || row.reporting_branch || row[field];
   }
 
-  // Handle maskapai aliases
   if (field === 'maskapai' || field === 'jenis_maskapai') {
     return row.maskapai || row.jenis_maskapai || row[field];
   }
-  
-  // Handle virtual date fields
+
   if (['year', 'month', 'day', 'quarter'].includes(field)) {
     const dateVal = row.date_of_event || row.event_date || row.created_at;
     if (dateVal) {
@@ -67,24 +47,15 @@ const getVal = (row: any, field: string) => {
     }
   }
 
-  // Handle nested properties or exact matches
   return row[field];
 };
 
-// Helper for date granularity
-/**
- * Helper untuk mendapatkan kunci tanggal berdasarkan granularitas
- * 
- * @param dateStr - String tanggal
- * @param granularity - Granularitas waktu ('month', 'year', 'day', 'quarter')
- * @returns Kunci tanggal yang diformat
- */
 const getDateKey = (dateStr: string, granularity?: string) => {
   if (!dateStr) return 'Unknown';
   try {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
-    
+
     if (granularity === 'month') {
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       return `${d.getFullYear()} ${months[d.getMonth()]}`;
@@ -101,19 +72,12 @@ const getDateKey = (dateStr: string, granularity?: string) => {
   }
 };
 
-/**
- * Executes a query against an in-memory array of data.
- * This function is pure and can run on both client and server.
- * 
- * @param query - Definisi query yang akan dieksekusi
- * @param data - Array data yang akan diproses
- * @returns Hasil query berisi columns, rows, rowCount, dan executionTimeMs
- */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
   const startTime = Date.now();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let resultRows: any[] = [];
 
-  // 1. Filter
   let filtered = data;
   if (query.filters && query.filters.length > 0) {
     filtered = data.filter(row => {
@@ -121,11 +85,10 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
         const val = getVal(row, f.field);
         const compareVal = f.value;
         const op = f.operator as string;
-        
+
         if (op === 'is_null') return val === null || val === undefined || val === '';
         if (op === 'is_not_null') return val !== null && val !== undefined && val !== '';
-        
-        // Basic operators
+
         if (op === 'eq') return String(val) == String(compareVal);
         if (op === 'neq') return String(val) != String(compareVal);
         if (op === 'contains') return String(val).toLowerCase().includes(String(compareVal ?? '').toLowerCase());
@@ -139,19 +102,18 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
         if (op === 'lte' && compareVal != null) return val <= compareVal;
         if (op === 'in') return Array.isArray(compareVal) && compareVal.map(String).includes(String(val));
         if (op === 'not_in') return Array.isArray(compareVal) && !compareVal.map(String).includes(String(val));
-        
+
         return true;
       });
     });
   }
-  
-  // 2. Aggregate / Group By
-  // CASE A: Dimensions + Measures (Aggregation)
+
   if (query.dimensions && query.dimensions.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const groups: Record<string, any> = {};
-    
+
     filtered.forEach(row => {
-      // Create composite key
+
       const dimValues = query.dimensions!.map(d => {
         const rawVal = getVal(row, d.field);
         if (d.dateGranularity) {
@@ -160,10 +122,10 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
         return rawVal;
       });
       const key = dimValues.join('::');
-      
+
       if (!groups[key]) {
         groups[key] = { _count: 0 };
-        // Set dimension values
+
         query.dimensions!.forEach((d, idx) => {
           const alias = d.alias || d.field;
           groups[key][alias] = dimValues[idx];
@@ -171,22 +133,21 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
             groups[key][`_raw_${alias}`] = getVal(row, d.field);
           }
         });
-        
-        // Initialize measures
+
         query.measures?.forEach(m => {
           const alias = m.alias || m.field || 'count';
           if (['COUNT', 'count', 'SUM', 'sum'].includes(m.function)) groups[key][alias] = 0;
           if (m.function === 'COUNT_DISTINCT') groups[key][`_set_${alias}`] = new Set();
         });
       }
-      
-      // Update measures
+
       groups[key]._count++;
-      
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateMetric = (m: any) => {
           const alias = m.alias || m.field || 'count';
           const val = getVal(row, m.field);
-          
+
           if (m.function === 'COUNT') {
               groups[key][alias]++;
           }
@@ -206,8 +167,7 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
 
       query.measures?.forEach(updateMetric);
     });
-    
-    // Post-process sets
+
     resultRows = Object.values(groups).map(g => {
       const newG = { ...g };
       Object.keys(newG).forEach(k => {
@@ -219,20 +179,20 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
       });
       return newG;
     });
-    
+
   } 
-  // CASE B: Measures only (Single Row Aggregation)
+
   else if (query.measures && query.measures.length > 0) {
+     // eslint-disable-next-line @typescript-eslint/no-explicit-any
      const result: any = { _count: 0 };
      const measures = query.measures;
 
-     // Init
      measures.forEach(m => {
        const alias = m.alias || m.field || 'count';
        if (['COUNT', 'count', 'SUM', 'sum'].includes(m.function)) result[alias] = 0;
        if (m.function === 'COUNT_DISTINCT') result[`_set_${alias}`] = new Set();
      });
-     
+
      filtered.forEach(row => {
        measures.forEach(m => {
          const alias = m.alias || m.field || 'count';
@@ -253,8 +213,7 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
          }
        });
      });
-     
-     // Post process
+
      Object.keys(result).forEach(k => {
          if (k.startsWith('_set_')) {
              const alias = k.replace('_set_', '');
@@ -262,46 +221,42 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
              delete result[k];
         }
     });
-     
+
      resultRows = [result];
   } 
-  // CASE C: Raw Data (Detail Table)
+
   else {
       resultRows = filtered;
   }
-  
-  // 3. Sort
+
   if (query.sorts && query.sorts.length > 0) {
     resultRows.sort((a, b) => {
       for (const s of query.sorts!) {
-        // Try field name first, then alias
+
         const field = s.alias || s.field;
-        // Try raw sort key first if it's a date dimension
+
         let valA = a[`_raw_${field}`] ?? a[field];
         let valB = b[`_raw_${field}`] ?? b[field];
 
-        // If not found by alias, try to find by raw field name if it exists in row
         if (valA === undefined) valA = a[s.field] || 0;
         if (valB === undefined) valB = b[s.field] || 0;
-        
-        // Handle date strings in raw values for better comparison
+
         if (typeof valA === 'string' && !isNaN(Date.parse(valA))) valA = new Date(valA).getTime();
         if (typeof valB === 'string' && !isNaN(Date.parse(valB))) valB = new Date(valB).getTime();
-        
+
         if (valA < valB) return s.direction === 'asc' ? -1 : 1;
         if (valA > valB) return s.direction === 'asc' ? 1 : -1;
       }
       return 0;
     });
   }
-  
-  // 4. Limit
+
   if (query.limit && query.limit > 0) {
     resultRows = resultRows.slice(0, query.limit);
   }
-  
+
   const columns = resultRows.length > 0 ? Object.keys(resultRows[0]) : [];
-  
+
   return {
     columns,
     rows: resultRows,

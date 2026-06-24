@@ -15,17 +15,10 @@ interface ResponsiveTableProps<T> {
   tableClassName?: string;
   cardClassName?: string;
   emptyMessage?: string;
-  /**
-   * Minimum width for table before switching to card view
-   * @default 640 (sm breakpoint)
-   */
+
   cardBreakpoint?: number;
 }
 
-/**
- * Responsive Table Component
- * Automatically switches between CardView (mobile) and DataTable (desktop)
- */
 export function ResponsiveTable<T>({
   data,
   columns,
@@ -55,7 +48,6 @@ export function ResponsiveTable<T>({
     );
   }
 
-  // Desktop: Traditional table
   return (
     <DataTable
       data={data}
@@ -69,9 +61,6 @@ export function ResponsiveTable<T>({
   );
 }
 
-/**
- * Traditional Data Table for desktop
- */
 interface DataTableProps<T> {
   data: T[];
   columns: TableColumn<T>[];
@@ -167,6 +156,5 @@ function DataTable<T>({
   );
 }
 
-// Re-export utilities
 export { formatMobileDate, truncateMobile };
 export type { TableColumn, TableAction };

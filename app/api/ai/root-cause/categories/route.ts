@@ -5,12 +5,8 @@ import { getHfClient } from '@/lib/hf-client';
 import { resolveCachedAI } from '@/lib/ai-route-cache';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes
+export const maxDuration = 300;
 
-/**
- * Proxy for AI Root Cause Categories Metadata
- * GET /api/ai/root-cause/categories
- */
 export async function GET(req: NextRequest) {
   try {
     const cookieStore = await cookies();

@@ -5,16 +5,11 @@ import { getHfClient } from '@/lib/hf-client';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * GET /api/ai/health
- * 
- * Get health status of the AI service
- */
 export async function GET(request: Request) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
-    
+
     if (!token) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -49,7 +44,7 @@ export async function GET(request: Request) {
       return NextResponse.json(data);
     } catch (error) {
       console.error('[AI Health] AI service unavailable:', error);
-      
+
       return NextResponse.json(
         { 
           error: 'AI service tidak tersedia',

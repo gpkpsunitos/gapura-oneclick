@@ -6,12 +6,8 @@ import { resolveCachedAI } from '@/lib/ai-route-cache';
 import { enforceBotProtection } from '@/lib/security/botid';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes
+export const maxDuration = 300;
 
-/**
- * API endpoint untuk analisis AI
- * Mengirim data ke Python AI service dan mengembalikan hasil analisis
- */
 export async function POST(req: NextRequest) {
   try {
     const botProtectionResponse = await enforceBotProtection();
@@ -40,6 +36,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const convertedData = data.map((report: any) => ({
       Date_of_Event: report.Date_of_Event || report.date_of_event || report.created_at,
       Airlines: report.Airlines || report.airlines || report.airline || 'Unknown',
@@ -69,7 +66,7 @@ export async function POST(req: NextRequest) {
       data: convertedData.slice(0, 2),
       options: analysisOptions,
     }, null, 2));
-    
+
     const { searchParams } = new URL(req.url);
     const esklasiRegex = searchParams.get('esklasi_regex') || '';
 
@@ -113,7 +110,7 @@ export async function POST(req: NextRequest) {
       });
     } catch (aiError) {
       console.error('AI Service Error:', aiError);
-      
+
       return NextResponse.json(
         { 
           error: 'AI service tidak tersedia',
@@ -131,9 +128,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/**
- * Translate AI response metrics to Bahasa Indonesia
- */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function translateToIndonesian(result: any) {
   return {
     ...result,

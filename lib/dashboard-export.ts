@@ -1,8 +1,4 @@
-/**
- * @file
- * 
- * File ini berisi utilitas untuk mengekspor dashboard ke format Excel dan PowerPoint
- */
+
 
 'use client';
 
@@ -21,101 +17,69 @@ const SLIDE = {
     FOOTER_Y: 7.0 
 };
 
-/**
- * Data halaman dashboard
- * @interface PageData
- */
 interface PageData {
-  /** Nama halaman */
+  
   name: string;
-  /** Daftar tile di halaman */
+  
   tiles: TileData[];
 }
 
-/**
- * Data tile dashboard
- * @interface TileData
- */
 interface TileData {
-  /** ID tile */
+  
   id: string;
-  /** Judul tile */
+  
   title: string;
-  /** Tipe chart */
+  
   chartType: string;
-  /** Sumbu Y untuk data numerik (opsional) */
+  
   yAxis?: string[];
 }
 
-
-/**
- * Payload untuk ekspor dashboard
- * @interface ExportPayload
- */
 interface ExportPayload {
-  /** Nama dashboard */
+  
   dashboardName: string;
-  /** Subtitle (opsional) */
+  
   subtitle?: string;
-  /** ID dashboard (opsional) */
+  
   dashboardId?: string;
-  /** Base URL untuk link detail (opsional) */
+  
   baseUrl?: string;
-  /** Tanggal mulai (opsional) */
+  
   dateFrom?: string;
-  /** Tanggal akhir (opsional) */
+  
   dateTo?: string;
-  /** Halaman sumber (opsional) */
+  
   sourcePage?: string;
-  /** Daftar halaman dashboard */
+  
   pages: PageData[];
-  /** Data chart untuk setiap tile */
+  
   chartsData: Map<string, { queryResult?: QueryResult; stats?: { distribution: { name: string; count: number; percentage: number }[]; totalCount: number } }>;
 }
 
-/**
- * Insight untuk tile tertentu
- * @interface TileInsight
- */
 interface TileInsight {
-  /** ID tile */
+  
   tileId: string;
-  /** Temuan kunci */
+  
   keyFindings: string[];
-  /** Narasi insight (opsional) */
+  
   narrative?: string;
 }
 
-/**
- * Insight lengkap dashboard
- * @interface DashboardInsights
- */
 interface DashboardInsights {
-  /** Ringkasan eksekutif */
+  
   executiveSummary: string[];
-  /** Rekomendasi */
+  
   recommendations: string[];
-  /** Pernyataan penutup (opsional) */
+  
   closingStatement?: string;
-  /** Insight per tile */
+  
   tileInsights: TileInsight[];
 }
 
-// ─── column label formatter ────────────────────────────────────────────────
-/**
- * Memformat nama kolom menjadi format yang lebih mudah dibaca
- * @param col - Nama kolom
- * @returns String kolom yang sudah diformat
- */
 function formatCol(col: string): string {
   return col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
-/**
- * Mendapatkan slug chart berdasarkan judul
- * @param chartTitle - Judul chart
- * @returns String slug untuk URL
- */
 function getChartSlug(chartTitle: string): string {
   const title = chartTitle.toLowerCase();
   if (title.includes('report by case category')) return 'report-by-case-category';
@@ -133,12 +97,6 @@ function getChartSlug(chartTitle: string): string {
   return 'pivot-report';
 }
 
-/**
- * Membangun URL detail untuk tile
- * @param payload - Payload ekspor dashboard
- * @param tile - Data tile
- * @returns String URL lengkap untuk halaman detail
- */
 function buildDetailUrl(payload: ExportPayload, tile: TileData): string {
   if (!payload.baseUrl) return '';
   const slug = getChartSlug(tile.title);
@@ -151,25 +109,11 @@ function buildDetailUrl(payload: ExportPayload, tile: TileData): string {
   return `${payload.baseUrl}/embed/${slug}/detail${queryString ? `?${queryString}` : ''}`;
 }
 
-// ─── XLSX EXPORT ───────────────────────────────────────────────────────────
-/**
- * Mengekspor dashboard ke file Excel
- * @param payload - Payload ekspor dashboard
- * @returns Promise yang resolve setelah file Excel didownload
- * @example
- * ```ts
- * await exportToXlsx({
- *   dashboardName: 'IRRS Dashboard',
- *   pages: dashboardPages,
- *   chartsData: resultsMap
- * });
- * ```
- */
-// Complexity: Time O(pages * tiles * rows) | Space O(total_cells)
 export async function exportToXlsx(payload: ExportPayload): Promise<void> {
   const exceljs = await import('exceljs');
   const workbook = new exceljs.Workbook();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const headerStyle: any = {
     font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 },
     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GAPURA_BANNER } },
@@ -182,6 +126,7 @@ export async function exportToXlsx(payload: ExportPayload): Promise<void> {
     },
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cellBorder: any = {
     top: { style: 'thin', color: { argb: 'FFE0E0E0' } },
     bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },
@@ -298,7 +243,7 @@ export async function exportToXlsx(payload: ExportPayload): Promise<void> {
  * }
  * ```
  */
-// Complexity: Time O(pages * tiles) | Space O(tiles * sample_rows)
+
 async function fetchInsights(payload: ExportPayload): Promise<DashboardInsights | null> {
   try {
     interface TileSummary {
@@ -526,6 +471,7 @@ export async function exportToPptx(payload: ExportPayload): Promise<void> {
             fontSize: 9, fontFace: 'Segoe UI Semibold', color: WHITE, 
           fill: { color: SLIDE.DARK_GREEN }, 
           align: 'center' as const, 
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           border: { color: WHITE, pt: 1 } as any,
           valign: 'middle' as const
       },
@@ -542,6 +488,7 @@ export async function exportToPptx(payload: ExportPayload): Promise<void> {
             fontSize: 9, fontFace: SLIDE.FONT, color: '333333',
             fill: { color: ri % 2 === 0 ? 'FFFFFF' : 'F8F9FA' }, // Subtle alternation
             align: (isNum ? 'right' : 'left') as 'right' | 'left', // Numbers right aligned
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             border: { color: 'F0F0F0', pt: 0.5 } as any,
             // Add slight padding
             margin: 0.08,
@@ -552,6 +499,7 @@ export async function exportToPptx(payload: ExportPayload): Promise<void> {
       })
     );
 
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore - pptxgenjs types might be slightly off for table config but this is standard
     slide.addTable([headerRow, ...dataRows], { x, y, w, colW, rowH: 0.35 });
 
@@ -807,6 +755,7 @@ export async function exportToPptx(payload: ExportPayload): Promise<void> {
             // Format: [{ name, labels, values }]
             const chartSeries = [{ name: 'Jumlah', labels, values }];
             
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             dashSlide.addChart(pptx.ChartType.bar, chartSeries as any, {
               x: xBase, y: chartY, w: panelW, h: chartH,
               barDir: 'col',
@@ -836,6 +785,7 @@ export async function exportToPptx(payload: ExportPayload): Promise<void> {
               
               showLegend: false,
               barGapWidthPct: 35,       // Thicker bars
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             } as any);
             
             yEnd = chartY + chartH + 0.15;
@@ -904,6 +854,7 @@ export async function exportToPptx(payload: ExportPayload): Promise<void> {
                 
                 showLegend: false,
                 barGapWidthPct: 35,       // Thicker bars
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               } as any);
               yEnd = chartY + chartH + 0.15;
             } catch (e) {

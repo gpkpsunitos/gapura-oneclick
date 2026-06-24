@@ -34,7 +34,6 @@ export async function POST(request: NextRequest) {
       payload = await verifySession(session);
     }
 
-    // Allow if: Vercel cron, authorized user, or in development mode
     if (!isVercelCron && !isAuthorized(payload) && !isDevelopment) {
       return NextResponse.json({
         error: 'Forbidden: Only admins and analysts can trigger sync'
@@ -64,7 +63,7 @@ export async function POST(request: NextRequest) {
       ipAddress: request.headers.get('x-forwarded-for')?.split(',')[0]?.trim(),
       userAgent: request.headers.get('user-agent'),
     }).catch(() => {});
-    
+
     return NextResponse.json(result, {
       status: result.success ? 200 : 500,
     });
@@ -85,23 +84,21 @@ export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const session = cookieStore.get('session')?.value;
-    
-    // Allow in development mode without auth
+
     const isDevelopment = process.env.NODE_ENV === 'development';
-    
+
     let payload = null;
-    
+
     if (session) {
       payload = await verifySession(session);
     }
-    
-    // Allow if: authorized user or in development mode
+
     if (!isAuthorized(payload) && !isDevelopment) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const status = await SyncService.getSyncStatus();
-    
+
     return NextResponse.json(status, {
       headers: {
         'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',

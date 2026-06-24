@@ -75,7 +75,6 @@ export function EventModal({
     }
   }, [open, event, defaultDate]);
 
-  // Auto-focus title on open
   useEffect(() => {
     if (open) {
       const timer = setTimeout(() => titleRef.current?.focus(), 100);
@@ -165,7 +164,7 @@ export function EventModal({
             className="relative flex max-h-[calc(100vh-2rem)] max-h-[calc(100dvh-2rem)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-[oklch(0.92_0.01_90/0.8)] bg-[var(--surface-1)] shadow-[var(--shadow-spatial-lg)] focus:outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
             aria-describedby={undefined}
           >
-            {/* Header */}
+            {}
             <div className="flex shrink-0 items-center justify-between border-b border-[oklch(0.94_0.01_90/0.6)] p-4">
               <Dialog.Title className="text-lg font-bold font-display tracking-tight text-[var(--text-primary)]">
                 {event ? `Edit ${typeLabel}` : `Buat ${typeLabel}`}
@@ -180,9 +179,9 @@ export function EventModal({
               </Dialog.Close>
             </div>
 
-          {/* Body */}
+          {}
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
-            {/* Title */}
+            {}
             <div>
               <label htmlFor="event-title" className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
                 Judul <span className="text-[oklch(0.6_0.22_25)]">*</span>
@@ -198,7 +197,7 @@ export function EventModal({
               />
             </div>
 
-            {/* Date & Time row */}
+            {}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="event-date" className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
@@ -240,7 +239,7 @@ export function EventModal({
               )}
             </div>
 
-            {/* Multi-day toggle */}
+            {}
             <label className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)] cursor-pointer group select-none">
               <span className="relative w-5 h-5 flex items-center justify-center">
                 <input
@@ -262,7 +261,7 @@ export function EventModal({
               <span className="group-hover:text-[var(--text-primary)] transition-colors">Kegiatan Multi-hari</span>
             </label>
 
-            {/* Meeting minutes link */}
+            {}
             {calendarType === 'meeting' && (
               <div>
                 <label htmlFor="event-minutes" className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
@@ -279,7 +278,7 @@ export function EventModal({
               </div>
             )}
 
-            {/* Notes */}
+            {}
             <div>
               <label htmlFor="event-notes" className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
                 Catatan
@@ -295,7 +294,7 @@ export function EventModal({
               />
             </div>
 
-            {/* Recurring section */}
+            {}
             <div className="space-y-3 pt-3 border-t border-[oklch(0.94_0.01_90/0.6)]">
               <label className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)] cursor-pointer group select-none">
                 <span className="relative w-5 h-5 flex items-center justify-center">
@@ -341,7 +340,7 @@ export function EventModal({
               )}
             </div>
 
-            {/* Edit scope for recurring events */}
+            {}
             {event && (event.is_recurring || event.parent_event_id) && (
               <fieldset className="space-y-2.5 pt-3 border-t border-[oklch(0.94_0.01_90/0.6)]">
                 <legend className="text-sm font-medium text-[var(--text-secondary)]">Cakupan Edit</legend>
@@ -372,7 +371,7 @@ export function EventModal({
               </fieldset>
             )}
 
-            {/* Error message */}
+            {}
             {error && (
               <div className="flex items-start gap-2 text-xs text-[oklch(0.55_0.2_25)] bg-[oklch(0.6_0.22_25/0.08)] px-3 py-2.5 rounded-xl" role="alert">
                 <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
@@ -381,7 +380,7 @@ export function EventModal({
             )}
           </div>
 
-          {/* Footer */}
+          {}
           <div className="flex shrink-0 items-center justify-between border-t border-[oklch(0.94_0.01_90/0.6)] bg-[var(--surface-1)] p-4 shadow-[0_-12px_28px_oklch(0.82_0.03_90/0.16)]">
             {event ? (
               showDeleteConfirm ? (

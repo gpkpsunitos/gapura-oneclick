@@ -38,10 +38,6 @@ import {
 } from '@/lib/op-shortcut-analytics';
 import type { OpFilterState } from '@/components/dashboard/op-analytics-filter-bar';
 
-/* ─────────────────────────────────────────────────────
-   Types
-   ───────────────────────────────────────────────────── */
-
 type ReportRow = {
   [key: string]: unknown;
   id: string;
@@ -64,10 +60,6 @@ type ReportRow = {
 };
 
 type TopDimension = 'category' | 'branch' | 'airline';
-
-/* ─────────────────────────────────────────────────────
-   Config & Helpers
-   ───────────────────────────────────────────────────── */
 
 const SOURCE_CONFIG = getShortcutSourceConfig('topIrregularityComplaint');
 
@@ -120,10 +112,6 @@ function exportToCSV(data: Record<string, unknown>[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
-/* ─────────────────────────────────────────────────────
-   Component
-   ───────────────────────────────────────────────────── */
-
 export default function OPTopIrregularityComplaintCases() {
   const [reports, setReports] = useState<ReportRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,7 +120,6 @@ export default function OPTopIrregularityComplaintCases() {
   const [aiStatus, setAiStatus] = useState<AnalyticsRuntimeStatus>();
   const [topDimension, setTopDimension] = useState<TopDimension>('category');
 
-  /* ── Filters ── */
   const [filters, setFilters] = useState<OpFilterState>({
     dateFrom: undefined,
     dateTo: undefined,
@@ -142,7 +129,6 @@ export default function OPTopIrregularityComplaintCases() {
     sourceSheet: 'all',
   });
 
-  /* ── Data fetch ── */
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
@@ -211,7 +197,6 @@ export default function OPTopIrregularityComplaintCases() {
     };
   }, [filters]);
 
-  /* ── Derived data ── */
   const filterOptions = useFilterOptions(reports);
 
   const categoryBreakdown = useMemo(() => {
@@ -275,7 +260,6 @@ export default function OPTopIrregularityComplaintCases() {
     ];
   }, [reports]);
 
-  /* Drill-down dimension data */
   const dimensionData = useMemo(() => {
     switch (topDimension) {
       case 'category':
@@ -287,7 +271,6 @@ export default function OPTopIrregularityComplaintCases() {
     }
   }, [topDimension, categoryBreakdown, topBranches, topAirlines]);
 
-  /* MoM deltas */
   const totalMoM = useMemo(
     () => computeMoMDelta(reports, (r) => r.date_of_event || r.created_at, () => true),
     [reports],
@@ -313,7 +296,6 @@ export default function OPTopIrregularityComplaintCases() {
 
   const topCategory = categoryBreakdown[0];
 
-  /* ── Handlers ── */
   const handleExport = () => {
     const exportData = reports.map((r) => ({
       Date: r.date_of_event || r.created_at || '',
@@ -340,7 +322,7 @@ export default function OPTopIrregularityComplaintCases() {
         Back to OP Dashboard
       </Link>
 
-      {/* ── Source strip header ── */}
+      {}
       <AnalyticsSourceStrip
         title="Top Irregularity & Complaint"
         description="This page separates the real ranking of irregularity/complaint cases from AI-calculated category priorities."
@@ -350,7 +332,7 @@ export default function OPTopIrregularityComplaintCases() {
         aiStatus={aiStatus}
       />
 
-      {/* ── Global filter bar ── */}
+      {}
       <OpAnalyticsFilterBar
         filters={filters}
         onFiltersChange={setFilters}
@@ -360,9 +342,7 @@ export default function OPTopIrregularityComplaintCases() {
         showSourceSheetToggle
       />
 
-      {/* ═══════════════════════════════════════════════════
-          REAL DATA SECTION
-         ═══════════════════════════════════════════════════ */}
+      {}
       <AnalyticsSection
         title="Top Cases from Real Data"
         description="The real charts below are sourced from actual reports and display category, branch, and airline rankings without AI model intervention."
@@ -374,7 +354,7 @@ export default function OPTopIrregularityComplaintCases() {
           </div>
         )}
 
-        {/* ── KPI Cards with Trend Indicators ── */}
+        {}
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <OpMetricCard
             icon={TrendingUp}
@@ -412,7 +392,7 @@ export default function OPTopIrregularityComplaintCases() {
           />
         </div>
 
-        {/* ── Irregularity vs Complaint Split + Trend ── */}
+        {}
         <div className="mt-5 grid gap-4 xl:grid-cols-[1fr_1.2fr]">
           <div className="rounded-2xl border border-emerald-200 bg-white/90 p-4">
             <ResponsivePieChart
@@ -441,7 +421,7 @@ export default function OPTopIrregularityComplaintCases() {
           </div>
         </div>
 
-        {/* ── Drill-Down Tabs: Category / Branch / Airline ── */}
+        {}
         <div className="mt-6 rounded-2xl border border-emerald-200 bg-white/90 p-4">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -478,7 +458,7 @@ export default function OPTopIrregularityComplaintCases() {
             height="h-[360px]"
           />
 
-          {/* Drill-down table */}
+          {}
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead>
@@ -524,7 +504,7 @@ export default function OPTopIrregularityComplaintCases() {
           </div>
         </div>
 
-        {/* ── Irregularity & Complaint MoM cards ── */}
+        {}
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <OpMetricCard
             icon={Layers}
@@ -546,7 +526,7 @@ export default function OPTopIrregularityComplaintCases() {
           />
         </div>
 
-        {/* ── Export ── */}
+        {}
         <div className="mt-4 flex justify-end">
           <button
             onClick={handleExport}
@@ -566,9 +546,7 @@ export default function OPTopIrregularityComplaintCases() {
         )}
       </AnalyticsSection>
 
-      {/* ═══════════════════════════════════════════════════
-          AI INSIGHTS SECTION
-         ═══════════════════════════════════════════════════ */}
+      {}
       <AnalyticsSection
         title="AI Priority Highlights"
         description="The AI section uses action summary to show high-risk categories and follow-up recommendations. AI figures are separated from real volume."

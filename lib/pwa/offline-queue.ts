@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi fungsi-fungsi client-side untuk manajemen queue offline,
- * mencakup event dispatching, registrasi sync, dan wrapper untuk fungsi core.
- */
 
 "use client";
 
@@ -22,10 +16,6 @@ import {
   type EnqueueOfflineReportInput,
 } from "@/lib/pwa/offline-queue-core";
 
-/**
- * Mengirim event update queue offline
- * @param summary - Ringkasan queue offline
- */
 function dispatchQueueUpdate(summary: Awaited<ReturnType<typeof getOfflineQueueSummary>>) {
   if (typeof window === "undefined") {
     return;
@@ -34,11 +24,6 @@ function dispatchQueueUpdate(summary: Awaited<ReturnType<typeof getOfflineQueueS
   window.dispatchEvent(new CustomEvent(PWA_QUEUE_EVENT, { detail: summary }));
 }
 
-/**
- * Me-refresh ringkasan queue offline dan mengirim event update
- * @returns Ringkasan queue offline
- * @throws Error jika terjadi error selain IndexedDB unavailable
- */
 export async function refreshOfflineQueueSummary() {
   try {
     const summary = await getOfflineQueueSummary();
@@ -54,12 +39,6 @@ export async function refreshOfflineQueueSummary() {
   }
 }
 
-/**
- * Menambahkan laporan ke queue offline dengan file attachment
- * @param input - Input laporan offline (tanpa scope dan dengan File[] untuk attachments)
- * @returns Item queue offline yang baru dibuat
- * @throws Error jika IndexedDB tidak tersedia
- */
 export async function queueOfflineReport(
   input: Omit<EnqueueOfflineReportInput, "scope" | "attachments"> & { attachments: File[] }
 ) {
@@ -84,11 +63,6 @@ export async function queueOfflineReport(
   }
 }
 
-/**
- * Memproses queue offline dengan event dispatching
- * @returns Hasil proses queue offline
- * @throws Error jika terjadi error selain IndexedDB unavailable
- */
 export async function processOfflineQueueWithEvents() {
   try {
     const result = await processOfflineQueue();
@@ -108,10 +82,6 @@ export async function processOfflineQueueWithEvents() {
   }
 }
 
-/**
- * Meregistrasi Background Sync untuk queue offline
- * Tidak melakukan apa-apa jika browser tidak mendukung Background Sync
- */
 export async function registerOfflineSync() {
   if (
     typeof window === "undefined" ||
@@ -129,6 +99,6 @@ export async function registerOfflineSync() {
     };
     await registration.sync?.register(PWA_SYNC_TAG);
   } catch {
-    // The queue still works without Background Sync.
+
   }
 }

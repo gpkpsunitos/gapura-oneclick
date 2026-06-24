@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi halaman dashboard builder untuk analyst,
- * menyediakan fitur untuk membuat, menyimpan, dan mengelola dashboard kustom.
- */
 
 'use client';
 
@@ -12,16 +6,6 @@ import { BuilderLayout, type SaveTile, type SaveConfig } from '@/components/buil
 import { Trash2, ExternalLink, Clock, ChevronDown, ChevronUp, BarChart3, Pencil, FolderInput, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-/**
- * Antarmuka dashboard yang tersimpan
- * @interface SavedDashboard
- * @property {string} id - ID unik dashboard
- * @property {string} name - Nama dashboard
- * @property {string | null} description - Deskripsi dashboard
- * @property {string} slug - Slug URL untuk dashboard
- * @property {string | null} folder - Nama folder penyimpanan
- * @property {string} created_at - Tanggal pembuatan dashboard
- */
 interface SavedDashboard {
   id: string;
   name: string;
@@ -31,12 +15,6 @@ interface SavedDashboard {
   created_at: string;
 }
 
-/**
- * Komponen halaman Dashboard Builder untuk analyst
- * Menyediakan UI untuk membuat, menyimpan, dan mengelola dashboard kustom
- * Termasuk fitur folder management dan list dashboard tersimpan
- * @returns {JSX.Element} Tampilan halaman Dashboard Builder
- */
 export default function DashboardBuilderPage() {
   const [savedDashboards, setSavedDashboards] = useState<SavedDashboard[]>([]);
   const [savedExpanded, setSavedExpanded] = useState(true);
@@ -51,9 +29,6 @@ export default function DashboardBuilderPage() {
     fetchDashboards();
   }, []);
 
-  /**
-   * Mengambil daftar dashboard tersimpan dari API
-   */
   const fetchDashboards = async () => {
     try {
       const res = await fetch('/api/dashboards');
@@ -61,8 +36,8 @@ export default function DashboardBuilderPage() {
         const data = await res.json();
         const dashboards = data.dashboards || [];
         setSavedDashboards(dashboards);
-        
-        // Auto-expand all folders initially
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const uniqueFolders = Array.from(new Set(dashboards.map((d: any) => d.folder || 'Lainnya')));
         const initialExpanded: Record<string, boolean> = {};
         uniqueFolders.forEach(f => {
@@ -70,18 +45,9 @@ export default function DashboardBuilderPage() {
         });
         setExpandedFolders(initialExpanded);
       }
-    } catch { /* ignore */ }
+    } catch {  }
   };
 
-  /**
-   * Handler untuk menyimpan dashboard baru
-   * @param {string} name - Nama dashboard
-   * @param {string} description - Deskripsi dashboard
-   * @param {SaveTile[]} tiles - Array tile/chart yang ada di dashboard
-   * @param {SaveConfig} [config] - Konfigurasi dashboard opsional
-   * @param {string | null} [folder] - Folder penyimpanan opsional
-   * @returns {Promise<{ embedUrl: string } | null>} URL embed dashboard atau null jika gagal
-   */
   const handleSave = async (name: string, description: string, tiles: SaveTile[], config?: SaveConfig, folder?: string | null) => {
     try {
       const response = await fetch('/api/dashboards', {
@@ -120,31 +86,22 @@ export default function DashboardBuilderPage() {
     }
   };
 
-  /**
-   * Handler untuk menghapus dashboard
-   * @param {string} id - ID dashboard yang akan dihapus
-   */
   const handleDelete = async (id: string) => {
     try {
       const res = await fetch(`/api/dashboards?id=${id}`, { method: 'DELETE' });
       if (res.ok) {
         setSavedDashboards(prev => prev.filter(d => d.id !== id));
       }
-    } catch { /* ignore */ }
+    } catch {  }
   };
 
-  /**
-   * Handler untuk mengubah nama folder
-   * @param {string} oldFolder - Nama folder lama
-   * @param {string} newFolder - Nama folder baru
-   */
   const handleRenameFolder = async (oldFolder: string, newFolder: string) => {
     const trimmed = newFolder.trim();
     if (!trimmed || trimmed === oldFolder) {
       setRenamingFolder(null);
       return;
     }
-    // Optimistic update
+
     setSavedDashboards(prev =>
       prev.map(d => d.folder === oldFolder ? { ...d, folder: trimmed } : d)
     );
@@ -162,13 +119,8 @@ export default function DashboardBuilderPage() {
     });
   };
 
-  /**
-   * Handler untuk menghapus folder
-   * Semua dashboard di dalam folder akan dipindahkan ke 'Lainnya' (null)
-   * @param {string} folder - Nama folder yang akan dihapus
-   */
   const handleDeleteFolder = async (folder: string) => {
-    // Optimistic update — dissolve folder, move all to 'Lainnya' (null)
+
     setSavedDashboards(prev =>
       prev.map(d => d.folder === folder ? { ...d, folder: null } : d)
     );
@@ -185,21 +137,15 @@ export default function DashboardBuilderPage() {
     });
   };
 
-  /**
-   * Handler untuk memindahkan dashboard ke folder lain
-   * @param {string} id - ID dashboard yang akan dipindahkan
-   * @param {string} folder - Nama folder tujuan (kosong untuk tanpa folder)
-   */
   const handleMoveDashboard = async (id: string, folder: string) => {
     const trimmed = folder.trim();
     const finalFolder = trimmed === '' ? null : trimmed;
-    
-    // Optimistic update
+
     setSavedDashboards(prev =>
       prev.map(d => d.id === id ? { ...d, folder: finalFolder } : d)
     );
     setMovingDashboardId(null);
-    
+
     await fetch('/api/dashboards', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -222,7 +168,7 @@ export default function DashboardBuilderPage() {
       className="fixed inset-0 flex flex-col bg-[var(--surface-1)] md:left-[260px]"
       style={{ zIndex: 10 }}
     >
-      {/* Builder — takes remaining space, scrolls internally */}
+      {}
       <div className="flex-1 min-h-0 overflow-hidden">
         <BuilderLayout
           onSaveDashboard={handleSave}
@@ -230,10 +176,10 @@ export default function DashboardBuilderPage() {
         />
       </div>
 
-      {/* Saved Dashboards — fixed at bottom, collapsible */}
+      {}
       {savedDashboards.length > 0 && (
         <div className="shrink-0 border-t border-[var(--surface-4)] bg-[var(--surface-1)]">
-          {/* Collapsible header */}
+          {}
           <button
             onClick={() => setSavedExpanded(!savedExpanded)}
             className="w-full flex items-center justify-between px-6 py-3 hover:bg-[var(--surface-2)] transition-colors"
@@ -250,7 +196,7 @@ export default function DashboardBuilderPage() {
             {savedExpanded ? <ChevronDown size={14} className="text-[var(--text-muted)]" /> : <ChevronUp size={14} className="text-[var(--text-muted)]" />}
           </button>
 
-          {/* Expandable content */}
+          {}
           {savedExpanded && (
             <div className="px-6 pb-3 max-h-[400px] overflow-y-auto custom-scrollbar">
               <div className="space-y-4 pt-2">
@@ -265,10 +211,10 @@ export default function DashboardBuilderPage() {
                 .map(([folderName, dashboards]) => (
                   <div key={folderName} className="space-y-2">
                     <div className="flex items-center gap-2 group/folder w-full">
-                      {/* Left line */}
+                      {}
                       <div className="flex-1 h-px bg-[var(--surface-4)] group-hover/folder:bg-[var(--brand-primary)]/30 transition-colors" />
 
-                      {/* Folder label — rename mode, delete confirmation, or normal display */}
+                      {}
                       {renamingFolder === folderName ? (
                         <div className="flex items-center gap-1">
                           <input
@@ -310,7 +256,7 @@ export default function DashboardBuilderPage() {
                             <span className="opacity-50">({dashboards.length})</span>
                             {expandedFolders[folderName] !== false ? <ChevronUp size={10} /> : <ChevronDown size={10} />}
                           </button>
-                          {/* Rename & Delete icons — hidden for 'Lainnya' */}
+                          {}
                           {folderName !== 'Lainnya' && (
                             <div className="flex items-center gap-0.5 opacity-0 group-hover/folder:opacity-100 transition-opacity">
                               <button
@@ -332,7 +278,7 @@ export default function DashboardBuilderPage() {
                         </div>
                       )}
 
-                      {/* Right line */}
+                      {}
                       <div className="flex-1 h-px bg-[var(--surface-4)] group-hover/folder:bg-[var(--brand-primary)]/30 transition-colors" />
                     </div>
 

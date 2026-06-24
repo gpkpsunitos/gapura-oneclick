@@ -7,10 +7,6 @@ import { resolveCachedAI } from '@/lib/ai-route-cache';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
-/**
- * Proxy for AI Root Cause Statistics
- * GET /api/ai/root-cause/stats
- */
 export async function GET(req: NextRequest) {
   try {
     const cookieStore = await cookies();

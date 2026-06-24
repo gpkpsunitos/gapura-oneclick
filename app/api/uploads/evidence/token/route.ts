@@ -1,11 +1,6 @@
 import { NextResponse } from 'next/server';
 import { generateUploadToken, checkRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
 
-/**
- * GET /api/uploads/evidence/token
- * Issues a short-lived signed token required for public uploads.
- * Rate-limited to 10 token requests per IP per minute.
- */
 export async function GET(request: Request) {
     const ip = getClientIpFromRequest(request);
     const rl = checkRateLimit(`upload-token:${ip}`, 10, 60_000);

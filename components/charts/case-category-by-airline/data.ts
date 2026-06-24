@@ -19,7 +19,6 @@ export interface AirlineOverview {
   momGrowth: number;
 }
 
-
 export interface CategoryCompositionData {
   airline: string;
   Irregularity: number;
@@ -53,7 +52,6 @@ export interface RootCauseData {
   category: string;
 }
 
-
 export interface AirlineIntelReportRecord {
   [key: string]: unknown;
 }
@@ -68,8 +66,8 @@ interface BaseFilters {
   dateTo?: string;
 }
 
-let reportsCache: Record<string, { data: Report[], ts: number }> = {};
-let inflightRequests: Record<string, Promise<Report[]>> = {};
+const reportsCache: Record<string, { data: Report[], ts: number }> = {};
+const inflightRequests: Record<string, Promise<Report[]>> = {};
 const CACHE_DURATION = 1000 * 60 * 5;
 
 const CORE_FIELDS = [
@@ -124,8 +122,7 @@ async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report
   if (filters.area && filters.area !== 'all') query.append('area', filters.area);
   if (filters.airlines && filters.airlines !== 'all') query.append('airlines', filters.airlines);
   if (filters.sourceSheet) query.append('sourceSheet', filters.sourceSheet);
-  
-  // Minimize payload size
+
   query.append('fields', CORE_FIELDS.join(','));
 
   const cacheKey = query.toString() || 'default';
@@ -167,7 +164,7 @@ async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report
 
 function filterReports(reports: Report[], filters: BaseFilters): Report[] {
   return reports.filter(report => {
-    // Filter by source sheet (default NON CARGO for backward compatibility)
+
     const sheet = filters.sourceSheet || 'NON CARGO';
     if (report.source_sheet && report.source_sheet !== sheet) return false;
 
@@ -179,7 +176,6 @@ function filterReports(reports: Report[], filters: BaseFilters): Report[] {
   });
 }
 
-// ─── Airline Overview: per-airline summary with all metrics ───
 export async function fetchAirlineOverview(filters: BaseFilters = {}): Promise<AirlineOverview[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -220,7 +216,6 @@ export async function fetchAirlineOverview(filters: BaseFilters = {}): Promise<A
     .map(([airline, data]) => {
       const total = data.total;
 
-      // Compute MoM growth from last two months
       const sortedMonths = Array.from(data.monthCounts.entries()).sort((a, b) => a[0].localeCompare(b[0]));
       let momGrowth = 0;
       if (sortedMonths.length >= 2) {
@@ -229,7 +224,6 @@ export async function fetchAirlineOverview(filters: BaseFilters = {}): Promise<A
         momGrowth = prevMonth > 0 ? ((lastMonth - prevMonth) / prevMonth) * 100 : 0;
       }
 
-      // Determine dominant category
       const cats = [
         { name: 'Irregularity', count: data.irregularity },
         { name: 'Complaint', count: data.complaint },
@@ -258,8 +252,6 @@ export async function fetchAirlineOverview(filters: BaseFilters = {}): Promise<A
     .map((item, idx) => ({ ...item, rank: idx + 1 }));
 }
 
-
-// ─── Category Composition: stacked % per airline ───
 export async function fetchCategoryCompositionByAirline(filters: BaseFilters = {}): Promise<CategoryCompositionData[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -287,7 +279,6 @@ export async function fetchCategoryCompositionByAirline(filters: BaseFilters = {
     .sort((a, b) => (b.Irregularity + b.Complaint) - (a.Irregularity + a.Complaint));
 }
 
-// ─── Branch Distribution: airline reports per branch ───
 export async function fetchBranchDistributionByAirline(filters: BaseFilters = {}): Promise<BranchDistributionData[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -313,7 +304,6 @@ export async function fetchBranchDistributionByAirline(filters: BaseFilters = {}
     .slice(0, 30);
 }
 
-// ─── Area Breakdown: stacked Terminal/Apron/General per airline ───
 export async function fetchAreaBreakdownByAirline(filters: BaseFilters = {}): Promise<AreaBreakdownData[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -339,7 +329,6 @@ export async function fetchAreaBreakdownByAirline(filters: BaseFilters = {}): Pr
     .slice(0, 30);
 }
 
-// ─── Monthly Trend: airline volume over time ───
 export async function fetchMonthlyTrendByAirline(filters: BaseFilters = {}): Promise<TrendDataPoint[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -369,7 +358,6 @@ export async function fetchMonthlyTrendByAirline(filters: BaseFilters = {}): Pro
     .map(([month, data]) => ({ month, ...data }));
 }
 
-// ─── Root Cause Distribution: top root causes per airline ───
 export async function fetchRootCauseByAirline(filters: BaseFilters = {}): Promise<RootCauseData[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
@@ -394,8 +382,6 @@ export async function fetchRootCauseByAirline(filters: BaseFilters = {}): Promis
     .slice(0, 15);
 }
 
-
-// ─── All Records: flat records for data table ───
 export async function fetchAllAirlineIntelReports(filters: BaseFilters = {}): Promise<AirlineIntelReportRecord[]> {
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);

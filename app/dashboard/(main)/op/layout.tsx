@@ -4,10 +4,6 @@ export const metadata: Metadata = {
   title: 'Operational Dashboard — Gapura OneClick',
 };
 
-/**
- * OP layout — preloads the analytics API so the browser starts fetching
- * before the client-side SWR hook kicks in.
- */
 export default function OPLayout({ children }: { children: React.ReactNode }) {
   return (
     <>

@@ -45,6 +45,7 @@ async function debugSchema() {
       } else {
         console.log('No headers found in this range.');
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (error: any) {
       console.error(`Error fetching range ${range}:`, error.message);
     }

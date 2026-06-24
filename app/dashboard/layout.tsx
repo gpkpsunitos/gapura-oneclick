@@ -1,13 +1,5 @@
 import './dashboard-theme.css';
 
-/**
- * @file
- * Dashboard outer shell — pure presentational layout.
- *
- * Auth is handled exclusively by `(main)/layout.tsx` to avoid
- * duplicate JWT verifications on every request.
- */
-
 export default function DashboardLayout({
     children,
 }: {

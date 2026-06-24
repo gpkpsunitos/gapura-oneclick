@@ -43,8 +43,8 @@ interface BaseFilters {
   dateTo?: string;
 }
 
-let reportsCache: Record<string, { data: Report[], ts: number }> = {};
-let inflightRequests: Record<string, Promise<Report[]>> = {};
+const reportsCache: Record<string, { data: Report[], ts: number }> = {};
+const inflightRequests: Record<string, Promise<Report[]>> = {};
 const CACHE_DURATION = 1000 * 60 * 5;
 
 const CORE_FIELDS = [
@@ -113,8 +113,7 @@ async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report
   if (filters.area && filters.area !== 'all') query.append('area', filters.area);
   if (filters.airlines && filters.airlines !== 'all') query.append('airlines', filters.airlines);
   if (filters.sourceSheet) query.append('sourceSheet', filters.sourceSheet);
-  
-  // Minimize payload size
+
   query.append('fields', CORE_FIELDS.join(','));
 
   const cacheKey = query.toString() || 'default';
@@ -156,7 +155,7 @@ async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report
 
 function filterReports(reports: Report[], filters: BaseFilters): Report[] {
   return reports.filter(report => {
-    // Filter by source sheet (default NON CARGO for backward compatibility)
+
     const sheet = filters.sourceSheet || 'NON CARGO';
     if (report.source_sheet && report.source_sheet !== sheet) return false;
 
@@ -171,7 +170,6 @@ function filterReports(reports: Report[], filters: BaseFilters): Report[] {
 export function inferDimensions(title: string): { rowField: string; colField: string } {
   const lower = title.toLowerCase();
 
-  // Parse "X by Y" pattern -> X = column dimension, Y = row dimension
   const byMatch = lower.match(/(.+?)\s+by\s+(.+)/);
   if (byMatch) {
     const left = byMatch[1].trim();
@@ -182,7 +180,6 @@ export function inferDimensions(title: string): { rowField: string; colField: st
     };
   }
 
-  // Default
   return { rowField: 'branch', colField: 'category' };
 }
 

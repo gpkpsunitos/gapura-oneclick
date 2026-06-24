@@ -44,7 +44,6 @@ const DEFAULT_POSITIONS: Record<string, { name: string; level: number }> = {
     '00000000-0000-0000-0000-00000000020C': { name: 'Manager', level: 7 },
 };
 
-// GET all users (for admin) with relations
 export async function GET(request: Request) {
     try {
         const cookieStore = await cookies();
@@ -63,10 +62,8 @@ export async function GET(request: Request) {
         const isSuper = role === 'SUPER_ADMIN';
         const isManager = role === 'MANAGER_CABANG';
 
-        // Determine query client and optional station filter
         const client = supabaseAdmin;
 
-        // Fetch manager station when needed
         let stationFilter: string | null = null;
         if (!isSuper && isManager) {
             stationFilter = payload.station_id || null;
@@ -163,9 +160,9 @@ export async function POST(request: Request) {
             phone,
             unit_id,
             position_id,
-            station_id, // SUPER_ADMIN only
-            role,       // SUPER_ADMIN only
-            division,   // SUPER_ADMIN only
+            station_id,
+            role,
+            division,
             activate = false,
         } = body || {};
 
@@ -265,14 +262,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Gagal membuat user' }, { status: 500 });
         }
 
-        // TODO: Send tempPassword to user via secure channel (email) instead of API response
-        // For now, return success without exposing the password in the response body
         console.log(`[ADMIN] User created: ${email}. Temporary credentials have been generated.`);
         return NextResponse.json({
             success: true,
             message: activate ? 'User dibuat dan diaktifkan' : 'User dibuat, status pending',
-            // temporaryPassword is intentionally not returned in the response
-            // It should be communicated to the user via email or another secure channel
+
         });
     } catch (error) {
         console.error('Create user error:', error);
@@ -307,14 +301,14 @@ export async function PATCH(request: Request) {
                 }
                 updates.status = status;
             }
-    
+
             if (role) {
                 if (!VALID_ROLES.includes(role)) {
                     return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
                 }
                 updates.role = role;
             }
-    
+
             if (division) {
                  if (!VALID_DIVISIONS.includes(division)) {
                      return NextResponse.json({ error: 'Invalid division' }, { status: 400 });
@@ -335,12 +329,12 @@ export async function PATCH(request: Request) {
                 }
                 updates.station_id = station_id || null;
             }
-    
+
             const { error } = await supabaseAdmin
                 .from('users')
                 .update(updates)
                 .eq('id', userId);
-    
+
             if (error) throw error;
         } else if (payload.role === 'MANAGER_CABANG') {
             if (!status) {
@@ -349,11 +343,11 @@ export async function PATCH(request: Request) {
             if (!['active', 'rejected'].includes(status)) {
                 return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
             }
-            // Managers cannot change role/division/station.
+
             if (role || division || station_id !== undefined) {
                 return NextResponse.json({ error: 'Not allowed' }, { status: 403 });
             }
-            // Verify target user belongs to same station and is STAFF_CABANG
+
             const { data: target } = await supabaseAdmin
                 .from('users')
                 .select('station_id, role, status')

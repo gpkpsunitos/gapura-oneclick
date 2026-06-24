@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk mengunggah bukti (evidence) laporan
- */
 
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
@@ -11,19 +6,6 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { randomUUID } from 'crypto';
 import { compressToExactSize } from '@/lib/image-compression';
 
-/**
- * POST /api/reports/[id]/evidence
- * 
- * Mengunggah file bukti (evidence) untuk laporan tertentu
- * Mendukung file gambar dan dokumen (PDF/Word)
- * 
- * @param request - Objek request HTTP dengan FormData berisi file
- * @param params - Parameter route berisi ID laporan
- * @returns Promise<NextResponse> - Response JSON berisi URL file yang diunggah atau error
- * @throws Mengembalikan 401 jika tidak terautentikasi
- * @throws Mengembalikan 400 jika file tidak valid atau terlalu besar
- * @throws Mengembalikan 500 jika terjadi error saat upload
- */
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -53,8 +35,7 @@ export async function POST(
       return NextResponse.json({ error: 'Only images and documents (PDF/Word) are allowed' }, { status: 400 });
     }
 
-    // Basic server-side guardrail (client compresses first)
-    const MAX_BYTES = 20 * 1024 * 1024; // 20MB for documents, images should be smaller
+    const MAX_BYTES = 20 * 1024 * 1024;
     if (file.size > MAX_BYTES) {
       return NextResponse.json({ error: 'File too large (max 20MB)' }, { status: 413 });
     }
@@ -67,7 +48,7 @@ export async function POST(
 
     if (isImage) {
       try {
-        // Compress image to <5KB if possible
+
         const result = await compressToExactSize(arrayBuffer, 5);
         uploadBuffer = result.buffer;
         contentType = 'image/webp';
@@ -77,25 +58,23 @@ export async function POST(
         uploadBuffer = Buffer.from(arrayBuffer);
       }
     } else {
-      // Documents uploaded as-is
+
       uploadBuffer = Buffer.from(arrayBuffer);
     }
 
-    // Filename: preserve tags TYPE__UPLOADER if present, but add randomness for uniqueness
     const ext = isImage ? 'webp' : (file.name.split('.').pop() || 'tmp');
-    let fileName = file.name.replace(/\.[^.]+$/, ""); // strip extension
-    fileName = `${fileName}_${randomUUID().slice(0, 8)}.${ext}`; // add short suffix + extension
-    
-    // Clean up filename: strictly alphanumeric, dots, dashes, underscores
+    let fileName = file.name.replace(/\.[^.]+$/, "");
+    fileName = `${fileName}_${randomUUID().slice(0, 8)}.${ext}`;
+
     fileName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
-    
+
     const path = `reports/${id}/${fileName}`;
     console.log(`[EVIDENCE UPLOAD] Uploading to path: ${path}, contentType: ${contentType}`);
 
     const { error: uploadErr } = await supabaseAdmin.storage
       .from('evidence')
       .upload(path, uploadBuffer, { contentType, upsert: false });
-    
+
     if (uploadErr) {
       console.error('[EVIDENCE UPLOAD] Supabase storage error:', uploadErr);
       return NextResponse.json({ error: uploadErr.message, details: uploadErr }, { status: 500 });
@@ -115,6 +94,7 @@ export async function POST(
       originalSize: file.size,
       uploadSize: uploadBuffer.length
     });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     console.error('[UPLOAD_EVIDENCE_ERROR]', e);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

@@ -34,11 +34,6 @@ import {
   resolveRootCause,
 } from '@/lib/report-normalization';
 
-// Direct field readers — bypasses fallback chains that bleed VLOOKUP/lookup-table
-// columns (KODE CABANG / KODE HUB / MASKAPAI / Lokal MPA VLOOKUP, supporting_evidence)
-// into hub/station/airline/cargo-category displays. The shared resolveReport* helpers
-// chain through those fields, but the CGO sheet has matching VLOOKUP columns that hold
-// data from a separate lookup table aligned by row, so they leak garbage values here.
 function readHub(r: Report): string {
   return val(r.hub);
 }
@@ -103,8 +98,7 @@ function getMonth(r: Report): { key: string; label: string; ts: number } | null 
 }
 
 function getAirlineType(r: Report): string {
-  // Use the canonical "Jenis Maskapai" column directly. Don't fall back to
-  // Lokal/MPA (VLOOKUP) — it's a separate lookup table, not per-row data.
+
   return val(r.jenis_maskapai).toUpperCase();
 }
 
@@ -408,7 +402,6 @@ function HeatMatrix({
   );
   const grandTotal = colTotals.reduce((s, v) => s + v, 0);
 
-  // Count consecutive rows sharing the same primary label for rowSpan grouping.
   const primaryGroupSize: Record<number, number> = {};
   if (groupByPrimary && rowLabel2) {
     let i = 0;
@@ -420,7 +413,6 @@ function HeatMatrix({
     }
   }
 
-  // Per-station totals (sum across all airline rows + columns) when grouped.
   const primaryGroupTotals = new Map<string, number>();
   if (groupByPrimary && rowLabel2) {
     rowKeys.forEach((r) => {
@@ -740,12 +732,10 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
     });
   }, [allCgoReports, dateFrom, dateTo]);
 
-  // Year filter for Monthly Report: current vs previous calendar year
   const currentYear = new Date().getFullYear();
   const previousYear = currentYear - 1;
   const [monthlyYear, setMonthlyYear] = useState<number>(currentYear);
 
-  // Aggregations
   const monthlyRows = useMemo<CountRow[]>(() => {
     const counts = new Array(12).fill(0);
     cgoReports.forEach((r) => {
@@ -770,7 +760,6 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
   const reportCategoryRows = useMemo(() => aggregate(cgoReports, (r) => val(resolveReportCategory(r))), [cgoReports]);
   const cargoCategoryRows = useMemo(() => aggregate(cgoReports, (r) => readCargoCategory(r)), [cgoReports]);
 
-  // Cross-matrices
   const stationByCategory = useMemo(() => {
     const cells: Record<string, Record<string, MatrixCell>> = {};
     cgoReports.forEach((r) => {
@@ -787,7 +776,6 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
     return cells;
   }, [cgoReports]);
 
-  // Excludes rows tagged "Non Airline Case" in Jenis Maskapai.
   const airlineByCategory = useMemo(() => {
     const cells: Record<string, Record<string, MatrixCell>> = {};
     cgoReports.forEach((r) => {
@@ -804,7 +792,6 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
     return cells;
   }, [cgoReports]);
 
-  // Row keys for the airline×category matrix, excluding Non Airline Case airlines.
   const airlineKeysExclNonAirline = useMemo(() => {
     const seen = new Set<string>();
     return cgoReports
@@ -840,7 +827,6 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
     return cells;
   }, [cgoReports]);
 
-  // Station + Airlines compound rows × Status
   const stationAirlineByStatus = useMemo(() => {
     const cells: Record<string, Record<string, MatrixCell>> = {};
     const labels = new Map<string, { station: string; airline: string; total: number }>();
@@ -858,7 +844,7 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
       meta.total += 1;
       labels.set(key, meta);
     });
-    // Group by station total desc, then airline total desc within station.
+
     const stationTotals = new Map<string, number>();
     labels.forEach((meta) => {
       stationTotals.set(meta.station, (stationTotals.get(meta.station) || 0) + meta.total);
@@ -875,7 +861,6 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
     return { cells, rowKeys };
   }, [cgoReports]);
 
-  // Matrix row keys (sorted by total desc)
   const stationKeys = useMemo(
     () => stationRows.map((r) => ({ id: r.id, label: r.label })),
     [stationRows]
@@ -898,7 +883,6 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
 
   const statusCols = useMemo(() => STATUSES.map((s) => ({ id: s, label: s })), []);
 
-  // Detail rows
   const detailRows = useMemo(
     () => cgoReports.map(buildDetailRow).sort((a, b) => b.ts - a.ts),
     [cgoReports]

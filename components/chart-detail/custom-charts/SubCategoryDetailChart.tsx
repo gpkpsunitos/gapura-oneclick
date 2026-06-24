@@ -10,11 +10,12 @@ interface SubCategoryData {
 }
 
 interface SubCategoryDetailChartProps {
-  // Result from the new query structure
+
   result?: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rows: any[];
   };
-  // Fallback for direct data passing
+
   data?: SubCategoryData[];
   title?: string;
   explanation?: string;
@@ -22,10 +23,10 @@ interface SubCategoryDetailChartProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  'IRREGULARITY': '#ef4444', // Red
-  'COMPLAINT': '#f97316',    // Orange
-  'COMPLIMENT': '#22c55e',   // Green
-  'DEFAULT': '#3b82f6'       // Blue
+  'IRREGULARITY': '#ef4444',
+  'COMPLAINT': '#f97316',
+  'COMPLIMENT': '#22c55e',
+  'DEFAULT': '#3b82f6'
 };
 
 export function SubCategoryDetailChart({ 
@@ -35,12 +36,12 @@ export function SubCategoryDetailChart({
   explanation,
   limit = 20
 }: SubCategoryDetailChartProps) {
-  
-  // Transform data from result if provided
+
   const data = useMemo(() => {
     if (initialData) return initialData;
     if (!result?.rows) return [];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return result.rows.map((row: any) => ({
       subCategory: row.subCategory || row.subcategory || 'Unknown',
       parentCategory: row.parentCategory || row.parentcategory || 'Lainnya',
@@ -48,7 +49,22 @@ export function SubCategoryDetailChart({
     }));
   }, [result, initialData]);
 
-  // Handle empty data
+  const [expanded, setExpanded] = useState(false);
+  const total = data.reduce((sum, item) => sum + item.count, 0);
+
+  const sortedData = [...data].sort((a, b) => b.count - a.count);
+  const displayData = expanded ? sortedData : sortedData.slice(0, limit);
+  const maxCount = Math.max(...sortedData.map(d => d.count), 1);
+
+  const groupedByParent = useMemo(() => {
+    return displayData.reduce((acc, item) => {
+      const parent = item.parentCategory || 'Lainnya';
+      if (!acc[parent]) acc[parent] = [];
+      acc[parent].push(item);
+      return acc;
+    }, {} as Record<string, typeof data>);
+  }, [displayData]);
+
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-gray-100 flex flex-col overflow-hidden h-full shadow-sm">
@@ -70,27 +86,9 @@ export function SubCategoryDetailChart({
     );
   }
 
-  const [expanded, setExpanded] = useState(false);
-  const total = data.reduce((sum, item) => sum + item.count, 0);
-  
-  // Sort by count descending
-  const sortedData = [...data].sort((a, b) => b.count - a.count);
-  const displayData = expanded ? sortedData : sortedData.slice(0, limit);
-  const maxCount = Math.max(...sortedData.map(d => d.count), 1);
-
-  // Group by Parent Category for better visualization
-  const groupedByParent = useMemo(() => {
-    return displayData.reduce((acc, item) => {
-      const parent = item.parentCategory || 'Lainnya';
-      if (!acc[parent]) acc[parent] = [];
-      acc[parent].push(item);
-      return acc;
-    }, {} as Record<string, typeof data>);
-  }, [displayData]);
-
   return (
     <div className="bg-white rounded-xl border border-gray-100 flex flex-col overflow-hidden transition-all hover:shadow-md h-full">
-      {/* Header */}
+      {}
       <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between bg-white/50 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
@@ -104,13 +102,13 @@ export function SubCategoryDetailChart({
           Total: {total.toLocaleString('id-ID')}
         </div>
       </div>
-      
+
       <div className="p-0 flex-1 flex flex-col min-h-[300px]">
-        {/* Scrollable Content */}
+        {}
         <div className="flex-1 overflow-y-auto max-h-[400px] p-5">
           {Object.entries(groupedByParent).map(([parent, items]) => {
             const parentColor = CATEGORY_COLORS[parent.toUpperCase()] || CATEGORY_COLORS.DEFAULT;
-            
+
             return (
               <div key={parent} className="mb-6 last:mb-0">
                 <div className="sticky top-0 bg-white/95 backdrop-blur z-10 py-1 mb-2 border-b border-dashed border-gray-100 flex items-center gap-2">
@@ -123,7 +121,7 @@ export function SubCategoryDetailChart({
                   {items.map((item, idx) => {
                     const percentage = (item.count / total) * 100;
                     const barWidth = (item.count / maxCount) * 100;
-                    
+
                     return (
                       <div key={`${item.subCategory}-${idx}`} className="group">
                         <div className="flex justify-between items-end mb-1">
@@ -135,7 +133,7 @@ export function SubCategoryDetailChart({
                             <span className="text-[9px] text-gray-400 ml-1">({percentage.toFixed(1)}%)</span>
                           </div>
                         </div>
-                        
+
                         <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
                           <div 
                             className="h-full rounded-full transition-all duration-500 ease-out group-hover:brightness-95"
@@ -154,7 +152,7 @@ export function SubCategoryDetailChart({
           })}
         </div>
 
-        {/* Expand Control */}
+        {}
         {sortedData.length > limit && (
           <button
             onClick={() => setExpanded(!expanded)}
@@ -169,7 +167,7 @@ export function SubCategoryDetailChart({
         )}
       </div>
 
-      {/* Footer Info */}
+      {}
       {explanation && (
         <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-50 flex gap-2 items-start">
           <Info className="w-3.5 h-3.5 text-blue-500 mt-0.5 flex-shrink-0" />

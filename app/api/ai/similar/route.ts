@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { getHfClient } from '@/lib/hf-client';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes
+export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   try {

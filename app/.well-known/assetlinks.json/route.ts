@@ -1,13 +1,3 @@
-/**
- * @file
- * Route handler untuk menyajikan Digital Asset Links (assetlinks.json).
- *
- * File ini diperlukan oleh Google Play Protect untuk memverifikasi
- * kepemilikan aplikasi TWA (Trusted Web Activity) terhadap domain web.
- *
- * CATATAN: Ganti SHA256 fingerprint di public/.well-known/assetlinks.json
- * dengan fingerprint signing key aplikasi Android Anda.
- */
 
 import { NextResponse } from "next/server";
 

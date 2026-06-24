@@ -29,8 +29,6 @@ const AnalystCharts = dynamic(() => import('./analyst/OSAnalystCharts'), {
     ),
 });
 
-// --- Types ---
-
 export interface DivisionConfig {
     code: string;
     name: string;
@@ -60,8 +58,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
     const [showFilterModal, setShowFilterModal] = useState(false);
     const [filterLoading, setFilterLoading] = useState(false);
     const [allowCF, setAllowCF] = useState(false);
-    
-    // Global Filters State
+
     const [globalFilters, setGlobalFilters] = useState<{
         hubs: string[];
         branches: string[];
@@ -146,10 +143,10 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
 
     const filteredReportsList = useMemo(() => {
         let result = reports;
-        
+
         const now = new Date();
         const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-        
+
         let cutoffDate: Date;
         let explicitEndDate: Date | null = null;
 
@@ -165,13 +162,13 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
         } else {
             cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
         }
-        
+
         const endDate = explicitEndDate || today;
 
         result = result.filter((r) => {
             const dateStr = r.date_of_event || r.created_at;
             if (!dateStr) return false;
-            
+
             let d: Date;
             if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
                 const [y, m, day] = dateStr.split('-').map(Number);
@@ -179,11 +176,10 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
             } else {
                 d = new Date(dateStr);
             }
-            
+
             return d >= cutoffDate && d <= endDate;
         });
 
-        // Search query filter
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
             result = result.filter(r => 
@@ -194,7 +190,6 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
             );
         }
 
-        // Global Filters
         if (globalFilters.hubs.length > 0) {
             result = result.filter(r => globalFilters.hubs.includes(r.hub || ''));
         }
@@ -224,7 +219,6 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
     const drilldownUrl = (type: string, value: string) =>
         `/dashboard/analyst/drilldown?type=${type}&value=${encodeURIComponent(value)}&period=${dateRange}`;
 
-    // Filter options
     const availableOptions = useMemo(() => {
         const hubs = new Set<string>();
         const branches = new Set<string>();
@@ -248,7 +242,6 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
         };
     }, [reports]);
 
-    // --- Chart Data Preparation (Copied from Analyst page) ---
     const caseCategoryData = useMemo(() => {
         const irregularity = filteredReportsList.filter(r => r.category === 'Irregularity').length;
         const complaint = filteredReportsList.filter(r => r.category === 'Complaint').length;
@@ -277,7 +270,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
         filteredReportsList.forEach(r => {
             const dateStr = r.date_of_event || r.created_at;
             if (!dateStr) return;
-            
+
             let d: Date;
             if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
                 const [y, m, day] = dateStr.split('-').map(Number);
@@ -285,7 +278,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
             } else {
                 d = new Date(dateStr);
             }
-            
+
             if (isNaN(d.getTime())) return;
             const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
             if (!dataMap.has(key)) dataMap.set(key, { irregularity: 0, complaint: 0, compliment: 0, date: d });
@@ -313,7 +306,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
             if (raw.includes('terminal')) area = 'Terminal Area';
             else if (raw.includes('apron')) area = 'Apron Area';
             else if (raw.includes('general')) area = 'General';
-            
+
             if (area) {
                 areas[area] = (areas[area] || 0) + 1;
             }
@@ -377,8 +370,6 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
             .sort((a, b) => (b.irregularity + b.complaint + b.compliment) - (a.irregularity + a.complaint + a.compliment))
             .slice(0, 8);
     }, [filteredReportsList]);
-
-
 
     const monthlyComparisonData = useMemo(() => {
         const dataMap = new Map<string, { masuk: number; selesai: number; date: Date }>();
@@ -484,6 +475,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
         filteredReportsList.forEach((r) => {
             const rawArea = (r.area || '').toString().trim().toLowerCase();
             if (!rawArea.includes('terminal')) return;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const cat = (r as any).terminal_area_category as string | undefined;
             if (cat) counts[cat] = (counts[cat] || 0) + 1;
         });
@@ -497,6 +489,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
         filteredReportsList.forEach((r) => {
             const rawArea = (r.area || '').toString().trim().toLowerCase();
             if (!rawArea.includes('apron')) return;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const cat = (r as any).apron_area_category as string | undefined;
             if (cat) counts[cat] = (counts[cat] || 0) + 1;
         });
@@ -510,6 +503,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
         filteredReportsList.forEach((r) => {
             const rawArea = (r.area || '').toString().trim().toLowerCase();
             if (!rawArea.includes('general')) return;
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const cat = (r as any).general_category as string | undefined;
             if (cat) counts[cat] = (counts[cat] || 0) + 1;
         });
@@ -537,7 +531,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
             <header className={`relative overflow-hidden rounded-3xl p-6 sm:p-8 lg:p-10 animate-fade-in-up bg-gradient-to-br ${division.gradient}`}>
                 <NoiseTexture />
                 <div className="absolute -top-20 -right-20 w-60 h-60 bg-white/10 rounded-full blur-2xl" />
-                
+
                 <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                     <div>
                         <div className="flex items-center gap-3 mb-4">
@@ -663,7 +657,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
@@ -721,6 +715,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                 <CustomerFeedbackFilterModal
                     isOpen={showFilterModal}
                     onClose={() => setShowFilterModal(false)}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onApply={async (config: any) => {
                         setFilterLoading(true);
                         try {
@@ -749,6 +744,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
     );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function MiniStat({ icon: Icon, label, value, highlight }: { icon: any; label: string; value: string | number; highlight?: boolean }) {
     return (
         <div className="flex items-center gap-2 sm:gap-3">

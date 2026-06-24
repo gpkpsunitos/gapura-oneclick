@@ -19,16 +19,16 @@ function EmbedGeneralCategoryContent() {
   const searchParams = useSearchParams();
   const sourceSheet = searchParams.get('sourceSheet') === 'CGO' ? 'CGO' : 'NON CARGO';
   const sourcePage = searchParams.get('sourcePage') || 'customer-feedback-main';
-  
+
   const getBackUrl = () => {
     const baseUrl = sourcePage && sourcePage !== 'main' 
       ? `/embed/custom/${sourcePage.toLowerCase().replace(/\s+/g, '-')}`
       : '/embed/custom/customer-feedback-main';
     return `${baseUrl}?${searchParams.toString()}`;
   };
-  
+
   const isStatic = searchParams.get('viewMode') === 'static';
-  
+
   const [filters, setFilters] = useState<FilterState>({
     hub: searchParams.get('hub') || 'all',
     branch: searchParams.get('branch') || 'all',
@@ -55,7 +55,6 @@ function EmbedGeneralCategoryContent() {
               </div>
             </div>
           </div>
-          
 
         </header>
       )}

@@ -1,18 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+    ArrowDownAZ,
+    ArrowUpAZ,
     BookOpen,
-    Download,
-    ExternalLink,
+    ChevronsUpDown,
+    FileSpreadsheet,
     FileText,
-    Link2,
     Loader2,
     MoreHorizontal,
     Plus,
     RefreshCw,
     Search,
-    UploadCloud,
+    SlidersHorizontal,
     X,
 } from 'lucide-react';
 import {
@@ -23,11 +24,10 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { cn } from '@/lib/utils';
-import type {
-    DivisionDocument,
-    DivisionDocumentCategory,
-    DivisionDocumentSourceType,
-} from '@/types';
+import { exportDivisionDocumentsToExcel } from '@/lib/division-documents-export';
+import { getFileKind } from '@/lib/material-file-kind';
+import { AIRLINES } from '@/data/airlines';
+import type { DivisionDocument } from '@/types';
 
 interface StationOption {
     id: string;
@@ -35,69 +35,55 @@ interface StationOption {
     name: string;
 }
 
-interface UploadedFileMetadata {
-    file_url: string;
-    file_name: string;
-    file_size: number;
-    mime_type: string;
-    drive_file_id: string;
-    drive_folder_id: string;
-    drive_web_url: string;
-    drive_content_url: string | null;
+type SortKey = 'meeting_date' | 'title' | 'activity_location' | 'activity_pic' | 'station' | 'airline' | 'participants';
+type SortDir = 'asc' | 'desc';
+interface SortRule { key: SortKey; dir: SortDir }
+
+interface FieldFilters {
+    title: string;
+    activity_location: string;
+    activity_pic: string;
+    station: string;
+    airline: string;
+    participants: string;
+    dateFrom: string;
+    dateTo: string;
 }
 
+function emptyFilters(): FieldFilters {
+    return { title: '', activity_location: '', activity_pic: '', station: '', airline: '', participants: '', dateFrom: '', dateTo: '' };
+}
+
+const ROW_LIMIT = 50;
+
 interface DocumentFormState {
-    category: DivisionDocumentCategory;
     title: string;
-    description: string;
     meeting_date: string;
     activity_pic: string;
     activity_location: string;
-    source_type: DivisionDocumentSourceType;
+    station_id: string;
+    airline: string;
+    participants: string;
     external_url: string;
-    visibility_scope: 'all' | 'targeted';
-    audience_station_ids: string[];
-    audience_roles: string[];
+    materi_url: string;
+    attendance_url: string;
+    recording_url: string;
 }
-
-const CATEGORY_OPTIONS: Array<{
-    value: DivisionDocumentCategory;
-    label: string;
-}> = [
-    { value: 'NOTULENSI_RAPAT', label: 'Meeting Notes' },
-    { value: 'SAM_HANDBOOK', label: 'SAM / Handbook' },
-    { value: 'MANUAL', label: 'Manual' },
-    { value: 'NOTICE', label: 'Notice / Pengumuman' },
-    { value: 'MATERI_SOSIALISASI', label: 'Socialization Material' },
-    { value: 'TRAINING_MATERIAL', label: 'Training Material' },
-    { value: 'DOKUMEN_LAIN', label: 'Other Document' },
-];
-
-const RECIPIENT_ROLES = [
-    { value: 'MANAGER_CABANG', label: 'Manager Cabang' },
-    { value: 'STAFF_CABANG', label: 'Staff Cabang' },
-] as const;
-
-const ACCEPTED_FILES = '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.csv,.txt,.png,.jpg,.jpeg,.webp';
 
 function initialForm(): DocumentFormState {
     return {
-        category: 'NOTULENSI_RAPAT',
         title: '',
-        description: '',
         meeting_date: '',
         activity_pic: '',
         activity_location: '',
-        source_type: 'upload',
+        station_id: '',
+        airline: '',
+        participants: '',
         external_url: '',
-        visibility_scope: 'all',
-        audience_station_ids: [],
-        audience_roles: ['MANAGER_CABANG', 'STAFF_CABANG'],
+        materi_url: '',
+        attendance_url: '',
+        recording_url: '',
     };
-}
-
-function categoryLabel(category: DivisionDocumentCategory) {
-    return CATEGORY_OPTIONS.find((o) => o.value === category)?.label || category;
 }
 
 function formatDate(value?: string | null) {
@@ -108,26 +94,37 @@ function formatDate(value?: string | null) {
     return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
 }
 
-function formatFileSize(value?: number | null) {
-    if (!value) return '';
-    if (value < 1024 * 1024) return `${Math.max(1, Math.round(value / 1024))} KB`;
-    return `${(value / (1024 * 1024)).toFixed(1)} MB`;
+function sortValue(doc: DivisionDocument, key: SortKey): string {
+    switch (key) {
+        case 'meeting_date': return doc.meeting_date || doc.created_at || '';
+        case 'title': return doc.title || '';
+        case 'activity_location': return doc.activity_location || '';
+        case 'station': return doc.station_code || doc.station_name || '';
+        case 'airline': return doc.airline || '';
+        case 'activity_pic': return doc.activity_pic || '';
+        case 'participants': return doc.participants || '';
+        default: return '';
+    }
 }
 
-function audienceSummary(document: DivisionDocument, stations: StationOption[]) {
-    if (document.visibility_scope === 'all') return 'All branches';
-    const stationMap = new Map(stations.map((s) => [s.id, s.code]));
-    const stationLabels = document.audience_station_ids.map((id) => stationMap.get(id) || id);
-    const roleLabels = document.audience_roles.map(
-        (r) => RECIPIENT_ROLES.find((o) => o.value === r)?.label || r
+function MaterialButton({ href, label }: { href?: string | null; label: string }) {
+    if (!href) return null;
+    const kind = getFileKind(href);
+    const Icon = kind.icon;
+    return (
+        <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(
+                'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-bold transition hover:shadow-sm',
+                kind.className
+            )}
+        >
+            <Icon className="h-3.5 w-3.5" />
+            {label}
+        </a>
     );
-    return [...stationLabels, ...roleLabels].join(', ') || 'Selected recipients';
-}
-
-function documentHref(document: DivisionDocument) {
-    return document.source_type === 'upload'
-        ? `/api/division-documents/${document.id}`
-        : document.external_url || undefined;
 }
 
 export function AnalystDocumentManagementPage() {
@@ -139,14 +136,17 @@ export function AnalystDocumentManagementPage() {
     const [stations, setStations] = useState<StationOption[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [exporting, setExporting] = useState(false);
     const [error, setError] = useState('');
     const [search, setSearch] = useState('');
-    const [categoryFilter, setCategoryFilter] = useState<'all' | DivisionDocumentCategory>('all');
-    const [selected, setSelected] = useState<DivisionDocument | null>(null);
+    const [sortRules, setSortRules] = useState<SortRule[]>([{ key: 'meeting_date', dir: 'desc' }]);
+    const [filters, setFilters] = useState<FieldFilters>(emptyFilters());
+    const [filtersOpen, setFiltersOpen] = useState(false);
     const [editing, setEditing] = useState<DivisionDocument | null>(null);
     const [composerOpen, setComposerOpen] = useState(false);
     const [form, setForm] = useState<DocumentFormState>(initialForm());
-    const [file, setFile] = useState<File | null>(null);
+    const [visibleCount, setVisibleCount] = useState(ROW_LIMIT);
+    const sentinelRef = useRef<HTMLDivElement | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -173,38 +173,77 @@ export function AnalystDocumentManagementPage() {
 
     useEffect(() => { void load(); }, [load]);
 
-    const filteredDocuments = useMemo(() => {
+    const visibleDocuments = useMemo(() => {
         const query = search.trim().toLowerCase();
-        return documents.filter((doc) => {
-            if (categoryFilter !== 'all' && doc.category !== categoryFilter) return false;
-            if (!query) return true;
-            return [doc.title, doc.description, doc.file_name, categoryLabel(doc.category)]
-                .filter(Boolean).join(' ').toLowerCase().includes(query);
+        const filtered = documents.filter((doc) => {
+            if (query) {
+                const haystack = [doc.title, doc.activity_location, doc.activity_pic, doc.station_code, doc.station_name, doc.airline, doc.participants]
+                    .filter(Boolean).join(' ').toLowerCase();
+                if (!haystack.includes(query)) return false;
+            }
+            if (filters.title && !(doc.title || '').toLowerCase().includes(filters.title.toLowerCase())) return false;
+            if (filters.activity_location && !(doc.activity_location || '').toLowerCase().includes(filters.activity_location.toLowerCase())) return false;
+            if (filters.activity_pic && !(doc.activity_pic || '').toLowerCase().includes(filters.activity_pic.toLowerCase())) return false;
+            if (filters.station) {
+                const stationHay = `${doc.station_code || ''} ${doc.station_name || ''}`.toLowerCase();
+                if (!stationHay.includes(filters.station.toLowerCase())) return false;
+            }
+            if (filters.airline && !(doc.airline || '').toLowerCase().includes(filters.airline.toLowerCase())) return false;
+            if (filters.participants && !(doc.participants || '').toLowerCase().includes(filters.participants.toLowerCase())) return false;
+            const docDate = (doc.meeting_date || doc.created_at || '').slice(0, 10);
+            if (filters.dateFrom && (!docDate || docDate < filters.dateFrom)) return false;
+            if (filters.dateTo && (!docDate || docDate > filters.dateTo)) return false;
+            return true;
         });
-    }, [categoryFilter, documents, search]);
+        const sorted = [...filtered].sort((a, b) => {
+            for (const rule of sortRules) {
+                const cmp = sortValue(a, rule.key).localeCompare(sortValue(b, rule.key));
+                if (cmp !== 0) return rule.dir === 'asc' ? cmp : -cmp;
+            }
+            return 0;
+        });
+        return sorted;
+    }, [documents, search, filters, sortRules]);
+
+    const displayedDocuments = useMemo(
+        () => visibleDocuments.slice(0, visibleCount),
+        [visibleDocuments, visibleCount]
+    );
+
+    useEffect(() => { setVisibleCount(ROW_LIMIT); }, [search, filters, sortRules]);
+
+    useEffect(() => {
+        const node = sentinelRef.current;
+        if (!node) return;
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0]?.isIntersecting) {
+                setVisibleCount((c) => Math.min(c + ROW_LIMIT, visibleDocuments.length));
+            }
+        }, { rootMargin: '300px' });
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, [visibleDocuments.length]);
 
     const openCreate = useCallback(() => {
         setEditing(null);
         setForm(initialForm());
-        setFile(null);
         setComposerOpen(true);
     }, []);
 
     const openEdit = useCallback((doc: DivisionDocument) => {
         setEditing(doc);
-        setFile(null);
         setForm({
-            category: doc.category,
             title: doc.title,
-            description: doc.description || '',
             meeting_date: doc.meeting_date?.slice(0, 10) || '',
             activity_pic: doc.activity_pic || '',
             activity_location: doc.activity_location || '',
-            source_type: doc.source_type,
+            station_id: doc.station_id || '',
+            airline: doc.airline || '',
+            participants: doc.participants || '',
             external_url: doc.external_url || '',
-            visibility_scope: doc.visibility_scope === 'all' ? 'all' : 'targeted',
-            audience_station_ids: [...doc.audience_station_ids],
-            audience_roles: doc.audience_roles.length ? [...doc.audience_roles] : ['MANAGER_CABANG', 'STAFF_CABANG'],
+            materi_url: doc.materi_url || '',
+            attendance_url: doc.attendance_url || '',
+            recording_url: doc.recording_url || '',
         });
         setComposerOpen(true);
     }, []);
@@ -212,94 +251,33 @@ export function AnalystDocumentManagementPage() {
     const closeComposer = useCallback(() => {
         setComposerOpen(false);
         setEditing(null);
-        setFile(null);
         setForm(initialForm());
     }, []);
-
-    const toggleRole = useCallback((r: string) => {
-        setForm((cur) => ({
-            ...cur,
-            audience_roles: cur.audience_roles.includes(r)
-                ? cur.audience_roles.filter((x) => x !== r)
-                : [...cur.audience_roles, r],
-        }));
-    }, []);
-
-    const toggleStation = useCallback((id: string) => {
-        setForm((cur) => ({
-            ...cur,
-            audience_station_ids: cur.audience_station_ids.includes(id)
-                ? cur.audience_station_ids.filter((x) => x !== id)
-                : [...cur.audience_station_ids, id],
-        }));
-    }, []);
-
-    const uploadFile = useCallback(async () => {
-        if (!file) return null;
-        const payload = new FormData();
-        payload.set('file', file);
-        payload.set('division', 'ANALYST');
-        payload.set('category', form.category);
-        payload.set('title', form.title);
-        const res = await fetch('/api/division-documents/upload', { method: 'POST', body: payload });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Unable to upload document to Google Drive');
-        return data as UploadedFileMetadata;
-    }, [file, form.category, form.title]);
 
     const submit = useCallback(async (event: React.FormEvent) => {
         event.preventDefault();
         setSaving(true);
         setError('');
         try {
-            if (form.source_type === 'upload' && !file && !editing?.drive_file_id) {
-                throw new Error('Select a document to upload');
-            }
-            if (form.source_type === 'link' && !form.external_url.trim()) {
-                throw new Error('Enter a valid external document URL');
-            }
-            if (form.visibility_scope === 'targeted' && form.audience_station_ids.length === 0) {
-                throw new Error('Select at least one recipient branch');
-            }
-            if (form.audience_roles.length === 0) {
-                throw new Error('Select at least one recipient role');
-            }
-
-            const uploaded = form.source_type === 'upload' ? await uploadFile() : null;
-            const existingUpload = editing && form.source_type === 'upload' ? {
-                file_url: editing.file_url,
-                file_name: editing.file_name,
-                file_size: editing.file_size,
-                mime_type: editing.mime_type,
-                drive_file_id: editing.drive_file_id,
-                drive_folder_id: editing.drive_folder_id,
-                drive_web_url: editing.drive_web_url,
-                drive_content_url: editing.drive_content_url,
-            } : null;
-            const fileMeta = uploaded || existingUpload;
-
             const body = {
                 division: 'ANALYST',
-                category: form.category,
-                title: form.title.trim(),
-                description: form.description.trim() || null,
+                category: 'NOTULENSI_RAPAT',
+                title: form.title.trim() || '(No agenda)',
                 meeting_date: form.meeting_date || null,
                 activity_pic: form.activity_pic.trim() || null,
                 activity_location: form.activity_location.trim() || null,
-                source_type: form.source_type,
-                external_url: form.source_type === 'link' ? form.external_url.trim() : null,
-                file_url: fileMeta?.file_url || null,
-                file_name: fileMeta?.file_name || null,
-                file_size: fileMeta?.file_size || null,
-                mime_type: fileMeta?.mime_type || null,
-                drive_file_id: fileMeta?.drive_file_id || null,
-                drive_folder_id: fileMeta?.drive_folder_id || null,
-                drive_web_url: fileMeta?.drive_web_url || null,
-                drive_content_url: fileMeta?.drive_content_url || null,
-                visibility_scope: form.visibility_scope,
-                audience_station_ids: form.visibility_scope === 'targeted' ? form.audience_station_ids : [],
-                audience_roles: form.audience_roles,
-                audience_label: form.visibility_scope === 'all' ? 'All branches' : null,
+                station_id: form.station_id || null,
+                airline: form.airline.trim() || null,
+                participants: form.participants.trim() || null,
+                source_type: 'link',
+                external_url: form.external_url.trim() || null,
+                materi_url: form.materi_url.trim() || null,
+                attendance_url: form.attendance_url.trim() || null,
+                recording_url: form.recording_url.trim() || null,
+                visibility_scope: 'all',
+                audience_station_ids: [],
+                audience_roles: ['MANAGER_CABANG', 'STAFF_CABANG'],
+                audience_label: 'All branches',
             };
 
             const res = await fetch(
@@ -315,7 +293,7 @@ export function AnalystDocumentManagementPage() {
         } finally {
             setSaving(false);
         }
-    }, [closeComposer, editing, file, form, load, uploadFile]);
+    }, [closeComposer, editing, form, load]);
 
     const removeDocument = useCallback(async (doc: DivisionDocument) => {
         if (!window.confirm(`Remove "${doc.title}"?`)) return;
@@ -325,14 +303,87 @@ export function AnalystDocumentManagementPage() {
             const res = await fetch(`/api/division-documents/${doc.id}`, { method: 'DELETE' });
             const payload = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(payload.error || 'Unable to remove document');
-            if (selected?.id === doc.id) setSelected(null);
             await load();
         } catch (e) {
             setError(e instanceof Error ? e.message : 'Unable to remove document');
         } finally {
             setSaving(false);
         }
-    }, [load, selected]);
+    }, [load]);
+
+    const exportExcel = useCallback(async () => {
+        setExporting(true);
+        try {
+            await exportDivisionDocumentsToExcel(visibleDocuments);
+        } finally {
+            setExporting(false);
+        }
+    }, [visibleDocuments]);
+
+    const toggleSort = useCallback((key: SortKey, additive: boolean) => {
+        setSortRules((current) => {
+            const idx = current.findIndex((r) => r.key === key);
+            if (additive) {
+                if (idx === -1) return [...current, { key, dir: 'asc' }];
+                const next = [...current];
+                next[idx] = { ...next[idx], dir: next[idx].dir === 'asc' ? 'desc' : 'asc' };
+                return next;
+            }
+            if (current.length === 1 && current[0].key === key) {
+                return [{ key, dir: current[0].dir === 'asc' ? 'desc' : 'asc' }];
+            }
+            return [{ key, dir: 'asc' }];
+        });
+    }, []);
+
+    const hasActiveFilters = useMemo(() => Object.values(filters).some(Boolean), [filters]);
+
+    const removeSortRule = useCallback((key: SortKey) => {
+        setSortRules((current) => {
+            const next = current.filter((r) => r.key !== key);
+            return next.length > 0 ? next : [{ key: 'meeting_date', dir: 'desc' }];
+        });
+    }, []);
+
+    const SORT_LABELS: Record<SortKey, string> = {
+        meeting_date: 'Date',
+        title: 'Agenda',
+        activity_location: 'Venue',
+        activity_pic: 'PIC / Division',
+        station: 'Branch',
+        airline: 'Airlines',
+        participants: 'Participants',
+    };
+
+    const SortHeader = ({ label, sortKeyValue }: { label: string; sortKeyValue: SortKey }) => {
+        const ruleIndex = sortRules.findIndex((r) => r.key === sortKeyValue);
+        const rule = ruleIndex !== -1 ? sortRules[ruleIndex] : null;
+        return (
+            <button
+                type="button"
+                onClick={(e) => toggleSort(sortKeyValue, e.shiftKey)}
+                title="Klik untuk sort · Shift+klik untuk multi-sort"
+                className={cn(
+                    'inline-flex items-center gap-1 text-left text-xs font-semibold uppercase tracking-wide transition-colors',
+                    rule ? 'text-blue-600' : 'text-slate-500 hover:text-slate-800'
+                )}
+            >
+                {label}
+                {rule ? (
+                    <span className="inline-flex items-center gap-0.5">
+                        {rule.dir === 'asc' ? <ArrowUpAZ className="h-3.5 w-3.5" /> : <ArrowDownAZ className="h-3.5 w-3.5" />}
+                        {sortRules.length > 1 && (
+                            <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-blue-600 text-[9px] font-bold text-white">
+                                {ruleIndex + 1}
+                            </span>
+                        )}
+                    </span>
+                ) : (
+                    <ChevronsUpDown className="h-3 w-3 opacity-25" />
+                )}
+            </button>
+        );
+    };
 
     return (
         <div className="min-h-screen bg-[#F7F8FA] px-4 py-5 text-slate-900 sm:px-6 lg:px-8">
@@ -342,11 +393,11 @@ export function AnalystDocumentManagementPage() {
                         <div>
                             <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">
                                 <BookOpen className="h-4 w-4" />
-                                Documents
+                                Circulars & Materials
                             </div>
                             <h1 className="text-2xl font-bold tracking-tight text-slate-950">Manage Documents</h1>
                             <p className="mt-1 max-w-2xl text-sm text-slate-500">
-                                Share meeting notes, SAM, manuals, notices, and other materials with branch managers and staff.
+                                Log each meeting / circular with branch, airline, and material links for branch managers and staff.
                             </p>
                         </div>
                         <div className="flex items-center gap-2">
@@ -361,11 +412,20 @@ export function AnalystDocumentManagementPage() {
                             </button>
                             <button
                                 type="button"
+                                onClick={() => void exportExcel()}
+                                disabled={exporting || visibleDocuments.length === 0}
+                                className="inline-flex h-10 items-center gap-2 rounded-lg border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                            >
+                                {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileSpreadsheet className="h-4 w-4" />}
+                                Export Excel
+                            </button>
+                            <button
+                                type="button"
                                 onClick={openCreate}
                                 className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
                             >
                                 <Plus className="h-4 w-4" />
-                                Add document
+                                Add entry
                             </button>
                         </div>
                     </div>
@@ -385,171 +445,202 @@ export function AnalystDocumentManagementPage() {
                             <input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search title, category, or file name"
+                                placeholder="Search agenda, branch, airline, PIC, or participants"
                                 className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-blue-500 focus:bg-white"
                             />
                         </div>
-                        <select
-                            value={categoryFilter}
-                            onChange={(e) => setCategoryFilter(e.target.value as typeof categoryFilter)}
-                            className="h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500"
+                        <button
+                            type="button"
+                            onClick={() => setFiltersOpen((v) => !v)}
+                            className={cn(
+                                'inline-flex h-10 items-center gap-2 rounded-lg border px-4 text-sm font-semibold transition',
+                                filtersOpen || hasActiveFilters
+                                    ? 'border-blue-600 bg-blue-50 text-blue-700'
+                                    : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                            )}
                         >
-                            <option value="all">All categories</option>
-                            {CATEGORY_OPTIONS.map((o) => (
-                                <option key={o.value} value={o.value}>{o.label}</option>
-                            ))}
-                        </select>
+                            <SlidersHorizontal className="h-4 w-4" />
+                            Filters
+                            {hasActiveFilters && <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />}
+                        </button>
+                        {hasActiveFilters && (
+                            <button
+                                type="button"
+                                onClick={() => setFilters(emptyFilters())}
+                                className="inline-flex h-10 items-center gap-1.5 px-2 text-sm font-semibold text-slate-500 transition hover:text-red-600"
+                            >
+                                <X className="h-4 w-4" />
+                                Clear filters
+                            </button>
+                        )}
+                    </div>
+
+                    {filtersOpen && (
+                        <div className="grid grid-cols-1 gap-3 border-b border-slate-200 bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-4">
+                            <label className="space-y-1 text-xs font-semibold text-slate-500">
+                                Agenda
+                                <input value={filters.title} onChange={(e) => setFilters((f) => ({ ...f, title: e.target.value }))} className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500" />
+                            </label>
+                            <label className="space-y-1 text-xs font-semibold text-slate-500">
+                                Venue
+                                <input value={filters.activity_location} onChange={(e) => setFilters((f) => ({ ...f, activity_location: e.target.value }))} className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500" />
+                            </label>
+                            <label className="space-y-1 text-xs font-semibold text-slate-500">
+                                PIC / Division
+                                <input value={filters.activity_pic} onChange={(e) => setFilters((f) => ({ ...f, activity_pic: e.target.value }))} className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500" />
+                            </label>
+                            <label className="space-y-1 text-xs font-semibold text-slate-500">
+                                Branch
+                                <input value={filters.station} onChange={(e) => setFilters((f) => ({ ...f, station: e.target.value }))} className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500" />
+                            </label>
+                            <label className="space-y-1 text-xs font-semibold text-slate-500">
+                                Airlines
+                                <select value={filters.airline} onChange={(e) => setFilters((f) => ({ ...f, airline: e.target.value }))} className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500">
+                                    <option value="">All Airlines</option>
+                                    {AIRLINES.map((a) => (
+                                        <option key={a.code} value={a.name}>{a.code} — {a.name}</option>
+                                    ))}
+                                </select>
+                            </label>
+                            <label className="space-y-1 text-xs font-semibold text-slate-500">
+                                Participants
+                                <input value={filters.participants} onChange={(e) => setFilters((f) => ({ ...f, participants: e.target.value }))} className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500" />
+                            </label>
+                            <label className="space-y-1 text-xs font-semibold text-slate-500">
+                                Date from
+                                <input type="date" value={filters.dateFrom} onChange={(e) => setFilters((f) => ({ ...f, dateFrom: e.target.value }))} className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500" />
+                            </label>
+                            <label className="space-y-1 text-xs font-semibold text-slate-500">
+                                Date to
+                                <input type="date" value={filters.dateTo} onChange={(e) => setFilters((f) => ({ ...f, dateTo: e.target.value }))} className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500" />
+                            </label>
+                        </div>
+                    )}
+
+                    <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-slate-50/60 px-4 py-2.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wide text-slate-400">Sort by</span>
+                        {sortRules.map((rule, i) => (
+                            <span
+                                key={rule.key}
+                                className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-bold text-blue-700"
+                            >
+                                {sortRules.length > 1 && (
+                                    <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-blue-600 text-[9px] font-bold text-white">
+                                        {i + 1}
+                                    </span>
+                                )}
+                                {SORT_LABELS[rule.key]}
+                                {rule.dir === 'asc' ? <ArrowUpAZ className="h-3 w-3" /> : <ArrowDownAZ className="h-3 w-3" />}
+                                <button
+                                    type="button"
+                                    onClick={() => removeSortRule(rule.key)}
+                                    aria-label={`Remove sort by ${SORT_LABELS[rule.key]}`}
+                                    className="ml-0.5 rounded-full p-0.5 transition hover:bg-blue-200"
+                                >
+                                    <X className="h-2.5 w-2.5" />
+                                </button>
+                            </span>
+                        ))}
+                        {sortRules.length > 1 && (
+                            <button
+                                type="button"
+                                onClick={() => setSortRules([{ key: 'meeting_date', dir: 'desc' }])}
+                                className="text-xs font-semibold text-slate-400 transition hover:text-red-500"
+                            >
+                                Reset
+                            </button>
+                        )}
+                        <span className="ml-auto hidden text-[11px] font-medium text-slate-400 sm:block">
+                            Shift+klik header kolom untuk multi-sort
+                        </span>
                     </div>
 
                     {loading ? (
                         <div className="flex min-h-80 items-center justify-center">
                             <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
                         </div>
-                    ) : filteredDocuments.length === 0 ? (
+                    ) : visibleDocuments.length === 0 ? (
                         <div className="flex min-h-80 flex-col items-center justify-center px-6 text-center">
                             <FileText className="h-10 w-10 text-slate-300" />
-                            <h2 className="mt-4 text-base font-semibold text-slate-800">No documents found</h2>
-                            <p className="mt-1 text-sm text-slate-500">Add the first document or adjust the current filters.</p>
+                            <h2 className="mt-4 text-base font-semibold text-slate-800">No entries found</h2>
+                            <p className="mt-1 text-sm text-slate-500">Add the first entry or adjust your search.</p>
                         </div>
                     ) : (
-                        <div className="divide-y divide-slate-100">
-                            {filteredDocuments.map((doc) => {
-                                const href = documentHref(doc);
-                                return (
-                                    <article key={doc.id} className="group flex items-center gap-4 px-4 py-4 transition hover:bg-slate-50 sm:px-6">
-                                        <button
-                                            type="button"
-                                            onClick={() => setSelected(doc)}
-                                            className="flex min-w-0 flex-1 items-center gap-4 text-left"
-                                        >
-                                            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
-                                                <FileText className="h-5 w-5" />
-                                            </span>
-                                            <span className="min-w-0 flex-1">
-                                                <span className="block truncate text-sm font-semibold text-slate-900">{doc.title}</span>
-                                                <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-slate-500">
-                                                    <span>{categoryLabel(doc.category)}</span>
-                                                    <span aria-hidden="true">•</span>
-                                                    <span>{audienceSummary(doc, stations)}</span>
-                                                    <span aria-hidden="true">•</span>
-                                                    <span>{formatDate(doc.meeting_date || doc.created_at)}</span>
-                                                </span>
-                                            </span>
-                                        </button>
-                                        {href ? (
-                                            <a
-                                                href={href}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="hidden h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-xs font-semibold text-slate-700 transition hover:bg-white sm:inline-flex"
-                                            >
-                                                {doc.source_type === 'upload' ? <Download className="h-4 w-4" /> : <ExternalLink className="h-4 w-4" />}
-                                                Open
-                                            </a>
-                                        ) : null}
-                                        {canManage ? (
-                                            <DropdownMenu>
-                                                <DropdownMenuTrigger asChild>
-                                                    <button
-                                                        type="button"
-                                                        className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white hover:text-slate-900"
-                                                        aria-label="Document actions"
-                                                    >
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                    </button>
-                                                </DropdownMenuTrigger>
-                                                <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem onClick={() => openEdit(doc)}>Edit</DropdownMenuItem>
-                                                    <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => void removeDocument(doc)}>
-                                                        Remove
-                                                    </DropdownMenuItem>
-                                                </DropdownMenuContent>
-                                            </DropdownMenu>
-                                        ) : null}
-                                    </article>
-                                );
-                            })}
+                        <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full min-w-[960px] border-collapse text-sm">
+                                <thead>
+                                    <tr className="border-b border-slate-200 bg-slate-50">
+                                        <th className="px-4 py-3 text-left"><SortHeader label="Date" sortKeyValue="meeting_date" /></th>
+                                        <th className="px-4 py-3 text-left"><SortHeader label="Agenda" sortKeyValue="title" /></th>
+                                        <th className="px-4 py-3 text-left"><SortHeader label="Venue" sortKeyValue="activity_location" /></th>
+                                        <th className="px-4 py-3 text-left"><SortHeader label="PIC / Division" sortKeyValue="activity_pic" /></th>
+                                        <th className="px-4 py-3 text-left"><SortHeader label="Branch" sortKeyValue="station" /></th>
+                                        <th className="px-4 py-3 text-left"><SortHeader label="Airlines" sortKeyValue="airline" /></th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Materials</th>
+                                        <th className="px-4 py-3" />
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {displayedDocuments.map((doc) => (
+                                        <tr key={doc.id} className="transition hover:bg-slate-50">
+                                            <td className="px-4 py-3 whitespace-nowrap text-slate-700">{formatDate(doc.meeting_date || doc.created_at)}</td>
+                                            <td className="px-4 py-3 max-w-[240px] whitespace-normal break-words font-semibold text-slate-900">{doc.title}</td>
+                                            <td className="px-4 py-3 max-w-[160px] whitespace-normal break-words text-slate-600">{doc.activity_location || '—'}</td>
+                                            <td className="px-4 py-3 text-slate-600">{doc.activity_pic || '—'}</td>
+                                            <td className="px-4 py-3 text-slate-600">{doc.station_code || doc.station_name || '—'}</td>
+                                            <td className="px-4 py-3 text-slate-600">{doc.airline || '—'}</td>
+                                            <td className="px-4 py-3">
+                                                <div className="flex flex-wrap gap-2">
+                                                    <MaterialButton href={doc.external_url} label="Minutes" />
+                                                    <MaterialButton href={doc.materi_url} label="Materials" />
+                                                    <MaterialButton href={doc.attendance_url} label="Attendance" />
+                                                    <MaterialButton href={doc.recording_url} label="Recording" />
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-right">
+                                                {canManage ? (
+                                                    <DropdownMenu>
+                                                        <DropdownMenuTrigger asChild>
+                                                            <button
+                                                                type="button"
+                                                                className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white hover:text-slate-900"
+                                                                aria-label="Document actions"
+                                                            >
+                                                                <MoreHorizontal className="h-4 w-4" />
+                                                            </button>
+                                                        </DropdownMenuTrigger>
+                                                        <DropdownMenuContent align="end">
+                                                            <DropdownMenuItem onClick={() => openEdit(doc)}>Edit</DropdownMenuItem>
+                                                            <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => void removeDocument(doc)}>
+                                                                Remove
+                                                            </DropdownMenuItem>
+                                                        </DropdownMenuContent>
+                                                    </DropdownMenu>
+                                                ) : null}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
+                        {visibleCount < visibleDocuments.length && (
+                            <div ref={sentinelRef} className="flex items-center justify-center py-5">
+                                <Loader2 className="h-4 w-4 animate-spin text-blue-600/60" />
+                            </div>
+                        )}
+                        </>
                     )}
                 </section>
             </div>
 
-            {selected ? (
-                <div className="fixed inset-0 z-40">
-                    <button type="button" className="absolute inset-0 bg-slate-950/30" onClick={() => setSelected(null)} aria-label="Close" />
-                    <aside className="absolute inset-y-0 right-0 w-full max-w-lg overflow-y-auto bg-white shadow-2xl">
-                        <div className="flex items-start justify-between border-b border-slate-200 p-6">
-                            <div>
-                                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-blue-700">{categoryLabel(selected.category)}</p>
-                                <h2 className="mt-2 text-xl font-bold text-slate-950">{selected.title}</h2>
-                            </div>
-                            <button type="button" onClick={() => setSelected(null)} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
-                                <X className="h-4 w-4" />
-                            </button>
-                        </div>
-                        <div className="space-y-6 p-6">
-                            {selected.description ? <p className="text-sm leading-6 text-slate-600">{selected.description}</p> : null}
-                            <dl className="grid grid-cols-2 gap-4">
-                                <div className="rounded-xl bg-slate-50 p-4">
-                                    <dt className="text-xs text-slate-500">Published</dt>
-                                    <dd className="mt-1 text-sm font-semibold text-slate-900">{formatDate(selected.meeting_date || selected.created_at)}</dd>
-                                </div>
-                                <div className="rounded-xl bg-slate-50 p-4">
-                                    <dt className="text-xs text-slate-500">Recipients</dt>
-                                    <dd className="mt-1 text-sm font-semibold text-slate-900">{audienceSummary(selected, stations)}</dd>
-                                </div>
-                                {selected.activity_pic ? (
-                                    <div className="rounded-xl bg-slate-50 p-4">
-                                        <dt className="text-xs text-slate-500">PIC</dt>
-                                        <dd className="mt-1 text-sm font-semibold text-slate-900">{selected.activity_pic}</dd>
-                                    </div>
-                                ) : null}
-                                {selected.activity_location ? (
-                                    <div className="rounded-xl bg-slate-50 p-4">
-                                        <dt className="text-xs text-slate-500">Location</dt>
-                                        <dd className="mt-1 text-sm font-semibold text-slate-900">{selected.activity_location}</dd>
-                                    </div>
-                                ) : null}
-                            </dl>
-                            <div className="rounded-xl border border-slate-200 p-4">
-                                <p className="text-xs font-medium text-slate-500">Document source</p>
-                                <p className="mt-1 break-all text-sm font-semibold text-slate-900">
-                                    {selected.file_name || selected.external_url || 'Document'}
-                                    {selected.file_size ? ` (${formatFileSize(selected.file_size)})` : ''}
-                                </p>
-                                {documentHref(selected) ? (
-                                    <a
-                                        href={documentHref(selected)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="mt-4 inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
-                                    >
-                                        {selected.source_type === 'upload' ? <Download className="h-4 w-4" /> : <ExternalLink className="h-4 w-4" />}
-                                        Open document
-                                    </a>
-                                ) : null}
-                            </div>
-                            {canManage ? (
-                                <button
-                                    type="button"
-                                    onClick={() => { const cur = selected; setSelected(null); openEdit(cur); }}
-                                    className="h-10 rounded-lg border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                                >
-                                    Edit document
-                                </button>
-                            ) : null}
-                        </div>
-                    </aside>
-                </div>
-            ) : null}
-
             {composerOpen ? (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
-                    <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+                    <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
                             <div>
-                                <h2 className="text-lg font-bold text-slate-950">{editing ? 'Edit document' : 'Add document'}</h2>
-                                <p className="mt-1 text-sm text-slate-500">Set the source and choose who should receive this document.</p>
+                                <h2 className="text-lg font-bold text-slate-950">{editing ? 'Edit entry' : 'Add entry'}</h2>
+                                <p className="mt-1 text-sm text-slate-500">Log the meeting details and material links.</p>
                             </div>
                             <button type="button" onClick={closeComposer} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
                                 <X className="h-4 w-4" />
@@ -560,19 +651,7 @@ export function AnalystDocumentManagementPage() {
                             <div className="min-h-0 flex-1 space-y-5 overflow-y-auto p-6">
                                 <div className="grid gap-5 sm:grid-cols-2">
                                     <label className="space-y-2 text-sm font-semibold text-slate-700">
-                                        Category
-                                        <select
-                                            value={form.category}
-                                            onChange={(e) => setForm((c) => ({ ...c, category: e.target.value as DivisionDocumentCategory }))}
-                                            className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500"
-                                        >
-                                            {CATEGORY_OPTIONS.map((o) => (
-                                                <option key={o.value} value={o.value}>{o.label}</option>
-                                            ))}
-                                        </select>
-                                    </label>
-                                    <label className="space-y-2 text-sm font-semibold text-slate-700">
-                                        Document date
+                                        Date
                                         <input
                                             type="date"
                                             value={form.meeting_date}
@@ -580,39 +659,8 @@ export function AnalystDocumentManagementPage() {
                                             className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
                                         />
                                     </label>
-                                </div>
-
-                                <label className="block space-y-2 text-sm font-semibold text-slate-700">
-                                    Title
-                                    <input
-                                        value={form.title}
-                                        onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))}
-                                        className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
-                                        required
-                                    />
-                                </label>
-
-                                <label className="block space-y-2 text-sm font-semibold text-slate-700">
-                                    Description
-                                    <textarea
-                                        value={form.description}
-                                        onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))}
-                                        rows={3}
-                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 font-normal outline-none focus:border-blue-500"
-                                    />
-                                </label>
-
-                                <div className="grid gap-5 sm:grid-cols-2">
                                     <label className="space-y-2 text-sm font-semibold text-slate-700">
-                                        PIC
-                                        <input
-                                            value={form.activity_pic}
-                                            onChange={(e) => setForm((c) => ({ ...c, activity_pic: e.target.value }))}
-                                            className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
-                                        />
-                                    </label>
-                                    <label className="space-y-2 text-sm font-semibold text-slate-700">
-                                        Location
+                                        Venue / Location
                                         <input
                                             value={form.activity_location}
                                             onChange={(e) => setForm((c) => ({ ...c, activity_location: e.target.value }))}
@@ -621,137 +669,107 @@ export function AnalystDocumentManagementPage() {
                                     </label>
                                 </div>
 
-                                <fieldset>
-                                    <legend className="text-sm font-semibold text-slate-700">Document source</legend>
-                                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                                        {([
-                                            { value: 'upload', label: 'Upload to Google Drive', icon: UploadCloud },
-                                            { value: 'link', label: 'External link', icon: Link2 },
-                                        ] as const).map((opt) => {
-                                            const Icon = opt.icon;
-                                            return (
-                                                <button
-                                                    key={opt.value}
-                                                    type="button"
-                                                    onClick={() => setForm((c) => ({ ...c, source_type: opt.value }))}
-                                                    className={cn(
-                                                        'flex items-center gap-3 rounded-xl border p-4 text-left text-sm font-semibold transition',
-                                                        form.source_type === opt.value
-                                                            ? 'border-blue-500 bg-blue-50 text-blue-800'
-                                                            : 'border-slate-200 text-slate-700 hover:bg-slate-50'
-                                                    )}
-                                                >
-                                                    <Icon className="h-5 w-5" />
-                                                    {opt.label}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </fieldset>
+                                <label className="block space-y-2 text-sm font-semibold text-slate-700">
+                                    Agenda
+                                    <input
+                                        value={form.title}
+                                        onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))}
+                                        className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
+                                    />
+                                </label>
 
-                                {form.source_type === 'upload' ? (
-                                    <label className="block cursor-pointer rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5 text-center transition hover:border-blue-500 hover:bg-blue-50/40">
-                                        <UploadCloud className="mx-auto h-7 w-7 text-blue-600" />
-                                        <span className="mt-2 block text-sm font-semibold text-slate-800">
-                                            {file?.name || editing?.file_name || 'Choose a file'}
-                                        </span>
-                                        <span className="mt-1 block text-xs text-slate-500">
-                                            PDF, Office documents, CSV, text, or images up to 30 MB
-                                        </span>
+                                <div className="grid gap-5 sm:grid-cols-3">
+                                    <label className="space-y-2 text-sm font-semibold text-slate-700">
+                                        PIC / Division
                                         <input
-                                            type="file"
-                                            accept={ACCEPTED_FILES}
-                                            onChange={(e) => setFile(e.target.files?.[0] || null)}
-                                            className="sr-only"
-                                        />
-                                    </label>
-                                ) : (
-                                    <label className="block space-y-2 text-sm font-semibold text-slate-700">
-                                        External document URL
-                                        <input
-                                            type="url"
-                                            value={form.external_url}
-                                            onChange={(e) => setForm((c) => ({ ...c, external_url: e.target.value }))}
-                                            placeholder="https://..."
+                                            value={form.activity_pic}
+                                            onChange={(e) => setForm((c) => ({ ...c, activity_pic: e.target.value }))}
                                             className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
-                                            required
                                         />
                                     </label>
-                                )}
+                                    <label className="space-y-2 text-sm font-semibold text-slate-700">
+                                        Branch
+                                        <select
+                                            value={form.station_id}
+                                            onChange={(e) => setForm((c) => ({ ...c, station_id: e.target.value }))}
+                                            className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500"
+                                        >
+                                            <option value="">—</option>
+                                            {stations.map((s) => (
+                                                <option key={s.id} value={s.id}>{s.code} — {s.name}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                    <label className="space-y-2 text-sm font-semibold text-slate-700">
+                                        Airlines
+                                        <select
+                                            value={form.airline}
+                                            onChange={(e) => setForm((c) => ({ ...c, airline: e.target.value }))}
+                                            className="h-10 w-full rounded-lg border border-slate-200 bg-white px-3 font-normal outline-none focus:border-blue-500"
+                                        >
+                                            <option value="">—</option>
+                                            {AIRLINES.map((a) => (
+                                                <option key={a.code} value={a.name}>{a.code} — {a.name}</option>
+                                            ))}
+                                        </select>
+                                    </label>
+                                </div>
+
+                                <label className="block space-y-2 text-sm font-semibold text-slate-700">
+                                    Participants
+                                    <textarea
+                                        value={form.participants}
+                                        onChange={(e) => setForm((c) => ({ ...c, participants: e.target.value }))}
+                                        rows={2}
+                                        placeholder="Names of attendees"
+                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 font-normal outline-none focus:border-blue-500"
+                                    />
+                                </label>
 
                                 <fieldset className="rounded-xl border border-slate-200 p-4">
-                                    <legend className="px-2 text-sm font-semibold text-slate-700">Recipients</legend>
-                                    <div className="grid gap-3 sm:grid-cols-2">
-                                        <button
-                                            type="button"
-                                            onClick={() => setForm((c) => ({ ...c, visibility_scope: 'all', audience_station_ids: [] }))}
-                                            className={cn(
-                                                'rounded-lg border px-4 py-3 text-left text-sm font-semibold',
-                                                form.visibility_scope === 'all'
-                                                    ? 'border-blue-500 bg-blue-50 text-blue-800'
-                                                    : 'border-slate-200 text-slate-700'
-                                            )}
-                                        >
-                                            All branches
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => setForm((c) => ({ ...c, visibility_scope: 'targeted' }))}
-                                            className={cn(
-                                                'rounded-lg border px-4 py-3 text-left text-sm font-semibold',
-                                                form.visibility_scope === 'targeted'
-                                                    ? 'border-blue-500 bg-blue-50 text-blue-800'
-                                                    : 'border-slate-200 text-slate-700'
-                                            )}
-                                        >
-                                            Selected branches
-                                        </button>
+                                    <legend className="px-2 text-sm font-semibold text-slate-700">Material links</legend>
+                                    <div className="grid gap-4 sm:grid-cols-2">
+                                        <label className="space-y-2 text-sm font-semibold text-slate-700">
+                                            Meeting Minutes Link
+                                            <input
+                                                type="url"
+                                                value={form.external_url}
+                                                onChange={(e) => setForm((c) => ({ ...c, external_url: e.target.value }))}
+                                                placeholder="https://..."
+                                                className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
+                                            />
+                                        </label>
+                                        <label className="space-y-2 text-sm font-semibold text-slate-700">
+                                            Materials Link
+                                            <input
+                                                type="url"
+                                                value={form.materi_url}
+                                                onChange={(e) => setForm((c) => ({ ...c, materi_url: e.target.value }))}
+                                                placeholder="https://..."
+                                                className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
+                                            />
+                                        </label>
+                                        <label className="space-y-2 text-sm font-semibold text-slate-700">
+                                            Attendance List Link
+                                            <input
+                                                type="url"
+                                                value={form.attendance_url}
+                                                onChange={(e) => setForm((c) => ({ ...c, attendance_url: e.target.value }))}
+                                                placeholder="https://..."
+                                                className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
+                                            />
+                                        </label>
+                                        <label className="space-y-2 text-sm font-semibold text-slate-700">
+                                            Recording Link
+                                            <input
+                                                type="url"
+                                                value={form.recording_url}
+                                                onChange={(e) => setForm((c) => ({ ...c, recording_url: e.target.value }))}
+                                                placeholder="https://..."
+                                                className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
+                                            />
+                                        </label>
                                     </div>
-
-                                    <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Recipient roles</p>
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                        {RECIPIENT_ROLES.map((opt) => (
-                                            <button
-                                                key={opt.value}
-                                                type="button"
-                                                onClick={() => toggleRole(opt.value)}
-                                                className={cn(
-                                                    'rounded-full border px-3 py-1.5 text-xs font-semibold',
-                                                    form.audience_roles.includes(opt.value)
-                                                        ? 'border-blue-500 bg-blue-50 text-blue-800'
-                                                        : 'border-slate-200 text-slate-600'
-                                                )}
-                                            >
-                                                {opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
-
-                                    {form.visibility_scope === 'targeted' ? (
-                                        <>
-                                            <p className="mt-4 text-xs font-semibold uppercase tracking-wide text-slate-500">Branches</p>
-                                            <div className="mt-2 max-h-44 overflow-y-auto rounded-lg bg-slate-50 p-3">
-                                                <div className="flex flex-wrap gap-2">
-                                                    {stations.map((station) => (
-                                                        <button
-                                                            key={station.id}
-                                                            type="button"
-                                                            onClick={() => toggleStation(station.id)}
-                                                            title={station.name}
-                                                            className={cn(
-                                                                'rounded-full border px-3 py-1.5 text-xs font-semibold',
-                                                                form.audience_station_ids.includes(station.id)
-                                                                    ? 'border-blue-500 bg-blue-600 text-white'
-                                                                    : 'border-slate-200 bg-white text-slate-600'
-                                                            )}
-                                                        >
-                                                            {station.code}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : null}
                                 </fieldset>
                             </div>
 
@@ -770,7 +788,7 @@ export function AnalystDocumentManagementPage() {
                                     className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
                                 >
                                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                                    {saving ? 'Publishing...' : 'Publish document'}
+                                    {saving ? 'Saving...' : 'Save entry'}
                                 </button>
                             </div>
                         </form>

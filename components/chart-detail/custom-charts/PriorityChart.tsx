@@ -52,7 +52,7 @@ export function PriorityChart({
   title = 'Analisis Prioritas',
   explanation 
 }: PriorityChartProps) {
-  // Handle empty data
+
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-[#e0e0e0] flex flex-col overflow-hidden h-full">
@@ -84,7 +84,7 @@ export function PriorityChart({
   }
 
   const total = data.reduce((sum, item) => sum + item.count, 0);
-  
+
   const sortedData = [...data].sort((a, b) => {
     const order = ['HIGH', 'MEDIUM', 'LOW'];
     return order.indexOf(a.priority) - order.indexOf(b.priority);
@@ -101,9 +101,9 @@ export function PriorityChart({
         </h4>
         <div className="w-1.5 h-1.5 rounded-full bg-[#6b8e3d]" />
       </div>
-      
+
       <div className="p-4 pt-10 flex-1 flex flex-col">
-        {/* High Priority Alert */}
+        {}
         <div className={`p-3 rounded-lg border mb-4 ${
           highPriorityPercentage > 30 
             ? 'bg-red-50 border-red-200' 
@@ -133,13 +133,13 @@ export function PriorityChart({
           </div>
         </div>
 
-        {/* Priority Distribution */}
+        {}
         <div className="flex-1 space-y-3">
           {sortedData.map((item) => {
             const config = PRIORITY_CONFIG[item.priority] || PRIORITY_CONFIG['MEDIUM'];
             const TrendIcon = item.trend === 'up' ? ArrowUp : 
                              item.trend === 'down' ? ArrowDown : Minus;
-            
+
             return (
               <div 
                 key={item.priority}
@@ -168,7 +168,7 @@ export function PriorityChart({
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex items-end gap-3">
                   <div className="text-2xl font-black" style={{ color: config.color }}>
                     {item.count.toLocaleString('id-ID')}
@@ -193,7 +193,7 @@ export function PriorityChart({
           })}
         </div>
 
-        {/* Summary */}
+        {}
         <div className="mt-3 pt-3 border-t border-gray-100">
           <div className="flex justify-between items-center text-[10px] text-gray-500">
             <span>Total Kasus</span>

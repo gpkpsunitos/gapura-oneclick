@@ -4,10 +4,6 @@ export const metadata: Metadata = {
   title: 'Human Capital — Gapura OneClick',
 };
 
-/**
- * HC layout — preloads the division-documents and master-data API endpoints
- * so the browser starts fetching before the client JS finishes parsing.
- */
 export default function HCLayout({ children }: { children: React.ReactNode }) {
   return (
     <>

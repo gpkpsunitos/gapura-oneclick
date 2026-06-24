@@ -61,7 +61,7 @@ function KPICard({ title, value, subtitle, color = 'blue', explanation }: KPICar
       <div className="absolute inset-0 bg-noise opacity-[0.02] mix-blend-overlay pointer-events-none"></div>
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
       <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shine pointer-events-none"></div>
-      
+
       <div className="relative z-10">
         <div className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">{title}</div>
         <div className="text-2xl font-black tracking-tight">{value}</div>
@@ -119,7 +119,7 @@ function HeatmapTable({ matrix }: { matrix: PivotMatrix }) {
               </td>
             </tr>
           ))}
-          {/* Grand Total Row */}
+          {}
           <tr>
             <td className="px-3 py-2 font-bold text-gray-800 bg-gray-100 border border-gray-200 sticky left-0 z-10">
               Grand Total
@@ -342,7 +342,6 @@ function ManagementSummary({ matrix, rowLabel, colLabel }: { matrix: PivotMatrix
   const topRowCount = matrix.rowTotals.get(topRow) || 0;
   const topColCount = matrix.colTotals.get(topCol) || 0;
 
-  // Find peak cell
   let peakValue = 0;
   let peakRow = '';
   let peakCol = '';
@@ -370,7 +369,7 @@ function ManagementSummary({ matrix, rowLabel, colLabel }: { matrix: PivotMatrix
     >
       <div className="absolute inset-0 bg-noise opacity-[0.03] mix-blend-overlay pointer-events-none"></div>
       <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-1)]/5 to-transparent pointer-events-none"></div>
-      
+
       <div className="relative z-10">
         <h3 className="font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2 text-lg">
           <span className="text-xl">📊</span> Management Summary
@@ -489,7 +488,6 @@ export default function PivotReportDetail({ filters = {}, pivotTitle = '' }: { f
     );
   }
 
-  // Find peak cell value
   let peakValue = 0;
   matrix.cells.forEach((value) => {
     if (value > peakValue) peakValue = value;
@@ -497,7 +495,7 @@ export default function PivotReportDetail({ filters = {}, pivotTitle = '' }: { f
 
   return (
     <div className="space-y-8">
-      {/* KPI Cards */}
+      {}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <KPICard title="Total Reports" value={matrix.grandTotal.toLocaleString('id-ID')} color="blue" explanation="Total jumlah laporan dalam pivot matrix ini." />
         <KPICard
@@ -520,7 +518,7 @@ export default function PivotReportDetail({ filters = {}, pivotTitle = '' }: { f
         />
       </div>
 
-      {/* Enlarged Heatmap/Pivot Table */}
+      {}
       <motion.section 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -532,7 +530,7 @@ export default function PivotReportDetail({ filters = {}, pivotTitle = '' }: { f
         <HeatmapTable matrix={matrix} />
       </motion.section>
 
-      {/* Split View: Row & Column Dimension Breakdown */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <motion.section 
           initial={{ opacity: 0, y: 20 }}
@@ -554,7 +552,7 @@ export default function PivotReportDetail({ filters = {}, pivotTitle = '' }: { f
         </motion.section>
       </div>
 
-      {/* Monthly Trend */}
+      {}
       <motion.section 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -565,10 +563,10 @@ export default function PivotReportDetail({ filters = {}, pivotTitle = '' }: { f
         <MonthlyTrendChart data={trendData} />
       </motion.section>
 
-      {/* Management Summary */}
+      {}
       <ManagementSummary matrix={matrix} rowLabel={rowLabel} colLabel={colLabel} />
 
-      {/* Investigative Table */}
+      {}
       <InvestigativeTable
         data={investigativeData}
         title={`Investigative Table - ${pivotTitle || `${colLabel} by ${rowLabel}`}`}
@@ -576,7 +574,7 @@ export default function PivotReportDetail({ filters = {}, pivotTitle = '' }: { f
         maxRows={40}
       />
 
-      {/* Data Table */}
+      {}
       <motion.section 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}

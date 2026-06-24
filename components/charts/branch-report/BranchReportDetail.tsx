@@ -49,7 +49,6 @@ import type { QueryResult } from '@/types/builder';
 import { BarChart as RechartsBarChart, Bar as RechartsBar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer, LabelList, Cell } from 'recharts';
 import { sanitizeTableCell } from '@/lib/security/sanitize';
 
-
 interface FilterParams {
   hub?: string;
   branch?: string;
@@ -86,7 +85,7 @@ function KPICard({ title, value, subtitle, trend, color = 'blue', explanation }:
     >
       <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }} />
       <div className="absolute -inset-24 bg-gradient-to-br from-white/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl pointer-events-none" />
-      
+
       <div className="relative z-10">
         <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1.5">{title}</div>
         <div className="text-3xl font-display font-black tracking-tighter leading-none mb-1">{value}</div>
@@ -264,7 +263,6 @@ function CategoryStackedBar({ data }: { data: BranchCategoryData[] }) {
     </div>
   );
 }
-
 
 function AirlineBreakdownChart({ data }: { data: AirlineByBranchData[] }) {
   const topAirlines = Array.from(
@@ -450,8 +448,8 @@ function DataTable({ data }: { data: BranchReportRecord[] }) {
             ))}
           </tbody>
         </table>
-        
-        {/* Pagination */}
+
+        {}
         {totalPages > 1 && (
           <div className="p-3 flex items-center justify-between bg-gray-50 border-t">
             <div className="text-sm text-gray-500">
@@ -539,6 +537,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
     kpis: null as BranchKPIs | null,
     categoryDistribution: [] as BranchCategoryDistribution[],
     aiRiskSummary: null as AiRiskSummary | null,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     aiRiskHeatmap: [] as any[],
     branchRiskAnalysis: null as Record<string, BranchRiskAnalysis> | null,
   });
@@ -567,7 +566,6 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
     };
   }, [chartData.branchData]);
 
-  // Deferred loading for heavy data
   useEffect(() => {
     const controller = new AbortController();
 
@@ -594,6 +592,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
           throw new Error('Invalid aggregated data received');
         }
       } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((err as any).name === 'AbortError') return;
         console.error('Failed to load initial branch data:', err);
         setError('Failed to load initial dashboard data.');
@@ -607,7 +606,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
     async function loadDeferredData() {
       setTableLoading(true);
       try {
-        // Parallel fetch of non-critical data
+
         const [
           rootCause, 
           airline, 
@@ -620,10 +619,10 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
           fetchAirlineByBranch(filters),
           fetchAreaByBranch(filters),
           fetchAllBranchReports(filters),
-          fetchRiskSummaryAi(controller.signal).catch(() => null), // Resilient AI fetch
+          fetchRiskSummaryAi(controller.signal).catch(() => null),
           fetchBranchRiskAnalysisAi(controller.signal).catch(() => null),
         ]);
- 
+
          setChartData(prev => ({
            ...prev,
            rootCauseData: rootCause,
@@ -631,7 +630,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
            areaData: area,
            tableData: table,
          }));
-         
+
          if (branchRiskRes) {
            setChartData(prev => ({ ...prev, branchRiskAnalysis: branchRiskRes }));
          }
@@ -649,8 +648,8 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
            setChartData(prev => ({ ...prev, aiRiskSummary: riskSummaryRes, aiRiskHeatmap: heatmapData }));
          }
       } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((err as any).name === 'AbortError') return;
-        console.warn('Deferred data failed to load:', err);
       } finally {
         if (!controller.signal.aborted) {
           setTableLoading(false);
@@ -685,24 +684,30 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalReports = chartData.branchData.reduce((sum: number, b: any) => sum + b.total, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalIrreg = chartData.branchData.reduce((sum: number, b: any) => sum + b.irregularity, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalComplaint = chartData.branchData.reduce((sum: number, b: any) => sum + b.complaint, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalCompliment = chartData.branchData.reduce((sum: number, b: any) => sum + b.compliment, 0);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const avgRiskIndex = chartData.branchData.length > 0 ? chartData.branchData.reduce((sum: number, b: any) => sum + b.riskIndex, 0) / chartData.branchData.length : 0;
   const overallIrregRate = totalReports > 0 ? (totalIrreg / totalReports) * 100 : 0;
   const overallNetSentiment = (totalCompliment + totalComplaint) > 0 
     ? ((totalCompliment - totalComplaint) / (totalCompliment + totalComplaint)) * 100 
     : 0;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const avgGrowth = chartData.branchData.length > 0 ? chartData.branchData.reduce((sum: number, b: any) => sum + b.growth, 0) / chartData.branchData.length : 0;
 
   return (
     <div className="space-y-8">
-      {/* Auto-Insight Block */}
+      {}
       <AutoInsight data={chartData.branchData} hideAnalyzeButton={hideAnalyzeButton} />
 
-      {/* Enhanced KPI Cards - 5 custom KPIs */}
+      {}
       {chartData.kpis && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <KPICard title="Total Branches" value={chartData.kpis.totalBranches} color="blue" explanation="Jumlah cabang yang dipantau dalam laporan ini." />
@@ -736,13 +741,13 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
         </div>
       )}
 
-      {/* Branch Ranking Table */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Branch Performance Ranking</h2>
         <BranchRankTable data={chartData.branchData} />
       </section>
 
-      {/* Category Distribution Stacked Bar Chart */}
+      {}
       {chartData.categoryDistribution.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Category Distribution per Branch (Top 10)</h2>
@@ -767,7 +772,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
         </section>
       )}
 
-      {/* AI Risk Heatmap */}
+      {}
       {chartData.aiRiskHeatmap.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <div className="flex items-center gap-2 mb-1">
@@ -787,19 +792,19 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
         </section>
       )}
 
-      {/* Monthly Trend */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Monthly Trend Analysis</h2>
         <MonthlyTrendChart data={chartData.trendData} />
       </section>
 
-      {/* Category Composition */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Category Composition by Branch</h2>
         <CategoryStackedBar data={chartData.categoryData} />
       </section>
 
-      {/* AI Root Cause Investigation - Full Width */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)]/50 backdrop-blur-xl rounded-3xl border border-[var(--surface-2)] p-8 shadow-spatial-md transition-all">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -810,7 +815,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
         <AiRootCauseInvestigation source={filters.sourceSheet || "NON CARGO"} />
       </section>
 
-      {/* AI Detailed Risk Analysis */}
+      {}
       {chartData.branchRiskAnalysis && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <BranchRiskAnalysisVisualization 
@@ -820,9 +825,9 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
         </section>
       )}
 
-      {/* AI Branch Risk Visualization - removed for embed stability */}
+      {}
 
-      {/* Reports Detail Table */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-gray-800">Branch Intelligence Reports</h2>
@@ -835,7 +840,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
         />
       </section>
 
-      {/* Split View: Airline & Area */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Airline Distribution</h2>
@@ -847,10 +852,10 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
         </section>
       </div>
 
-      {/* Management Summary */}
+      {}
       <ManagementSummary data={chartData.branchData} />
 
-      {/* Investigative Table */}
+      {}
       <InvestigativeTable
         data={investigativeData}
         title="Investigative Table - Branch Reports"

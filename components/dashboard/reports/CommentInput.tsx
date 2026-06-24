@@ -25,7 +25,6 @@ export function CommentInput({
     const [error, setError] = useState<string | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-    // Auto-resize textarea
     useEffect(() => {
         if (textareaRef.current) {
             textareaRef.current.style.height = 'auto';
@@ -84,7 +83,7 @@ export function CommentInput({
                     </button>
                 </div>
             )}
-            {/* Textarea */}
+            {}
             <textarea
                 ref={textareaRef}
                 value={content}
@@ -95,9 +94,9 @@ export function CommentInput({
                 rows={3}
             />
 
-            {/* Actions */}
+            {}
             <div className="flex items-center justify-end">
-                {/* Submit Button */}
+                {}
                 <button
                     onClick={() => handleSubmit()}
                     disabled={!canSubmit || sending}

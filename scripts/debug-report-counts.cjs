@@ -4,9 +4,13 @@
  * Debug script to check report counts
  */
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { createClient } = require('@supabase/supabase-js');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const fs = require('fs');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const path = require('path');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { config } = require('dotenv');
 config();
 
@@ -42,6 +46,7 @@ async function main() {
     }
 
     // 2. Check raw Google Sheets count
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { reportsService } = require('../lib/services/reports-service.ts');
     const allReports = await reportsService.getReports();
     console.log('✅ reportsService.getReports() count:', allReports.length);

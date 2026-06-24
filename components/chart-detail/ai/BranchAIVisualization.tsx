@@ -124,7 +124,7 @@ export function BranchAIVisualization({ branchName, filters = [] }: BranchVisual
               </p>
             </div>
           </div>
-          
+
           <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
             <button
               onClick={() => setSelectedCategory('landside_airside')}
@@ -151,7 +151,7 @@ export function BranchAIVisualization({ branchName, filters = [] }: BranchVisual
       </div>
 
       <div className="p-4 space-y-6">
-        {/* Main Stats Grid */}
+        {}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-gray-50 rounded-xl p-4 text-center">
             <div className="text-3xl font-black text-gray-900">{currentData.total_branches}</div>
@@ -173,7 +173,7 @@ export function BranchAIVisualization({ branchName, filters = [] }: BranchVisual
           </div>
         </div>
 
-        {/* Risk Level Distribution */}
+        {}
         <div>
           <h4 className="text-xs font-bold text-gray-600 uppercase mb-3">Risk Level Distribution</h4>
           <div className="grid grid-cols-3 gap-3">
@@ -198,7 +198,7 @@ export function BranchAIVisualization({ branchName, filters = [] }: BranchVisual
           </div>
         </div>
 
-        {/* Trend Distribution */}
+        {}
         <div>
           <h4 className="text-xs font-bold text-gray-600 uppercase mb-3">Trend Distribution</h4>
           <div className="grid grid-cols-3 gap-3">
@@ -220,7 +220,7 @@ export function BranchAIVisualization({ branchName, filters = [] }: BranchVisual
           </div>
         </div>
 
-        {/* Comparison Section */}
+        {}
         {selectedCategory && summaryData.comparison && (
           <div className="pt-4 border-t border-gray-100">
             <h4 className="text-xs font-bold text-gray-600 uppercase mb-3">Comparison: Landside/Airside vs Cargo</h4>

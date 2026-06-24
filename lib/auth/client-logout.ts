@@ -44,7 +44,7 @@ export async function performOptimisticLogout() {
   try {
     purgePwaClientState();
   } catch {
-    // PWA cleanup is best-effort and must not block logout.
+
   }
 
   try {

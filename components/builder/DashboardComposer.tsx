@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen utama untuk composer dashboard dengan tile visualization
- */
 
 'use client';
 
@@ -16,62 +11,42 @@ import { cn } from '@/lib/utils';
 import { DynamicFilterHeader } from './DynamicFilterHeader';
 import type { FilterData } from './DynamicFilterHeader';
 
-/**
- * Props untuk komponen DashboardComposer
- * @interface DashboardComposerProps
- */
 interface DashboardComposerProps {
-  /** Daftar tile dashboard */
+
   tiles: DashboardTile[];
-  /** Handler saat tile diedit */
+
   onEditTile: (id: string) => void;
-  /** Handler saat tile dihapus */
+
   onRemoveTile: (id: string) => void;
-  /** Handler saat tile diresize */
+
   onResizeTile: (id: string, w: number, h: number) => void;
-  /** Handler saat preset layout diterapkan */
+
   onApplyPreset: (preset: LayoutPreset) => void;
-  /** Hasil query untuk setiap tile */
+
   tileResults: Map<string, QueryResult>;
-  /** Error untuk setiap tile (opsional) */
+
   tileErrors?: Map<string, string>;
-  /** Handler saat tile ditambahkan */
+
   onAddTile: (query: QueryDefinition, viz: ChartVisualization) => void;
-  /** Nama dashboard (opsional) */
+
   dashboardName?: string;
-  /** Deskripsi dashboard (opsional) */
+
   dashboardDescription?: string;
-  /** Daftar halaman dashboard (opsional) */
+
   pages?: DashboardPage[];
-  /** Range tahun untuk ditampilkan (opsional) */
+
   yearRange?: string;
-  /** Handler saat dashboard di-reset (opsional) */
+
   onReset?: () => void;
-  /** Handler saat filter berubah (opsional) */
+
   onFilterChange?: (filters: FilterData) => void;
-  /** Filter yang sedang aktif (opsional) */
+
   currentFilters?: FilterData;
 }
 
 const GAPURA_GREEN = '#6b8e3d';
 const GAPURA_BANNER = '#5a7a3a';
 
-/**
- * Komponen utama dashboard composer untuk menampilkan dan mengelola tile
- * @param props - Props untuk dashboard composer
- * @returns JSX element dashboard composer dengan tile grid
- * @example
- * ```tsx
- * <DashboardComposer
- *   tiles={tiles}
- *   tileResults={results}
- *   onAddTile={handleAddTile}
- *   onEditTile={handleEditTile}
- *   onRemoveTile={handleRemoveTile}
- *   dashboardName="IRRS Dashboard"
- * />
- * ```
- */
 export function DashboardComposer({
   tiles,
   tileResults,
@@ -91,7 +66,6 @@ export function DashboardComposer({
 }: DashboardComposerProps & { gridCols?: number }) {
   const [activePageIdx, setActivePageIdx] = useState(0);
 
-  // Determine which tiles to show based on active page
   const hasPages = pages.length > 1;
   const activePage = hasPages ? pages[activePageIdx] : null;
   const filteredTileIds = activePage ? new Set(activePage.tiles.map(t => t.id)) : null;
@@ -100,13 +74,12 @@ export function DashboardComposer({
     ? tiles.filter(t => filteredTileIds.has(t.id))
     : tiles;
 
-  // Separate KPI tiles from content tiles
   const kpiTiles = visibleTiles.filter(t => t.visualization.chartType === 'kpi');
   const contentTiles = visibleTiles.filter(t => t.visualization.chartType !== 'kpi');
 
   const isCGO = activePage?.name?.toLowerCase().includes('cgo');
   const yearSuffix = yearRange ? ` ${yearRange}` : '';
-  
+
   const displayTitle = dashboardName && !dashboardName.toLowerCase().includes('untitled')
     ? (dashboardName.includes(yearRange) ? dashboardName : `${dashboardName}${yearSuffix}`)
     : isCGO 
@@ -115,13 +88,13 @@ export function DashboardComposer({
 
   return (
     <div className="flex h-full bg-[#f5f5f5]">
-      {/* Main Content */}
+      {}
       <div
         className="flex-1 flex flex-col overflow-hidden"
       >
-        {/* Top Bar with Page Tabs + Actions */}
+        {}
         <div className="flex items-center justify-between gap-2 px-4 py-2 bg-white border-b border-[#e0e0e0]">
-          {/* Page tabs for multi-page editing */}
+          {}
           {hasPages ? (
             <div className="flex items-center gap-1 overflow-x-auto">
               {pages.map((page, idx) => (
@@ -160,12 +133,12 @@ export function DashboardComposer({
           </div>
         </div>
 
-        {/* Dashboard Content */}
+        {}
         <div className="flex-1 overflow-auto">
           <div>
-            {/* Gapura Header */}
+            {}
             <div className="bg-white px-6 py-4">
-              {/* Logo + Title Row */}
+              {}
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Image src="/logo.png" alt="Gapura" width={120} height={40} style={{ objectFit: 'contain', width: 'auto', height: 'auto' }} />
@@ -184,7 +157,7 @@ export function DashboardComposer({
                 </button>
               </div>
 
-              {/* Banner */}
+              {}
               <div 
                 className="flex items-center justify-between px-4 py-2 rounded"
                 style={{ backgroundColor: GAPURA_BANNER }}
@@ -200,7 +173,7 @@ export function DashboardComposer({
                 </div>
               </div>
 
-              {/* KPI Stats Row */}
+              {}
               {kpiTiles.length > 0 && (
                 <div className="grid grid-cols-4 gap-4 mt-4">
                   {kpiTiles.slice(0, 4).map(tile => {
@@ -244,7 +217,7 @@ export function DashboardComposer({
               )}
             </div>
 
-            {/* Content Tiles Grid */}
+            {}
             <div className="px-6 py-5">
               {contentTiles.length > 0 ? (
                 <div
@@ -308,7 +281,7 @@ export function DashboardComposer({
               )}
             </div>
 
-            {/* Footer Timestamp */}
+            {}
             <div className="px-5 py-3 border-t border-[#e0e0e0] bg-white">
               <p className="text-xs text-[#999]">
                 Data Last Updated: 2/13/2026 1:18:37 PM | <button className="text-[#6b8e3d] hover:underline">Privacy Policy</button>

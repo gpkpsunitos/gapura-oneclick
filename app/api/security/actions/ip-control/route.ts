@@ -3,10 +3,6 @@ import { verifySession } from '@/lib/auth-utils';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { logSecurityAudit } from '@/lib/security/audit-logger';
 
-/**
- * POST /api/security/actions/ip-control
- * Block or unblock an IP address.
- */
 export async function POST(request: Request) {
     const authHeader = request.headers.get('Authorization');
     const token = authHeader?.split(' ')[1] || request.headers.get('cookie')?.split('session=')[1]?.split(';')[0];
@@ -27,7 +23,7 @@ export async function POST(request: Request) {
 
         if (action === 'BLOCK') {
             const expiresAt = durationHours ? new Date(Date.now() + durationHours * 3600000).toISOString() : null;
-            
+
             const { error } = await supabaseAdmin
                 .from('blocked_ips')
                 .upsert({

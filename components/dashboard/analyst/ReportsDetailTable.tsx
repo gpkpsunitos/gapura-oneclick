@@ -420,7 +420,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
               </div>
 
               <div className="min-w-0 flex flex-col gap-2">
-                {/* Row 1: source tag (left) — status chip (right) */}
+                {}
                 <div className="flex items-center justify-between gap-2">
                   <span className={cn(
                     'rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-wide',
@@ -442,7 +442,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
                   )}
                 </div>
 
-                {/* Row 2: station + flight number + route */}
+                {}
                 {(station !== '-' || flightNumber || route) && (
                   <div className="flex flex-wrap items-center gap-1.5">
                     {station && station !== '-' && (
@@ -466,12 +466,12 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
                   </div>
                 )}
 
-                {/* Row 3: report description */}
+                {}
                 <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-slate-700" title={title}>
                   {title}
                 </p>
 
-                {/* Row 4: reporter + classification/severity + date */}
+                {}
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-slate-100 pt-2">
                   <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-600">
                     <UserRound size={11} className="shrink-0 text-slate-400" />
@@ -488,7 +488,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
                   </span>
                 </div>
 
-                {/* Actions */}
+                {}
                 <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-2">
                   {onStatusUpdate && (
                     <button

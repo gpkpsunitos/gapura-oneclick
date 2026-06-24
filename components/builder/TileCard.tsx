@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen kartu tile untuk menampilkan grafik di dashboard
- */
 
 'use client';
 
@@ -11,17 +6,6 @@ import { useRouter } from 'next/navigation';
 import type { DashboardTile, QueryResult } from '@/types/builder';
 import { ChartPreview } from './ChartPreview';
 
-/**
- * Props untuk komponen TileCard
- * @interface TileCardProps
- * @property {DashboardTile} tile - Tile dashboard
- * @property {QueryResult | null} [result] - Hasil query untuk tile
- * @property {string | null} [error] - Pesan error jika ada
- * @property {Function} onEdit - Fungsi untuk mengedit tile
- * @property {Function} onRemove - Fungsi untuk menghapus tile
- * @property {Function} onResize - Fungsi untuk mengubah ukuran tile
- * @property {string} [dashboardId] - ID dashboard (opsional)
- */
 interface TileCardProps {
   tile: DashboardTile;
   result?: QueryResult | null;
@@ -32,10 +16,6 @@ interface TileCardProps {
   dashboardId?: string;
 }
 
-/**
- * Opsi ukuran tile
- * @constant {{label: string; w: number; h: number}[]} SIZE_OPTIONS
- */
 const SIZE_OPTIONS = [
   { label: '1/3', w: 4, h: 2 },
   { label: '1/2', w: 6, h: 2 },
@@ -44,25 +24,6 @@ const SIZE_OPTIONS = [
   { label: 'Full Tall', w: 12, h: 3 },
 ];
 
-/**
- * Komponen kartu tile untuk menampilkan grafik di dashboard
- * Menampilkan tile dengan grafik dan kontrol untuk edit, hapus, dan resize
- * 
- * @param {TileCardProps} props - Props untuk konfigurasi kartu tile
- * @returns {JSX.Element} Element React yang berisi kartu tile
- * 
- * @example
- * ```tsx
- * <TileCard
- *   tile={dashboardTile}
- *   result={queryResult}
- *   onEdit={handleEdit}
- *   onRemove={handleRemove}
- *   onResize={handleResize}
- *   dashboardId="dash-123"
- * />
- * ```
- */
 export function TileCard({ tile, result, error, onEdit, onRemove, onResize, dashboardId }: TileCardProps) {
   const router = useRouter();
   const title = tile.visualization.title || 'Tile Tanpa Judul';
@@ -71,29 +32,22 @@ export function TileCard({ tile, result, error, onEdit, onRemove, onResize, dash
   const isConfigured = hasDims || hasMeasures;
   const isTable = tile.visualization.chartType === 'table';
 
-  /**
-   * Menangani navigasi ke halaman detail
-   * @function handleViewDetails
-   * @returns {void}
-   */
   const handleViewDetails = () => {
     if (!result) return;
 
-    // Store data in sessionStorage for detail page
     const detailData = {
       tile,
       result,
       dashboardId,
       timestamp: Date.now()
     };
-    
+
     sessionStorage.setItem('chartDetailData', JSON.stringify(detailData));
-    
-    // Navigate to detail page
+
     const params = new URLSearchParams();
     if (dashboardId) params.set('dashboardId', dashboardId);
     params.set('tileId', tile.id);
-    
+
     router.push(`/dashboard/chart-detail?${params.toString()}`);
   };
 
@@ -101,13 +55,13 @@ export function TileCard({ tile, result, error, onEdit, onRemove, onResize, dash
     <div 
       className="group bg-white rounded-xl overflow-hidden flex flex-col h-full transition-shadow hover:shadow-md border border-[#eaeaea]"
     >
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#f0f0f0]">
         <h4 className="m-0 text-sm font-bold text-[#333] truncate flex-1">
           {title}
         </h4>
         <div className="flex items-center gap-1 ml-2">
-          {/* View Details button - always visible */}
+          {}
           {result && result.rows.length > 0 && (
             <button
               onClick={handleViewDetails}
@@ -118,7 +72,7 @@ export function TileCard({ tile, result, error, onEdit, onRemove, onResize, dash
               <span>Detail</span>
             </button>
           )}
-          {/* Resize dropdown + edit/delete — visible on hover */}
+          {}
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <select
               value={`${tile.layout.w}-${tile.layout.h}`}
@@ -150,7 +104,7 @@ export function TileCard({ tile, result, error, onEdit, onRemove, onResize, dash
         </div>
       </div>
 
-      {/* Body */}
+      {}
       <div className={`flex-1 ${
         isTable || title.includes('by Airlines') ? 'overflow-hidden p-0' : 'min-h-[150px] overflow-y-auto p-4'
       } custom-scrollbar`}>

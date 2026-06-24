@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
     }
 
     const fallback = fallbackSummary(section, title, chartData);
-    // ponytail: pre-compute aggregates so the model has hard ground truth and can't fabricate totals
+
     const totalsByLabel = chartData.reduce<Record<string, number>>((acc, row) => {
       const label = String(row.label || 'Unknown');
       acc[label] = (acc[label] || 0) + asNumber(row.value);
@@ -245,8 +245,6 @@ export async function POST(req: NextRequest) {
       console.warn('[section-summary] failed to parse LLM JSON:', error);
     }
 
-    // ponytail: hallucination gate — whitelist every number that appeared in the inputs,
-    // then strip any model-generated sentence whose numbers aren't in the whitelist.
     const allowedNumbers = collectAllowedNumbers({ knownNumbers, chartData });
     const groundedKeyPoints = filterGroundedBullets(
       cleanStringArray(parsed.keyPoints, fallback.keyPoints),

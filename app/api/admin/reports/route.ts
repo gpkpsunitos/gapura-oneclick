@@ -7,16 +7,13 @@ import { validateStatusTransition, getTimestampFieldForStatus, getUserFieldForSt
 import { reportsService } from '@/lib/services/reports-service';
 import { notifyReportClosedEmail } from '@/lib/notifications';
 
-// Ensure Turbopack doesn't expect static manifests for this route
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const runtime = 'nodejs';
 export const fetchCache = 'force-no-store';
 
-// Reference data cache — stations/users change infrequently
-// Complexity: Time O(1) per lookup | Space O(stations + users)
 interface RefCache<T> { data: T; ts: number }
-const REF_CACHE_TTL = 1000 * 60 * 10; // 10 minutes
+const REF_CACHE_TTL = 1000 * 60 * 10;
 let stationsCache: RefCache<Array<{ id: string; code: string; name: string }>> | null = null;
 let usersCache: RefCache<Array<{ id: string; full_name: string; email: string }>> | null = null;
 
@@ -54,9 +51,6 @@ function statusToAction(status: unknown): string | null {
     return null;
 }
 
-
-
-// GET all reports (from Google Sheets via shared service)
 export async function GET(request: Request) {
     const startTime = Date.now();
     try {
@@ -74,9 +68,8 @@ export async function GET(request: Request) {
         const search = searchParams.get('search');
         const from = searchParams.get('from');
         const to = searchParams.get('to');
-        const sourceParam = searchParams.get('source'); // 'sheets' | 'sync' | null
+        const sourceParam = searchParams.get('source');
 
-        // Fetch using the shared service with optional source control
         const source: 'sheets' | 'sync' = sourceParam === 'sync' ? 'sync' : 'sheets';
         const allReports = await reportsService.getReports({ source });
         const role = String(payload.role || '').trim().toUpperCase();
@@ -104,7 +97,6 @@ export async function GET(request: Request) {
             }
         }
 
-        // Single-pass filter with combined predicate (eliminates sequential .filter() chains)
         const filterByStatus = status && status !== 'all';
         const filterByStation = role !== 'MANAGER_CABANG' && station && station !== 'all';
         const filterBySearch = !!search;
@@ -151,7 +143,6 @@ export async function GET(request: Request) {
     }
 }
 
-// PATCH to update report status
 export async function PATCH(request: Request) {
     try {
         const cookieStore = await cookies();
@@ -190,7 +181,6 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: 'Role pengguna tidak ditemukan' }, { status: 400 });
         }
 
-        // Validate transition
         const validation = validateStatusTransition(report.status, requestedAction, userRole);
         if (!validation.valid) {
             return NextResponse.json({ error: validation.error }, { status: 403 });
@@ -212,19 +202,16 @@ export async function PATCH(request: Request) {
             updated_at: new Date().toISOString(),
         };
 
-        // Set timestamp field for the transition
         const timestampField = getTimestampFieldForStatus(newStatus);
         if (timestampField) {
             updateData[timestampField] = new Date().toISOString();
         }
 
-        // Set user field for the transition
         const userField = getUserFieldForStatus(newStatus);
         if (userField && userId) {
             updateData[userField] = userId;
         }
 
-        // Add notes if provided
         if (notes) {
             if (requestedAction === 'verify' || requestedAction === 'update_progress') {
                 updateData.validation_notes = notes;
@@ -240,12 +227,10 @@ export async function PATCH(request: Request) {
             updateData.remarks_by = remarksByValue;
         }
 
-        // Add resolution evidence URL if provided
         if (resolution_evidence_url) {
             updateData.resolution_evidence_url = resolution_evidence_url;
         }
 
-        // If reopening, clear resolved timestamps
         if (requestedAction === 'reopen') {
             updateData.resolved_at = null;
             updateData.resolved_by = null;

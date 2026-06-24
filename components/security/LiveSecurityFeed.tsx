@@ -7,15 +7,11 @@ import { SecurityEvent } from '@/types/security';
 import { supabase } from '@/lib/supabase';
 import { PrettyPayload } from './PrettyPayload';
 
-/**
- * Live Security Event Stream
- * Displays the last 20 raw events with micro-animations.
- */
 export function LiveSecurityFeed({ className }: { className?: string }) {
     const [events, setEvents] = useState<SecurityEvent[]>([]);
 
     useEffect(() => {
-        // Fetch last 10 events
+
         async function fetchLastEvents() {
             const { data } = await supabase
                 .from('security_events')
@@ -26,7 +22,6 @@ export function LiveSecurityFeed({ className }: { className?: string }) {
         }
         fetchLastEvents();
 
-        // Subscribe to new events
         const channel = supabase
             .channel('live-feed')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'security_events' }, (payload) => {
@@ -59,9 +54,9 @@ export function LiveSecurityFeed({ className }: { className?: string }) {
             </div>
 
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar relative">
-                {/* Tactical Noise Overlay */}
+                {}
                 <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
-                
+
                 <AnimatePresence initial={false} mode="popLayout">
                     {events.map((event) => (
                         <motion.div
@@ -86,7 +81,7 @@ export function LiveSecurityFeed({ className }: { className?: string }) {
                                 }`}>
                                     {event.event_type === 'login' ? <Fingerprint className="w-5 h-5" /> : <Globe className="w-5 h-5" />}
                                 </div>
-                                
+
                                 <div className="flex-1 min-w-0 space-y-2">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
@@ -110,7 +105,7 @@ export function LiveSecurityFeed({ className }: { className?: string }) {
                                             </div>
                                         </div>
                                     </div>
-                                    
+
                                     <div className="flex flex-col gap-2">
                                         <span className="text-[11px] font-mono text-white/70 flex items-center gap-1.5">
                                             <Activity className="w-3 h-3 opacity-50" />

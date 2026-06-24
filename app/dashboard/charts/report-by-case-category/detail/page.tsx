@@ -19,12 +19,11 @@ export default function ReportByCaseCategoryPage() {
   const searchParams = useSearchParams();
   const sourceSheet = searchParams.get('sourceSheet') === 'CGO' ? 'CGO' : 'NON CARGO';
   const sourcePage = searchParams.get('sourcePage') || searchParams.get('originSlug') || 'customer-feedback-main';
-  
-  // Check if filters should be hidden (from filtered dashboard)
+
   const hideFilters = searchParams.get('hideFilters') === 'true';
   const dateFromParam = searchParams.get('dateFrom');
   const dateToParam = searchParams.get('dateTo');
-  
+
   const [filters, setFilters] = useState<FilterState>({
     hub: searchParams.get('hub') || 'all',
     branch: searchParams.get('branch') || 'all',
@@ -40,7 +39,7 @@ export default function ReportByCaseCategoryPage() {
 
   return (
     <div className="min-h-screen bg-[var(--surface-0)] overflow-x-hidden relative">
-      {/* Background Atmosphere */}
+      {}
       <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[var(--aurora-1)] blur-[120px] opacity-30 animate-pulse" />
         <div className="absolute bottom-[-5%] left-[-5%] w-[40%] h-[40%] bg-[var(--aurora-2)] blur-[100px] opacity-20" />

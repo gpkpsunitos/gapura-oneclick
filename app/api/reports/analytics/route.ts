@@ -1,24 +1,9 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk mengambil data laporan dengan dukungan filter dan caching
- */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { normalizeDivisionCode, reportsService, type ReportQueryFilters } from '@/lib/services/reports-service';
 
-/**
- * GET /api/reports/analytics
- * 
- * Mengambil data laporan untuk analitik dengan dukungan filter berbagai parameter
- * Mendukung refresh data dari sumber eksternal dan caching
- * 
- * @param request - Objek request HTTP dengan query parameters
- * @returns Promise<NextResponse> - Response JSON berisi daftar laporan yang difilter atau error
- * @throws Mengembalikan 500 jika terjadi error server
- */
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
@@ -29,8 +14,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const refresh = searchParams.get('refresh') === 'true';
-    
-    // Parse filters from query string
+
     const divisionParam = searchParams.get('esklasiDivision') || searchParams.get('targetDivision');
     const normalizedDivision = divisionParam ? normalizeDivisionCode(divisionParam) : undefined;
     if (divisionParam && !normalizedDivision) {
@@ -52,22 +36,19 @@ export async function GET(request: NextRequest) {
       gseOnly: searchParams.get('gseOnly') === 'true',
     };
 
-    // Parse fields if provided (expects comma-separated string)
     const fieldsParam = searchParams.get('fields');
     const fields = fieldsParam ? fieldsParam.split(',') : undefined;
-    
+
     const sourceParam = searchParams.get('source');
     const source: 'sheets' | 'sync' = sourceParam === 'sync' ? 'sync' : 'sheets';
 
-    // Fetch reports with server-side optimization
     const reports = await reportsService.getReports({ 
       refresh, 
       filters,
       fields,
       source,
     });
-    
-    // Return with caching headers
+
     return NextResponse.json({
       timestamp: Date.now(),
       count: reports.length,

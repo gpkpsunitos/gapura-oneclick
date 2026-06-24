@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen tampilan pivot executive dengan fitur ranking dan visualisasi
- */
 
 'use client';
 
@@ -12,15 +7,6 @@ import { motion } from 'framer-motion';
 import { ArrowRight, TrendingUp, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
 import { ViewMode, Normalization } from '@/components/chart-detail/GlobalControlBar';
 
-/**
- * Props untuk komponen ExecutivePivotView
- * @interface ExecutivePivotViewProps
- * @property {QueryResult} result - Hasil query
- * @property {string} [title] - Judul tabel
- * @property {ViewMode} [viewMode='values'] - Mode tampilan
- * @property {Normalization} [normalization='none'] - Mode normalisasi
- * @property {boolean} [isTile=false] - Apakah ditampilkan sebagai tile
- */
 interface ExecutivePivotViewProps {
   result: QueryResult;
   title?: string;
@@ -29,39 +15,15 @@ interface ExecutivePivotViewProps {
   isTile?: boolean;
 }
 
-// Executive Color Palette - Softer, Professional
-/**
- * Palet warna untuk tampilan executive
- * @constant {Object} EXEC_COLORS
- */
 const EXEC_COLORS = {
-  bar: '#10b981',        // emerald-500
-  barBg: '#ecfdf5',      // emerald-50
-  textMax: '#064e3b',    // emerald-900
-  textNorm: '#374151',   // gray-700
-  highlight: '#f0fdf4',  // light emerald bg
-  progress: '#34d399',   // emerald-400
+  bar: '#10b981',
+  barBg: '#ecfdf5',
+  textMax: '#064e3b',
+  textNorm: '#374151',
+  highlight: '#f0fdf4',
+  progress: '#34d399',
 };
 
-/**
- * Komponen tampilan pivot executive
- * Menampilkan data dalam format pivot dengan ranking top contributors dan visualisasi
- * Dioptimalkan untuk tampilan eksekutif dengan desain yang elegan
- * 
- * @param {ExecutivePivotViewProps} props - Props untuk konfigurasi tampilan pivot
- * @returns {JSX.Element | null} Element React yang berisi tampilan pivot atau null
- * 
- * @example
- * ```tsx
- * <ExecutivePivotView
- *   result={queryResult}
- *   title="Laporan Executive"
- *   viewMode="values"
- *   normalization="none"
- *   isTile={false}
- * />
- * ```
- */
 export function ExecutivePivotView({
   result,
   title,
@@ -69,20 +31,18 @@ export function ExecutivePivotView({
   normalization = 'none',
   isTile = false
 }: ExecutivePivotViewProps) {
-  // Data Processing (Similar to CustomPivotTable but optimized for ranking)
+
   const processedData = useMemo(() => {
     const columns = result.columns;
     const data = result.rows as Record<string, unknown>[];
     if (data.length === 0) return null;
 
-    // Detect fields (Simple heuristic)
-    // Assuming structure: [Airline/Row], [Category/Col], [Value]
     const numCols = columns.filter(c => typeof data[0][c] === 'number');
     const strCols = columns.filter(c => typeof data[0][c] === 'string');
 
-    const valueField = numCols[0] || columns[columns.length - 1]; // Fallback to last
-    const rowField = strCols[0] || columns[0]; // Airline usually first
-    const colField = strCols[1] || columns[1]; // Category second
+    const valueField = numCols[0] || columns[columns.length - 1];
+    const rowField = strCols[0] || columns[0];
+    const colField = strCols[1] || columns[1];
 
     const matrix = new Map<string, number>();
     const rowSet = new Set<string>();
@@ -93,7 +53,7 @@ export function ExecutivePivotView({
       const r = String(row[rowField] || '').trim();
       const c = String(row[colField] || '').trim();
       const v = Number(row[valueField]) || 0;
-      
+
       if (r && c) {
         matrix.set(`${r}__${c}`, v);
         rowSet.add(r);
@@ -105,7 +65,6 @@ export function ExecutivePivotView({
     const rows = Array.from(rowSet);
     const cols = Array.from(colSet);
 
-    // Calculate Row Stats for Ranking
     const rowStats: Record<string, { total: number; max: number; maxCol: string }> = {};
     rows.forEach(r => {
       let total = 0;
@@ -122,7 +81,6 @@ export function ExecutivePivotView({
       rowStats[r] = { total, max, maxCol };
     });
 
-    // Calculate Column Stats
     const colStats: Record<string, number> = {};
     cols.forEach(c => {
       let total = 0;
@@ -132,10 +90,8 @@ export function ExecutivePivotView({
       colStats[c] = total;
     });
 
-    // Sort Rows by Total Descending
     rows.sort((a, b) => rowStats[b].total - rowStats[a].total);
 
-    // Sort Columns by Total Descending
     cols.sort((a, b) => colStats[b] - colStats[a]);
 
     return { rows, cols, matrix, rowStats, colStats, grandTotal, rowField, colField };
@@ -145,20 +101,12 @@ export function ExecutivePivotView({
 
   const { rows, cols, matrix, rowStats, colStats, grandTotal, rowField } = processedData;
 
-  // Insight Calculations
   const topAirline = rows[0];
   const topAirlineShare = (rowStats[topAirline].total / grandTotal * 100).toFixed(1);
   const totalCases = grandTotal.toLocaleString('id-ID');
 
   const top5 = rows.slice(0, 5);
 
-  /**
-   * Memformat nilai untuk ditampilkan
-   * @function formatValue
-   * @param {number} val - Nilai yang akan diformat
-   * @param {number} total - Total untuk perhitungan persentase
-   * @returns {string} Nilai yang sudah diformat
-   */
   const formatValue = (val: number, total: number) => {
     if (viewMode === 'percentage') return `${((val / total) * 100).toFixed(1)}%`;
     return val.toLocaleString('id-ID');
@@ -168,8 +116,8 @@ export function ExecutivePivotView({
     <div className={`flex flex-col h-full bg-white font-sans text-sm ${
       isTile ? '' : 'rounded-3xl border border-gray-100 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.08)]'
     } overflow-hidden`}>
-      
-      {/* 1. PRIMARY INSIGHT SECTION (Top 5 Ranking) */}
+
+      {}
       <div className="p-6 bg-gradient-to-b from-white to-gray-50/50 border-b border-gray-100">
         <div className="flex items-center gap-2 mb-4">
           <div className="p-1.5 bg-emerald-100 text-emerald-600 rounded-lg">
@@ -193,7 +141,7 @@ export function ExecutivePivotView({
                     <span className="font-bold text-gray-900 w-12 text-right">{stats.total.toLocaleString()}</span>
                   </div>
                 </div>
-                {/* Bar */}
+                {}
                 <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
@@ -208,7 +156,7 @@ export function ExecutivePivotView({
         </div>
       </div>
 
-      {/* 2. DETAILED BREAKDOWN (Table) */}
+      {}
       <div className="flex-1 overflow-auto bg-white p-0 relative [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2 [&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-gray-400">
         <table className="w-full border-collapse min-w-full">
           <thead className="sticky top-0 bg-white z-20 shadow-sm">
@@ -230,7 +178,7 @@ export function ExecutivePivotView({
             {rows.map((r) => {
                const stats = rowStats[r];
                const isTop = top5.includes(r);
-               
+
                return (
                  <tr key={r} className="group hover:bg-gray-50/80 transition-colors">
                    <td className="px-6 py-3 sticky left-0 bg-white z-10 border-r border-gray-50 group-hover:bg-gray-50 transition-colors">
@@ -238,23 +186,23 @@ export function ExecutivePivotView({
                        {r}
                      </div>
                    </td>
-                   
-                   {cols.map(c => { // Removed slice
+
+                   {cols.map(c => {
                      const val = matrix.get(`${r}__${c}`) || 0;
                      const isMax = val === stats.max && val > 0;
-                     const intensity = (val / stats.max) * 100; // Relative to row max
-                     
+                     const intensity = (val / stats.max) * 100;
+
                      return (
                        <td key={c} className="px-2 py-2 text-right min-w-[80px]">
                          <div className="relative h-8 w-full flex items-center justify-end">
-                             {/* Soft Bar Background */}
+                             {}
                              {val > 0 && (
                                <div 
                                  className={`absolute right-0 h-full rounded-md opacity-20 transition-all group-hover:opacity-30 ${isMax ? 'bg-emerald-400' : 'bg-gray-200'}`}
                                  style={{ width: `${intensity}%` }}
                                />
                              )}
-                             
+
                              <span 
                                className={`
                                  relative z-10 px-2 text-xs font-medium transition-colors
@@ -281,7 +229,7 @@ export function ExecutivePivotView({
         </table>
       </div>
 
-      {/* 3. SLIM FOOTER */}
+      {}
       <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
          <div className="flex gap-4">
            <div>Total Columns: <span className="font-bold text-gray-900">{cols.length}</span></div>

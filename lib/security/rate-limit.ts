@@ -1,8 +1,3 @@
-/**
- * Simple in-memory rate limiter for API endpoints.
- * Note: In serverless environments, each instance has its own state.
- * For production, consider Redis-backed rate limiting.
- */
 
 import { createHmac, timingSafeEqual } from 'crypto';
 
@@ -21,12 +16,6 @@ interface RateLimitResult {
     resetAt: number;
 }
 
-/**
- * Check if a request is within rate limits.
- * @param key - Unique identifier (e.g., IP address or email)
- * @param limit - Maximum number of requests allowed
- * @param windowMs - Time window in milliseconds
- */
 export function checkRateLimit(
     key: string,
     limit: number = 5,
@@ -49,10 +38,6 @@ export function checkRateLimit(
     return { success: true, remaining: limit - entry.count, resetAt: entry.resetTime };
 }
 
-/**
- * Supabase-backed persistent rate limiter for serverless environments.
- * Uses the database to track rate limits across cold starts and instances.
- */
 export async function checkDbRateLimit(
     key: string,
     limit: number = 5,
@@ -63,13 +48,12 @@ export async function checkDbRateLimit(
     const db = supabaseAdmin.from('rate_limits') as any;
     const now = new Date();
 
-    // Clean up expired entries
     await db.delete().lt('reset_at', now.toISOString());
 
     const { data, error } = await db.select('id, count, reset_at').eq('key', key).single();
 
     if (error || !data) {
-        // No existing record — create new
+
         const resetAt = new Date(now.getTime() + windowMs);
         await db.insert({ key, count: 1, reset_at: resetAt.toISOString() });
         return { success: true, remaining: limit - 1, resetAt: resetAt.getTime() };
@@ -77,7 +61,7 @@ export async function checkDbRateLimit(
 
     const resetAt = new Date(data.reset_at as string);
     if (now.getTime() > resetAt.getTime()) {
-        // Window expired — reset
+
         const newResetAt = new Date(now.getTime() + windowMs);
         await db.update({ count: 1, reset_at: newResetAt.toISOString() }).eq('id', data.id);
         return { success: true, remaining: limit - 1, resetAt: newResetAt.getTime() };
@@ -93,9 +77,6 @@ export async function checkDbRateLimit(
     return { success: true, remaining: limit - newCount, resetAt: resetAt.getTime() };
 }
 
-/**
- * Get client IP from request headers
- */
 export function getClientIpFromRequest(request: Request): string {
     return (
         request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -104,11 +85,6 @@ export function getClientIpFromRequest(request: Request): string {
     );
 }
 
-/**
- * Verify a signed upload token.
- * Token format: <timestamp>.<hmac>
- * Valid for `maxAgeMs` milliseconds after creation.
- */
 export function verifyUploadToken(token: string, maxAgeMs: number = 5 * 60 * 1000): boolean {
     const secret = process.env.JWT_SECRET;
     if (!secret) return false;
@@ -131,10 +107,6 @@ export function verifyUploadToken(token: string, maxAgeMs: number = 5 * 60 * 100
     return timingSafeEqual(providedBuf, expectedBuf);
 }
 
-/**
- * Generate a signed upload token.
- * Token format: <timestamp>.<hmac>
- */
 export function generateUploadToken(): string | null {
     const secret = process.env.JWT_SECRET;
     if (!secret) return null;

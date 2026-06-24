@@ -1,58 +1,34 @@
-/**
- * @file
- * 
- * File ini berisi utilitas untuk manajemen state sinkronisasi data
- */
 
 import 'server-only';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-/** Source data untuk sinkronisasi laporan */
 export const REPORTS_SYNC_SOURCE = 'reports';
 
-/**
- * Record state sinkronisasi data
- * @interface SyncStateRecord
- */
 export interface SyncStateRecord {
-  /** Sumber data */
+
   source: string;
-  /** Timestamp sinkronisasi terakhir */
+
   last_sync_at: string | null;
-  /** Versi sinkronisasi */
+
   sync_version: number;
-  /** Status sinkronisasi */
+
   status: string;
-  /** Timestamp kedaluwarsa lock */
+
   locked_until: string | null;
-  /** Pesan error terakhir */
+
   last_error: string | null;
-  /** Jumlah baris data */
+
   row_count: number;
-  /** Timestamp update terakhir */
+
   updated_at: string;
 }
 
-/** Row hasil RPC untuk lock sinkronisasi.
- * sync_source replaces source to avoid PG42702 column-reference ambiguity
- * inside acquire_sync_lock (RETURNS TABLE col vs table col of same name).
- */
 interface SyncLockRpcRow extends Omit<SyncStateRecord, 'source'> {
   acquired: boolean;
   sync_source: string;
 }
 
-/**
- * Memastikan record sync state ada untuk source tertentu
- * @param source - Sumber data
- * @returns Promise yang resolve setelah record dibuat jika belum ada
- * @throws Error jika terjadi error database
- * @example
- * ```ts
- * await ensureSyncState('reports');
- * ```
- */
 async function ensureSyncState(source: string): Promise<void> {
   const { error } = await supabaseAdmin
     .from('sync_state')
@@ -63,17 +39,6 @@ async function ensureSyncState(source: string): Promise<void> {
   }
 }
 
-/**
- * Mengambil state sinkronisasi untuk source tertentu
- * @param source - Sumber data (default: 'reports')
- * @returns Promise yang berisi record sync state
- * @throws Error jika record tidak ditemukan atau terjadi error database
- * @example
- * ```ts
- * const state = await getSyncState('reports');
- * console.log(`Sync version: ${state.sync_version}`);
- * ```
- */
 export async function getSyncState(source = REPORTS_SYNC_SOURCE): Promise<SyncStateRecord> {
   await ensureSyncState(source);
 
@@ -90,38 +55,11 @@ export async function getSyncState(source = REPORTS_SYNC_SOURCE): Promise<SyncSt
   return data as SyncStateRecord;
 }
 
-/**
- * Mengambil versi sinkronisasi untuk source tertentu
- * @param source - Sumber data (default: 'reports')
- * @returns Promise yang berisi versi sinkronisasi
- * @throws Error jika terjadi error database
- * @example
- * ```ts
- * const version = await getSyncVersion('reports');
- * console.log(`Current version: ${version}`);
- * ```
- */
 export async function getSyncVersion(source = REPORTS_SYNC_SOURCE): Promise<number> {
   const state = await getSyncState(source);
   return Number(state.sync_version || 0);
 }
 
-/**
- * Mencoba mendapatkan lock untuk sinkronisasi data
- * @param source - Sumber data (default: 'reports')
- * @param lockSeconds - Durasi lock dalam detik (default: 300)
- * @returns Promise yang berisi status lock dan state saat ini
- * @throws Error jika terjadi error database
- * @example
- * ```ts
- * const { acquired, state } = await acquireSyncLock('reports', 60);
- * if (acquired) {
- *   // Lakukan sinkronisasi
- * } else {
- *   console.log('Lock already held by another process');
- * }
- * ```
- */
 export async function acquireSyncLock(
   source = REPORTS_SYNC_SOURCE,
   lockSeconds = 300,

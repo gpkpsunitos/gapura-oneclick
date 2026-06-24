@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk mengambil (GET) dan membuat (POST) laporan
- * Mendukung pagination, filtering berdasarkan role user, dan pembuatan laporan baru
- */
 
 import { after, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
@@ -18,7 +12,6 @@ import { purgeDashboardSnapshots, purgeExpiredDashboardSnapshots } from '@/lib/d
 import { enforceBotProtection } from '@/lib/security/botid';
 import { linkEvidenceFilesToReport, normalizeEvidenceSubmissionId, validateEvidenceForReport } from '@/lib/evidence-files';
 
-/** Field default untuk summary laporan */
 const DEFAULT_REPORT_SUMMARY_FIELDS = [
     'id',
     'sheet_id',
@@ -61,28 +54,16 @@ const DEFAULT_REPORT_SUMMARY_FIELDS = [
     'case_classification',
 ] as const;
 
-/** Tipe data untuk row summary laporan */
 type ReportSummaryRow = {
     id: string | number | null;
     created_at: string | null;
     [key: string]: unknown;
 };
 
-/**
- * Mengencode cursor pagination ke format base64url
- * @param createdAt - Timestamp pembuatan
- * @param id - ID laporan
- * @returns String cursor yang sudah diencode
- */
 function encodeCursor(createdAt: string, id: string): string {
     return Buffer.from(JSON.stringify({ createdAt, id }), 'utf8').toString('base64url');
 }
 
-/**
- * Mendekode cursor pagination dari format base64url
- * @param cursor - String cursor yang akan didecode
- * @returns Object berisi createdAt dan id atau null jika invalid
- */
 function decodeCursor(cursor: string | null): { createdAt: string; id: string } | null {
     if (!cursor) return null;
     try {
@@ -97,12 +78,7 @@ function decodeCursor(cursor: string | null): { createdAt: string; id: string } 
     }
 }
 
-/**
- * Mengambil field tertentu dari object laporan
- * @param report - Object laporan
- * @param fields - Array nama field yang akan diambil
- * @returns Object baru berisi field yang diminta
- */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function pickReportFields(report: any, fields: readonly string[]) {
     const picked: Record<string, unknown> = {};
     for (const field of fields) {
@@ -113,18 +89,6 @@ function pickReportFields(report: any, fields: readonly string[]) {
     return picked;
 }
 
-/**
- * Menangani request GET untuk mengambil daftar laporan
- * Mendukung pagination dengan cursor, filtering berdasarkan role user,
- * dan pengambilan field spesifik
- * @param request - Request object berisi query parameters
- * @returns Response JSON berisi daftar laporan dan informasi pagination
- * @throws {Error} Jika terjadi kesalahan saat mengambil laporan
- * @example
- * ```http
- * GET /api/reports?limit=50&cursor=...&fields=id,title,status
- * ```
- */
 export async function GET(request: Request) {
     try {
         const cookieStore = await cookies();
@@ -139,9 +103,9 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
         }
 
-        // Normalize role for consistent checking
         const role = String(payload.role).trim().toUpperCase();
         const userEmail = String(payload.email || '').trim().toLowerCase();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const userFullName = String((payload as any).full_name || '').trim().toLowerCase();
         const url = new URL(request.url);
         const unfiltered = url.searchParams.get('unfiltered') === '1';
@@ -152,7 +116,6 @@ export async function GET(request: Request) {
             ? fieldsParam.split(',').map((field) => field.trim()).filter(Boolean)
             : [...DEFAULT_REPORT_SUMMARY_FIELDS];
 
-        // Get user's station_id from database for role-based filtering
         const userStationId = payload.station_id;
 
         const isDivisionOrPartner = role.startsWith('DIVISI_') || role.startsWith('PARTNER_');
@@ -237,24 +200,6 @@ export async function GET(request: Request) {
     }
 }
 
-/**
- * Menangani request POST untuk membuat laporan baru
- * Menerima data laporan, menyimpan ke database, mengirim notifikasi email,
- * dan memperbarui cache dashboard
- * @param request - Request object berisi data laporan di body JSON
- * @returns Response JSON dengan status sukses dan data laporan yang dibuat
- * @throws {Error} Jika terjadi kesalahan saat membuat laporan
- * @example
- * ```json
- * {
- *   "title": "Judul Laporan",
- *   "description": "Deskripsi kejadian",
- *   "severity": "high",
- *   "station_id": "JKT-001",
- *   "area": "TERMINAL"
- * }
- * ```
- */
 export async function POST(request: Request) {
     try {
         const botProtectionResponse = await enforceBotProtection();
@@ -291,7 +236,7 @@ export async function POST(request: Request) {
             evidence_file_ids,
             evidence_submission_id,
             evidence_meta,
-            // New fields
+
             incident_date,
             incident_time,
             area,
@@ -302,28 +247,28 @@ export async function POST(request: Request) {
             priority,
             is_flight_related,
             is_gse_related,
-            // New Screenshot Fields
+
             airline,
             route,
             root_cause,
             action_taken,
             reporter_name,
             area_category,
-            // Delay fields
+
             delay_code,
             delay_duration,
-            // CSV-aligned fields
+
             station_code,
             hub,
             airline_type,
-            jenis_maskapai, // from client wizard
+            jenis_maskapai,
             report_content,
             reporting_branch,
             week_in_month,
             reporter_email,
             form_submitted_at,
             form_completed_at,
-            // Area-specific category columns (from client wizard)
+
             terminal_area_category,
             apron_area_category,
             general_category,
@@ -338,7 +283,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Title and description are required' }, { status: 400 });
         }
 
-        // Get user's station and unit from their profile (Supabase)
         const { data: userData } = await supabaseAdmin
             .from('users')
             .select('unit_id')
@@ -360,7 +304,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Evidence wajib diunggah sebelum laporan dikirim' }, { status: 400 });
         }
 
-        // Construct report object for Google Sheets
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const reportData: any = {
             user_id: payload.id,
             title,
@@ -380,10 +324,9 @@ export async function POST(request: Request) {
             evidence_submission_id: submissionId,
             evidence_meta: evidence_meta || null,
             status: REPORT_STATUS.OPEN,
-            // Insert new fields
-            // Sheets expect "date_of_event" header, map from incident_date
+
             date_of_event: incident_date || null,
-            event_date: incident_date || null, // keep legacy alias for compatibility
+            event_date: incident_date || null,
             incident_time: incident_time || null,
             area: area || null,
             specific_location: specific_location || null,
@@ -393,7 +336,7 @@ export async function POST(request: Request) {
             priority: priority || 'medium',
             is_flight_related: is_flight_related || false,
             is_gse_related: is_gse_related || false,
-            // Insert New Fields
+
             airlines: airline || null,
             airline: airline || null,
             route: route || null,
@@ -402,10 +345,10 @@ export async function POST(request: Request) {
             reporter_name: reporter_name || null,
             delay_code: delay_code || null,
             delay_duration: delay_duration || null,
-            // CSV-aligned fields
+
             station_code: station_code || null,
             hub: null,
-            // Support both airline_type and jenis_maskapai from client
+
             jenis_maskapai: airline_type || jenis_maskapai || null,
             report: report_content || description || null,
             reporting_branch: reporting_branch || null,
@@ -413,14 +356,14 @@ export async function POST(request: Request) {
             reporter_email: reporter_email || null,
             form_submitted_at: form_submitted_at || null,
             form_completed_at: form_completed_at || null,
-            // Ensure branch is populated if possible
+
             branch: station_code || null, 
-            // Area-specific categories (ensure write to appropriate columns)
+
             terminal_area_category: terminal_area_category || (areaKey === 'TERMINAL' ? area_category || null : null),
             apron_area_category: apron_area_category || (areaKey === 'APRON' ? area_category || null : null),
             general_category: general_category || (areaKey === 'GENERAL' || areaKey === 'CARGO' ? area_category || null : null),
             preventive_action: preventive_action || null,
-            // GSE Availability fields (sheet columns: GSE Available & Requirement / GSE MOTORIZED / GSE NON - MOTORIZED / Category Case GSE)
+
             gse_available_requirement: gse_available_requirement || null,
             gse_motorized: gse_motorized || null,
             gse_non_motorized: gse_non_motorized || null,
@@ -428,11 +371,10 @@ export async function POST(request: Request) {
         };
         if (areaKey === 'GSE') reportData.is_gse_related = true;
 
-        // Ensure reporter_email always captured for filtering fallback
         if (!reportData.reporter_email && payload.email) {
             reportData.reporter_email = payload.email;
         }
-        // Resolve HUB mapping using "HUB" sheet when available
+
         try {
             const resolvedHub = await reportsService.resolveHubForStation(reportData.station_code || reportData.station_id);
             if (resolvedHub) reportData.hub = resolvedHub;

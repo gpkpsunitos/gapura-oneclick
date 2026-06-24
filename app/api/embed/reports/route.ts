@@ -1,16 +1,7 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk mengambil data laporan embed
- * Mendukung filtering berdasarkan range, airline, category, status, severity, area, dan station
- */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { reportsService } from '@/lib/services/reports-service';
 
-/**
- * Interface untuk parameter filter query
- */
 interface FilterParams {
   airline?: string;
   category?: string;
@@ -51,24 +42,12 @@ function sameValue(actual: unknown, expected: string) {
   return String(actual || '').trim() === expected;
 }
 
-/**
- * Menangani request GET untuk mengambil data laporan embed
- * Mendukung filtering berdasarkan range, airline, category, status, severity, area, dan station
- * @param request - Request object berisi query parameters
- * @returns Response JSON berisi data laporan, summary, dan informasi pagination
- * @throws {Error} Jika terjadi kesalahan saat mengambil data
- * @example
- * ```http
- * GET /api/embed/reports?range=7d&airline=GA&category=Terminal
- * ```
- */
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const range = searchParams.get('range') || '7d';
     const limit = Math.min(parseInt(searchParams.get('limit') || '500', 10), 5000);
-    
-    // Parse filters
+
     const filters: FilterParams = {
       airline: searchParams.get('airline') || undefined,
       category: searchParams.get('category') || undefined,
@@ -77,8 +56,7 @@ export async function GET(request: NextRequest) {
       area: searchParams.get('area') || undefined,
       station: searchParams.get('station') || undefined
     };
-    
-    // Calculate start date based on range
+
     const rangeDays = range === '30d' ? 30 : 7;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - rangeDays);
@@ -108,21 +86,20 @@ export async function GET(request: NextRequest) {
     });
 
     const reports = filteredReports.slice(0, limit);
-    
-    // Compute summary stats
+
     const summary = {
       total: reports.length,
       byStatus: {} as Record<string, number>,
       bySeverity: {} as Record<string, number>
     };
-    
+
     for (const r of reports) {
       const status = r.status || 'Unknown';
       const severity = r.severity || 'Unknown';
       summary.byStatus[status] = (summary.byStatus[status] || 0) + 1;
       summary.bySeverity[severity] = (summary.bySeverity[severity] || 0) + 1;
     }
-    
+
     return NextResponse.json({
       range,
       filters,

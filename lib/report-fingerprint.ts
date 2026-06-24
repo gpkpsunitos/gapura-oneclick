@@ -1,17 +1,7 @@
-/**
- * @file
- * 
- * File ini berisi utilitas untuk fingerprinting dan normalisasi data laporan
- */
 
 import crypto from 'crypto';
 import type { Report } from '@/types';
 
-/**
- * Menormalisasi nilai teks menjadi format konsisten
- * @param value - Nilai yang akan dinormalisasi
- * @returns String yang sudah dinormalisasi
- */
 function normalizeText(value: unknown): string {
     if (value === null || value === undefined) return '';
 
@@ -27,11 +17,6 @@ function normalizeText(value: unknown): string {
         .replace(/\s+/g, ' ');
 }
 
-/**
- * Menormalisasi nilai date ke format ISO date string
- * @param value - Nilai date yang akan dinormalisasi
- * @returns String date dalam format YYYY-MM-DD
- */
 function normalizeDate(value: unknown): string {
     if (!value) return '';
 
@@ -55,11 +40,6 @@ function normalizeDate(value: unknown): string {
     return normalized;
 }
 
-/**
- * Mengonversi string ke format Title Case
- * @param value - String yang akan dikonversi
- * @returns String dalam format Title Case
- */
 function toTitleCase(value: string): string {
     return value
         .split(' ')
@@ -68,16 +48,6 @@ function toTitleCase(value: string): string {
         .join(' ');
 }
 
-/**
- * Menormalisasi kategori laporan ke format standar
- * @param value - Nilai kategori yang akan dinormalisasi
- * @returns String kategori dalam format standar
- * @example
- * ```ts
- * const category = normalizeReportCategory('irregularity');
- * // returns: 'Irregularity'
- * ```
- */
 export function normalizeReportCategory(value: unknown): string {
     const normalized = normalizeText(value);
     if (!normalized) return '';
@@ -89,15 +59,6 @@ export function normalizeReportCategory(value: unknown): string {
     return toTitleCase(normalized);
 }
 
-/**
- * Mendapatkan kategori laporan dengan prioritas field tertentu
- * @param report - Objek laporan parsial
- * @returns String kategori laporan
- * @example
- * ```ts
- * const category = resolveReportCategory(report);
- * ```
- */
 export function resolveReportCategory(report: Partial<Report>): string {
     return normalizeReportCategory(
         report.main_category ||
@@ -107,15 +68,6 @@ export function resolveReportCategory(report: Partial<Report>): string {
     );
 }
 
-/**
- * Mendapatkan cabang laporan
- * @param report - Objek laporan parsial
- * @returns String cabang laporan
- * @example
- * ```ts
- * const branch = resolveReportBranch(report);
- * ```
- */
 export function resolveReportBranch(report: Partial<Report>): string {
     return normalizeText(
         report.branch ||
@@ -125,28 +77,10 @@ export function resolveReportBranch(report: Partial<Report>): string {
     );
 }
 
-/**
- * Mendapatkan airline laporan
- * @param report - Objek laporan parsial
- * @returns String airline laporan
- * @example
- * ```ts
- * const airline = resolveReportAirline(report);
- * ```
- */
 export function resolveReportAirline(report: Partial<Report>): string {
     return normalizeText(report.airline || report.airlines);
 }
 
-/**
- * Mendapatkan kategori area laporan
- * @param report - Objek laporan parsial
- * @returns String kategori area laporan
- * @example
- * ```ts
- * const areaCategory = resolveAreaCategory(report);
- * ```
- */
 export function resolveAreaCategory(report: Partial<Report>): string {
     const normalizedArea = normalizeText(report.area);
 
@@ -169,28 +103,10 @@ export function resolveAreaCategory(report: Partial<Report>): string {
     );
 }
 
-/**
- * Mendapatkan narasi laporan
- * @param report - Objek laporan parsial
- * @returns String narasi laporan
- * @example
- * ```ts
- * const narrative = resolveReportNarrative(report);
- * ```
- */
 export function resolveReportNarrative(report: Partial<Report>): string {
     return normalizeText(report.report || report.description || report.title);
 }
 
-/**
- * Membangun fingerprint unik untuk laporan
- * @param report - Objek laporan parsial
- * @returns String fingerprint SHA256
- * @example
- * ```ts
- * const fingerprint = buildReportFingerprint(report);
- * ```
- */
 export function buildReportFingerprint(report: Partial<Report>): string {
     const parts = [
         normalizeText(report.source_sheet),
@@ -210,19 +126,8 @@ export function buildReportFingerprint(report: Partial<Report>): string {
     return crypto.createHash('sha256').update(parts.join('|')).digest('hex');
 }
 
-/**
- * Mengecek apakah kategori laporan termasuk kategori record baru
- * @param report - Objek laporan parsial
- * @returns true jika kategori adalah Irregularity, Complaint, atau Compliment
- * @example
- * ```ts
- * if (isNewRecordCategory(report)) {
- *   sendNotification(report);
- * }
- * ```
- */
 export function isNewRecordCategory(report: Partial<Report>): boolean {
     const category = resolveReportCategory(report);
-    // Notify for specific known categories + any default/unassigned if it's a new insertion
+
     return ['Irregularity', 'Complaint', 'Compliment', 'Occurrence', 'Accident / Incident', '-', ''].includes(category);
 }

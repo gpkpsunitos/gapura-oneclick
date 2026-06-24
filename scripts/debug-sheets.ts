@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi skrip debugging untuk mengeksplorasi data di Google Sheets
- */
 
 import { google } from 'googleapis';
 import * as dotenv from 'dotenv';
@@ -13,12 +8,6 @@ dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID || '1TFPZOAWAKubPl7iaUk8BXt2BabY1N-AcLgi-_zBQGzk';
 const SHEETS_TO_DEBUG = ['NON CARGO', 'CGO'];
 
-/**
- * Fungsi debugging untuk mengeksplorasi data di Google Sheets
- * Menampilkan header, sample data, nilai kategorikal, dan nilai cabang
- * @async
- * @returns {Promise<void>}
- */
 async function debugSheets() {
   console.log('--- Gapura Sheets Debug Tool ---');
   console.log('Spreadsheet ID:', SPREADSHEET_ID);
@@ -43,7 +32,7 @@ async function debugSheets() {
     try {
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId: SPREADSHEET_ID,
-        range: `${sheetName}!A1:AT10`, // Headers + first 10 rows
+        range: `${sheetName}!A1:AT10`,
       });
 
       const rows = response.data.values;
@@ -54,10 +43,11 @@ async function debugSheets() {
 
       const headers = rows[0];
       console.log('Headers:', JSON.stringify(headers));
-      
+
       console.log('\nSample Row (Row 2):');
       if (rows[1]) {
         const sampleRow = rows[1];
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const mapped = headers.reduce((acc: any, header, idx) => {
           acc[header] = sampleRow[idx];
           return acc;
@@ -65,7 +55,6 @@ async function debugSheets() {
         console.log(JSON.stringify(mapped, null, 2));
       }
 
-      // Check categorical values
       const catKeywords = ['category', 'irregularity', 'complain'];
       const catIndices = headers.reduce((acc: number[], h, idx) => {
         if (catKeywords.some(k => h.toLowerCase().includes(k))) acc.push(idx);
@@ -78,7 +67,6 @@ async function debugSheets() {
         console.log(values);
       });
 
-      // Check branch values
       const branchKeywords = ['branch', 'cabang', 'station'];
       const branchIndices = headers.reduce((acc: number[], h, idx) => {
         if (branchKeywords.some(k => h.toLowerCase().includes(k))) acc.push(idx);
@@ -91,6 +79,7 @@ async function debugSheets() {
         console.log(values);
       });
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.error(`Error fetching sheet ${sheetName}:`, err.message);
     }

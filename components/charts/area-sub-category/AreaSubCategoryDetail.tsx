@@ -145,7 +145,7 @@ function KPICard({ title, value, color = 'blue' }: { title: string; value: strin
       <div className="absolute inset-0 bg-noise opacity-[0.02] mix-blend-overlay pointer-events-none"></div>
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
       <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shine pointer-events-none"></div>
-      
+
       <div className="relative z-10">
         <div className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">{title}</div>
         <div className="text-2xl font-black tracking-tight">{value}</div>
@@ -153,7 +153,6 @@ function KPICard({ title, value, color = 'blue' }: { title: string; value: strin
     </motion.div>
   );
 }
-
 
 export default function AreaSubCategoryDetail({
   filters,
@@ -167,6 +166,7 @@ export default function AreaSubCategoryDetail({
   const [error, setError] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(true);
   const [aiError, setAiError] = useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [aiData, setAiData] = useState<any>(null);
   const [aiStatus, setAiStatus] = useState<'loading' | 'success' | 'error' | 'timeout'>('loading');
   const aiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -185,8 +185,7 @@ export default function AreaSubCategoryDetail({
         if (filters.area && filters.area !== 'all') query.append('area', filters.area);
         if (filters.airlines && filters.airlines !== 'all') query.append('airlines', filters.airlines);
         if (filters.sourceSheet) query.append('sourceSheet', filters.sourceSheet);
-        
-        // Field projection to minimize payload
+
         const fields = [
           'id', 'date_of_event', 'incident_date', 'created_at', 'hub', 'branch', 
           'reporting_branch', 'station_code', 'airlines', 'airline', 'area',
@@ -199,6 +198,7 @@ export default function AreaSubCategoryDetail({
         if (!response.ok) throw new Error('Failed to fetch reports');
         const data = await response.json();
         setReports(data.reports || []);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         setError(err.message || 'Failed to load data');
       } finally {
@@ -221,7 +221,6 @@ export default function AreaSubCategoryDetail({
         setAiLoading(true);
         setAiStatus('loading');
 
-        // Set timeout for UI status only (the fetch has its own 60s/120s timeout)
         aiTimeoutRef.current = setTimeout(() => {
           setAiStatus('timeout');
         }, 48000);
@@ -238,6 +237,7 @@ export default function AreaSubCategoryDetail({
 
         setAiData({ stats: statsData, categories: categoriesData });
         setAiStatus('success');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
         if (err.name === 'AbortError') return;
 
@@ -495,7 +495,6 @@ export default function AreaSubCategoryDetail({
     [filteredReports]
   );
 
-
   if (loading) {
     return (
       <div className="min-h-[45vh] flex items-center justify-center">
@@ -517,7 +516,7 @@ export default function AreaSubCategoryDetail({
         <h2 className="text-xl font-black text-gray-900 tracking-tight">{title}</h2>
         <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
       </div>
-      {/* AI Root Cause Investigation */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)]/50 backdrop-blur-xl rounded-3xl border border-[var(--surface-2)] p-8 shadow-spatial-md transition-all">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -652,9 +651,9 @@ export default function AreaSubCategoryDetail({
         </div>
       </motion.div>
 
-      {/* Focused root cause & risk section removed as per request for Terminal, Apron, and General categories */}
+      {}
 
-      {/* ── Sub-Category Picker ── */}
+      {}
       {categoryRanking.length > 0 && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -665,7 +664,7 @@ export default function AreaSubCategoryDetail({
             Filter table by {contextMeta.singular}
           </p>
           <div className="flex flex-wrap gap-2">
-            {/* "All" pill — only shown when there are 2+ categories */}
+            {}
             {categoryRanking.length > 1 && (
               <button
                 type="button"
@@ -681,7 +680,7 @@ export default function AreaSubCategoryDetail({
               </button>
             )}
 
-            {/* One pill per sub-category */}
+            {}
             {categoryRanking.map(({ category, count }) => (
               <button
                 key={category}

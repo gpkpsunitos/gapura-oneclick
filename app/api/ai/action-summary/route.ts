@@ -6,13 +6,9 @@ import { resolveCachedAI } from '@/lib/ai-route-cache';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-/**
- * API endpoint untuk mendapatkan ringkasan aksi
- * Proxies request to HuggingFace Space AI service
- */
 export async function GET(req: NextRequest) {
   try {
-    // Verifikasi session
+
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
     const session = token ? await verifySession(token) : null;
@@ -24,8 +20,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Selalu gunakan data dari API internal /api/ai/analyze-all
-    // Lalu turunkan (derive) ringkasan aksi dari results
     const search = new URL(req.url).searchParams;
     const division = search.get('division') || '';
     const branch = search.get('branch') || '';
@@ -69,7 +63,7 @@ export async function GET(req: NextRequest) {
             analyzeData = await internalRes.json();
           }
         } catch {
-          // ignore, we'll produce empty summary below
+
         }
 
         const results: ResultItem[] = Array.isArray(analyzeData?.results) ? analyzeData.results : [];
@@ -217,7 +211,7 @@ export async function GET(req: NextRequest) {
     });
   } catch (error) {
     console.error('Action Summary API Error:', error);
-    // Degraded but structured response to keep UI working
+
     const payload = {
       status: 'degraded',
       totalRecords: 0,

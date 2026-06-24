@@ -1,9 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/preserve-manual-memoization */
-/**
- * @file OSAnalystCharts.tsx
- *
- * Main OS Analyst Dashboard Charts Component
- */
 
 'use client';
 
@@ -79,7 +73,6 @@ export default function AnalystCharts({
     const [activeTab, setActiveTab] = useState<AnalystTab>('stations_airlines');
     const [isGlobalFilterCollapsed, setIsGlobalFilterCollapsed] = useState(true);
 
-    // Warm the CF cache shortly after mount so the first CF-tab click renders instantly.
     useEffect(() => {
         const id = window.setTimeout(() => prefetchCustomerFeedback(), 1500);
         return () => window.clearTimeout(id);
@@ -100,6 +93,7 @@ export default function AnalystCharts({
     };
 
     const drilldownByBranchCategory = (branch: string, category: string, area?: string) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const filtered = (filteredReports as Report[]).filter((r: any) => {
             const code = r.stations?.code || r.branch || r.reporting_branch || '';
             const cat = (r.terminal_area_category || r.apron_area_category || r.general_category || '').trim();
@@ -122,7 +116,7 @@ export default function AnalystCharts({
     return (
         <>
         <div className="space-y-6">
-            {/* Global Filters Section */}
+            {}
             <div className="relative z-50 bg-[oklch(1_0_0_/_0.4)] backdrop-blur-2xl border border-[oklch(1_0_0_/_0.1)] shadow-inner-rim rounded-2xl mb-4 sm:mb-6">
                 <div className="flex justify-between items-center px-4 sm:px-6 py-3 sm:py-4 border-b border-[oklch(1_0_0_/_0.05)]">
                     <h3 className="text-xs sm:text-sm font-bold text-[var(--text-primary)] uppercase tracking-wider flex items-center gap-2">
@@ -145,7 +139,7 @@ export default function AnalystCharts({
                         </motion.svg>
                     </button>
                 </div>
-                
+
                 <AnimatePresence>
                     {!isGlobalFilterCollapsed && (
                         <motion.div
@@ -189,7 +183,7 @@ export default function AnalystCharts({
                 </AnimatePresence>
             </div>
 
-            {/* Tab Bar - PRISM Floating Capsule */}
+            {}
             <div className="flex justify-center sticky top-0 z-40 py-1 sm:py-2">
                 <div className="flex p-1 sm:p-1.5 rounded-2xl bg-[oklch(1_0_0_/_0.4)] backdrop-blur-2xl border border-[oklch(1_0_0_/_0.1)] shadow-inner-rim max-w-full overflow-x-auto no-scrollbar">
                     {TABS.map((tab) => (
@@ -216,7 +210,7 @@ export default function AnalystCharts({
                 </div>
             </div>
 
-            {/* Slide 2: General Categories & Volume Trends */}
+            {}
             {activeTab === 'tren' && (
                 <OsTrendSection
                     filteredReports={filteredReports}
@@ -237,7 +231,7 @@ export default function AnalystCharts({
                 />
             )}
 
-            {/* Slide 3 & 4: Stations & Airlines */}
+            {}
             {activeTab === 'stations_airlines' && (
                 <OsStationAirlineSection
                     filteredReports={filteredReports}
@@ -248,14 +242,14 @@ export default function AnalystCharts({
                 />
             )}
 
-            {/* Slide Delay Code: Delay Code Report */}
+            {}
             {activeTab === 'delay_code' && (
                 <div className="mt-8">
                     <DelayCodeReportTab reports={filteredReports as Report[]} />
                 </div>
             )}
 
-            {/* Slide CGO: CGO Case Category */}
+            {}
             {activeTab === 'cgo' && (
                 <OsCgoSection
                     filteredReports={filteredReports}
@@ -263,7 +257,7 @@ export default function AnalystCharts({
                 />
             )}
 
-            {/* Customer Feedback pages — one tab per page from customer-feedback-main dashboard */}
+            {}
             {CF_PAGE_INDEX[activeTab] !== undefined && (
                 <CustomerFeedbackPageTab pageIndex={CF_PAGE_INDEX[activeTab]!} />
             )}
@@ -274,6 +268,7 @@ export default function AnalystCharts({
             isOpen={drawerOpen}
             onClose={closeDrawer}
             title={drawerTitle}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             data={drawerData as any[]}
         />
         </>

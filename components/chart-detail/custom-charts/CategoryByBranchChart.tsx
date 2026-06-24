@@ -6,18 +6,18 @@ import { cn } from '@/lib/utils';
 import type { QueryResult } from '@/types/builder';
 
 interface CategoryByBranchChartProps {
-  data: any[]; // Expecting transformed data or raw QueryResult
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data: any[];
   title?: string;
   explanation?: string;
 }
 
-// 5-Step Green Scale matching user's reference image
 const SCALE = [
-  { bg: '#e8f5e9', text: '#374151', min: 0 },    // Very Low
-  { bg: '#c8e6c9', text: '#1b5e20', min: 0.1 },  // Low
-  { bg: '#a5d6a7', text: '#1b5e20', min: 0.3 },  // Medium
-  { bg: '#81c784', text: '#1b5e20', min: 0.5 },  // High
-  { bg: '#4caf50', text: '#ffffff', min: 0.7 },  // Very High
+  { bg: '#e8f5e9', text: '#374151', min: 0 },
+  { bg: '#c8e6c9', text: '#1b5e20', min: 0.1 },
+  { bg: '#a5d6a7', text: '#1b5e20', min: 0.3 },
+  { bg: '#81c784', text: '#1b5e20', min: 0.5 },
+  { bg: '#4caf50', text: '#ffffff', min: 0.7 },
 ];
 
 const getCellColor = (value: number, max: number) => {
@@ -34,12 +34,11 @@ export function CategoryByBranchChart({
   title = 'Case Category by Branch',
   explanation 
 }: CategoryByBranchChartProps) {
-  
-  // Pivot logic
+
   const pivotData = useMemo(() => {
     if (!data || data.length === 0) return null;
 
-    // Fast mapping keys to avoid common pitfalls with case or naming variations
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const getVal = (d: any, keys: string[]) => {
       for (const k of keys) {
         if (d[k] !== undefined && d[k] !== null && d[k] !== '') return d[k];
@@ -52,8 +51,7 @@ export function CategoryByBranchChart({
 
     const branches = Array.from(new Set(data.map(d => getVal(d, branchKeys) || 'Unknown'))).sort();
     const categories = ['IRREGULARITY', 'COMPLAINT', 'COMPLIMENT'];
-    
-    // Matrix: branch -> category -> count
+
     const matrix: Record<string, Record<string, number>> = {};
     const rowTotals: Record<string, number> = {};
     const colTotals: Record<string, number> = {
@@ -68,12 +66,11 @@ export function CategoryByBranchChart({
       matrix[b] = {};
       rowTotals[b] = 0;
       categories.forEach(c => {
-        // Use the standardized keys from the transformer
+
         const val = data.reduce((acc, d) => {
           const dBranch = d.branch || getVal(d, branchKeys) || 'Unknown';
           const dRawCat = (d.category || getVal(d, categoryKeys) || '').toString().toUpperCase();
-          
-          // MAP common variations to the 3 main categories
+
           let dCat = 'UNKNOWN';
           if (dRawCat.includes('IRREGULARITY')) dCat = 'IRREGULARITY';
           else if (dRawCat.includes('COMPLAIN')) dCat = 'COMPLAINT';
@@ -109,7 +106,7 @@ export function CategoryByBranchChart({
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm flex flex-col h-full overflow-hidden font-sans">
-      {/* 1. Header Area */}
+      {}
       <div className="px-6 py-5 border-b border-slate-50">
         <div className="flex justify-between items-baseline">
           <h3 className="text-xl font-bold text-slate-800 tracking-tight">
@@ -121,7 +118,7 @@ export function CategoryByBranchChart({
         </div>
       </div>
 
-      {/* 2. Table Area */}
+      {}
       <div className="flex-1 overflow-auto p-4">
         <table className="w-full border-separate border-spacing-0">
           <thead>
@@ -138,12 +135,12 @@ export function CategoryByBranchChart({
           <tbody className="divide-y divide-slate-50">
             {branches.map(branch => (
               <tr key={branch} className="hover:bg-slate-50/50 transition-colors group">
-                {/* Branch Label */}
+                {}
                 <td className="p-3 text-sm font-medium text-slate-600 sticky left-0 bg-white group-hover:bg-slate-50/50 transition-colors">
                   {branch}
                 </td>
 
-                {/* Categories */}
+                {}
                 {categories.map(cat => {
                   const val = matrix[branch][cat];
                   const style = getCellColor(val, maxVal);
@@ -159,14 +156,14 @@ export function CategoryByBranchChart({
                   );
                 })}
 
-                {/* Row Total */}
+                {}
                 <td className="p-3 text-sm font-bold text-slate-800 text-right tabular-nums">
                   {rowTotals[branch].toLocaleString()}
                 </td>
               </tr>
             ))}
 
-            {/* Grand Total Row */}
+            {}
             <tr className="bg-white">
               <td className="p-3 text-sm font-bold text-slate-800 uppercase tracking-tight">
                 Grand total
@@ -184,7 +181,7 @@ export function CategoryByBranchChart({
         </table>
       </div>
 
-      {/* 3. Footer / Explanation if any */}
+      {}
       {explanation && (
         <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-50 flex gap-3 items-start">
           <Plane className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" />
@@ -196,5 +193,3 @@ export function CategoryByBranchChart({
     </div>
   );
 }
-
-// Complexity: Time O(N + B * C) | Space O(B * C) where B=branches, C=categories, N=data length

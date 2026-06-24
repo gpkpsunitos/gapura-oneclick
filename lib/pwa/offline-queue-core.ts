@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi fungsi-fungsi core untuk manajemen queue offline, mencakup
- * penyimpanan, sinkronisasi, dan pemrosesan laporan yang dikumpulkan saat offline.
- */
 
 import {
   PWA_DB_NAME,
@@ -11,118 +5,95 @@ import {
   PWA_QUEUE_STORE,
 } from "@/lib/pwa/constants";
 
-/**
- * Status item dalam queue offline
- */
 export type OfflineQueueStatus = "queued" | "syncing" | "synced" | "failed";
 
-/**
- * Tipe laporan offline
- */
 export type OfflineQueueKind = "internal-report" | "public-report";
 
-/**
- * Lampiran offline
- */
 export interface OfflineAttachment {
-  /** ID lampiran */
+
   id: string;
-  /** Nama file */
+
   name: string;
-  /** Tipe file */
+
   type: string;
-  /** Ukuran file */
+
   size: number;
-  /** Waktu modifikasi terakhir */
+
   lastModified: number;
-  /** Data file sebagai Blob */
+
   blob: Blob;
 }
 
-/**
- * Item dalam queue offline
- */
 export interface OfflineQueueItem {
-  /** ID item */
+
   id: string;
-  /** Tipe laporan */
+
   kind: OfflineQueueKind;
-  /** Scope autentikasi */
+
   scope: string;
-  /** Endpoint API untuk submit laporan */
+
   endpoint: string;
-  /** Endpoint API untuk upload file */
+
   uploadEndpoint: string;
-  /** Payload laporan */
+
   reportPayload: Record<string, unknown>;
-  /** Daftar lampiran */
+
   attachments: OfflineAttachment[];
-  /** Status item */
+
   status: OfflineQueueStatus;
-  /** Waktu pembuatan */
+
   createdAt: number;
-  /** Waktu pembaruan */
+
   updatedAt: number;
-  /** Waktu sinkronisasi terakhir */
+
   lastSyncedAt: number | null;
-  /** Jumlah percobaan sinkronisasi */
+
   attemptCount: number;
-  /** Pesan error jika gagal */
+
   error: string | null;
-  /** Data response dari server */
+
   responseData?: Record<string, unknown> | null;
 }
 
-/**
- * Ringkasan queue offline
- */
 export interface OfflineQueueSummary {
-  /** Jumlah item yang antri */
+
   queued: number;
-  /** Jumlah item yang sedang sinkronisasi */
+
   syncing: number;
-  /** Jumlah item yang gagal */
+
   failed: number;
-  /** Jumlah item yang sudah disinkronisasi */
+
   synced: number;
-  /** Total item */
+
   total: number;
 }
 
-/**
- * Input untuk menambahkan laporan ke queue offline
- */
 export interface EnqueueOfflineReportInput {
-  /** Tipe laporan */
+
   kind: OfflineQueueKind;
-  /** Scope autentikasi */
+
   scope: string;
-  /** Endpoint API */
+
   endpoint: string;
-  /** Endpoint upload */
+
   uploadEndpoint: string;
-  /** Payload laporan */
+
   reportPayload: Record<string, unknown>;
-  /** Lampiran */
+
   attachments: OfflineAttachment[];
 }
 
-/**
- * Hasil proses queue offline
- */
 export interface ProcessOfflineQueueResult {
-  /** Jumlah item yang diproses */
+
   processed: number;
-  /** Jumlah item yang berhasil disinkronisasi */
+
   synced: number;
-  /** Jumlah item yang gagal */
+
   failed: number;
 }
 
-/** Retensi untuk item yang sudah disinkronisasi (24 jam) */
 const SYNCED_RETENTION_MS = 1000 * 60 * 60 * 24;
 
-/** Ringkasan queue offline kosong */
 export const EMPTY_OFFLINE_QUEUE_SUMMARY: OfflineQueueSummary = {
   queued: 0,
   syncing: 0,
@@ -131,11 +102,6 @@ export const EMPTY_OFFLINE_QUEUE_SUMMARY: OfflineQueueSummary = {
   total: 0,
 };
 
-/**
- * Memeriksa apakah error adalah error IndexedDB yang tidak tersedia
- * @param error - Error yang akan dicek
- * @returns true jika error adalah error IndexedDB unavailable
- */
 export function isIndexedDbUnavailableError(error: unknown) {
   if (error instanceof DOMException) {
     if (
@@ -162,21 +128,12 @@ export function isIndexedDbUnavailableError(error: unknown) {
   return false;
 }
 
-/**
- * Memastikan IndexedDB tersedia
- * @throws Error jika IndexedDB tidak tersedia
- */
 function ensureIndexedDb() {
   if (typeof indexedDB === "undefined") {
     throw new Error("IndexedDB tidak tersedia di browser ini.");
   }
 }
 
-/**
- * Mengkonversi request IndexedDB menjadi Promise
- * @param request - Request IndexedDB
- * @returns Promise yang resolve dengan result request
- */
 function requestToPromise<T>(request: IDBRequest<T>) {
   return new Promise<T>((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
@@ -184,11 +141,6 @@ function requestToPromise<T>(request: IDBRequest<T>) {
   });
 }
 
-/**
- * Mengkonversi transaction IndexedDB menjadi Promise
- * @param transaction - Transaction IndexedDB
- * @returns Promise yang resolve saat transaction selesai
- */
 function txDone(transaction: IDBTransaction) {
   return new Promise<void>((resolve, reject) => {
     transaction.oncomplete = () => resolve();
@@ -197,10 +149,6 @@ function txDone(transaction: IDBTransaction) {
   });
 }
 
-/**
- * Membuka database queue offline
- * @returns Database IndexedDB
- */
 async function openQueueDb(): Promise<IDBDatabase> {
   ensureIndexedDb();
 
@@ -225,11 +173,6 @@ async function openQueueDb(): Promise<IDBDatabase> {
   });
 }
 
-/**
- * Mendapatkan store database dengan mode tertentu
- * @param mode - Mode transaction
- * @returns Object store database beserta transaction dan database
- */
 async function getStore(mode: IDBTransactionMode) {
   const db = await openQueueDb();
   const transaction = db.transaction(PWA_QUEUE_STORE, mode);
@@ -237,11 +180,6 @@ async function getStore(mode: IDBTransactionMode) {
   return { db, transaction, store };
 }
 
-/**
- * Membuat deskriptor lampiran dari file
- * @param file - File yang akan dikonversi
- * @returns Objek OfflineAttachment
- */
 function buildAttachmentDescriptor(file: File): OfflineAttachment {
   return {
     id: crypto.randomUUID(),
@@ -253,19 +191,10 @@ function buildAttachmentDescriptor(file: File): OfflineAttachment {
   };
 }
 
-/**
- * Mengkonversi array file menjadi array OfflineAttachment
- * @param files - Array file yang akan dikonversi
- * @returns Array OfflineAttachment
- */
 export function toOfflineAttachments(files: File[]) {
   return files.map(buildAttachmentDescriptor);
 }
 
-/**
- * Mendapatkan semua item dalam queue offline
- * @returns Array item queue offline yang sudah diurutkan berdasarkan createdAt
- */
 export async function listOfflineQueueItems() {
   const { db, store } = await getStore("readonly");
   try {
@@ -276,10 +205,6 @@ export async function listOfflineQueueItems() {
   }
 }
 
-/**
- * Mendapatkan ringkasan queue offline
- * @returns Ringkasan queue offline
- */
 export async function getOfflineQueueSummary(): Promise<OfflineQueueSummary> {
   const items = await listOfflineQueueItems();
   return items.reduce<OfflineQueueSummary>(
@@ -292,12 +217,6 @@ export async function getOfflineQueueSummary(): Promise<OfflineQueueSummary> {
   );
 }
 
-/**
- * Menambahkan laporan ke queue offline
- * @param input - Input laporan offline
- * @returns Item queue offline yang baru dibuat
- * @throws Error jika IndexedDB tidak tersedia
- */
 export async function enqueueOfflineReport(input: EnqueueOfflineReportInput) {
   const now = Date.now();
   const item: OfflineQueueItem = {
@@ -327,11 +246,6 @@ export async function enqueueOfflineReport(input: EnqueueOfflineReportInput) {
   }
 }
 
-/**
- * Menyimpan item queue offline
- * @param item - Item yang akan disimpan
- * @returns Item yang sudah disimpan
- */
 async function saveOfflineQueueItem(item: OfflineQueueItem) {
   const { db, transaction, store } = await getStore("readwrite");
   try {
@@ -343,10 +257,6 @@ async function saveOfflineQueueItem(item: OfflineQueueItem) {
   }
 }
 
-/**
- * Menghapus item dari queue offline
- * @param id - ID item yang akan dihapus
- */
 async function deleteOfflineQueueItem(id: string) {
   const { db, transaction, store } = await getStore("readwrite");
   try {
@@ -357,9 +267,6 @@ async function deleteOfflineQueueItem(id: string) {
   }
 }
 
-/**
- * Membersihkan semua item dalam queue offline
- */
 export async function clearOfflineQueue() {
   const { db, transaction, store } = await getStore("readwrite");
   try {
@@ -370,9 +277,6 @@ export async function clearOfflineQueue() {
   }
 }
 
-/**
- * Membersihkan item queue offline yang sudah disinkronisasi dan kadaluarsa
- */
 export async function cleanupOfflineQueue() {
   const items = await listOfflineQueueItems();
   const expiry = Date.now() - SYNCED_RETENTION_MS;
@@ -384,20 +288,10 @@ export async function cleanupOfflineQueue() {
   );
 }
 
-/**
- * Meng-clone payload dengan JSON
- * @param payload - Payload yang akan di-clone
- * @returns Payload yang sudah di-clone
- */
 function clonePayload<T extends Record<string, unknown>>(payload: T): T {
   return JSON.parse(JSON.stringify(payload));
 }
 
-/**
- * Menangani error response dari API
- * @param response - Response dari API
- * @returns Pesan error dari response
- */
 async function parseErrorResponse(response: Response) {
   const contentType = response.headers.get("content-type") || "";
   if (contentType.includes("application/json")) {
@@ -409,12 +303,6 @@ async function parseErrorResponse(response: Response) {
   return text || `HTTP ${response.status}`;
 }
 
-/**
- * Memproses ulang item queue offline (upload dan submit ke server)
- * @param item - Item yang akan diproses
- * @returns Objek berisi payload dan response data
- * @throws Error jika upload atau submit gagal
- */
 async function replayOfflineQueueItem(item: OfflineQueueItem) {
   const payload = clonePayload(item.reportPayload);
   const evidenceSubmissionId = String(payload.evidence_submission_id || item.id);
@@ -496,10 +384,6 @@ async function replayOfflineQueueItem(item: OfflineQueueItem) {
   return { payload, responseData };
 }
 
-/**
- * Memproses semua item queue offline yang pending
- * @returns Hasil proses queue offline
- */
 export async function processOfflineQueue() {
   const items = await listOfflineQueueItems();
   const pendingItems = items.filter(

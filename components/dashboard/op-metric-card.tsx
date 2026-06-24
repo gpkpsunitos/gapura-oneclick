@@ -11,21 +11,19 @@ export interface OpMetricCardProps {
   label: string;
   value: string | number;
   caption?: string;
-  /** Previous period value for trend comparison */
+
   previousValue?: number;
-  /** Current period value */
+
   currentValue?: number;
-  /** Tone variant */
+
   tone?: 'real' | 'ai' | 'neutral';
-  /** Size variant */
+
   size?: 'sm' | 'md' | 'lg';
-  /** Optional badge content shown in top-right */
+
   badge?: string;
-  /** Badge tone - determines background color */
+
   badgeTone?: 'emerald' | 'amber' | 'rose' | 'slate';
 }
-
-/* ─── Tone-based style maps ─── */
 
 const TONE_MAP: Record<string, {
   container: string;
@@ -55,8 +53,6 @@ const SIZE_CLASS: Record<string, string> = {
   lg: 'px-5 py-3',
 };
 
-/* ─── Component ─── */
-
 export function OpMetricCard({
   icon: Icon,
   label,
@@ -81,10 +77,6 @@ export function OpMetricCard({
       ? computeTrend(currentValue, previousValue)
       : null;
 
-  // Note: computeTrend now returns 'down' for numerical increases (bad trend)
-  // and 'up' for numerical decreases (good trend) for OP metrics where
-  // lower numbers are better (incidents, complaints, etc.)
-
   const deltaLabel: string | null =
     currentValue !== undefined && previousValue !== undefined
       ? computeDeltaLabel(currentValue, previousValue)
@@ -99,7 +91,7 @@ export function OpMetricCard({
         SIZE_CLASS[size],
       )}
     >
-      {/* Header row: icon + label + optional badge */}
+      {}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5">
           <div className={cn('rounded-xl p-2', styles.iconBg)}>
@@ -152,7 +144,7 @@ export function OpMetricCard({
         </div>
       </div>
 
-      {/* Value + Trend indicator */}
+      {}
       <div className="mt-3 flex items-end gap-2.5">
         <p
           className={cn(
@@ -171,8 +163,6 @@ export function OpMetricCard({
     </div>
   );
 }
-
-/* ─── Trend badge sub-component ─── */
 
 function TrendBadge({
   direction,

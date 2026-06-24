@@ -12,7 +12,7 @@ async function getSessionPayload() {
 
 export async function GET(req: Request) {
     const payload = await getSessionPayload();
-    
+
     if (!payload) {
         return NextResponse.json([]);
     }
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     const payload = await getSessionPayload();
-    
+
     if (!payload) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 
     try {
         const { email, entity = 'IRRS_NEW_RECORD', channel = 'EMAIL' } = await req.json();
-        
+
         if (!email || !email.includes('@')) {
             return NextResponse.json({ error: 'Email tidak valid' }, { status: 400 });
         }
@@ -85,7 +85,7 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
     const payload = await getSessionPayload();
-    
+
     if (!payload) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -115,7 +115,7 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
     const payload = await getSessionPayload();
-    
+
     if (!payload) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

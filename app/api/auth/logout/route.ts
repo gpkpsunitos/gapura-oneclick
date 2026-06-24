@@ -15,8 +15,6 @@ function resolveLogoutRedirect(request: Request) {
     return new URL('/auth/login?logout=1', request.url);
 }
 
-// Revoke session in DB then nuke cookies — single responsibility, no branching
-// Complexity: Time O(1) | Space O(1)
 async function destroySession() {
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;

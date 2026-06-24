@@ -34,7 +34,6 @@ const SOURCE_OPTIONS: { value: AnalysisFilters['source']; label: string; icon: t
 
 export type { AnalysisFilters };
 
-// Motion variants for staggering
 const container: Variants = {
   hidden: { opacity: 0 },
   show: {
@@ -97,8 +96,8 @@ export function AIAnalysisFilterPanel({
 
   return (
     <div className="flex flex-col h-full w-full bg-transparent">
-      
-      {/* Header */}
+
+      {}
       <div className="flex items-center justify-between pb-4 mb-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
           <div className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-50 ring-1 ring-emerald-100">
@@ -124,7 +123,7 @@ export function AIAnalysisFilterPanel({
         )}
       </div>
 
-      {/* Filter Body with Staggered Animations */}
+      {}
       <motion.div 
         variants={container}
         initial="hidden"
@@ -132,8 +131,8 @@ export function AIAnalysisFilterPanel({
         className="space-y-6 flex-1 pr-1 overflow-y-auto 
                    scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent hover:scrollbar-thumb-slate-300"
       >
-        
-        {/* Source Toggle */}
+
+        {}
         <motion.div variants={item} className="space-y-3">
           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest">
             Data Source
@@ -162,7 +161,7 @@ export function AIAnalysisFilterPanel({
           </div>
         </motion.div>
 
-        {/* Date Range */}
+        {}
         <motion.div variants={item} className="space-y-3">
           <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
             <Calendar className="w-3 h-3" /> Timeframe
@@ -189,9 +188,9 @@ export function AIAnalysisFilterPanel({
           </div>
         </motion.div>
 
-        {/* Multi-Select Filters */}
+        {}
         <motion.div variants={item} className="grid grid-cols-1 gap-5 pt-2">
-          {/* Note: PrismMultiSelect internally needs to be styling-compatible. We wrap them here assuming it receives standard Tailwind classes it inherits or inject via specific overrides. */}
+          {}
           <div className="space-y-1.5 [&_label]:text-[10px] [&_label]:font-bold [&_label]:text-slate-500 [&_label]:uppercase [&_label]:tracking-widest">
             <PrismMultiSelect
               label="Network Hub"
@@ -231,16 +230,16 @@ export function AIAnalysisFilterPanel({
         </motion.div>
       </motion.div>
 
-      {/* Footer Container - Sticking to bottom of component */}
+      {}
       <div className="pt-6 mt-4 border-t border-slate-200">
         <button
           onClick={handleApply}
           disabled={loading}
           className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-xl bg-emerald-600 px-6 py-3.5 text-sm font-bold text-white shadow-[0_4px_14px_rgba(16,185,129,0.4)] transition-all hover:bg-emerald-500 hover:shadow-[0_6px_20px_rgba(16,185,129,0.5)] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
         >
-          {/* Subtle gleam effect */}
+          {}
           <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent group-hover:animate-[shimmer_1.5s_infinite]" />
-          
+
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (

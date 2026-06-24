@@ -26,7 +26,6 @@ export function PivotCell({
   onClick
 }: PivotCellProps) {
 
-  // --- Helpers ---
   const getIntensity = (val: number, max: number) => {
     if (val === 0) return ZERO_STATE;
     const ratio = val / (max || 1);

@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi halaman detail laporan untuk employee dengan tampilan lengkap
- * termasuk status progress, detail informasi, timeline, dan komentar
- */
 
 'use client';
 
@@ -22,9 +16,6 @@ import type { UserRole } from '@/types';
 
 import { supabase } from '@/lib/supabase';
 
-/**
- * Interface untuk data laporan
- */
 interface Report {
     id: string;
     user_id: string;
@@ -61,9 +52,6 @@ interface Report {
     comments: Comment[];
 }
 
-/**
- * Interface untuk data komentar
- */
 interface Comment {
     id: string;
     content: string;
@@ -73,9 +61,6 @@ interface Comment {
     users: { id: string; full_name: string; role: string } | null;
 }
 
-/**
- * Interface untuk data session user
- */
 interface UserSession {
     id: string;
     role: string;
@@ -83,11 +68,6 @@ interface UserSession {
     station_id?: string;
 }
 
-/**
- * Komponen halaman detail laporan untuk employee
- * Menampilkan status progress, detail informasi, timeline, dan fitur komentar
- * @returns JSX element halaman detail laporan employee
- */
 export default function EmployeeReportDetailPage() {
     const params = useParams();
     const router = useRouter();
@@ -98,23 +78,15 @@ export default function EmployeeReportDetailPage() {
     const [, setError] = useState('');
     const [user, setUser] = useState<UserSession | null>(null);
 
-    // Comment state
     const [newComment, setNewComment] = useState('');
     const [sendingComment, setSendingComment] = useState(false);
     const commentsEndRef = useRef<HTMLDivElement>(null);
     const [isDocxModalOpen, setIsDocxModalOpen] = useState(false);
 
-    /**
-     * Auto-scroll ke bagian komentar terbaru
-     */
     useEffect(() => {
         commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [report?.comments]);
 
-    /**
-     * Mengambil data user saat ini dari session
-     * @param signal - AbortSignal untuk membatalkan request
-     */
     const fetchUser = useCallback(async (signal?: AbortSignal) => {
         try {
             const res = await fetch('/api/auth/me', { signal });
@@ -128,10 +100,6 @@ export default function EmployeeReportDetailPage() {
         }
     }, []);
 
-    /**
-     * Mengambil data laporan berdasarkan ID
-     * @param signal - AbortSignal untuk membatalkan request
-     */
     const fetchReport = useCallback(async (signal?: AbortSignal) => {
         try {
             const res = await fetch(`/api/reports/${reportId}`, { signal });
@@ -146,9 +114,6 @@ export default function EmployeeReportDetailPage() {
         }
     }, [reportId]);
 
-    /**
-     * Setup real-time subscription dan inisialisasi data
-     */
     useEffect(() => {
         const controller = new AbortController();
         const { signal } = controller;
@@ -178,9 +143,6 @@ export default function EmployeeReportDetailPage() {
         };
     }, [reportId, fetchReport, fetchUser]);
 
-    /**
-     * Mengirim komentar baru ke laporan
-     */
     const sendComment = async () => {
         if (!newComment.trim()) return;
 
@@ -229,6 +191,7 @@ export default function EmployeeReportDetailPage() {
     const statusConfig = STATUS_CONFIG[report.status];
     const canComment = user && canPerformAction('comment', report.status, user.role);
     const canEdit = user && report && canEditReport(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         user.role as any,
         user.id,
         report.user_id,
@@ -239,7 +202,7 @@ export default function EmployeeReportDetailPage() {
 
     return (
         <div className="max-w-4xl mx-auto space-y-6 pb-24">
-            {/* Header */}
+            {}
             <div className="flex items-center gap-4">
                 <button
                     onClick={() => router.back()}
@@ -270,7 +233,7 @@ export default function EmployeeReportDetailPage() {
                 )}
             </div>
 
-            {/* Status Progress */}
+            {}
             <div className="card-solid p-6" style={{ background: 'var(--surface-2)' }}>
                 <h3 className="font-bold mb-4">Status Laporan</h3>
                 <div className="flex items-center gap-2">
@@ -291,7 +254,7 @@ export default function EmployeeReportDetailPage() {
                 </p>
             </div>
 
-            {/* Report Details */}
+            {}
             <div className="card-solid p-6" style={{ background: 'var(--surface-2)' }}>
                 <h2 className="font-bold text-lg mb-4">Detail Laporan</h2>
 
@@ -362,7 +325,7 @@ export default function EmployeeReportDetailPage() {
                 )}
             </div>
 
-            {/* Partner Response (if any) */}
+            {}
             {report.partner_evidence_urls && report.partner_evidence_urls.length > 0 && (
                 <div className="card-solid p-6 border-2 border-purple-200" style={{ background: 'oklch(0.55 0.22 280 / 0.05)' }}>
                     <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
@@ -392,10 +355,10 @@ export default function EmployeeReportDetailPage() {
                 </div>
             )}
 
-            {/* Timeline */}
+            {}
             <div className="card-solid p-6" style={{ background: 'var(--surface-2)' }}>
                 <h2 className="font-bold text-lg mb-4">Timeline</h2>
-                
+
                 <div className="space-y-4 max-h-[300px] overflow-y-auto pr-2">
                     <div className="flex gap-3">
                         <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0">
@@ -428,7 +391,7 @@ export default function EmployeeReportDetailPage() {
                     {report.comments?.map((comment) => {
                         const isMe = user && comment.users?.id === user.id;
                         const isSystem = comment.is_system_message;
-                        
+
                         if (isSystem) {
                             return (
                                 <div key={comment.id} className="flex justify-center my-2">
@@ -438,8 +401,7 @@ export default function EmployeeReportDetailPage() {
                                 </div>
                             );
                         }
-                        
-                        // Own message - right aligned with emerald color
+
                         if (isMe) {
                             return (
                                 <div key={comment.id} className="flex gap-3 justify-end">
@@ -465,8 +427,7 @@ export default function EmployeeReportDetailPage() {
                                 </div>
                             );
                         }
-                        
-                        // Other's message - left aligned
+
                         return (
                             <div key={comment.id} className="flex gap-3">
                                 <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center shrink-0 text-slate-600 text-xs font-bold">
@@ -500,7 +461,7 @@ export default function EmployeeReportDetailPage() {
                     <div ref={commentsEndRef} />
                 </div>
 
-                {/* Comment Input */}
+                {}
                 {canComment && (
                     <div className="mt-4 pt-4 border-t flex gap-2">
                         <input
@@ -522,7 +483,7 @@ export default function EmployeeReportDetailPage() {
                 )}
             </div>
 
-            {/* Docx Editor Modal */}
+            {}
             <DocxEditorModal
                 isOpen={isDocxModalOpen}
                 onClose={() => setIsDocxModalOpen(false)}

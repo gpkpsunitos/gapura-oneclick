@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen Sheet dari Shadcn UI berdasarkan Radix UI Dialog
- * Menyediakan panel slide-in untuk drawer/modal yang muncul dari sisi layar
- */
 
 "use client"
 
@@ -14,46 +8,14 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-/**
- * Komponen root sheet
- * Membungkus trigger, overlay, dan konten sheet
- * @type {typeof SheetPrimitive.Root}
- */
 const Sheet = SheetPrimitive.Root
 
-/**
- * Komponen trigger untuk membuka sheet
- * Elemen yang memicu munculnya sheet saat diklik
- * @type {typeof SheetPrimitive.Trigger}
- */
 const SheetTrigger = SheetPrimitive.Trigger
 
-/**
- * Komponen close button untuk menutup sheet
- * Tombol untuk menutup sheet secara manual
- * @type {typeof SheetPrimitive.Close}
- */
 const SheetClose = SheetPrimitive.Close
 
-/**
- * Komponen portal untuk sheet
- * Merender konten sheet di portal terpisah
- * @type {typeof SheetPrimitive.Portal}
- */
 const SheetPortal = SheetPrimitive.Portal
 
-/**
- * Props untuk komponen SheetOverlay
- * @interface SheetOverlayProps
- * @extends {React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>}
- */
-/**
- * Komponen overlay/background gelap di belakang sheet
- * Menampilkan overlay transparan saat sheet terbuka
- * 
- * @param {SheetOverlayProps} props - Props untuk overlay
- * @returns {JSX.Element} Element React overlay
- */
 const SheetOverlay = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Overlay>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Overlay>
@@ -69,10 +31,6 @@ const SheetOverlay = React.forwardRef<
 ))
 SheetOverlay.displayName = SheetPrimitive.Overlay.displayName
 
-/**
- * Variasi style untuk sheet berdasarkan sisi slide-in
- * @constant {CVA} sheetVariants
- */
 const sheetVariants = cva(
   "fixed z-50 gap-4 bg-background p-6 shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500",
   {
@@ -92,32 +50,6 @@ const sheetVariants = cva(
   }
 )
 
-/**
- * Props untuk komponen SheetContent
- * @interface SheetContentProps
- * @extends {React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>}
- * @extends {VariantProps<typeof sheetVariants>}
- */
-/**
- * Komponen konten utama sheet
- * Menampilkan panel slide-in dengan konten dan tombol close
- * 
- * @param {SheetContentProps} props - Props untuk konten sheet
- * @returns {JSX.Element} Element React konten sheet
- * 
- * @example
- * ```tsx
- * <Sheet>
- *   <SheetTrigger>Open</SheetTrigger>
- *   <SheetContent side="right">
- *     <SheetHeader>
- *       <SheetTitle>Title</SheetTitle>
- *     </SheetHeader>
- *     Content here
- *   </SheetContent>
- * </Sheet>
- * ```
- */
 interface SheetContentProps
   extends React.ComponentPropsWithoutRef<typeof SheetPrimitive.Content>,
     VariantProps<typeof sheetVariants> {}
@@ -143,18 +75,6 @@ const SheetContent = React.forwardRef<
 ))
 SheetContent.displayName = SheetPrimitive.Content.displayName
 
-/**
- * Props untuk komponen SheetHeader
- * @interface SheetHeaderProps
- * @extends {React.HTMLAttributes<HTMLDivElement>}
- */
-/**
- * Komponen header sheet
- * Container untuk judul dan deskripsi sheet
- * 
- * @param {SheetHeaderProps} props - Props untuk header sheet
- * @returns {JSX.Element} Element React header
- */
 const SheetHeader = ({
   className,
   ...props
@@ -169,18 +89,6 @@ const SheetHeader = ({
 )
 SheetHeader.displayName = "SheetHeader"
 
-/**
- * Props untuk komponen SheetFooter
- * @interface SheetFooterProps
- * @extends {React.HTMLAttributes<HTMLDivElement>}
- */
-/**
- * Komponen footer sheet
- * Container untuk tombol-tombol aksi di bagian bawah sheet
- * 
- * @param {SheetFooterProps} props - Props untuk footer sheet
- * @returns {JSX.Element} Element React footer
- */
 const SheetFooter = ({
   className,
   ...props
@@ -195,18 +103,6 @@ const SheetFooter = ({
 )
 SheetFooter.displayName = "SheetFooter"
 
-/**
- * Props untuk komponen SheetTitle
- * @interface SheetTitleProps
- * @extends {React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>}
- */
-/**
- * Komponen judul sheet
- * Menampilkan judul sheet
- * 
- * @param {SheetTitleProps} props - Props untuk judul sheet
- * @returns {JSX.Element} Element React judul
- */
 const SheetTitle = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Title>
@@ -219,18 +115,6 @@ const SheetTitle = React.forwardRef<
 ))
 SheetTitle.displayName = SheetPrimitive.Title.displayName
 
-/**
- * Props untuk komponen SheetDescription
- * @interface SheetDescriptionProps
- * @extends {React.ComponentPropsWithoutRef<typeof SheetPrimitive.Description>}
- */
-/**
- * Komponen deskripsi sheet
- * Menampilkan deskripsi tambahan untuk konteks sheet
- * 
- * @param {SheetDescriptionProps} props - Props untuk deskripsi sheet
- * @returns {JSX.Element} Element React deskripsi
- */
 const SheetDescription = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof SheetPrimitive.Description>

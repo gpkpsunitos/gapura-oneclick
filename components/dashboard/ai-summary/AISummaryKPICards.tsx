@@ -101,8 +101,6 @@ export function AISummaryKPICards({
   const isLoading = riskLoading || actionLoading;
   const hasError = riskError || actionError;
 
-
-  // Derived counts for explanation banner
   const airlinesCount = riskData?.total_airlines || 0;
   const branchesCount = riskData?.total_branches || 0;
   const hubsCount = riskData?.total_hubs || 0;
@@ -111,14 +109,14 @@ export function AISummaryKPICards({
 
   return (
     <div className={cn("relative", className)}>
-      {/* Background Pattern */}
+      {}
       <div className="absolute inset-0 overflow-hidden rounded-2xl pointer-events-none">
         <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-cyan-500/10 to-teal-500/5 rounded-full blur-3xl" />
         <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-gradient-to-tr from-emerald-500/10 to-cyan-500/5 rounded-full blur-3xl" />
       </div>
 
       <div className="relative">
-        {/* Header */}
+        {}
         {showHeader && (
           <div className="flex items-center justify-between mb-4">
             <motion.div 
@@ -169,7 +167,7 @@ export function AISummaryKPICards({
           </div>
         )}
 
-        {/* Error Banner */}
+        {}
         <AnimatePresence>
           {hasError && !isLoading && (
             <motion.div
@@ -186,7 +184,7 @@ export function AISummaryKPICards({
           )}
         </AnimatePresence>
 
-        {/* Expandable Content */}
+        {}
         <AnimatePresence>
           {isExpanded && (
             <motion.div
@@ -217,7 +215,7 @@ export function AISummaryKPICards({
                   (compact || hideActionIntelligence) ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-2"
                 )}
               >
-                {/* Risk Summary Card */}
+                {}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -232,7 +230,7 @@ export function AISummaryKPICards({
                   />
                 </motion.div>
 
-                {/* Action Summary Card */}
+                {}
                 {!hideActionIntelligence && (
                   <motion.div
                     initial={{ opacity: 0, x: 20 }}

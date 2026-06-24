@@ -38,11 +38,6 @@ const paddingStyles = {
     xl: 'p-[var(--space-xl)]',
 };
 
-/**
- * GlassCard — Glassmorphism container with container queries.
- * Uses noise texture and colored shadows per Prism Protocol.
- * Complexity: Time O(1) | Space O(1)
- */
 const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
     (
         {
@@ -60,26 +55,26 @@ const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
             <div
                 ref={ref}
                 className={cn(
-                    // Base styles
+
                     'relative overflow-hidden',
                     'rounded-[var(--radius-2xl)]',
                     'shadow-[var(--shadow-elevated)]',
                     'transition-all duration-[var(--duration-normal)] ease-[var(--spring-snappy)]',
-                    // Container query support
+
                     'container-query',
-                    // Variant
+
                     variantStyles[variant],
-                    // Padding
+
                     paddingStyles[padding],
-                    // Hover effect
+
                     hover && 'hover:shadow-[var(--shadow-neutral-lg)] hover:-translate-y-1 hover:scale-[1.01]',
-                    // Glow effect
+
                     glow && 'hover:shadow-[0_0_40px_oklch(55%_0.25_260_/_0.2)]',
                     className
                 )}
                 {...props}
             >
-                {/* Noise texture overlay */}
+                {}
                 <div
                     className="absolute inset-0 pointer-events-none opacity-[0.03] z-0"
                     style={{
@@ -88,7 +83,7 @@ const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
                     aria-hidden="true"
                 />
 
-                {/* Content */}
+                {}
                 <div className="relative z-10">{children}</div>
             </div>
         );

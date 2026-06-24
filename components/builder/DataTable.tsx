@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen tabel data dengan fitur pengurutan dan paginasi
- */
 
 'use client';
 
@@ -11,59 +6,20 @@ import { ArrowUp, ArrowDown, ArrowUpDown, Table as TableIcon } from 'lucide-reac
 import { formatDisplayValue } from '@/lib/chart-utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
-/**
- * Props untuk komponen DataTable
- * @interface DataTableProps
- * @property {string[]} columns - Array nama kolom tabel
- * @property {Record<string, unknown>[]} rows - Array baris data tabel
- * @property {number} [maxRows=100] - Maksimum baris yang ditampilkan
- */
 interface DataTableProps {
   columns: string[];
   rows: Record<string, unknown>[];
   maxRows?: number;
 }
 
-/**
- * Memformat nilai untuk ditampilkan di tabel
- * @function formatValue
- * @param {unknown} val - Nilai yang akan diformat
- * @param {string} colName - Nama kolom
- * @returns {string} Nilai yang sudah diformat
- */
 function formatValue(val: unknown, colName: string): string {
   return formatDisplayValue(val, colName);
 }
 
-/**
- * Komponen tabel data dengan fitur pengurutan dan paginasi
- * Menampilkan data dalam format tabel dengan kemampuan pengurutan berdasarkan kolom
- * 
- * @param {DataTableProps} props - Props untuk konfigurasi tabel data
- * @returns {JSX.Element} Element React yang berisi tabel data
- * 
- * @example
- * ```tsx
- * <DataTable
- *   columns={['name', 'value', 'date']}
- *   rows={[
- *     { name: 'Item 1', value: 100, date: '2026-01-01' },
- *     { name: 'Item 2', value: 200, date: '2026-01-02' }
- *   ]}
- *   maxRows={50}
- * />
- * ```
- */
 export function DataTable({ columns, rows, maxRows = 100 }: DataTableProps) {
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
-  /**
-   * Menangani pengurutan tabel berdasarkan kolom
-   * @function handleSort
-   * @param {string} col - Nama kolom yang akan diurutkan
-   * @returns {void}
-   */
   const handleSort = (col: string) => {
     if (sortCol === col) {
       setSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -73,10 +29,6 @@ export function DataTable({ columns, rows, maxRows = 100 }: DataTableProps) {
     }
   };
 
-  /**
-   * Menghitung baris yang sudah diurutkan
-   * @constant {Array} sortedRows
-   */
   const sortedRows = useMemo(() => {
     if (!sortCol) return rows;
     return [...rows].sort((a, b) => {
@@ -92,10 +44,6 @@ export function DataTable({ columns, rows, maxRows = 100 }: DataTableProps) {
     });
   }, [rows, sortCol, sortDir]);
 
-  /**
-   * Menghitung baris yang ditampilkan berdasarkan maxRows
-   * @constant {Array} displayRows
-   */
   const displayRows = sortedRows.slice(0, maxRows);
 
   if (columns.length === 0) {
@@ -112,7 +60,7 @@ export function DataTable({ columns, rows, maxRows = 100 }: DataTableProps) {
       animate={{ opacity: 1, y: 0 }}
       className="flex flex-col h-full bg-[var(--surface-glass)] backdrop-blur-md rounded-xl border border-[var(--surface-border)] shadow-lg overflow-hidden relative group/datatable"
     >
-      {/* Subtle Glow */}
+      {}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-0 group-hover/datatable:opacity-100 transition-opacity duration-1000">
         <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--brand-primary)]/5 blur-[60px] rounded-full" />
       </div>

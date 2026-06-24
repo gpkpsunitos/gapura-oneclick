@@ -18,7 +18,6 @@ import type { QueryResult } from '@/types/builder';
 import { formatDisplayValue } from '@/lib/chart-utils';
 import { sanitizeTableCell } from '@/lib/security/sanitize';
 
-
 interface InvestigativeTableProps {
   data: QueryResult;
   title: string;
@@ -31,7 +30,6 @@ interface InvestigativeTableProps {
 
 type SortDir = 'asc' | 'desc';
 
-// Helper to determine badge color based on category
 const getCategoryBadgeStyle = (category: string) => {
   const cat = category.toLowerCase();
   if (cat.includes('complaint') || cat.includes('komplain')) {
@@ -54,18 +52,15 @@ const getCategoryIcon = (category: string) => {
   return <FileText size={12} />;
 };
 
-// Helper to parse evidence links (splits space, comma, newline separated or postgres arrays)
   const parseEvidenceLinks = (val: unknown): string[] => {
     if (!val) return [];
     const str = String(val).trim();
     if (!str) return [];
-  
-    // Extract all URLs
+
     const urlRegex = /(https?:\/\/[^\s"',<>]+)/g;
     const matches = str.match(urlRegex);
     if (!matches) return [];
-    
-    // Deduplicate
+
     return Array.from(new Set(matches));
   };
 
@@ -84,10 +79,8 @@ export function InvestigativeTable({
   const [expandedRowId, setExpandedRowId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // ─── 1. COLUMN DEFINITION ───────────────────────────────────────────────────
   const allColumns = data.columns;
 
-  // Identify special columns
   const categoryCol = allColumns.find(c => [
     'category', 
     'kategori', 
@@ -113,8 +106,7 @@ export function InvestigativeTable({
   const primaryColumns = useMemo(() => {
     return allColumns.filter(c => {
       const lower = c.toLowerCase();
-      // We want root cause and action taken in primary columns if they exist as separate columns in the source
-      // but we filter out purely metadata/id/count
+
       return !['id', 'count', 'description', 'detail', 'full_report', 'url', 'jumlah', 'total'].includes(lower) && !lower.includes('count');
     });
   }, [allColumns]);
@@ -154,24 +146,21 @@ export function InvestigativeTable({
     return sortedRows.slice(0, maxRows);
   }, [data.rows, categoryCol, rootCauseCol, actionTakenCol, evidenceCol, dateCol, maxRows]);
 
-  // ─── 2. DATA PROCESSING ─────────────────────────────────────────────────────
   const filteredData = useMemo(() => {
     let rows = prioritizedRows as Record<string, unknown>[];
-    
-    // Search
+
     if (searchTerm) {
       const lowerTerm = searchTerm.toLowerCase();
       rows = rows.filter(row => 
         allColumns.some(col => String(row[col]).toLowerCase().includes(lowerTerm))
       );
     }
-    
-    // Sort
+
     if (sortCol) {
       rows = [...rows].sort((a, b) => {
         const valA = a[sortCol];
         const valB = b[sortCol];
-        
+
         if (typeof valA === 'number' && typeof valB === 'number') {
           return sortDir === 'asc' ? valA - valB : valB - valA;
         }
@@ -184,11 +173,9 @@ export function InvestigativeTable({
     return rows;
   }, [prioritizedRows, allColumns, searchTerm, sortCol, sortDir]);
 
-  // Statistics for Summary Strip
   const stats = useMemo(() => {
     const metricCol = allColumns.find(c => ['count', 'jumlah', 'total', 'record_count', 'frequency'].includes(c.toLowerCase()));
-    
-    // Helper to sum metric or count rows
+
     const sumMetric = (items: Record<string, unknown>[]) => {
       if (!metricCol) return items.length;
       return items.reduce((sum, item) => sum + (Number(item[metricCol]) || 0), 0);
@@ -198,7 +185,7 @@ export function InvestigativeTable({
     const complaints = categoryCol ? sumMetric(filteredData.filter(r => String(r[categoryCol]).toLowerCase().includes('complaint'))) : 0;
     const irregularities = categoryCol ? sumMetric(filteredData.filter(r => String(r[categoryCol]).toLowerCase().includes('irregularity'))) : 0;
     const compliments = categoryCol ? sumMetric(filteredData.filter(r => String(r[categoryCol]).toLowerCase().includes('compliment'))) : 0;
-    
+
     return { total, complaints, irregularities, compliments };
   }, [filteredData, categoryCol, allColumns]);
 
@@ -208,8 +195,7 @@ export function InvestigativeTable({
     const start = (safeCurrentPage - 1) * rowsPerPage;
     return filteredData.slice(start, start + rowsPerPage);
   }, [filteredData, safeCurrentPage, rowsPerPage]);
-  
-  // ─── HANDLERS ───────────────────────────────────────────────────────────────
+
   const handleSort = (col: string) => {
     if (sortCol === col) {
       setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -226,7 +212,7 @@ export function InvestigativeTable({
   };
 
   const handleExport = () => {
-    // Basic CSV export logic would go here
+
     const headers = allColumns.join(',');
     const csvContent = filteredData.map(row => 
       allColumns.map(c => `"${String(row[c] || '').replace(/"/g, '""')}"`).join(',')
@@ -247,7 +233,7 @@ export function InvestigativeTable({
       transition={{ duration: 0.6, ease: [0.19, 1, 0.22, 1] }}
       className={`sr-scope sr-table-card flex h-full min-h-0 min-w-0 flex-col ${className}`}
     >
-      {/* ─── 1. HEADER STRIP ─────────────────────────────────────────────────── */}
+      {}
       <div className="sr-table-caption">
         <div className="sr-table-caption-title min-w-0">
           <span className="h-6 w-1 bg-[color:var(--sr-gold)]" aria-hidden="true" />
@@ -259,7 +245,7 @@ export function InvestigativeTable({
         </div>
 
         <div className="flex flex-wrap items-center gap-4">
-           {/* Summary Stats Pucks */}
+           {}
            <div className="flex flex-wrap items-center gap-2">
              {stats.complaints > 0 && (
                <div className="inline-flex items-center gap-1.5 rounded-md bg-[color:var(--sr-accent-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[color:var(--sr-accent-dark)]">
@@ -278,7 +264,7 @@ export function InvestigativeTable({
              )}
            </div>
 
-           {/* Search & Actions */}
+           {}
            <div className="flex items-center gap-2 sm:ml-4">
             <div className="relative group/search">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-tertiary)] group-focus-within/search:text-[var(--brand-primary)] transition-colors" />
@@ -316,7 +302,7 @@ export function InvestigativeTable({
         </div>
       </div>
 
-      {/* ─── 2. TABLE BODY ────────────────────────────────────────────────────── */}
+      {}
       <div
         className="min-h-0 flex-1 overflow-x-auto overflow-y-auto custom-scrollbar"
       >
@@ -374,7 +360,7 @@ export function InvestigativeTable({
               )}
             </tr>
           </thead>
-          
+
           <tbody className="divide-y divide-[var(--surface-border)]/50">
             {isLoading ? (
               <tr>
@@ -440,7 +426,7 @@ export function InvestigativeTable({
                         {primaryColumns.filter(c => c !== categoryCol && c !== dateCol && c !== reportCol).map(col => {
                           const isWide = col === rootCauseCol || col === actionTakenCol || col === preventiveActionCol;
                           const isEvidence = evidenceCol === col || col.toLowerCase().includes('evidence') || col.toLowerCase() === 'link';
-                          
+
                           if (isEvidence) {
                             const urls = parseEvidenceLinks(row[col]);
                             return (
@@ -466,7 +452,7 @@ export function InvestigativeTable({
                               </td>
                             );
                           }
-                          
+
                           return (
                             <td key={col} className={`px-6 py-4 text-[11px] font-medium text-[var(--text-secondary)] border-b border-transparent ${isWide ? 'min-w-[300px]' : ''}`}>
                               <span dangerouslySetInnerHTML={{ __html: sanitizeTableCell(formatDisplayValue(row[col], col)) }} />
@@ -483,7 +469,7 @@ export function InvestigativeTable({
                         )}
                       </motion.tr>
 
-                      {/* ─── EXPANDED DRAWER ─────────────────────────────────── */}
+                      {}
                       <AnimatePresence>
                         {isExpanded && (
                           <tr key={`${absoluteIdx}-expanded`} className="relative z-20">
@@ -558,7 +544,7 @@ export function InvestigativeTable({
                                       )}
                                     </div>
 
-                                    {/* Evidence Links */}
+                                    {}
                                     {allColumns.filter(c => c.toLowerCase().includes('evidence') || c.toLowerCase().includes('link')).map(col => {
                                       const urls = parseEvidenceLinks(row[col]);
                                       if (urls.length === 0) return null;
@@ -593,7 +579,7 @@ export function InvestigativeTable({
         </table>
       </div>
 
-      {/* ─── 3. FOOTER (PAGINATION) ────────────────────────────────────────── */}
+      {}
       <div className="relative z-10 px-6 py-5 border-t border-[var(--surface-border)]/50 bg-[var(--surface-0)]/50 backdrop-blur-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="text-[10px] font-black text-[var(--text-tertiary)] uppercase tracking-[0.2em]">
           {filteredData.length > 0

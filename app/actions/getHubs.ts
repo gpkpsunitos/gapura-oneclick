@@ -1,24 +1,8 @@
-/**
- * @file
- * 
- * File ini berisi server action untuk mengambil daftar hubs dari Google Sheets
- */
 
 'use server';
 
 import { getGoogleSheets } from '@/lib/google-sheets';
 
-/**
- * Mengambil daftar hubs yang tersedia dari Google Sheets
- * Mengambil data dari sheet "HUB" dan memfilter data yang valid
- * @returns Promise<string[]> Array nama hubs yang valid (HUB, KODE HUB, Branch)
- * @throws {Error} Jika terjadi kesalahan saat mengambil data atau GOOGLE_SHEET_ID tidak terdefinisi
- * @example
- * ```typescript
- * const hubs = await getAvailableHubs();
- * console.log(hubs); // ["HUB", "KODE HUB", "CGK", "DPS", ...]
- * ```
- */
 export async function getAvailableHubs() {
   try {
     const sheets = await getGoogleSheets();
@@ -39,7 +23,6 @@ export async function getAvailableHubs() {
       .map((row) => row[0])
       .filter((hub) => hub && hub.trim() !== '');
 
-    // Deduplicate
     const uniqueHubs = Array.from(new Set(hubs));
 
     return uniqueHubs.sort();

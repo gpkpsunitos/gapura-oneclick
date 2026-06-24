@@ -4,10 +4,6 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { sendTestEmail } from '@/lib/notifications';
 
-/**
- * Trigger a test email for SMTP verification.
- */
-
 async function getSession() {
     const cookieStore = await cookies();
     const supabase = createServerClient(
@@ -53,7 +49,7 @@ export async function POST(req: Request) {
         }
 
         console.log(`[NOTIFICATIONS] Triggering test email to: ${email} (Requested by: ${user.full_name})`);
-        
+
         await sendTestEmail({
             to: email,
             requestedBy: `${user.full_name} (${user.role})`,

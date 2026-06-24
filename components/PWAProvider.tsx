@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi provider PWA yang menangani Service Worker registration,
- * update checking, offline queue processing, dan auth scope management.
- */
 
 'use client';
 
@@ -20,27 +14,9 @@ import {
 } from '@/lib/pwa/offline-queue';
 import { PWA_QUEUE_EVENT } from '@/lib/pwa/constants';
 
-/**
- * Log error queue ke console
- * @param action - Nama action yang gagal
- * @param error - Error yang terjadi
- */
 function logQueueError(action: string, error: unknown) {
-  console.warn(`[PWA] ${action} failed:`, error);
 }
 
-/**
- * Provider PWA utama
- * Menangani semua fitur PWA termasuk Service Worker, update, dan offline queue
- * @param children - Child components
- * @returns JSX element dengan PWA functionality
- * @example
- * ```tsx
- * <PWAProvider>
- *   <App />
- * </PWAProvider>
- * ```
- */
 export default function PWAProvider({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
@@ -171,11 +147,10 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
       navigator.serviceWorker.getRegistrations().then((registrations) => {
         registrations.forEach((reg) => {
           reg.unregister().then((ok) => {
-            if (ok) console.log('[PWA] Unregistered SW in development');
+            void ok;
           });
         });
       }).catch((err) => {
-        console.warn('[PWA] Failed to unregister SW in development:', err);
       });
     }
   }, []);
@@ -216,8 +191,6 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
       }
     };
 
-    // Defer auth scope sync until browser idle time to avoid competing
-    // with LCP-critical resources (sidebar, page data, fonts).
     const idleId = typeof window !== 'undefined' && 'requestIdleCallback' in window
       ? window.requestIdleCallback(() => void syncAuthScope(), { timeout: 5000 })
       : setTimeout(() => void syncAuthScope(), 2000);

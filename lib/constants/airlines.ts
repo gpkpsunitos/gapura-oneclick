@@ -1,15 +1,6 @@
-/**
- * @file
- * 
- * File ini berisi daftar maskapai domestik dan internasional
- */
 
-/**
- * Daftar maskapai domestik dan internasional
- * @constant AIRLINES
- */
 export const AIRLINES = [
-    // Domestik
+
     { code: 'GA', name: 'Garuda Indonesia' },
     { code: 'QG', name: 'Citilink' },
     { code: 'JT', name: 'Lion Air' },
@@ -23,7 +14,7 @@ export const AIRLINES = [
     { code: '8B', name: 'TransNusa' },
     { code: 'SI', name: 'Susi Air' },
     { code: 'IL', name: 'Trigana Air' },
-    // Asia Tenggara
+
     { code: 'SQ', name: 'Singapore Airlines' },
     { code: 'TR', name: 'Scoot' },
     { code: 'MI', name: 'SilkAir' },
@@ -41,7 +32,7 @@ export const AIRLINES = [
     { code: 'Z2', name: 'Philippines AirAsia' },
     { code: 'BI', name: 'Royal Brunei Airlines' },
     { code: 'MM', name: 'Peach Aviation' },
-    // Timur Tengah
+
     { code: 'EK', name: 'Emirates' },
     { code: 'QR', name: 'Qatar Airways' },
     { code: 'EY', name: 'Etihad Airways' },
@@ -50,7 +41,7 @@ export const AIRLINES = [
     { code: 'WY', name: 'Oman Air' },
     { code: 'GF', name: 'Gulf Air' },
     { code: 'FZ', name: 'flydubai' },
-    // Asia Timur Laut
+
     { code: 'JL', name: 'Japan Airlines' },
     { code: 'NH', name: 'All Nippon Airways (ANA)' },
     { code: 'KE', name: 'Korean Air' },
@@ -67,7 +58,7 @@ export const AIRLINES = [
     { code: 'CA', name: 'Air China' },
     { code: 'MF', name: 'Xiamen Air' },
     { code: 'HU', name: 'Hainan Airlines' },
-    // Australia & Eropa
+
     { code: 'QF', name: 'Qantas' },
     { code: 'JQ', name: 'Jetstar' },
     { code: 'VA', name: 'Virgin Australia' },

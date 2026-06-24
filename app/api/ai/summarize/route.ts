@@ -5,7 +5,7 @@ import { getHfClient } from '@/lib/hf-client';
 import { resolveCachedAI } from '@/lib/ai-route-cache';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300; // 5 minutes
+export const maxDuration = 300;
 
 export async function GET(req: NextRequest) {
   try {
@@ -20,9 +20,9 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get('category');
     const esklasiRegex = searchParams.get('esklasi_regex') || '';
-    
+
     let path = '/api/ai/summarize';
-    
+
     if (category === 'cgo') {
       path = '/api/ai/summarize/cgo';
     } else if (category) {

@@ -66,7 +66,6 @@ export default function ReportDetailPage() {
             };
             if (evidenceUrl) body.resolution_evidence_url = evidenceUrl;
 
-            // Use the Admin API for status updates, consistent with the main list page
             const res = await fetch('/api/admin/reports', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },

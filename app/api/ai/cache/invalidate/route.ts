@@ -3,16 +3,11 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { getHfClient } from '@/lib/hf-client';
 
-/**
- * POST /api/ai/cache/invalidate
- * 
- * Invalidate the AI service cache
- */
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
-    
+
     if (!token) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -45,7 +40,7 @@ export async function POST(request: Request) {
       const path = sheetName 
         ? `/api/ai/cache/invalidate?sheet_name=${encodeURIComponent(sheetName)}&esklasi_regex=${encodeURIComponent(esklasiRegex)}`
         : `/api/ai/cache/invalidate?esklasi_regex=${encodeURIComponent(esklasiRegex)}`;
-          
+
       const aiResponse = await hfClient.fetch(
         path,
         { method: 'POST', headers: { 'Content-Type': 'application/json' } },
@@ -62,7 +57,7 @@ export async function POST(request: Request) {
       return NextResponse.json(data);
     } catch (error) {
       console.error('[AI Cache] AI service unavailable:', error);
-      
+
       return NextResponse.json(
         { 
           error: 'AI service tidak tersedia',

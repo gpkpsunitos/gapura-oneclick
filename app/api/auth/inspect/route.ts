@@ -6,12 +6,12 @@ export async function GET() {
     const isDevelopment = process.env.NODE_ENV === 'development';
 
     if (!isDevelopment) {
-        // In production, only SUPER_ADMIN can access inspect
+
         const cookieStore = await cookies();
         const token = cookieStore.get('session')?.value;
 
         if (!token) {
-            // Return 404 to avoid revealing endpoint existence
+
             return NextResponse.json({ error: 'Not found' }, { status: 404 });
         }
 
@@ -37,7 +37,6 @@ export async function GET() {
         }
     }
 
-    // Development mode: allow any authenticated user
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
     const authBundle = cookieStore.get('auth_bundle')?.value;

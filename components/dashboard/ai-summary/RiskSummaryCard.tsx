@@ -104,7 +104,6 @@ const LEVEL_ICON: Record<string, React.ElementType> = {
   Low: Shield,
 };
 
-// Complexity: Time O(1) | Space O(1)
 function getRiskScoreColor(score: number): string {
   if (score >= 70) return "text-red-600";
   if (score >= 50) return "text-orange-600";
@@ -112,7 +111,6 @@ function getRiskScoreColor(score: number): string {
   return "text-emerald-600";
 }
 
-// Complexity: Time O(1) | Space O(1)
 function getRiskBarGradient(score: number): string {
   if (score >= 70) return "from-red-500 to-rose-500";
   if (score >= 50) return "from-orange-500 to-amber-500";
@@ -120,7 +118,6 @@ function getRiskBarGradient(score: number): string {
   return "from-emerald-400 to-teal-400";
 }
 
-// Complexity: Time O(n) | Space O(n)
 function filterUnknown(entities: EntityRiskDetail[]): EntityRiskDetail[] {
   return entities.filter(
     (e) =>
@@ -139,7 +136,6 @@ function SkeletonCard() {
   );
 }
 
-// Complexity: Time O(k) k = categories.length (bounded ≤5) | Space O(1)
 function EntityRiskRow({
   entity,
   rank,
@@ -545,7 +541,6 @@ export function RiskSummaryCard({
 
   if (!data) return null;
 
-  // Complexity: Time O(1) | Space O(1)
   const entityCounts: Record<string, number> = {};
   for (const level of SEVERITY_LEVELS) {
     entityCounts[level] =
@@ -579,7 +574,6 @@ export function RiskSummaryCard({
   const hasDetailedBranches = topBranches.length > 0;
   const hasDetailedHubs = topHubs.length > 0;
 
-  // Action data: categories + risk scores (moved from ActionSummaryCard)
   const categories = actionData?.categories || {};
   const topCategoriesByRisk = actionData?.topCategoriesByRisk
     ?.filter((c) => c.category !== "Unknown")
@@ -593,7 +587,7 @@ export function RiskSummaryCard({
 
   return (
     <div className={cn("space-y-4", className)}>
-      {/* ── Header ── */}
+      {}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center">
@@ -649,7 +643,7 @@ export function RiskSummaryCard({
         </div>
       </div>
 
-      {/* ── Domain Chips ── */}
+      {}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <p className="text-[10px] font-bold text-gray-500 uppercase">
           Entitas per level risiko
@@ -670,8 +664,7 @@ export function RiskSummaryCard({
         </div>
       </div>
 
-
-      {/* ── Severity Cards (Entity Counts) ── */}
+      {}
       <div className="grid grid-cols-4 gap-2">
         {SEVERITY_LEVELS.map((level, i) => {
           const style = LEVEL_STYLE[level];
@@ -712,8 +705,7 @@ export function RiskSummaryCard({
         })}
       </div>
 
-
-      {/* ── Top Risk Sections ── */}
+      {}
       {(hasDetailedAirlines || hasDetailedBranches) && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <TopRiskSection
@@ -735,7 +727,7 @@ export function RiskSummaryCard({
         </div>
       )}
 
-      {/* Fallback */}
+      {}
       {!hasDetailedAirlines && !hasDetailedBranches && (
         <div className="grid grid-cols-2 gap-3">
           {data.top_risky_airlines && data.top_risky_airlines.length > 0 && (
@@ -774,7 +766,7 @@ export function RiskSummaryCard({
         />
       )}
 
-      {/* ── Risk Score by Category (from Action Data) ── */}
+      {}
       {topCategoriesByRisk.length > 0 && (() => {
         const maxRisk = Math.max(...topCategoriesByRisk.map(c => c.riskScore));
         return (
@@ -817,7 +809,7 @@ export function RiskSummaryCard({
         );
       })()}
 
-      {/* ── Categories Breakdown (from Action Data) ── */}
+      {}
       {categoryEntries.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">

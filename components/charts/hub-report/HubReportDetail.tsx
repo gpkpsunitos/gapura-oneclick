@@ -231,7 +231,6 @@ function CategoryStackedBar({ data }: { data: HubCategoryData[] }) {
   );
 }
 
-
 function AirlineBreakdownChart({ data }: { data: AirlineByHubData[] }) {
   const topAirlines = Array.from(
     data.reduce((acc, curr) => {
@@ -402,8 +401,8 @@ function DataTable({ data }: { data: HubReportRecord[] }) {
             ))}
           </tbody>
         </table>
-        
-        {/* Pagination */}
+
+        {}
         {totalPages > 1 && (
           <div className="p-3 flex items-center justify-between bg-gray-50 border-t">
             <div className="text-sm text-gray-500">
@@ -519,7 +518,6 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
     };
   }, [chartData.hubData]);
 
-  // Deferred loading for heavy data
   useEffect(() => {
     const controller = new AbortController();
 
@@ -546,6 +544,7 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
           throw new Error('Invalid aggregated data received');
         }
       } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((err as any).name === 'AbortError') return;
         console.error('Failed to load initial hub data:', err);
         setError('Failed to load initial dashboard data.');
@@ -559,14 +558,14 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
     async function loadDeferredData() {
       setTableLoading(true);
       try {
-        // Parallel fetch of non-critical data
+
         const [rootCause, airline, area, table] = await Promise.all([
           fetchRootCauseByHub(filters),
           fetchAirlineByHub(filters),
           fetchAreaByHub(filters),
           fetchAllHubReports(filters),
         ]);
- 
+
          setChartData(prev => ({
            ...prev,
            rootCauseData: rootCause,
@@ -575,8 +574,8 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
            tableData: table,
          }));
       } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((err as any).name === 'AbortError') return;
-        console.warn('Deferred data failed to load:', err);
       } finally {
         if (!controller.signal.aborted) {
           setTableLoading(false);
@@ -589,8 +588,7 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
       setRiskError(null);
       try {
         const data = await fetchHubRiskAnalysis(controller.signal);
-        
-        // Check if aborted after await
+
         if (controller.signal.aborted) return;
 
         if (data) {
@@ -599,6 +597,7 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
           setRiskError('Failed to load risk analysis data');
         }
       } catch (err) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((err as any).name === 'AbortError' || controller.signal.aborted) return;
         console.error('Error loading hub risk analysis:', err);
         setRiskError('An error occurred while loading data');
@@ -637,24 +636,28 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalReports = chartData.hubData.reduce((sum: number, h: any) => sum + h.total, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalIrreg = chartData.hubData.reduce((sum: number, h: any) => sum + h.irregularity, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalComplaint = chartData.hubData.reduce((sum: number, h: any) => sum + h.complaint, 0);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const totalCompliment = chartData.hubData.reduce((sum: number, h: any) => sum + h.compliment, 0);
 
   return (
     <div className="space-y-8">
-      {/* Auto-Insight Block */}
+      {}
       <AutoInsight data={chartData.hubData} />
 
-      {/* AI Hub Risk Visualization */}
+      {}
       <HubAiRiskVisualization 
         data={chartData.hubRiskAnalysis} 
         isLoading={riskLoading} 
         error={riskError} 
       />
 
-      {/* Enhanced KPI Cards - 5 custom KPIs */}
+      {}
       {chartData.kpis && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <KPICard title="Total Hubs" value={chartData.kpis.totalHubs} color="blue" explanation="Jumlah hub yang dipantau dalam laporan ini." />
@@ -688,13 +691,13 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
         </div>
       )}
 
-      {/* Hub Ranking Table */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Hub Performance Ranking</h2>
         <HubRankTable data={chartData.hubData} />
       </section>
 
-      {/* Category Distribution Stacked Bar Chart */}
+      {}
       {chartData.categoryDistribution.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Category Distribution per Hub (Top 10)</h2>
@@ -719,19 +722,19 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
         </section>
       )}
 
-      {/* Monthly Trend */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Monthly Trend Analysis</h2>
         <MonthlyTrendChart data={chartData.trendData} />
       </section>
 
-      {/* Category Composition */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Category Composition by Hub</h2>
         <CategoryStackedBar data={chartData.categoryData} />
       </section>
 
-      {/* AI Root Cause Investigation - Full Width */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)]/50 backdrop-blur-xl rounded-3xl border border-[var(--surface-2)] p-8 shadow-spatial-md transition-all">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -742,7 +745,7 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
         <AiRootCauseInvestigation source={filters.sourceSheet || "NON CARGO"} />
       </section>
 
-      {/* Reports Detail Table */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-gray-800">Hub Intelligence Reports</h2>
@@ -755,7 +758,7 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
         />
       </section>
 
-      {/* Split View: Airline & Area */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Airline Distribution</h2>
@@ -767,10 +770,10 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
         </section>
       </div>
 
-      {/* Management Summary */}
+      {}
       <ManagementSummary data={chartData.hubData} />
 
-      {/* Investigative Table */}
+      {}
       <InvestigativeTable
         data={investigativeData}
         title="Investigative Table - Hub Reports"

@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk mengelola event kalender
- */
 
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
@@ -11,13 +6,6 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { CalendarEvent, CreateCalendarEventInput } from '@/types';
 import { isValidUrl } from '@/lib/utils/calendar-utils';
 
-// Complexity: Time O(n) | Space O(n) — linear scan of DB rows
-
-/**
- * Melakukan autentikasi dan autorisasi untuk API event kalender
- * 
- * @returns Promise<any | null> - Payload session jika valid dan role diizinkan, null jika tidak
- */
 async function authenticate() {
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
@@ -32,23 +20,6 @@ async function authenticate() {
   return payload;
 }
 
-/**
- * GET /api/calendar/events
- * 
- * Mengambil semua event kalender yang dapat diakses oleh pengguna
- * Mendukung filter berdasarkan berbagai parameter
- * Hanya role ANALYST dan DIVISI_OS yang dapat mengakses
- * 
- * @param request - Objek request HTTP dengan query parameters:
- *   - search: Pencarian berdasarkan judul dan catatan
- *   - created_by: Filter berdasarkan pembuat
- *   - start_date: Tanggal mulai (ISO date YYYY-MM-DD)
- *   - end_date: Tanggal akhir (ISO date YYYY-MM-DD)
- *   - calendar_type: Filter tipe kalender
- * @returns Promise<NextResponse> - Response JSON berisi daftar event atau error
- * @throws Mengembalikan 403 jika tidak terautentikasi atau role tidak diizinkan
- * @throws Mengembalikan 500 jika terjadi error server
- */
 export async function GET(request: Request) {
   try {
     const payload = await authenticate();
@@ -86,8 +57,6 @@ export async function GET(request: Request) {
       query = query.eq('calendar_type', calendar_type);
     }
 
-    // Multi-day overlap filter:
-    // Show event if event_date <= view_end AND (event_end_date >= view_start OR event_date >= view_start)
     if (start_date && end_date) {
       query = query.lte('event_date', end_date);
       query = query.or(`event_end_date.gte.${start_date},event_end_date.is.null`);
@@ -105,6 +74,7 @@ export async function GET(request: Request) {
       throw error;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const events: CalendarEvent[] = (data || []).map((row: any) => ({
       id: row.id,
       title: row.title,
@@ -137,28 +107,6 @@ export async function GET(request: Request) {
   }
 }
 
-/**
- * POST /api/calendar/events
- * 
- * Membuat event kalender baru
- * Hanya role ANALYST yang dapat membuat event
- * 
- * @param request - Objek request HTTP dengan body berisi data event:
- *   - title: Judul event (required, max 200 karakter)
- *   - event_date: Tanggal event (required, ISO date YYYY-MM-DD)
- *   - event_end_date: Tanggal akhir event (optional, harus >= event_date)
- *   - event_time: Waktu event (optional, HH:MM format)
- *   - notes: Catatan (optional, max 2000 karakter)
- *   - meeting_minutes_link: Link notulen rapat (optional, valid HTTP(S) URL)
- *   - calendar_type: Tipe kalender (optional)
- *   - is_recurring: Apakah event berulang (optional)
- *   - recurrence_pattern: Pola pengulangan (optional jika is_recurring true)
- *   - recurrence_end_date: Tanggal akhir pengulangan (optional jika is_recurring true)
- * @returns Promise<NextResponse> - Response JSON berisi event yang dibuat atau error
- * @throws Mengembalikan 403 jika tidak terautentikasi atau role tidak diizinkan
- * @throws Mengembalikan 400 jika data tidak valid
- * @throws Mengembalikan 500 jika terjadi error server
- */
 export async function POST(request: Request) {
   try {
     const payload = await authenticate();

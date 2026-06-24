@@ -1,7 +1,5 @@
 'use client';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   Bar,
@@ -38,8 +36,6 @@ import {
   resolveRootCause,
 } from '@/lib/report-normalization';
 
-// ── Types & Constants ────────────────────────────────────────────────────────
-
 interface ServiceQualityImprovementTabProps {
   reports: Report[];
 }
@@ -59,8 +55,6 @@ const AREA_LABELS: Record<string, string> = {
   GENERAL: 'General',
   GSE: 'GSE Availability',
 };
-
-// ── Resolvers ─────────────────────────────────────────────────────────────────
 
 function val(v: unknown): string {
   return String(v ?? '').trim();
@@ -295,8 +289,6 @@ function buildMatrix(
   });
   return cells;
 }
-
-// ── Visual primitives (cloned from CGO Cargo Report) ─────────────────────────
 
 function sqiAiContext(chartTitle: string, chartType: string, chartData: unknown): ChartAiContext {
   return {
@@ -709,8 +701,6 @@ function HeatMatrix({
   );
 }
 
-// ── Detail Report Table ───────────────────────────────────────────────────────
-
 type DetailRow = {
   id: string;
   ts: number;
@@ -956,8 +946,6 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
   );
 }
 
-// ── Main Component ───────────────────────────────────────────────────────────
-
 export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovementTabProps) {
   const { openDrilldown, DrilldownRenderer } = useDrilldown();
   const [liveSheetReports, setLiveSheetReports] = useState<Report[] | null>(null);
@@ -1004,7 +992,6 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     });
   }, [filteredSourceReports, dateFrom, dateTo]);
 
-  // Year toggle for monthly trend
   const currentYear = new Date().getFullYear();
   const previousYear = currentYear - 1;
   const [monthlyYear, setMonthlyYear] = useState<number>(currentYear);
@@ -1023,7 +1010,6 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     }));
   }, [scopedReports, monthlyYear]);
 
-  // Aggregations
   const reportCategoryRows = useMemo<CountRow[]>(() => {
     const bucket: Record<string, number> = {};
     scopedReports.forEach((r) => {
@@ -1040,12 +1026,11 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
   const branchRows = useMemo<CountRow[]>(() => aggregate(scopedReports, getBranch), [scopedReports]);
   const airlineRows = useMemo<CountRow[]>(() => aggregate(scopedReports, getAirline), [scopedReports]);
   const rootRows = useMemo<CountRow[]>(() => {
-    // Root cause matters most when issue is non-compliment
+
     const nonCompliment = scopedReports.filter((r) => !getCategory(r).toLowerCase().includes('compliment'));
     return aggregate(nonCompliment, getRoot);
   }, [scopedReports]);
 
-  // Heat matrices
   const caseByArea = useMemo(() => {
     const cells: Record<string, Record<string, MatrixCell>> = {};
     scopedReports.forEach((r) => {
@@ -1089,10 +1074,9 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     [scopedReports]
   );
 
-  // === Case Classification × Month Pivot (moved from Summary Report) ===
   const caseClassByMonth = useMemo(() => {
     const monthSet = new Set<string>();
-    const buckets = new Map<string, Map<string, number>>(); // caseClass → monthKey → count
+    const buckets = new Map<string, Map<string, number>>();
     scopedReports.forEach((r) => {
       if (getCategory(r).toLowerCase().includes('compliment')) return;
       const cc = getCaseClass(r);
@@ -1117,10 +1101,6 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     return { monthKeys, monthLabel, rows, monthTotals, grandTotal };
   }, [scopedReports]);
 
-  // === Chronic Issues ===
-  // (Branch × Sub-Category) combos that appear in 3+ distinct calendar months.
-  // Sub-category is read from whichever of Terminal/Apron/General Category is
-  // populated for the row — this preserves the taxonomy the analyst chose.
   type ChronicRow = {
     branch: string;
     subCategory: string;
@@ -1149,7 +1129,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
       return getArea(r);
     };
     const buckets = new Map<string, { branch: string; subCategory: string; area: string; months: Map<string, number>; reports: Report[] }>();
-    // ponytail: exclude compliments per spec — chronic patterns track actionable issues
+
     scopedReports
       .filter((r) => !getCategory(r).toLowerCase().includes('compliment'))
       .forEach((r) => {
@@ -1208,7 +1188,6 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
       .sort((a, b) => b.monthsCount - a.monthsCount || b.total - a.total);
   }, [scopedReports]);
 
-  // === YoY Monthly Comparison ===
   const yoyMonthlyRows = useMemo(() => {
     const buckets = { current: new Array(12).fill(0), previous: new Array(12).fill(0) };
     scopedReports.forEach((r) => {
@@ -1224,7 +1203,6 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     }));
   }, [scopedReports, currentYear, previousYear]);
 
-  // === Sub-Category Breakdowns (Terminal / Apron / General) ===
   const terminalSubRows = useMemo<CountRow[]>(
     () => aggregate(scopedReports, (r) => val(r.terminal_area_category)),
     [scopedReports]
@@ -1238,7 +1216,6 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     [scopedReports]
   );
 
-  // === Airline × Report Category heatmap ===
   const airlineByCategory = useMemo(() => {
     const cells: Record<string, Record<string, MatrixCell>> = {};
     scopedReports.forEach((r) => {
@@ -1255,7 +1232,6 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
   }, [scopedReports]);
   const airlineKeys = useMemo(() => airlineRows.slice(0, 12).map((r) => ({ id: r.id, label: r.label })), [airlineRows]);
 
-  // KPI calculations
   const closed = scopedReports.filter((r) => getStatus(r) === 'CLOSED').length;
   const open = scopedReports.length - closed;
   const resolutionPct = scopedReports.length > 0 ? ((closed / scopedReports.length) * 100).toFixed(1) : '0.0';
@@ -1305,7 +1281,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
 
   return (
     <div className="sr-scope space-y-6 bg-[color:var(--sr-canvas)] px-4 py-6 pb-10 text-[color:var(--sr-text)] sm:px-6 lg:px-8">
-      {/* Header */}
+      {}
       <div className="sr-card relative flex flex-col gap-4 overflow-hidden px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="absolute inset-x-0 top-0 h-[5px] bg-[color:var(--sr-accent)]" aria-hidden="true" />
         <div className="flex min-w-0 items-center gap-4">
@@ -1351,7 +1327,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         </div>
       ) : null}
 
-      {/* Performance Summary */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
@@ -1365,7 +1341,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         </div>
       </section>
 
-      {/* Report Volume & Composition */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
@@ -1426,15 +1402,13 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         </div>
       </section>
 
-      {/* Year-over-Year Trend */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
           <h2>Year-over-Year Monthly Trend</h2>
         </div>
-        {/* ponytail: YoY chart uses scopedReports + tab-level year toggle, since the chart
-            inherently spans 2 years. YearCard's local year becomes the "current" year of the
-            pair; previous = year - 1. */}
+        {}
         <YearCard reports={scopedReports}>{({ toggle, year: cy }) => (
           <AreaCard reports={scopedReports}>{({ filtered, toggle: areaToggle }) => {
             const py = cy - 1;
@@ -1470,7 +1444,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         )}</YearCard>
       </section>
 
-      {/* Sub-Category Breakdown */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
@@ -1504,7 +1478,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         </div>
       </section>
 
-      {/* Distribution by Station & Airline */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
@@ -1535,7 +1509,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         </div>
       </section>
 
-      {/* Cross-Dimensional Analysis */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
@@ -1588,7 +1562,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         </div>
       </section>
 
-      {/* Case Classification by Month (moved from Summary Report) */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
@@ -1658,7 +1632,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         )}</YearCard>
       </section>
 
-      {/* Recurring Issue Patterns */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
@@ -1767,7 +1741,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         )}</YearCard>
       </section>
 
-      {/* Detailed Records */}
+      {}
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />

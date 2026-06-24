@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
     ResponsiveContainer, PieChart, Pie, Cell,
@@ -8,11 +8,14 @@ import {
 } from 'recharts';
 import {
     BarChart3, ShieldCheck, AlertTriangle, TrendingUp,
-    MapPin, Activity, FileText,
+    MapPin, Activity, FileText, FileSpreadsheet, Loader2, Plus,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/lib/auth-context';
 import { useData } from '@/lib/swr';
+import { useDrilldown } from '@/components/chart-detail/useDrilldown';
+import { exportManagerDashboardToExcel } from '@/lib/manager-dashboard-export';
 
 const C = {
     primary: '#0072B2',
@@ -45,6 +48,20 @@ const STATUS_COLORS: Record<string, string> = {
 
 const SERIES = [C.primary, C.secondary, C.tertiary, C.accent, C.purple, C.steel, C.dark, C.yellow];
 
+interface ReportRow {
+    id: string;
+    status: string | null;
+    severity: string | null;
+    main_category: string | null;
+    category: string | null;
+    airline: string | null;
+    airlines: string | null;
+    area: string | null;
+    date_of_event: string | null;
+    created_at: string;
+    source_sheet: string | null;
+}
+
 interface DashboardData {
     station: { code: string; name: string };
     summary: { total: number; open: number; closed: number; resolutionRate: number };
@@ -52,8 +69,9 @@ interface DashboardData {
     severityDistribution: { name: string; value: number }[];
     areaDistribution: { name: string; value: number }[];
     topAirlines: { name: string; value: number }[];
-    monthlyTrend: { month: string; total: number; Irregularity: number; Complaint: number; Compliment: number }[];
+    monthlyTrend: { month: string; rawMonth: string; total: number; Irregularity: number; Complaint: number; Compliment: number }[];
     statusDistribution: { name: string; value: number }[];
+    rows: ReportRow[];
 }
 
 const RADIAN = Math.PI / 180;
@@ -143,12 +161,15 @@ function makeBarLabelHorizontal(grandTotal: number) {
     };
 }
 
-function KPICard({ label, value, subtitle, icon: Icon, color }: {
+function KPICard({ label, value, subtitle, icon: Icon, color, onClick }: {
     label: string; value: string | number; subtitle?: string;
-    icon: React.ElementType; color: string;
+    icon: React.ElementType; color: string; onClick?: () => void;
 }) {
     return (
-        <div className="bg-white rounded-[1.5rem] p-5 md:p-6 border border-gray-100 shadow-sm relative overflow-hidden group">
+        <div
+            className={`bg-white rounded-[1.5rem] p-5 md:p-6 border border-gray-100 shadow-sm relative overflow-hidden group${onClick ? ' cursor-pointer hover:shadow-md transition-shadow' : ''}`}
+            onClick={onClick}
+        >
             <div className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-[0.07] transition-opacity duration-700 group-hover:opacity-[0.14]"
                 style={{ background: color }} />
             <div className="flex justify-between items-start relative z-10">
@@ -171,15 +192,20 @@ function KPICard({ label, value, subtitle, icon: Icon, color }: {
     );
 }
 
-function ChartCard({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+function ChartCard({ title, subtitle, hint, children }: { title: string; subtitle?: string; hint?: string; children: React.ReactNode }) {
     return (
         <div className="bg-white rounded-[1.5rem] p-5 md:p-6 border border-gray-100 shadow-sm">
-            <div className="mb-4">
-                <h3 className="text-sm font-display font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                    {title}
-                </h3>
-                {subtitle && (
-                    <p className="text-[10px] font-medium mt-0.5" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
+            <div className="mb-4 flex items-start justify-between gap-2">
+                <div>
+                    <h3 className="text-sm font-display font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                        {title}
+                    </h3>
+                    {subtitle && (
+                        <p className="text-[10px] font-medium mt-0.5" style={{ color: 'var(--text-muted)' }}>{subtitle}</p>
+                    )}
+                </div>
+                {hint && (
+                    <span className="shrink-0 text-[10px] font-medium text-gray-400 mt-0.5">{hint}</span>
                 )}
             </div>
             {children}
@@ -187,12 +213,31 @@ function ChartCard({ title, subtitle, children }: { title: string; subtitle?: st
     );
 }
 
+function monthKey(r: ReportRow) {
+    const d = new Date(r.date_of_event || r.created_at);
+    if (isNaN(d.getTime())) return '';
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
 export default function ManagerDashboard() {
     const { user } = useAuthContext();
+    const router = useRouter();
     const { data, isLoading } = useData<DashboardData>('/api/dashboard/manager-cabang');
+    const [exporting, setExporting] = useState(false);
+    const { openDrilldown, DrilldownRenderer } = useDrilldown();
 
     const stationName = useMemo(() => data?.station.name || user?.station?.name || '...', [data, user]);
     const stationCode = useMemo(() => data?.station.code || user?.station?.code || '...', [data, user]);
+
+    const handleExport = useCallback(async () => {
+        if (!data) return;
+        setExporting(true);
+        try {
+            await exportManagerDashboardToExcel(data);
+        } finally {
+            setExporting(false);
+        }
+    }, [data]);
 
     if (isLoading || !data) {
         return (
@@ -211,7 +256,7 @@ export default function ManagerDashboard() {
         );
     }
 
-    const { summary, categoryDistribution, severityDistribution, areaDistribution, topAirlines, monthlyTrend, statusDistribution } = data;
+    const { summary, categoryDistribution, severityDistribution, areaDistribution, topAirlines, monthlyTrend, statusDistribution, rows } = data;
     const total = summary.total;
 
     const catWithTotal = categoryDistribution.map(d => ({ ...d, total }));
@@ -242,28 +287,44 @@ export default function ManagerDashboard() {
                     <MapPin size={14} style={{ color: 'var(--text-muted)' }} />
                     <p className="text-sm font-medium" style={{ color: 'var(--text-muted)' }}>{stationName}</p>
                 </div>
-                <div className="mt-4">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                     <Link
                         href="/dashboard/manager/reports"
                         aria-label="View all reports for this station"
-                        className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-primary,#0072B2)] px-4 py-2.5 text-xs font-semibold tracking-wide text-white shadow-sm transition-all hover:brightness-110 hover:shadow-md active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary,#0072B2)] focus-visible:ring-offset-2"
+                        className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-primary,#0072B2)] px-4 py-2.5 text-xs font-semibold tracking-wide text-white shadow-sm transition-all hover:brightness-110 hover:shadow-md active:scale-[0.98]"
                     >
                         <FileText size={14} />
                         <span>All Reports</span>
                     </Link>
+                    <button
+                        type="button"
+                        onClick={() => router.push('/dashboard/employee/new')}
+                        className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-semibold tracking-wide text-white shadow-sm transition-all hover:bg-emerald-700 hover:shadow-md active:scale-[0.98]"
+                    >
+                        <Plus size={14} />
+                        <span>Create Report</span>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => void handleExport()}
+                        disabled={exporting}
+                        className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-xs font-semibold tracking-wide text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+                    >
+                        {exporting ? <Loader2 size={14} className="animate-spin" /> : <FileSpreadsheet size={14} />}
+                        <span>Export Excel</span>
+                    </button>
                 </div>
             </header>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <KPICard label="Total Reports" value={summary.total} subtitle="All periods" icon={BarChart3} color={C.primary} />
-                <KPICard label="Open" value={summary.open} subtitle="Not yet resolved" icon={AlertTriangle} color={C.accent} />
-                <KPICard label="Closed" value={summary.closed} subtitle="Successfully resolved" icon={ShieldCheck} color={C.tertiary} />
-                <KPICard label="Resolution" value={`${summary.resolutionRate}%`} subtitle="Resolution rate" icon={TrendingUp} color={C.purple} />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <KPICard label="Total Reports" value={summary.total} subtitle="All periods" icon={BarChart3} color={C.primary} onClick={() => openDrilldown(rows, 'All Reports')} />
+                <KPICard label="Open" value={summary.open} subtitle="Not yet resolved" icon={AlertTriangle} color={C.accent} onClick={() => openDrilldown(rows.filter(r => r.status === 'OPEN'), 'Open Reports')} />
+                <KPICard label="Closed" value={summary.closed} subtitle="Successfully resolved" icon={ShieldCheck} color={C.tertiary} onClick={() => openDrilldown(rows.filter(r => r.status === 'CLOSED'), 'Closed Reports')} />
             </div>
 
-            {/* ── Row 1: Kategori + Severity ─────────────────────────────── */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ChartCard title="Category Distribution" subtitle={`${total} total reports`}>
+                <ChartCard title="Category Distribution" subtitle={`${total} total reports`} hint="Klik segmen untuk detail">
                     <div style={{ height: 320, width: '100%' }}>
                         {catWithTotal.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -279,6 +340,12 @@ export default function ManagerDashboard() {
                                         nameKey="name"
                                         labelLine={false}
                                         label={renderPieLabel}
+                                        style={{ cursor: 'pointer' }}
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        onClick={(entry: any) => {
+                                            const cat = entry.name as string;
+                                            openDrilldown(rows.filter(r => (r.main_category || r.category || 'Lainnya') === cat), `Category: ${cat}`);
+                                        }}
                                     >
                                         {catWithTotal.map((entry, i) => (
                                             <Cell key={i} fill={CATEGORY_COLORS[entry.name] || SERIES[i % SERIES.length]} />
@@ -293,7 +360,7 @@ export default function ManagerDashboard() {
                     </div>
                 </ChartCard>
 
-                <ChartCard title="Severity Distribution" subtitle={`${total} total reports`}>
+                <ChartCard title="Severity Distribution" subtitle={`${total} total reports`} hint="Klik bar untuk detail">
                     <div style={{ height: 320, width: '100%' }}>
                         {sevWithTotal.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -302,7 +369,18 @@ export default function ManagerDashboard() {
                                     <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600 }} />
                                     <YAxis tick={{ fontSize: 11 }} width={40} />
                                     <Tooltip formatter={(val: number) => [`${val} (${((val / total) * 100).toFixed(1)}%)`, 'Count']} />
-                                    <Bar dataKey="value" name="Count" radius={[8, 8, 0, 0]} barSize={48} label={makeBarLabelVertical(total)}>
+                                    <Bar
+                                        dataKey="value"
+                                        name="Count"
+                                        radius={[8, 8, 0, 0]}
+                                        barSize={48}
+                                        label={makeBarLabelVertical(total)}
+                                        style={{ cursor: 'pointer' }}
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        onClick={(data: any) => {
+                                            openDrilldown(rows.filter(r => (r.severity || 'UNKNOWN') === data.name), `Severity: ${data.name}`);
+                                        }}
+                                    >
                                         {sevWithTotal.map((entry, i) => (
                                             <Cell key={i} fill={SEVERITY_COLORS[entry.name] || SERIES[i]} />
                                         ))}
@@ -316,9 +394,9 @@ export default function ManagerDashboard() {
                 </ChartCard>
             </div>
 
-            {/* ── Row 2: Status + Area ────────────────────────────────────── */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ChartCard title="Report Status" subtitle="Open vs Closed">
+                <ChartCard title="Report Status" subtitle="Open vs Closed" hint="Klik segmen untuk detail">
                     <div style={{ height: 300, width: '100%' }}>
                         {statusWithTotal.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -334,6 +412,12 @@ export default function ManagerDashboard() {
                                         nameKey="name"
                                         labelLine={false}
                                         label={renderPieLabel}
+                                        style={{ cursor: 'pointer' }}
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        onClick={(entry: any) => {
+                                            const statusVal = entry.name === 'Open' ? 'OPEN' : 'CLOSED';
+                                            openDrilldown(rows.filter(r => r.status === statusVal), `Status: ${entry.name}`);
+                                        }}
                                     >
                                         {statusWithTotal.map((entry, i) => (
                                             <Cell key={i} fill={STATUS_COLORS[entry.name] || SERIES[i]} />
@@ -348,7 +432,7 @@ export default function ManagerDashboard() {
                     </div>
                 </ChartCard>
 
-                <ChartCard title="Area Distribution" subtitle="Terminal / Apron / General">
+                <ChartCard title="Area Distribution" subtitle="Terminal / Apron / General" hint="Klik bar untuk detail">
                     <div style={{ height: 300, width: '100%' }}>
                         {areaWithTotal.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -357,7 +441,18 @@ export default function ManagerDashboard() {
                                     <XAxis type="number" tick={{ fontSize: 11 }} />
                                     <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 11, fontWeight: 500 }} />
                                     <Tooltip formatter={(val: number) => [`${val} (${((val / total) * 100).toFixed(1)}%)`, 'Count']} />
-                                    <Bar dataKey="value" name="Count" radius={[0, 8, 8, 0]} barSize={28} label={makeBarLabelHorizontal(total)}>
+                                    <Bar
+                                        dataKey="value"
+                                        name="Count"
+                                        radius={[0, 8, 8, 0]}
+                                        barSize={28}
+                                        label={makeBarLabelHorizontal(total)}
+                                        style={{ cursor: 'pointer' }}
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        onClick={(data: any) => {
+                                            openDrilldown(rows.filter(r => (r.area || 'Tidak Diketahui') === data.name), `Area: ${data.name}`);
+                                        }}
+                                    >
                                         {areaWithTotal.map((_, i) => (
                                             <Cell key={i} fill={SERIES[i % SERIES.length]} />
                                         ))}
@@ -371,13 +466,23 @@ export default function ManagerDashboard() {
                 </ChartCard>
             </div>
 
-            {/* ── Row 3: Monthly Trend + Category Stack ──────────────────── */}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ChartCard title="Monthly Trend" subtitle="Last 12 months">
+                <ChartCard title="Monthly Trend" subtitle="Last 12 months" hint="Klik titik/area untuk detail">
                     <div style={{ height: 380, width: '100%' }}>
                         {monthlyTrend.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
-                                <ComposedChart data={monthlyTrend} margin={{ top: 20, right: 16, left: 0, bottom: 64 }}>
+                                <ComposedChart
+                                    data={monthlyTrend}
+                                    margin={{ top: 20, right: 16, left: 0, bottom: 64 }}
+                                    style={{ cursor: 'pointer' }}
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    onClick={(chartData: any) => {
+                                        const p = chartData?.activePayload?.[0]?.payload;
+                                        if (!p) return;
+                                        openDrilldown(rows.filter(r => monthKey(r) === p.rawMonth), `Bulan: ${p.month}`);
+                                    }}
+                                >
                                     <defs>
                                         <linearGradient id="gradArea" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor={C.primary} stopOpacity={0.12} />
@@ -406,11 +511,22 @@ export default function ManagerDashboard() {
                     </div>
                 </ChartCard>
 
-                <ChartCard title="Monthly Trend by Category" subtitle="Stacked by Irregularity / Complaint / Compliment">
+                <ChartCard title="Monthly Trend by Category" subtitle="Stacked by Irregularity / Complaint / Compliment" hint="Klik bar untuk detail">
                     <div style={{ height: 380, width: '100%' }}>
                         {monthlyTrend.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={monthlyTrend} margin={{ top: 20, right: 16, left: 0, bottom: 64 }}>
+                                <BarChart
+                                    data={monthlyTrend}
+                                    margin={{ top: 20, right: 16, left: 0, bottom: 64 }}
+                                    style={{ cursor: 'pointer' }}
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    onClick={(chartData: any) => {
+                                        const p = chartData?.activePayload?.[0]?.payload;
+                                        const cat = chartData?.activePayload?.[0]?.name as string | undefined;
+                                        if (!p || !cat) return;
+                                        openDrilldown(rows.filter(r => monthKey(r) === p.rawMonth && (r.main_category || r.category) === cat), `${cat} – ${p.month}`);
+                                    }}
+                                >
                                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.04)" vertical={false} />
                                     <XAxis dataKey="month" tick={{ fontSize: 10 }} angle={-30} textAnchor="end" height={78} tickMargin={14} interval={0} />
                                     <YAxis tick={{ fontSize: 11 }} width={40} />
@@ -430,8 +546,8 @@ export default function ManagerDashboard() {
                 </ChartCard>
             </div>
 
-            {/* ── Row 4: Top Airlines ─────────────────────────────────────── */}
-            <ChartCard title="Top 10 Airlines" subtitle="Based on number of reports">
+            {}
+            <ChartCard title="Top 10 Airlines" subtitle="Based on number of reports" hint="Klik bar untuk detail">
                 <div style={{ height: topAirlines.length * 36 + 40, width: '100%' }}>
                     {airlineWithTotal.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -440,7 +556,17 @@ export default function ManagerDashboard() {
                                 <XAxis type="number" tick={{ fontSize: 11 }} />
                                 <YAxis type="category" dataKey="name" width={160} tick={{ fontSize: 10, fontWeight: 500 }} />
                                 <Tooltip formatter={(val: number) => [`${val} (${((val / total) * 100).toFixed(1)}%)`, 'Reports']} />
-                                <Bar dataKey="value" name="Reports" radius={[0, 6, 6, 0]} barSize={20} label={makeBarLabelHorizontal(total)}
+                                <Bar
+                                    dataKey="value"
+                                    name="Reports"
+                                    radius={[0, 6, 6, 0]}
+                                    barSize={20}
+                                    label={makeBarLabelHorizontal(total)}
+                                    style={{ cursor: 'pointer' }}
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    onClick={(data: any) => {
+                                        openDrilldown(rows.filter(r => (r.airline || r.airlines || 'Tidak Diketahui') === data.name), `Airline: ${data.name}`);
+                                    }}
                                 >
                                     {airlineWithTotal.map((_, i) => (
                                         <Cell key={i} fill={SERIES[i % SERIES.length]} />
@@ -460,6 +586,8 @@ export default function ManagerDashboard() {
                     Data from reports_sync &bull; Scope: station {stationCode}
                 </p>
             </div>
+
+            <DrilldownRenderer />
         </div>
     );
 }

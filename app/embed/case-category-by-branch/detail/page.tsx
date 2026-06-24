@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi halaman embed detail untuk kategori kasus berdasarkan cabang
- * Menampilkan analisis lintas dimensi (Cabang × Kategori) dengan filter dan navigasi
- */
 
 'use client';
 
@@ -13,53 +7,38 @@ import { ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import BranchIntelligenceDetail from '@/components/charts/case-category-by-branch/BranchIntelligenceDetail';
 
-/**
- * Interface untuk state filter
- * Menyimpan semua parameter filter yang digunakan untuk memfilter data laporan
- */
 interface FilterState {
-  /** ID atau nama hub */
+
   hub: string;
-  /** ID atau nama cabang */
+
   branch: string;
-  /** ID atau nama maskapai penerbangan */
+
   airlines: string;
-  /** ID atau nama area */
+
   area: string;
-  /** Tipe sumber data (NON CARGO atau CGO) */
+
   sourceSheet: 'NON CARGO' | 'CGO';
-  /** Tanggal mulai filter */
+
   dateFrom: string;
-  /** Tanggal akhir filter */
+
   dateTo: string;
 }
 
-/**
- * Komponen konten utama untuk halaman embed detail kategori kasus per cabang
- * Menangani logika navigasi, filter, dan menampilkan detail analisis
- * @returns JSX element berisi layout halaman detail dengan filter dan chart
- */
 function EmbedCaseCategoryByBranchContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sourceSheet = searchParams.get('sourceSheet') === 'CGO' ? 'CGO' : 'NON CARGO';
   const sourcePage = searchParams.get('sourcePage') || 'customer-feedback-main';
-  
-  /**
-   * Menghasilkan URL untuk navigasi kembali
-   * @returns URL string untuk navigasi ke halaman sebelumnya dengan filter yang sama
-   */
+
   const getBackUrl = () => {
     const baseUrl = sourcePage && sourcePage !== 'main' 
       ? `/embed/custom/${sourcePage.toLowerCase().replace(/\s+/g, '-')}`
       : '/embed/custom/customer-feedback-main';
     return `${baseUrl}?${searchParams.toString()}`;
   };
-  
-  /** Menentukan apakah halaman ditampilkan dalam mode statis (tanpa header) */
+
   const isStatic = searchParams.get('viewMode') === 'static';
-  
-  /** State untuk menyimpan nilai filter saat ini */
+
   const [filters, setFilters] = useState<FilterState>({
     hub: searchParams.get('hub') || 'all',
     branch: searchParams.get('branch') || 'all',
@@ -88,7 +67,6 @@ function EmbedCaseCategoryByBranchContent() {
               </div>
             </div>
           </div>
-          
 
         </header>
       )}
@@ -102,11 +80,6 @@ function EmbedCaseCategoryByBranchContent() {
   );
 }
 
-/**
- * Komponen halaman default untuk embed detail kategori kasus per cabang
- * Membungkus konten dengan Suspense untuk menampilkan loading state
- * @returns JSX element ber Suspense wrapper dan komponen konten utama
- */
 export default function EmbedCaseCategoryByBranchPage() {
   return (
     <Suspense fallback={

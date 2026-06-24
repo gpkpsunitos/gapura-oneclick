@@ -241,7 +241,7 @@ export function ActionSummaryCard({
 
   return (
     <div className={cn("space-y-4", className)}>
-      {/* ── Header ── */}
+      {}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-teal-500 flex items-center justify-center">
@@ -293,7 +293,7 @@ export function ActionSummaryCard({
         </div>
       </div>
 
-      {/* ── Status Pills ── */}
+      {}
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-bold text-gray-500 uppercase">
           Ringkasan per laporan
@@ -308,7 +308,7 @@ export function ActionSummaryCard({
         </div>
       </div>
 
-      {/* ── KPI Cards ── */}
+      {}
       <div className="grid grid-cols-5 gap-2">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -409,7 +409,7 @@ export function ActionSummaryCard({
         </motion.div>
       </div>
 
-      {/* ── Overall Severity Distribution ── */}
+      {}
       <div className="p-3 rounded-xl bg-gray-50/50 border border-gray-100">
         <p className="text-[10px] font-bold text-gray-500 uppercase mb-2">
           Overall Severity Distribution
@@ -427,7 +427,7 @@ export function ActionSummaryCard({
         />
       </div>
 
-      {/* ── Global Recommendations ── */}
+      {}
       {globalRecommendations.length > 0 && (
         <div className="space-y-2">
           <button

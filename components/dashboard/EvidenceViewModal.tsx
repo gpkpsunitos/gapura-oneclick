@@ -65,7 +65,7 @@ export function EvidenceViewModal({ isOpen, onClose, evidenceUrls }: EvidenceVie
               </div>
             ) : (
               <div className="relative w-full h-full flex flex-col items-center justify-center group">
-                {/* Main preview */}
+                {}
                 <div className="relative w-full h-[50vh] sm:h-[60vh] flex items-center justify-center bg-black/5 rounded-xl sm:rounded-2xl overflow-hidden">
                   {previewFailed ? (
                     <div className="flex flex-col items-center gap-4 px-6 text-center text-gray-600">
@@ -93,7 +93,7 @@ export function EvidenceViewModal({ isOpen, onClose, evidenceUrls }: EvidenceVie
                   )}
                 </div>
 
-                {/* Controls */}
+                {}
                 {hasMultiple && (
                   <>
                     <button
@@ -109,7 +109,7 @@ export function EvidenceViewModal({ isOpen, onClose, evidenceUrls }: EvidenceVie
                       <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
 
-                    {/* Indicators */}
+                    {}
                     <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex items-center space-x-1.5 sm:space-x-2 bg-black/20 backdrop-blur-md px-3 sm:px-4 py-1.5 sm:py-2 rounded-full">
                       {validUrls.map((_, idx) => (
                         <button

@@ -25,7 +25,7 @@ export function GlobalControlBar({
       className="bg-white border-b border-[#e0e0e0] sticky top-16 z-40 w-full px-6 py-3 shadow-sm flex items-center justify-between"
     >
       <div className="flex items-center gap-6">
-        {/* View Mode Toggle */}
+        {}
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold text-[#666] uppercase tracking-wider">Data View</span>
           <div className="flex bg-[#f5f5f5] rounded-lg p-1 border border-[#e0e0e0]">
@@ -52,7 +52,7 @@ export function GlobalControlBar({
 
         <div className="h-8 w-px bg-[#e0e0e0]" />
 
-        {/* Normalization Toggle */}
+        {}
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold text-[#666] uppercase tracking-wider">Normalize</span>
           <div className="flex bg-[#f5f5f5] rounded-lg p-1 border border-[#e0e0e0]">

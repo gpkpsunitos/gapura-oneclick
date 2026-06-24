@@ -34,7 +34,7 @@ function getDateRange(trendValue: string): { from: string; to: string } {
         start.setHours(0, 0, 0, 0);
         return { from: start.toISOString(), to };
     }
-    // thisMonth
+
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
     return { from: start.toISOString(), to };
 }

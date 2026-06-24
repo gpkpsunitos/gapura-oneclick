@@ -77,7 +77,6 @@ export interface AirlineCategoryData {
   total: number;
 }
 
-
 export interface RootCauseData {
   cause: string;
   category: string;
@@ -98,8 +97,8 @@ interface BaseFilters {
   dateTo?: string;
 }
 
-let reportsCache: Record<string, { data: Report[], ts: number }> = {};
-let inflightRequests: Record<string, Promise<Report[]>> = {};
+const reportsCache: Record<string, { data: Report[], ts: number }> = {};
+const inflightRequests: Record<string, Promise<Report[]>> = {};
 const CACHE_DURATION = 1000 * 60 * 5;
 
 const CORE_FIELDS = [
@@ -126,8 +125,7 @@ async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report
   if (filters.area && filters.area !== 'all') query.append('area', filters.area);
   if (filters.airlines && filters.airlines !== 'all') query.append('airlines', filters.airlines);
   if (filters.sourceSheet) query.append('sourceSheet', filters.sourceSheet);
-  
-  // For the table, we still need raw records but we fetch them separately and lazily
+
   query.append('fields', CORE_FIELDS.join(','));
 
   const response = await fetch(`/api/reports/analytics?${query.toString()}`, {
@@ -168,10 +166,10 @@ export async function fetchAggregatedCaseCategory(filters: BaseFilters = {}, sig
 
 function filterReports(reports: Report[], filters: BaseFilters): Report[] {
   return reports.filter(report => {
-    // Filter by source sheet (default NON CARGO for backward compatibility)
+
     const sheet = filters.sourceSheet || 'NON CARGO';
     if (report.source_sheet && report.source_sheet !== sheet) return false;
-    
+
     if (filters.hub && filters.hub !== 'all' && report.hub !== filters.hub) {
       return false;
     }
@@ -184,8 +182,7 @@ function filterReports(reports: Report[], filters: BaseFilters): Report[] {
     if (filters.area && filters.area !== 'all' && report.area !== filters.area) {
       return false;
     }
-    
-    // Date range filtering
+
     if (filters.dateFrom || filters.dateTo) {
       const reportDate = report.date_of_event || report.created_at || report.incident_date;
       if (reportDate) {
@@ -197,14 +194,14 @@ function filterReports(reports: Report[], filters: BaseFilters): Report[] {
           }
           if (filters.dateTo) {
             const toDate = new Date(filters.dateTo);
-            // Include the entire end date
+
             toDate.setHours(23, 59, 59, 999);
             if (date > toDate) return false;
           }
         }
       }
     }
-    
+
     return true;
   });
 }
@@ -214,7 +211,7 @@ function getMonthKey(dateStr: string | undefined): string {
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '';
-    // Normalize to YYYY-MM
+
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
   } catch {
     return '';
@@ -234,32 +231,28 @@ export async function fetchCategoryBreakdown(filters: BaseFilters = {}): Promise
 
   const categoryMap = new Map<string, { count: number; prevCount: number }>();
 
-  // Current month
   const currentDate = new Date();
   const currentMonthKey = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
   const prevMonthKey = getPreviousMonthKey(currentMonthKey);
 
-  // Initialize categories
   ['Irregularity', 'Complaint', 'Compliment', 'Occurrence', 'Accident / Incident'].forEach(cat => {
     categoryMap.set(cat, { count: 0, prevCount: 0 });
   });
 
-  // Count current month
   filtered.forEach(report => {
     const category = getCategory(report);
-    
+
     if (category && categoryMap.has(category)) {
       const current = categoryMap.get(category)!;
       current.count++;
     }
   });
 
-  // Count previous month for growth calculation
   filtered.forEach(report => {
     const dateStr = report.date_of_event || report.created_at || report.incident_date;
     const monthKey = getMonthKey(dateStr);
     const category = getCategory(report);
-    
+
     if (monthKey === prevMonthKey && category && categoryMap.has(category)) {
       const current = categoryMap.get(category)!;
       current.prevCount++;
@@ -295,11 +288,11 @@ export async function fetchMonthlyTrend(filters: BaseFilters = {}): Promise<Tren
     }
 
     const category = getCategory(report);
-    
+
     if (!category) return;
 
     const data = monthMap.get(monthKey)!;
-    
+
     bumpCategory(data, category);
   });
 
@@ -327,7 +320,7 @@ export async function fetchCategoryByBranch(filters: BaseFilters = {}): Promise<
     const branch = resolveReportBranch(report);
     if (!isValidBranch(branch)) return;
     const branchName = branch as string;
-    
+
     if (!branchMap.has(branchName)) {
       branchMap.set(branchName, emptyCategoryCounts());
     }
@@ -337,7 +330,7 @@ export async function fetchCategoryByBranch(filters: BaseFilters = {}): Promise<
 
     const data = branchMap.get(branchName);
     if (!data) return;
-    
+
     bumpCategory(data, category);
   });
 
@@ -356,7 +349,7 @@ export async function fetchCategoryByAirline(filters: BaseFilters = {}): Promise
     const airline = resolveReportAirline(report);
     if (!isValidBranch(airline)) return;
     const airlineName = airline as string;
-    
+
     if (!airlineMap.has(airlineName)) {
       airlineMap.set(airlineName, emptyCategoryCounts());
     }
@@ -366,7 +359,7 @@ export async function fetchCategoryByAirline(filters: BaseFilters = {}): Promise
 
     const data = airlineMap.get(airlineName);
     if (!data) return;
-    
+
     bumpCategory(data, category);
   });
 
@@ -390,10 +383,9 @@ export async function fetchRootCauses(filters: BaseFilters = {}): Promise<RootCa
     const category = getCategory(report) || 'Other';
 
     const rootCause = resolveRootCause(report);
-    
-    // Filter out invalid root causes
+
     if (!isValidRootCause(rootCause)) return;
-    
+
     const key = `${rootCause}-${category}`;
     if (!causeMap.has(key)) {
       causeMap.set(key, { category, count: 0 });
@@ -421,14 +413,14 @@ export async function fetchAllReports(filters: BaseFilters = {}): Promise<Report
       if (!dateVal) return '-';
       const d = new Date(dateVal);
       if (isNaN(d.getTime())) return '-';
-      
+
       const day = String(d.getDate()).padStart(2, '0');
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const month = months[d.getMonth()];
       const year = d.getFullYear();
       const hour = String(d.getHours()).padStart(2, '0');
       const minute = String(d.getMinutes()).padStart(2, '0');
-      
+
       return `${day} ${month} ${year} ${hour}:${minute}`;
     })(),
     Category: getCategory(report) || '-',
@@ -452,10 +444,8 @@ export async function fetchCategoryKPIs(filters: BaseFilters = {}): Promise<Cate
   const reports = await fetchReportsFromSheets(filters);
   const filtered = filterReports(reports, filters);
 
-  // Calculate KPIs
   const totalReports = filtered.length;
 
-  // Most affected branch
   const branchCounts = new Map<string, number>();
   filtered.forEach((r) => {
     const branch = r.branch || r.reporting_branch || r.station_code || 'Unknown';
@@ -469,7 +459,6 @@ export async function fetchCategoryKPIs(filters: BaseFilters = {}): Promise<Cate
     ? { name: branchEntries[0][0], count: branchEntries[0][1] }
     : { name: 'None', count: 0 };
 
-  // Top airline
   const airlineCounts = new Map<string, number>();
   filtered.forEach((r) => {
     const airline = r.airline || r.airlines || 'Unknown';
@@ -483,8 +472,7 @@ export async function fetchCategoryKPIs(filters: BaseFilters = {}): Promise<Cate
     ? { name: airlineEntries[0][0], count: airlineEntries[0][1] }
     : { name: 'None', count: 0 };
 
-  // Avg resolution time (placeholder - calculate from created_at to closed_at if available)
-  const avgResolutionTime = 0; // TODO: Calculate when status/timestamp data available
+  const avgResolutionTime = 0;
 
   return {
     totalReports,

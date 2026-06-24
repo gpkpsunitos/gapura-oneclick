@@ -1,74 +1,34 @@
-/**
- * @file
- *
- * File ini berisi komponen HeatmapChart untuk visualisasi data dalam format heatmap
- * Mendukung single atau multiple Y-axis dengan warna hijau berdasarkan intensitas nilai
- */
 
 import { useState, useMemo } from 'react';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
 
-/** Warna hijau untuk sel heatmap */
 const HEATMAP_GREEN = '#6b8e3d';
-/** Warna hijau lebih gelap untuk header tabel */
+
 const HEATMAP_BANNER = '#5a7a3a';
-/** Warna hijau muda untuk total */
+
 const HEATMAP_LIGHT = '#e8f5e9';
 
-/**
- * Props untuk komponen HeatmapChart
- * @interface HeatmapChartProps
- */
 interface HeatmapChartProps {
-    /** Judul chart */
+
     title?: string;
-    /** Data dalam format array object */
+
     data: Record<string, unknown>[];
-    /** Key untuk sumbu X (kolom) */
+
     xAxis: string;
-    /** Key untuk sumbu Y (baris), bisa single atau multiple */
+
     yAxis: string | string[];
-    /** Key untuk metrik yang akan divisualisasikan */
+
     metric: string;
-    /** Callback saat tombol detail diklik */
+
     onViewDetail?: () => void;
-    /** Callback saat sel heatmap diklik - deprecated, use built-in drilldown instead */
+
     onCellClick?: (xValue: string, yValues: string[]) => void;
-    /** Tampilkan judul atau tidak */
+
     showTitle?: boolean;
-    /** Enable drilldown on cell click */
+
     enableDrilldown?: boolean;
 }
 
-/**
- * Komponen HeatmapChart
- * Menampilkan data dalam format heatmap dengan dukungan single/multiple Y-axis
- * Warna sel dihitung berdasarkan nilai metrik relatif terhadap nilai maksimum
- * Mendukung scrolling untuk menampilkan banyak baris data
- * 
- * @param {HeatmapChartProps} props - Props komponen
- * @returns {JSX.Element} Element React heatmap chart
- * 
- * @example
- * ```tsx
- * <HeatmapChart
- *   title="Distribusi Laporan"
- *   data={reportData}
- *   xAxis="month"
- *   yAxis="category"
- *   metric="count"
- *   onViewDetail={() => router.push('/detail')}
- * />
- * 
- * <HeatmapChart
- *   title="Multi-Axis Heatmap"
- *   data={reportData}
- *   xAxis="month"
- *   yAxis={['hub', 'branch']}
- *   metric="count"
- * />
- * ```
- */
 export function HeatmapChart({
     title,
     data,
@@ -80,47 +40,42 @@ export function HeatmapChart({
     showTitle = true,
     enableDrilldown = true
 }: HeatmapChartProps) {
-    // Drilldown Hook
+
     const { openDrilldown, DrilldownRenderer } = useDrilldown();
-    // Support single or multiple yAxis fields
+
     const yFields = useMemo(() => Array.isArray(yAxis) ? yAxis : [yAxis], [yAxis]);
     const isMultiY = yFields.length > 1;
-    
-    // 1. Get unique X values (column headers)
+
     const xValues = useMemo(() => 
         Array.from(new Set(data.map(d => d[xAxis] as string))).filter(Boolean).sort(),
     [data, xAxis]);
-    
-    // 2. Build row keys from yAxis field(s)
+
     const SEPARATOR = '|||';
     const parseRowKey = (key: string) => key.split(SEPARATOR);
-    
-    // 3. Process Data: Build Pivot Map and Calculate Totals
+
     const { pivotMap, rowKeys, rowTotals, colTotals, grandTotal } = useMemo(() => {
         const getRowKeyInternal = (row: Record<string, unknown>) => yFields.map(f => String(row[f] ?? '')).join(SEPARATOR);
-        
+
         const pMap = new Map<string, Map<string, number>>();
         const rTotals: Record<string, number> = {};
         const cTotals: Record<string, number> = {};
         let gTotal = 0;
-        
+
         const seenKeys = new Set<string>();
         const rKeys: string[] = [];
-        
-        // First pass: aggregate data into pivot map
+
         data.forEach(row => {
             const rk = getRowKeyInternal(row);
             const x = String(row[xAxis] ?? '');
             const val = Number(row[metric]) || 0;
-            
+
             if (!seenKeys.has(rk)) { seenKeys.add(rk); rKeys.push(rk); }
-            
+
             if (!pMap.has(rk)) pMap.set(rk, new Map());
             const existing = pMap.get(rk)!.get(x) || 0;
             pMap.get(rk)!.set(x, existing + val);
         });
 
-        // Second pass: calculate totals
         rKeys.forEach(rk => {
             let rTotal = 0;
             xValues.forEach(x => {
@@ -132,28 +87,22 @@ export function HeatmapChart({
             gTotal += rTotal;
         });
 
-        // Sort rows by Grand Total Descending
         rKeys.sort((a, b) => rTotals[b] - rTotals[a]);
 
         return { pivotMap: pMap, rowKeys: rKeys, rowTotals: rTotals, colTotals: cTotals, grandTotal: gTotal };
     }, [data, xAxis, metric, xValues, yFields]);
-    
-    // Helper for heatmap cell background
+
     const allVals = rowKeys.flatMap(rk => xValues.map(x => pivotMap.get(rk)?.get(x) || 0));
     const maxVal = Math.max(...allVals, 1);
 
-    /**
-     * Handle cell click to show drilldown details
-     */
     const handleCellClick = (xValue: string, yValues: string[]) => {
-        // Call legacy callback if provided
+
         if (onCellClick) {
             onCellClick(xValue, yValues);
         }
 
-        // Open drilldown if enabled
         if (enableDrilldown) {
-            // Filter data based on clicked cell
+
             const filteredData = data.filter(row => {
                 const xMatch = String(row[xAxis]) === xValue;
                 const yMatch = yFields.every((field, idx) =>
@@ -168,15 +117,10 @@ export function HeatmapChart({
             }
         }
     };
-    
-    /**
-     * Mendapatkan style untuk sel heatmap berdasarkan nilai
-     * @param val - Nilai metrik untuk sel
-     * @returns Style CSS untuk sel heatmap
-     */
+
     const getCellStyle = (val: number): React.CSSProperties => {
         if (!val) return { textAlign: 'center', padding: '6px 8px', fontSize: 13, color: '#999' };
-        // Simpler opacity scale for cleaner look
+
         const alpha = Math.max(0.1, Math.min(0.6, val / maxVal));
         return {
             textAlign: 'center',
@@ -189,8 +133,6 @@ export function HeatmapChart({
         };
     };
 
-    // --- SCROLLING LOGIC (Replacing Pagination) ---
-    // We display all rows but within a scrollable container
     const currentRowKeys = rowKeys;
 
     return (
@@ -206,7 +148,7 @@ export function HeatmapChart({
             height: '100%',
             fontFamily: 'var(--font-body)'
         }}>
-            {/* Title */}
+            {}
             {showTitle && title && (
                 <div style={{
                     padding: '16px 20px 12px',
@@ -257,8 +199,8 @@ export function HeatmapChart({
                     </div>
                 </div>
             )}
-            
-            {/* Scrollable container strictly limited to 5-6 rows (approx 320px) */}
+
+            {}
             <div style={{ flex: 1, overflow: 'auto', maxHeight: '320px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                     <thead style={{ position: 'sticky', top: 0, zIndex: 10 }}>
@@ -288,7 +230,7 @@ export function HeatmapChart({
                                     borderRight: '1px solid rgba(255,255,255,0.1)'
                                 }}>{x}</th>
                             ))}
-                             {/* Grand Total Column Header */}
+                             {}
                             <th style={{
                                 padding: '10px 12px',
                                 textAlign: 'center',
@@ -303,10 +245,10 @@ export function HeatmapChart({
                     <tbody>
                         {currentRowKeys.map((rk, idx) => {
                             const parts = parseRowKey(rk);
-                            // Pre-calculate showFirstField correctly without reassigning a variable in render
+
                             const showFirstField = !isMultiY || (idx === 0 || parts[0] !== parseRowKey(currentRowKeys[idx - 1])[0]);
                             const isOdd = idx % 2 !== 0;
-                            
+
                             return (
                                 <tr key={rk} style={{ borderBottom: '1px solid #f0f0f0', background: isOdd ? '#fafafa' : '#fff' }}>
                                     {yFields.map((_, fi) => (
@@ -337,19 +279,19 @@ export function HeatmapChart({
                                             </td>
                                         );
                                     })}
-                                    {/* Row Grand Total */}
+                                    {}
                                     <td style={{
                                         padding: '8px 12px',
                                         textAlign: 'center',
                                         fontSize: 13,
                                         fontWeight: 700,
                                         color: '#333',
-                                        background: isOdd ? '#f5f9f5' : '#fff' // Subtle green tint for total
+                                        background: isOdd ? '#f5f9f5' : '#fff'
                                     }}>{rowTotals[rk]}</td>
                                 </tr>
                             );
                         })}
-                        {/* Fill empty rows to maintain height if needed, OR just let it compress */}
+                        {}
                         {currentRowKeys.length === 0 && (
                             <tr><td colSpan={yFields.length + xValues.length + 1} style={{ padding: 32, textAlign: 'center', color: '#94a3b8' }}>No data available</td></tr>
                         )}
@@ -375,7 +317,7 @@ export function HeatmapChart({
                                 padding: '10px 12px',
                                 textAlign: 'center',
                                 fontSize: 14,
-                                fontWeight: 800, // Extra bold
+                                fontWeight: 800,
                                 color: HEATMAP_GREEN,
                             }}>{grandTotal}</td>
                         </tr>
@@ -383,10 +325,10 @@ export function HeatmapChart({
                 </table>
             </div>
 
-             {/* Pagination removed in favor of scrolling */}
+             {}
         </div>
 
-        {/* Drilldown Drawer */}
+        {}
         {enableDrilldown && <DrilldownRenderer />}
         </>
     );

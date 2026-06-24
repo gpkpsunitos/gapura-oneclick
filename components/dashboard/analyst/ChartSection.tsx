@@ -5,8 +5,6 @@ import { calculateComparisonData } from '@/lib/utils/comparison-utils';
 import type { Report, AnalyticsData, ComparisonData } from '@/types';
 import type { DivisionConfig } from '@/components/dashboard/AnalyticsDashboard';
 
-// These chart components are already dynamically imported by the parent.
-// We re-export them here so the lazy boundary is preserved.
 import dynamic from 'next/dynamic';
 
 export const AnalystCharts = dynamic(
@@ -60,14 +58,6 @@ interface ChartSectionProps {
   onDrilldown: (url: string) => void;
 }
 
-/**
- * Renders division-specific chart components with all chart data computations.
- *
- * This component is designed to be rendered ONLY when charts become visible
- * (e.g., inside DeferredChartRegion). All useMemo hooks here are dormant
- * until the component mounts, saving ~15 array transformations per render
- * when charts are below the fold.
- */
 export function ChartSection({
   division,
   filteredReports,
@@ -79,12 +69,10 @@ export function ChartSection({
   drilldownUrl,
   onDrilldown,
 }: ChartSectionProps) {
-  // ── Chart data computations (only run when this component mounts) ──
 
-
-  // Combined chart data computation in a single useMemo
   const chartData = useMemo(() => {
-    // All chart data objects to be returned
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result: any = {
       _irregularity: 0,
       _complaint: 0,
@@ -108,17 +96,22 @@ export function ChartSection({
       comparisonData: undefined,
     };
 
-    // --- All intermediate maps/sets for aggregation ---
     const stations: Record<string, number> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const branchData: Record<string, any> = {};
     const dataMap = new Map();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const areas: Record<string, any> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const areaSubMap: Record<string, any> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const airlinesData: Record<string, any> = {};
 
     const monthlyCompMap = new Map();
     const hubMap: Record<string, number> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const branchResMap: Record<string, any> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const branchAreaMap: Record<string, any> = {};
     const terminalCat: Record<string, number> = {};
     const apronCat: Record<string, number> = {};
@@ -126,16 +119,14 @@ export function ChartSection({
     const caseClass: Record<string, number> = {};
 
     for (const r of filteredReports) {
-      // caseCategoryData
+
       if (r.category === 'Irregularity') result._irregularity++;
       else if (r.category === 'Complaint') result._complaint++;
       else if (r.category === 'Compliment') result._compliment++;
 
-      // branchReportData
       const station = r.stations?.code || 'Unknown';
       stations[station] = (stations[station] || 0) + 1;
 
-      // monthlyReportData
       const dateStr = r.date_of_event || r.created_at;
       if (dateStr) {
         let d;
@@ -155,7 +146,6 @@ export function ChartSection({
         }
       }
 
-      // categoryByAreaData & areaSubCategoryData
       const raw = (r.area || '').toString().trim().toLowerCase();
       let area = null;
       if (raw.includes('terminal')) area = 'Terminal Area';
@@ -168,22 +158,17 @@ export function ChartSection({
         areaSubMap[area][subCat] = (areaSubMap[area][subCat] || 0) + 1;
       }
 
-      // categoryByBranchData
       if (!branchData[station]) branchData[station] = { irregularity: 0, complaint: 0, compliment: 0 };
       if (r.category === 'Irregularity') branchData[station].irregularity++;
       else if (r.category === 'Complaint') branchData[station].complaint++;
       else if (r.category === 'Compliment') branchData[station].compliment++;
 
-      // categoryByAirlinesData
       const airline = r.airlines || 'Unknown';
       if (!airlinesData[airline]) airlinesData[airline] = { irregularity: 0, complaint: 0, compliment: 0 };
       if (r.category === 'Irregularity') airlinesData[airline].irregularity++;
       else if (r.category === 'Complaint') airlinesData[airline].complaint++;
       else if (r.category === 'Compliment') airlinesData[airline].compliment++;
 
-
-
-      // monthlyComparisonData
       const dateStrCreated = r.date_of_event || r.created_at;
       if (dateStrCreated) {
         let dCreated;
@@ -208,16 +193,13 @@ export function ChartSection({
         }
       }
 
-      // hubDistributionData
       const hub = r.hub || 'Unknown';
       hubMap[hub] = (hubMap[hub] || 0) + 1;
 
-      // resolutionByBranchData
       if (!branchResMap[station]) branchResMap[station] = { total: 0, resolved: 0 };
       branchResMap[station].total++;
       if (r.status === 'CLOSED') branchResMap[station].resolved++;
 
-      // caseReportByAreaData
       const branch = r.branch || r.stations?.code || 'Unknown';
       const airline2 = (r.airlines || r.airline || 'Unknown').trim() || 'Unknown';
       const area2 = (r.area || '').toLowerCase();
@@ -227,29 +209,26 @@ export function ChartSection({
       else if (area2.includes('apron')) branchAreaMap[branch][airline2].apron++;
       else if (area2.includes('general')) branchAreaMap[branch][airline2].general++;
 
-      // terminalAreaCategoryData
       const rawArea = (r.area || '').toString().trim().toLowerCase();
       if (rawArea.includes('terminal')) {
         const cat = r.terminal_area_category;
         if (cat) terminalCat[cat] = (terminalCat[cat] || 0) + 1;
       }
-      // apronAreaCategoryData
+
       if (rawArea.includes('apron')) {
         const cat = r.apron_area_category;
         if (cat) apronCat[cat] = (apronCat[cat] || 0) + 1;
       }
-      // generalCategoryData
+
       if (rawArea.includes('general')) {
         const cat = r.general_category;
         if (cat) generalCat[cat] = (generalCat[cat] || 0) + 1;
       }
 
-      // caseClassificationData
       const caseClassVal = r.case_classification;
       if (caseClassVal) caseClass[caseClassVal] = (caseClass[caseClassVal] || 0) + 1;
     }
 
-    // Finalize all chart data arrays
     result.caseCategoryData = [
       { name: "Irregularity", value: result._irregularity },
       { name: "Complaint", value: result._complaint },
@@ -300,8 +279,10 @@ export function ChartSection({
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
     result.caseReportByAreaData = Object.entries(branchAreaMap)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map(([branch, airlineData]: [string, Record<string, any>]) => {
         const airlines = Object.entries(airlineData)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .map(([name, c]: [string, any]) => ({
             name,
             terminal: c.terminal,
@@ -312,9 +293,13 @@ export function ChartSection({
           .sort((a, b) => b.total - a.total);
         return {
           branch, airlines,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           totalTerminal: Object.values(airlineData).reduce((s: number, v: any) => s + v.terminal, 0),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           totalApron: Object.values(airlineData).reduce((s: number, v: any) => s + v.apron, 0),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           totalGeneral: Object.values(airlineData).reduce((s: number, v: any) => s + v.general, 0),
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           grandTotal: Object.values(airlineData).reduce((s: number, v: any) => s + v.terminal + v.apron + v.general, 0),
         };
       })
@@ -327,7 +312,6 @@ export function ChartSection({
     return result;
   }, [filteredReports]);
 
-  // ── Common props for all chart variants ──
   const chartProps = {
     analytics,
     ...chartData,

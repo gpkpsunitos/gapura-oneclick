@@ -18,6 +18,7 @@ const onErrorRetry: NonNullable<SWRConfiguration['onErrorRetry']> = (_error, _ke
 
 const swrConfig: SWRConfiguration = {
     fetcher: sharedFetcher,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     provider: () => swrCache as any,
     revalidateOnFocus: false,
     dedupingInterval: 60000,

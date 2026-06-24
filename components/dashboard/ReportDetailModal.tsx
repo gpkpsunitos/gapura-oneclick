@@ -34,7 +34,6 @@ export function ReportDetailModal({
         return () => setMounted(false);
     }, []);
 
-    // Reset when modal closes or report changes
     useEffect(() => {
         if (!effectiveIsOpen || !initialReport) {
             setFullReport(null);
@@ -68,14 +67,14 @@ export function ReportDetailModal({
 
     return createPortal(
         <div className="fixed inset-0 z-[9999] flex md:items-center justify-center p-0 md:p-4 overflow-hidden" style={{ width: '100vw', height: '100vh', maxWidth: '100vw', maxHeight: '100vh' }}>
-            {/* Backdrop */}
+            {}
             <div 
                 className="absolute inset-0 bg-slate-900/60 backdrop-blur-md transition-opacity duration-300 animate-fade-in"
                 onClick={onClose}
                 style={{ width: '100%', height: '100%' }}
             />
 
-            {/* Modal Content - Bottom Sheet on Mobile, Centered on Desktop */}
+            {}
             <div 
                 className={cn(
                     "relative z-10 bg-white shadow-2xl flex flex-col w-full",
@@ -87,7 +86,7 @@ export function ReportDetailModal({
                     "animate-in slide-in-from-bottom md:zoom-in-95"
                 )}
             >
-                {/* Mobile Drag Indicator */}
+                {}
                 <div className="md:hidden w-12 h-1.5 bg-slate-200 rounded-full mx-auto mt-4 shrink-0" />
                 <div className="relative flex-1 overflow-hidden flex flex-col rounded-t-[2.5rem] md:rounded-2xl">
                      <button 
@@ -96,7 +95,7 @@ export function ReportDetailModal({
                     >
                         <X size={18} className="text-slate-600" />
                     </button>
-                    
+
                     <div className="flex-1 overflow-y-auto bg-slate-50/20 relative scrollbar-hide">
                         {loadingDetail && (
                             <div className="sticky top-0 left-0 w-full h-1 bg-white/50 overflow-hidden z-[60]">
@@ -115,11 +114,9 @@ export function ReportDetailModal({
                                  } else {
                                      if (onRefresh) onRefresh();
                                  }
-                                 
-                                 // Handle Report Transfer (ID Change)
+
                                  if (updatedReport && updatedReport.id && initialReport?.id && updatedReport.id !== initialReport.id) {
-                                     // ID changed (moved to another sheet), so current ID is now invalid (404)
-                                     // Best UX: Close modal as "context" is lost/changed
+
                                      onClose();
                                      return;
                                  }
@@ -128,7 +125,7 @@ export function ReportDetailModal({
                                      fetch(`/api/reports/${initialReport.id}`)
                                         .then(res => {
                                             if (!res.ok) {
-                                                if (res.status === 404) onClose(); // Auto-close if not found
+                                                if (res.status === 404) onClose();
                                                 throw new Error('Failed to fetch');
                                             }
                                             return res.json();

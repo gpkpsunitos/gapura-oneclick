@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen navigasi untuk mode guest yang menampilkan
- * quick access links dan mobile bottom navigation.
- */
 
 'use client';
 
@@ -17,56 +11,28 @@ import { QuickAccessPasswordModal } from '@/components/QuickAccessPasswordModal'
 import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
 import { getLinkUrl } from '@/lib/external-links';
 
-/**
- * Base tipe item guest navigasi
- * @type GuestItemBase
- */
 type GuestItemBase = {
-    /** Label item */
+
     label: string;
-    /** Icon komponen */
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     icon: any;
 };
 
-/**
- * Tipe item link guest navigasi
- * @type GuestLinkItem
- */
 type GuestLinkItem = GuestItemBase & { href: string; action?: never; protected?: boolean; external?: boolean };
 
-/**
- * Tipe item action guest navigasi
- * @type GuestActionItem
- */
 type GuestActionItem = GuestItemBase & { href?: never; action: () => void; protected?: never };
 
-/**
- * Tipe gabungan item guest navigasi
- * @type GuestItem
- */
 type GuestItem = GuestLinkItem | GuestActionItem;
 
-// Items yang require password — label must match GuestItem.label exactly
 const PROTECTED_LABELS = new Set([
     'Chat Bot I\'m In Charge',
     'Handbook SLA',
     'WSN Dashboard',
 ]);
 
-// Type guard — narrows GuestItem to GuestLinkItem
 const isLinkItem = (item: GuestItem): item is GuestLinkItem => 'href' in item && !!item.href;
 
-/**
- * Komponen navigasi guest
- * Menampilkan sidebar desktop dan bottom navigation mobile dengan quick access links
- * @param hideSidebar - Sembunyikan sidebar desktop
- * @param hideMobileNav - Sembunyikan navigasi mobile
- * @returns JSX element navigasi guest
- * @example
- * ```tsx
- * <GuestNav hideSidebar={false} hideMobileNav={false} />
- * ```
- */
 export default function GuestNav({ hideSidebar = false, hideMobileNav = false }: { hideSidebar?: boolean; hideMobileNav?: boolean }) {
     const pathname = usePathname();
     const [expanded, setExpanded] = useState(false);
@@ -76,9 +42,6 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
 
     const externalLinks = useExternalLinks();
 
-    /**
-     * Daftar item navigasi guest
-     */
     const items: GuestItem[] = [
         {
             label: 'AI Chatbot',
@@ -135,11 +98,6 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
         },
     ];
 
-    /**
-     * Determine whether to intercept click for password gate
-     * @param item - Item navigasi
-     * @param e - Mouse event
-     */
     const handleItemClick = (item: GuestItem, e: React.MouseEvent) => {
         if (item.label === "Chat Bot I'm In Charge") {
             e.preventDefault();
@@ -152,11 +110,6 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
         }
     };
 
-    /**
-     * Render link untuk desktop sidebar
-     * @param item - Item navigasi
-     * @returns JSX element link atau button
-     */
     const renderDesktopLink = (item: GuestItem) => {
         const Icon = item.icon;
         const isProtectedItem = isLinkItem(item) && item.protected;
@@ -190,11 +143,6 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
         );
     };
 
-    /**
-     * Render tile untuk mobile navigation
-     * @param item - Item navigasi
-     * @returns JSX element link atau button
-     */
     const renderMobileTile = (item: GuestItem) => {
         const Icon = item.icon;
         const isProtectedItem = isLinkItem(item) && item.protected;
@@ -257,7 +205,7 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
 
     return (
         <>
-            {/* Coming Soon Modal */}
+            {}
             {comingSoon && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setComingSoon(false)}>
                     <div className="bg-white rounded-2xl shadow-xl p-6 mx-4 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
@@ -276,7 +224,7 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
                 </div>
             )}
 
-            {/* Password Modal */}
+            {}
             {modal && (
                 <QuickAccessPasswordModal
                     isOpen
@@ -287,7 +235,7 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
                 />
             )}
 
-            {/* Desktop Sidebar */}
+            {}
             {!hideSidebar && (
                 <aside className="hidden md:flex fixed top-0 left-0 h-screen w-[240px] border-r border-dashed border-gray-200 bg-[var(--surface-1)] z-30">
                     <div className="flex flex-col w-full">
@@ -317,7 +265,7 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
                 </aside>
             )}
 
-            {/* Mobile Bottom Nav – redesigned dock */}
+            {}
             {!hideMobileNav && (
                 <div className="md:hidden fixed inset-x-0 bottom-0 z-50 pointer-events-none">
                     <div className="mx-4 mb-[calc(env(safe-area-inset-bottom,0)+0.75rem)] pointer-events-auto">

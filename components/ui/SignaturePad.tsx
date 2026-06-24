@@ -19,8 +19,7 @@ export function SignaturePad({ onEnd, className = '', label = 'Draw signature he
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
-    // Set styles
+
     ctx.strokeStyle = '#000000';
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
@@ -30,15 +29,14 @@ export function SignaturePad({ onEnd, className = '', label = 'Draw signature he
   const getCoordinates = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
-    
+
     const rect = canvas.getBoundingClientRect();
-    
-    // Scale coordinates based on actual rendering size vs internal resolution
+
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
     let clientX, clientY;
-    
+
     if ('touches' in e) {
       clientX = e.touches[0].clientX;
       clientY = e.touches[0].clientY;
@@ -46,7 +44,7 @@ export function SignaturePad({ onEnd, className = '', label = 'Draw signature he
       clientX = (e as React.MouseEvent).clientX;
       clientY = (e as React.MouseEvent).clientY;
     }
-    
+
     return {
       x: (clientX - rect.left) * scaleX,
       y: (clientY - rect.top) * scaleY
@@ -56,11 +54,11 @@ export function SignaturePad({ onEnd, className = '', label = 'Draw signature he
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     setIsDrawing(true);
-    
+
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!ctx) return;
-    
+
     const { x, y } = getCoordinates(e);
     ctx.beginPath();
     ctx.moveTo(x, y);
@@ -69,7 +67,7 @@ export function SignaturePad({ onEnd, className = '', label = 'Draw signature he
   const draw = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
     if (!isDrawing) return;
     e.preventDefault();
-    
+
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!ctx) return;
@@ -77,14 +75,14 @@ export function SignaturePad({ onEnd, className = '', label = 'Draw signature he
     const { x, y } = getCoordinates(e);
     ctx.lineTo(x, y);
     ctx.stroke();
-    
+
     if (isEmpty) setIsEmpty(false);
   };
 
   const stopDrawing = () => {
     if (!isDrawing) return;
     setIsDrawing(false);
-    
+
     const canvas = canvasRef.current;
     if (canvas) {
       onEnd(canvas.toDataURL('image/png'));
@@ -95,7 +93,7 @@ export function SignaturePad({ onEnd, className = '', label = 'Draw signature he
     const canvas = canvasRef.current;
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
-    
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     setIsEmpty(true);
     onEnd(null);
@@ -105,8 +103,8 @@ export function SignaturePad({ onEnd, className = '', label = 'Draw signature he
     <div className={`relative border border-gray-300 rounded-md overflow-hidden bg-white ${className}`}>
       <canvas
         ref={canvasRef}
-        width={800}    // Internal high-res width limit
-        height={300}   // Internal high-res height limit
+        width={800}
+        height={300}
         className="w-full h-[150px] touch-none cursor-crosshair"
         onMouseDown={startDrawing}
         onMouseMove={draw}

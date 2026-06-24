@@ -17,24 +17,17 @@ interface ReportsTableSectionProps {
   drilldownUrl: (type: string, value: string) => string;
 }
 
-/**
- * Reports Table Section Component
- * Uses ResponsiveTable for mobile-first design
- * Card view on mobile, traditional table on desktop
- */
 export function ReportsTableSection({
   reports,
   onViewReport,
 }: ReportsTableSectionProps) {
   const router = useRouter();
 
-  // Filter today's cases
   const todayCases = useMemo(() => {
     const todayKey = new Date().toDateString();
     return reports.filter((r) => new Date(r.created_at).toDateString() === todayKey);
   }, [reports]);
 
-  // Define columns with priorities for mobile visibility
   const columns: TableColumn<Report>[] = useMemo(() => [
     {
       key: 'title',
@@ -126,7 +119,6 @@ export function ReportsTableSection({
     },
   ], []);
 
-  // Define row actions
   const actions: TableAction<Report>[] = useMemo(
     () => [
       {
@@ -159,7 +151,7 @@ export function ReportsTableSection({
           className="border-0 rounded-none"
         />
 
-        {/* View All Link */}
+        {}
         {todayCases.length > 10 && (
           <div className="p-4 border-t border-[var(--surface-4)] bg-[var(--surface-1)]">
             <button

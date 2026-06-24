@@ -7,7 +7,7 @@ import { reportsService } from '@/lib/services/reports-service';
 
 export async function POST(request: NextRequest) {
   try {
-    // Auth check
+
     const cookieStore = await cookies();
     const session = cookieStore.get('session')?.value;
     if (!session) {
@@ -25,39 +25,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { dateFrom, dateTo, filters, title, folder } = await request.json();
-    
-    // Ensure fresh data from Google Sheets before generating dashboard
-    // This is crucial because the dashboard generation relies on querying data
-    // which now comes from Sheets. 
-    // Although the actual queries in 'dashboard_charts' might still hit Supabase 
-    // IF the system was designed to query Supabase directly for charts.
-    // BUT since we switched the 'reports' source of truth to Google Sheets,
-    // any dashboard query logic needs to know about this.
-    
-    // Current Architecture Observation:
-    // The `generateCustomerFeedbackDashboard` likely creates a configuration for charts.
-    // The actual data fetching for charts happens when the dashboard is viewed (via /api/dashboards/query or similar).
-    // So we need to ensure that /api/dashboards/query fetches from Google Sheets.
-    
-    // However, to be safe and ensure data consistency, we can trigger a "sync" or "fetch" here if needed.
-    // Since `reportsService.getReports()` fetches live from Sheets, we just need to ensure the query endpoint uses it.
-    
-    // For this specific file, we just proceed with generation.
-    // The actual data reading happens when the user views the dashboard.
-    
-    // If we wanted to "cache" data into Supabase for performance, we would do it here.
-    // But per instructions "data must successfully fetched from google sheets first",
-    // and "keep supabase only for authentication", we should rely on Sheets.
-    
-    // Let's verify if we need to do anything here. 
-    // The instruction says "make sure when user want to access customer feedback dashboard, the data must successfully fetched from google sheets first"
-    // This endpoint GENERATES the dashboard structure. 
-    // The VIEWING happens later.
-    
-    // However, to ensure connectivity is valid before even generating:
-    await reportsService.getReports({ refresh: true }); // Force fetch from Google Sheets
 
-    // If no dates provided, generate without date range restrictions
+    await reportsService.getReports({ refresh: true });
+
     const effectiveDateFrom = dateFrom || '1900-01-01';
     const effectiveDateTo = dateTo || '2099-12-31';
     const isDefaultRange = !dateFrom && !dateTo && (!filters || (
@@ -67,17 +37,14 @@ export async function POST(request: NextRequest) {
       (!filters.categories || filters.categories.length === 0)
     ));
 
-    // No division scoping: generate like analyst for all allowed roles
     const generationOptions = { ...filters };
     const dashboard = generateCustomerFeedbackDashboard(effectiveDateFrom, effectiveDateTo, { filters: generationOptions });
 
-    // Determine if this is a filtered dashboard (has custom filters)
     const isFilteredDashboard = !isDefaultRange || !!title;
-    
-    // Build config with filter criteria and hideControls for filtered dashboards
+
     const dashboardConfig = {
       pages: dashboard.pages?.map(p => p.name) || ['Case Category', 'Detail Category', 'Detail Report'],
-      hideControls: isFilteredDashboard, // Hide filter UI for filtered dashboards
+      hideControls: isFilteredDashboard,
       dateFrom: effectiveDateFrom,
       dateTo: effectiveDateTo,
       filters: isFilteredDashboard ? {
@@ -92,10 +59,9 @@ export async function POST(request: NextRequest) {
     let slug: string;
     let dashboardId: string;
 
-    if (isDefaultRange && !title) { // Only use default slot if no custom title provided
+    if (isDefaultRange && !title) {
         slug = 'customer-feedback-main';
-        
-        // Check if default dashboard exists
+
         const { data: existingDashboard } = await supabaseAdmin
             .from('custom_dashboards')
             .select('id, slug')
@@ -104,8 +70,7 @@ export async function POST(request: NextRequest) {
 
         if (existingDashboard) {
             dashboardId = existingDashboard.id;
-            
-            // Update existing dashboard config to ensure it uses latest template
+
             const { error: updateError } = await supabaseAdmin
                 .from('custom_dashboards')
                 .update({
@@ -123,7 +88,6 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Gagal memperbarui dashboard' }, { status: 500 });
             }
 
-            // Delete old charts to replace with new ones
             const { error: deleteError } = await supabaseAdmin
                 .from('dashboard_charts')
                 .delete()
@@ -134,7 +98,7 @@ export async function POST(request: NextRequest) {
                 return NextResponse.json({ error: 'Gagal memperbarui chart' }, { status: 500 });
             }
         } else {
-            // Create new default dashboard
+
             const { data: dbDashboard, error: insertError } = await supabaseAdmin
                 .from('custom_dashboards')
                 .insert({
@@ -155,15 +119,13 @@ export async function POST(request: NextRequest) {
             dashboardId = dbDashboard.id;
         }
     } else {
-        // Generate unique slug for custom date range
+
         const baseSlug = 'customer-feedback';
         slug = `${baseSlug}-${Date.now().toString(36)}`;
 
-        // Provide custom title if available
         const finalName = title || dashboard.name || 'Customer Feedback Dashboard';
         const finalDesc = title ? `Custom Analysis: ${title}` : (dashboard.description || 'Customer Feedback Analysis Dashboard');
 
-        // Insert new custom dashboard
         const { data: dbDashboard, error: insertError } = await supabaseAdmin
             .from('custom_dashboards')
             .insert({
@@ -184,7 +146,6 @@ export async function POST(request: NextRequest) {
         dashboardId = dbDashboard.id;
     }
 
-    // Insert all tiles (for both new and updated dashboards)
     const allTiles = (dashboard.pages || []).flatMap((page) => 
       (page.tiles || []).map((tile, tidx) => ({
         dashboard_id: dashboardId,
@@ -203,13 +164,12 @@ export async function POST(request: NextRequest) {
       const { error: tileError } = await supabaseAdmin
         .from('dashboard_charts')
         .insert(allTiles);
-      
+
       if (tileError) {
         console.error('Failed to insert tiles:', tileError);
       }
     }
 
-    // Return dashboard with database ID and slug
     return NextResponse.json({ 
       dashboard: {
         ...dashboard,

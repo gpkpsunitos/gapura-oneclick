@@ -33,7 +33,7 @@ export async function POST(request: Request) {
         }
 
         const targetToken = bundle.sessions[userId];
-        
+
         if (!targetToken) return NextResponse.json({ error: 'Account not found in bundle' }, { status: 404 });
 
         const targetSession = await verifySession(targetToken);
@@ -44,13 +44,11 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Target origin is not escalation account' }, { status: 403 });
         }
 
-        // Update active pointer
         bundle.active_uid = userId;
         bundle.sessions = {
             [targetSession.id]: targetToken,
         };
 
-        // Set cookies
         cookieStore.set('auth_bundle', serializeAuthBundle(bundle), {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',

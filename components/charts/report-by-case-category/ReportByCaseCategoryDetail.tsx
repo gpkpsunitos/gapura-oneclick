@@ -69,7 +69,7 @@ function KPICard({ title, value, subtitle, trend, color = 'blue', explanation }:
       <div className="absolute inset-0 bg-noise opacity-[0.03] mix-blend-overlay pointer-events-none"></div>
       <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
       <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-      
+
       <div className="relative z-10">
         <div className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">{title}</div>
         <div className="text-3xl font-black tracking-tight text-[var(--text-primary)]">{value}</div>
@@ -120,7 +120,7 @@ function AutoInsight({ categoryData, total }: { categoryData: CategoryData[], to
     >
       <div className="absolute inset-0 bg-noise opacity-[0.03] mix-blend-overlay pointer-events-none"></div>
       <div className="absolute -inset-1 bg-gradient-to-r from-[var(--brand-aurora-1)] via-[var(--brand-aurora-2)] to-[var(--brand-aurora-3)] opacity-5 blur-xl group-hover:opacity-10 transition-opacity duration-500 pointer-events-none"></div>
-      
+
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-4">
           <div className="p-2 bg-[var(--brand-aurora-2)]/10 rounded-xl">
@@ -262,7 +262,6 @@ function AirlineTop10Chart({ data, onBarClick }: { data: AirlineCategoryData[], 
     </div>
   );
 }
-
 
 function DataTable({ data }: { data: ReportRecord[] }) {
   const [search, setSearch] = useState('');
@@ -419,7 +418,7 @@ function ManagementSummary({
     >
       <div className="absolute inset-0 bg-noise opacity-[0.03] mix-blend-overlay pointer-events-none"></div>
       <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-1)]/5 to-transparent pointer-events-none"></div>
-      
+
       <div className="relative z-10">
         <h3 className="font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2 text-lg">
           <span className="text-xl">🏆</span> Management Summary
@@ -444,13 +443,13 @@ export default function ReportByCaseCategoryDetail({
   filters?: FilterParams;
   dateRange?: { from: string; to: string };
 }) {
-  // Merge dateRange into filters for data fetching
+
   const effectiveFilters = useMemo(() => ({
     ...filters,
     ...(dateRange?.from ? { dateFrom: dateRange.from } : {}),
     ...(dateRange?.to ? { dateTo: dateRange.to } : {}),
   }), [filters, dateRange]);
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
@@ -461,9 +460,9 @@ export default function ReportByCaseCategoryDetail({
   const [tableData, setTableData] = useState<ReportRecord[]>([]);
   const [kpis, setKpis] = useState<CategoryKPIs | null>(null);
   const [aiRiskSummary, setAiRiskSummary] = useState<AiRiskSummary | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [aiRiskHeatmap, setAiRiskHeatmap] = useState<any[]>([]);
-  
-  // Drilldown State
+
   const [drilldownData, setDrilldownData] = useState<ReportRecord[]>([]);
   const [isDrilldownOpen, setIsDrilldownOpen] = useState(false);
   const [drilldownTitle, setDrilldownTitle] = useState("");
@@ -506,8 +505,7 @@ export default function ReportByCaseCategoryDetail({
         setBranchData(aggregated.branchData);
         setAirlineData(aggregated.airlineData);
         setKpis(aggregated.kpis);
-        
-        // Load AI data separately to prevent blocking the main charts if it fails/times out
+
         fetchSeverityDistributionsAi().then(aiSeverityRes => {
           if (aiSeverityRes && aiSeverityRes.category) {
             const heatmapData = aiSeverityRes.category.flatMap(c => [
@@ -519,7 +517,6 @@ export default function ReportByCaseCategoryDetail({
             setAiRiskHeatmap(heatmapData);
           }
         }).catch(err => {
-          console.warn('AI Risk Heatmap failed to load (timeout or error):', err);
         });
       } catch (err) {
         console.error('Failed to load aggregated data:', err);
@@ -556,7 +553,6 @@ export default function ReportByCaseCategoryDetail({
     );
   }
 
-  // --- Drilldown Handlers (O(N) initial scan to avoid I/O) ---
   const handleCategoryDrilldown = (categoryName: string) => {
     const filtered = tableData.filter(d => String(d.Category || d['Case Classification']) === categoryName);
     setDrilldownData(filtered);
@@ -609,25 +605,26 @@ export default function ReportByCaseCategoryDetail({
   const netSentiment = netSentimentDenominator > 0
     ? (((compliment?.count || 0) - (complaint?.count || 0)) / netSentimentDenominator * 100).toFixed(1)
     : '0.0';
-  
+
   const irregularityRate = irregularity && total > 0
     ? ((irregularity.count / total) * 100).toFixed(1)
     : '0.0';
 
   return (
     <div className="space-y-8">
-      {/* Mobile Drawer (Drilldown) */}
+      {}
       <DrilldownDrawer 
         isOpen={isDrilldownOpen}
         onClose={() => setIsDrilldownOpen(false)}
         title={drilldownTitle}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         data={drilldownData as any[]}
       />
 
-      {/* Auto-Insight Block */}
+      {}
       <AutoInsight categoryData={categoryData} total={total} />
 
-      {/* Enhanced KPI Cards - Row 1 */}
+      {}
       {kpis && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KPICard
@@ -659,7 +656,7 @@ export default function ReportByCaseCategoryDetail({
         </div>
       )}
 
-      {/* Primary Chart - Category Breakdown */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Category Breakdown</h2>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -686,13 +683,13 @@ export default function ReportByCaseCategoryDetail({
         </div>
       </section>
 
-      {/* Monthly Trend */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <h2 className="text-lg font-bold text-gray-800 mb-4">Monthly Trend Analysis</h2>
         <MonthlyTrendChart data={trendData} />
       </section>
 
-      {/* Split View: Branch & Airline */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Category by Branch</h2>
@@ -704,7 +701,7 @@ export default function ReportByCaseCategoryDetail({
         </section>
       </div>
 
-      {/* AI Root Cause Investigation */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)]/50 backdrop-blur-xl rounded-3xl border border-[var(--surface-2)] p-8 shadow-spatial-md transition-all">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -715,7 +712,7 @@ export default function ReportByCaseCategoryDetail({
         <AiRootCauseInvestigation source={filters.sourceSheet === 'CGO' ? 'CGO' : 'NON CARGO'} />
       </section>
 
-      {/* AI Risk Heatmap */}
+      {}
       {aiRiskHeatmap.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm mt-6">
           <div className="flex items-center gap-2 mb-1">
@@ -735,10 +732,10 @@ export default function ReportByCaseCategoryDetail({
         </section>
       )}
 
-      {/* Management Summary */}
+      {}
       <ManagementSummary categoryData={categoryData} branchData={branchData} />
 
-      {/* Investigative Table */}
+      {}
       <InvestigativeTable
         data={investigativeData}
         title="Investigative Table - Case Category Reports"
@@ -746,7 +743,7 @@ export default function ReportByCaseCategoryDetail({
         maxRows={40}
       />
 
-      {/* Data Table */}
+      {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <div className="p-6 border-b border-gray-200">
           <h2 className="text-lg font-bold text-gray-800">Full Data Table</h2>

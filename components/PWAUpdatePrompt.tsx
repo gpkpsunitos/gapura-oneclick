@@ -1,44 +1,19 @@
-/**
- * @file
- * 
- * File ini berisi komponen prompt update PWA untuk memberitahu pengguna
- * tentang ketersediaan versi baru aplikasi.
- */
 
 'use client';
 
 import { RefreshCw, X } from 'lucide-react';
 
-/**
- * Props untuk komponen PWAUpdatePrompt
- * @interface PWAUpdatePromptProps
- */
 interface PWAUpdatePromptProps {
-  /** Apakah prompt visible */
+
   visible: boolean;
-  /** Apakah sedang dalam proses update */
+
   updating: boolean;
-  /** Callback saat tombol reload diklik */
+
   onReload: () => void;
-  /** Callback saat tombol dismiss diklik */
+
   onDismiss: () => void;
 }
 
-/**
- * Komponen prompt update PWA
- * Menampilkan banner notifikasi saat versi baru tersedia
- * @param PWAUpdatePromptProps - Props komponen
- * @returns JSX element prompt update atau null jika tidak visible
- * @example
- * ```tsx
- * <PWAUpdatePrompt
- *   visible={showUpdate}
- *   updating={isUpdating}
- *   onReload={() => window.location.reload()}
- *   onDismiss={() => setShowUpdate(false)}
- * />
- * ```
- */
 export default function PWAUpdatePrompt({
   visible,
   updating,

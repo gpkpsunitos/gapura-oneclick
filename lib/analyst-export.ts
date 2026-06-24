@@ -1,89 +1,58 @@
-/**
- * @file
- * 
- * File ini berisi utilitas untuk mengekspor data analitik ke format Excel dan PDF
- */
 
 import { STATUS_CONFIG } from '@/lib/constants/report-status';
 import { type Report } from '@/types';
 
-/**
- * Ringkasan analitik laporan
- * @interface AnalyticsSummary
- */
 interface AnalyticsSummary {
-  /** Total laporan */
+
   totalReports: number;
-  /** Laporan terselesaikan */
+
   resolvedReports: number;
-  /** Laporan pending */
+
   pendingReports: number;
-  /** Laporan high severity */
+
   highSeverity: number;
-  /** Rata-rata tingkat resolusi dalam persen */
+
   avgResolutionRate: number;
-  /** Jumlah pelanggaran SLA (opsional) */
+
   slaBreachCount?: number;
 }
 
-/**
- * Payload analitik lengkap
- * @interface AnalyticsPayload
- */
 interface AnalyticsPayload {
-  /** Ringkasan analitik */
+
   summary: AnalyticsSummary;
-  /** Data per stasiun */
+
   stationData: Array<{ station: string; total: number; resolved: number }>;
-  /** Data per divisi (opsional) */
+
   divisionData?: Array<{ division: string; count: number }>;
 }
 
-/**
- * Konteks untuk ekspor laporan
- * @interface ExportContext
- */
 interface ExportContext {
-  /** Semua laporan */
+
   reports: Report[];
-  /** Laporan yang sudah difilter */
+
   filteredReports: Report[];
-  /** Data analitik */
+
   analytics: AnalyticsPayload | null;
-  /** Range tanggal */
+
   dateRange: 'all' | 'week' | 'month' | { from: string; to: string };
 }
 
-/**
- * Mengekspor data analitik ke file Excel
- * @param ctx - Konteks ekspor berisi data laporan dan analitik
- * @returns Promise yang resolve setelah file Excel didownload
- * @example
- * ```ts
- * await exportToExcel({
- *   reports: allReports,
- *   filteredReports: filteredReports,
- *   analytics: summary,
- *   dateRange: 'month'
- * });
- * ```
- */
-// Complexity: Time O(N) where N = reports.length | Space O(N)
 export async function exportToExcel(ctx: ExportContext): Promise<void> {
   const exceljs = await import('exceljs');
   const workbook = new exceljs.Workbook();
   const summarySheet = workbook.addWorksheet('📊 Ringkasan');
-  
+
   const { reports, analytics, dateRange } = ctx;
   const now = new Date();
   const exportDate = now.toLocaleDateString('id-ID', { dateStyle: 'full' });
   const exportTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-  // Styling
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const titleStyle: any = {
     font: { bold: true, size: 14, color: { argb: 'FF10B981' } },
     alignment: { horizontal: 'left' }
   };
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const headerStyle: any = {
     font: { bold: true, color: { argb: 'FFFFFFFF' } },
     fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } },
@@ -103,7 +72,7 @@ export async function exportToExcel(ctx: ExportContext): Promise<void> {
   summarySheet.addRow(['', 'RINGKASAN EKSEKUTIF']).getCell(2).font = { bold: true };
   summarySheet.addRow(['', '═══════════════════════════════════════════════════']);
   summarySheet.addRow([]);
-  
+
   const metricsHeader = summarySheet.addRow(['', 'Metrik', 'Nilai', 'Status']);
   metricsHeader.getCell(2).style = headerStyle;
   metricsHeader.getCell(3).style = headerStyle;
@@ -120,7 +89,7 @@ export async function exportToExcel(ctx: ExportContext): Promise<void> {
   summarySheet.addRow(['', 'DISTRIBUSI PER DIVISI']).getCell(2).font = { bold: true };
   summarySheet.addRow(['', '═══════════════════════════════════════════════════']);
   summarySheet.addRow([]);
-  
+
   const divHeader = summarySheet.addRow(['', 'Divisi', 'Jumlah Laporan', 'Persentase']);
   divHeader.getCell(2).style = headerStyle;
   divHeader.getCell(3).style = headerStyle;
@@ -142,7 +111,6 @@ export async function exportToExcel(ctx: ExportContext): Promise<void> {
   summarySheet.getColumn(3).width = 20;
   summarySheet.getColumn(4).width = 15;
 
-  // Detail Sheet
   const detailSheet = workbook.addWorksheet('📋 Detail Laporan');
   detailSheet.addRow(['DETAIL LAPORAN - OneClick']).getCell(1).style = titleStyle;
   detailSheet.addRow(['Total: ' + reports.length + ' laporan | Export: ' + exportDate]);
@@ -177,7 +145,6 @@ export async function exportToExcel(ctx: ExportContext): Promise<void> {
     { width: 14 }, { width: 8 }
   ];
 
-  // Performa Sheet
   const performanceSheet = workbook.addWorksheet('📍 Performa Bandara');
   performanceSheet.addRow(['PERFORMA PER STASIUN']).getCell(1).style = titleStyle;
   performanceSheet.addRow(['Analisis efisiensi penyelesaian laporan']);
@@ -206,7 +173,6 @@ export async function exportToExcel(ctx: ExportContext): Promise<void> {
     { width: 12 }, { width: 14 }, { width: 15 }
   ];
 
-  // Buffer and download
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = window.URL.createObjectURL(blob);
@@ -218,21 +184,6 @@ export async function exportToExcel(ctx: ExportContext): Promise<void> {
   window.URL.revokeObjectURL(url);
 }
 
-/**
- * Mengekspor data analitik ke file PDF
- * @param ctx - Konteks ekspor berisi data laporan dan analitik
- * @returns Promise yang resolve setelah file PDF disimpan
- * @example
- * ```ts
- * await exportToPDF({
- *   reports: allReports,
- *   filteredReports: filteredReports,
- *   analytics: summary,
- *   dateRange: 'month'
- * });
- * ```
- */
-// Complexity: Time O(N) where N = reports.length | Space O(N)
 export async function exportToPDF(ctx: ExportContext): Promise<void> {
   const { reports, analytics, dateRange } = ctx;
   const { default: jsPDF } = await import('jspdf');

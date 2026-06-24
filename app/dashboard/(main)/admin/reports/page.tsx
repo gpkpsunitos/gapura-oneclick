@@ -93,7 +93,7 @@ export default function AdminReportsPage() {
 
     return (
         <div className="space-y-8 stagger-children">
-            {/* Header */}
+            {}
             <DashboardHeader
                 title="Kelola Laporan"
                 subtitle="Kelola dan tindaklanjuti semua laporan masuk"
@@ -104,7 +104,7 @@ export default function AdminReportsPage() {
                 onPeriodChange={(p) => setPeriod(p)}
             />
 
-            {/* Filters */}
+            {}
             <div className="flex flex-col gap-4 animate-fade-in-up" style={{ animationDelay: '100ms' }}>
                 <div className="relative">
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-muted)' }} />
@@ -150,9 +150,9 @@ export default function AdminReportsPage() {
                 </div>
             </div>
 
-            {/* Reports Table */}
+            {}
             <div className="card-solid animate-fade-in-up" style={{ padding: 0, overflow: 'hidden', animationDelay: '150ms' }}>
-                {/* Table Header */}
+                {}
                 <div 
                     className="flex items-center justify-between" 
                     style={{ padding: 'var(--space-lg) var(--space-xl)', borderBottom: '1px solid var(--surface-4)' }}
@@ -183,7 +183,7 @@ export default function AdminReportsPage() {
                 )}
             </div>
 
-            {/* Detail Modal */}
+            {}
             {selectedReport && (
                 <ReportDetailModal
                     report={selectedReport}

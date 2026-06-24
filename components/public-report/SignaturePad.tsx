@@ -19,7 +19,6 @@ interface Point {
   y: number;
 }
 
-// Complexity: Time O(n) per stroke where n = sampled points | Space O(n) stored in path
 export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(function SignaturePad(
   { onChange, width = 400, height = 120, className = '' },
   ref
@@ -36,7 +35,6 @@ export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(fu
     return canvas.getContext('2d');
   }, []);
 
-  // Scale canvas for device pixel ratio — prevents blurry strokes on retina
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -78,7 +76,7 @@ export const SignaturePad = forwardRef<SignaturePadHandle, SignaturePadProps>(fu
     const ctx = getCtx();
     if (!ctx || !lastPoint.current) return;
     const current = getPointFromEvent(e);
-    // Quadratic bezier for smooth curves
+
     const midX = (lastPoint.current.x + current.x) / 2;
     const midY = (lastPoint.current.y + current.y) / 2;
     ctx.quadraticCurveTo(lastPoint.current.x, lastPoint.current.y, midX, midY);

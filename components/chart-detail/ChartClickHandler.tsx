@@ -17,20 +17,17 @@ export function ChartClickHandler({ tile, result, children, dashboardId }: Chart
   const handleClick = (e: React.MouseEvent) => {
     if (!result) return;
 
-    // Check visualization config
     const openInNewTab = tile.visualization.openLinkInNewTab;
-    
-    // Store data in sessionStorage for the detail page
+
     const detailData = {
       tile,
       result,
       dashboardId,
       timestamp: Date.now()
     };
-    
+
     sessionStorage.setItem('chartDetailData', JSON.stringify(detailData));
-    
-    // Construct URL
+
     const params = new URLSearchParams();
     if (dashboardId) params.set('dashboardId', dashboardId);
     params.set('tileId', tile.id);
@@ -50,8 +47,8 @@ export function ChartClickHandler({ tile, result, children, dashboardId }: Chart
       title="Klik untuk melihat detail"
     >
       {children}
-      
-      {/* Hover overlay */}
+
+      {}
       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100">
         <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-[#6b8e3d]/20">
           <span className="text-[11px] font-medium text-[#6b8e3d] flex items-center gap-2">

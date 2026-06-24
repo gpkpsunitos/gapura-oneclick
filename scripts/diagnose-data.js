@@ -5,6 +5,7 @@
  * 
  * File ini berisi skrip diagnostik data untuk membandingkan data antara Google Sheets dan UI
  */
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const { reportsService } = require('./lib/services/reports-service');
 
 /**

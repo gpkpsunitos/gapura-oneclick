@@ -65,7 +65,7 @@ export default function OPReportDetailPage() {
                 remarks_by: details?.remarksBy,
             };
             if (evidenceUrl) body.resolution_evidence_url = evidenceUrl;
-            
+
             const res = await fetch('/api/admin/reports', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },

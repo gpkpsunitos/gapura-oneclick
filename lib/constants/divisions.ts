@@ -1,34 +1,21 @@
-/**
- * @file
- * 
- * File ini berisi konfigurasi divisi dengan warna dan styling untuk UI
- */
 
-/**
- * Konfigurasi divisi untuk styling UI
- * @interface DivisionConfig
- */
 export interface DivisionConfig {
-    /** Kode divisi */
+
     code: string;
-    /** Nama divisi */
+
     name: string;
-    /** Warna utama dalam format hex */
+
     color: string;
-    /** Kelas gradient Tailwind */
+
     gradient: string;
-    /** Kelas background light */
+
     bgLight: string;
-    /** Kelas warna teks */
+
     textColor: string;
-    /** Kelas border (opsional) */
+
     borderColor?: string;
 }
 
-/**
- * Daftar konfigurasi divisi dengan kode, nama, dan styling
- * @constant DIVISIONS
- */
 export const DIVISIONS: Record<string, DivisionConfig> = {
     OP: {
         code: 'OP',

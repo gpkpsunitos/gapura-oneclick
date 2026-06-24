@@ -3,16 +3,11 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { getHfClient } from '@/lib/hf-client';
 
-/**
- * POST /api/ai/train
- * 
- * Trigger model retraining
- */
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
-    
+
     if (!token) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -56,7 +51,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(data);
     } catch (error) {
       console.error('[AI Train] AI service unavailable:', error);
-      
+
       return NextResponse.json(
         { 
           error: 'AI service tidak tersedia',

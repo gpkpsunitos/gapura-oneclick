@@ -4,8 +4,8 @@ const DB_NAME = 'gapura-reports-cache';
 const STORE_NAME = 'reports';
 const DB_VERSION = 1;
 const CACHE_KEY = 'current';
-const STALE_THRESHOLD_MS = 30 * 60 * 1000; // 30 min
-const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024; // 5 MB
+const STALE_THRESHOLD_MS = 30 * 60 * 1000;
+const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024;
 
 interface CachedPayload {
   key: string;
@@ -16,7 +16,6 @@ interface CachedPayload {
   timestamp: number;
 }
 
-// Complexity: Time O(1) | Space O(1)
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -33,7 +32,6 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-// Complexity: Time O(1) | Space O(N) where N = report count
 export async function getReportsCache(userId: string): Promise<CachedPayload | null> {
   try {
     const db = await openDb();
@@ -50,7 +48,6 @@ export async function getReportsCache(userId: string): Promise<CachedPayload | n
 
     if (!result) return null;
 
-    // Session-scoped: reject if userId mismatches (prevents cross-user data leak)
     if (result.userId !== userId) {
       await clearReportsCache();
       return null;
@@ -62,7 +59,6 @@ export async function getReportsCache(userId: string): Promise<CachedPayload | n
   }
 }
 
-// Complexity: Time O(N) | Space O(N)
 export async function setReportsCache(
   data: Report[],
   cacheVersion: number,
@@ -70,8 +66,8 @@ export async function setReportsCache(
   userId: string
 ): Promise<boolean> {
   try {
-    // Guard against oversized payloads
-    const estimatedSize = JSON.stringify(data).length * 2; // rough UTF-16 estimate
+
+    const estimatedSize = JSON.stringify(data).length * 2;
     if (estimatedSize > MAX_PAYLOAD_BYTES) {
       console.warn(`[ReportsStore] Payload too large (${(estimatedSize / 1024 / 1024).toFixed(1)}MB), skipping IndexedDB cache`);
       return false;
@@ -104,7 +100,6 @@ export async function setReportsCache(
   }
 }
 
-// Complexity: Time O(1) | Space O(1)
 export async function clearReportsCache(): Promise<void> {
   try {
     const db = await openDb();
@@ -119,16 +114,14 @@ export async function clearReportsCache(): Promise<void> {
 
     db.close();
   } catch {
-    // Ignore — cache clear is best-effort
+
   }
 }
 
-// Complexity: Time O(1) | Space O(1)
 export function isCacheStale(timestamp: number): boolean {
   return Date.now() - timestamp > STALE_THRESHOLD_MS;
 }
 
-// Complexity: Time O(N) | Space O(1)
 export async function verifyCacheIntegrity(data: Report[], expectedHash: string): Promise<boolean> {
   try {
     const serialized = JSON.stringify(data);

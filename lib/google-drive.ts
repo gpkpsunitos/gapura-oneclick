@@ -228,6 +228,57 @@ export async function uploadEvidenceToDrive(input: UploadEvidenceToDriveInput): 
   };
 }
 
+const DEFAULT_PERFORMANCE_LINKS_THUMBNAIL_FOLDER_ID = '1I10jhTiC0VAL8qOOLCR8wWYkZwykRvoX';
+
+export interface UploadPerformanceLinkThumbnailInput {
+  buffer: Buffer;
+  mimeType: string;
+  originalName: string;
+  linkId?: string;
+  userId: string;
+}
+
+export async function uploadPerformanceLinkThumbnailToDrive(
+  input: UploadPerformanceLinkThumbnailInput
+): Promise<UploadEvidenceToDriveResult> {
+  const folderId = process.env.GOOGLE_DRIVE_PERFORMANCE_LINKS_FOLDER_ID || DEFAULT_PERFORMANCE_LINKS_THUMBNAIL_FOLDER_ID;
+
+  const drive = getGoogleDrive();
+  const safeName = sanitizeDriveName(input.originalName, `${Date.now()}-thumbnail`);
+  const created = await drive.files.create({
+    requestBody: {
+      name: safeName,
+      parents: [folderId],
+      appProperties: compactAppProperties({
+        source: 'irrs',
+        module: 'performance_links',
+        link_id: input.linkId,
+        uploaded_by: input.userId,
+      }),
+    },
+    media: {
+      mimeType: input.mimeType || 'application/octet-stream',
+      body: Readable.from(input.buffer),
+    },
+    fields: 'id,name,webViewLink,webContentLink',
+    supportsAllDrives: true,
+  });
+
+  const fileId = created.data.id;
+  const webViewLink = created.data.webViewLink;
+  if (!fileId || !webViewLink) {
+    throw new Error('Google Drive thumbnail upload failed');
+  }
+
+  return {
+    fileId,
+    folderId,
+    webViewLink,
+    webContentLink: created.data.webContentLink || null,
+    name: created.data.name || safeName,
+  };
+}
+
 export interface UploadDivisionDocumentToDriveInput {
   buffer: Buffer;
   mimeType: string;

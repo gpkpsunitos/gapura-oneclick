@@ -1,8 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 
-// I will write the component into JoumpaServiceTab.tsx
-
 const content = `'use client';
 
 import { useEffect, useMemo, useState } from 'react';
@@ -100,8 +98,8 @@ const CHART_COLORS = {
   orange: 'oklch(0.6 0.2 25)',
   rose: 'oklch(0.7 0.2 330)',
   indigo: 'oklch(0.75 0.1 190)',
-  staff: 'oklch(0.65 0.18 160)', // emerald
-  customer: 'oklch(0.55 0.14 240)', // teal
+  staff: 'oklch(0.65 0.18 160)',
+  customer: 'oklch(0.55 0.14 240)',
 };
 
 const SATISFACTION_LABELS: Record<string, string> = {
@@ -299,7 +297,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
   const { openDrilldown: openVoiceDrilldown, DrilldownRenderer: VoiceDrilldownRenderer } = useVoiceDrilldown();
   const externalLinks = useExternalLinks();
   const joumpaLookerUrl = getLinkUrl(externalLinks, 'joumpa-dashboard');
-  const joumpaLookerQrUrl = \`https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=\${encodeURIComponent(joumpaLookerUrl)}\`;
+  const joumpaLookerQrUrl = \`https:
 
   const activeReportIds = useMemo(() => new Set(reports.map((report) => report.id)), [reports]);
   const activeMainReports = useMemo(
@@ -338,7 +336,6 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
     return () => { isMounted = false; };
   }, []);
 
-  // SECTION 1: OPERATIONAL FEEDBACK
   const operationalReports = useMemo(() => scopedMainReports, [scopedMainReports]);
 
   const opMonthly = useMemo(
@@ -399,7 +396,6 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
     { id: 'details', header: 'See Detail', accessor: r => <button onClick={() => openDrilldown([operationalReports.find(x => x.id === r.id)!], 'Detail')} className="text-blue-600 hover:underline">See Detail</button>, sortValue: () => 0, minWidth: '100px' },
   ];
 
-  // SECTION 2: COMPLIMENT FROM OPERATIONAL FEEDBACK
   const compReports = useMemo(() => operationalReports.filter(r => normalizeLower(r.category) === 'compliment'), [operationalReports]);
 
   const compLandside = useMemo(
@@ -424,9 +420,8 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
     { id: 'evidence', header: 'Supporting Evidence', accessor: r => r.evidence, sortValue: r => r.evidence, minWidth: '150px' },
   ];
 
-  // SECTION 3 & 4: VOICE OF PASSENGER
   const filteredVoice = useMemo(() => voiceRecords.filter((record) => normalize(record.reportType).length > 0 && normalize(record.serviceType).length > 0 && normalize(record.category).length > 0), [voiceRecords]);
-  
+
   const voiceMonthlyStacked = useMemo(() => {
     const rowMap = new Map<string, { month: string, staff: number, customer: number, order: number }>();
     filteredVoice.forEach(r => {
@@ -506,7 +501,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
   return (
     <div className="space-y-8 pb-10">
 
-      {/* SECTION 1 */}
+      {}
       <SummarySectionCard
         title="OPERATIONAL FEEDBACK REPORT"
         subtitle="Rekap laporan operasional bersumber dari staf internal maupun eksternal serta laporan operasional airline sebagai customer."
@@ -624,8 +619,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
         </div>
       </SummarySectionCard>
 
-
-      {/* SECTION 2 */}
+      {}
       <SummarySectionCard title="COMPLIMENT FROM OPERATIONAL FEEDBACK REPORT" subtitle="Apresiasi terhadap kualitas pelaksanaan prosedur operasional dan efektivitas service handling sebagai dasar identifikasi elemen kinerja yang perlu dipertahankan">
         <div className="grid gap-4 xl:grid-cols-[1fr,2fr]">
           <HeatmapTableCard title="Landside Area">
@@ -637,8 +631,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
         </div>
       </SummarySectionCard>
 
-
-      {/* SECTION 3 */}
+      {}
       <SummarySectionCard title="VOICE OF PASSENGER REPORT" subtitle="Rekap Laporan operasional yang disampaikan bersumber langsung dari penumpang dalam periode pelaporan.">
         {voiceLoading ? <LoadingPanel message="Loading Voice Data..." /> : voiceError ? <ErrorPanel message={voiceError} /> : (
           <>
@@ -727,8 +720,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
         )}
       </SummarySectionCard>
 
-
-      {/* SECTION 4 */}
+      {}
       <SummarySectionCard title="COMPLIMENT FROM VOICE OF PASSENGER REPORT" subtitle="Rekap Laporan operasional yang disampaikan bersumber langsung dari penumpang dalam periode pelaporan.">
         {voiceLoading ? <LoadingPanel message="Loading Voice Data..." /> : voiceError ? <ErrorPanel message={voiceError} /> : (
           <HeatmapTableCard title="Detail Compliment & Netral Customer Joumpa Feedback">
@@ -737,7 +729,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
         )}
       </SummarySectionCard>
 
-      {/* Looker QR Modal */}
+      {}
       <div className="mt-4 flex justify-end">
         <button type="button" onClick={() => setShowLookerModal(true)} className="flex items-center gap-2 rounded bg-[var(--text-primary)] px-4 py-2 text-sm text-white">
           <QrCode size={16} /> Buka Looker Dashboard

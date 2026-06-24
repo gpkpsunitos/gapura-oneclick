@@ -39,13 +39,12 @@ export function PivotGrid({
 
   const handleSort = (col: string) => {
       onSort(col);
-      setCurrentPage(1); // Reset to page 1 on sort
+      setCurrentPage(1);
   };
 
   const handleCellClick = (rowLabel: string, colLabel: string) => {
     if (!rawData || !onCellClick) return;
 
-    // Filter raw data based on row and column labels
     const filteredData = rawData.rows.filter((row) => {
       const rowValue = String(row[rowField] || '').trim();
       const colValue = String(row[colField] || '').trim();
@@ -67,17 +66,17 @@ export function PivotGrid({
         compact ? "max-h-[300px]" : "max-h-[500px]"
       )}
     >
-        {/* Dynamic Glow Ornament */}
+        {}
         <div className="absolute inset-0 z-0 pointer-events-none opacity-0 group-hover/pivot:opacity-100 transition-opacity duration-1000">
             <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--brand-primary)]/5 blur-[100px] rounded-full" />
         </div>
 
         <div className="flex-1 overflow-auto custom-scrollbar relative z-10">
             <table className="w-max min-w-full border-separate border-spacing-0 text-[10px]">
-                {/* HEAD */}
+                {}
                 <thead className="sticky top-0 z-30">
                     <tr className="bg-[var(--surface-0)]/80 backdrop-blur-md">
-                        {/* Corner */}
+                        {}
                         <th className="px-5 py-4 text-left border-b border-[var(--surface-border)] sticky left-0 z-40 w-[280px] min-w-[280px] bg-[var(--surface-0)]/90">
                              <button
                                 onClick={() => handleSort('name')}
@@ -87,8 +86,8 @@ export function PivotGrid({
                                 <ArrowUpDown size={10} className={cn("transition-all", sortCol === 'name' ? 'opacity-100 text-[var(--brand-primary)]' : 'opacity-0 group-hover:opacity-50 text-[var(--surface-400)]')} />
                               </button>
                         </th>
-                        
-                        {/* Columns */}
+
+                        {}
                         {cols.map(c => (
                             <th key={c} className="px-3 py-4 text-center border-b border-[var(--surface-border)] min-w-[100px] bg-[var(--surface-0)]/90">
                                 <div className="flex flex-col items-center justify-center gap-0.5 group cursor-default">
@@ -102,7 +101,7 @@ export function PivotGrid({
                             </th>
                         ))}
 
-                        {/* Total Header */}
+                        {}
                          <th className="px-6 py-4 text-right border-b border-[var(--surface-border)] border-l border-[var(--surface-border)] sticky right-0 z-40 min-w-[120px] bg-[var(--surface-0)]/90 backdrop-blur-md">
                             <button
                               onClick={() => handleSort('total')}
@@ -115,7 +114,7 @@ export function PivotGrid({
                     </tr>
                 </thead>
 
-                {/* BODY */}
+                {}
                 <tbody className="divide-y divide-[var(--surface-100)]">
                     <AnimatePresence mode="popLayout">
                         {paginatedRows.map((r, idx) => {
@@ -128,12 +127,12 @@ export function PivotGrid({
                                     transition={{ delay: idx * 0.02 }}
                                     className="group transition-colors hover:bg-[var(--brand-primary)]/[0.02]"
                                 >
-                                    {/* Row Label */}
+                                    {}
                                     <td className="px-5 py-4 text-[10px] font-black text-[var(--surface-900)] uppercase tracking-tight sticky left-0 bg-white group-hover:bg-[var(--surface-50)] transition-colors z-20 w-[280px] min-w-[280px] whitespace-nowrap shadow-[2px_0_10px_-4px_rgba(0,0,0,0.05)]" title={r}>
                                         {r}
                                     </td>
 
-                                    {/* Cells */}
+                                    {}
                                     {cols.map(c => {
                                         const val = matrix.get(`${r}__${c}`) || 0;
                                         let contextMax = 0;
@@ -157,7 +156,7 @@ export function PivotGrid({
                                         );
                                     })}
 
-                                    {/* Row Total */}
+                                    {}
                                     <td className="px-6 py-4 text-[10px] font-black text-[var(--surface-900)] text-right sticky right-0 bg-white/95 border-l border-[var(--surface-border)] group-hover:bg-[var(--surface-50)] transition-colors z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.05)] tabular-nums">
                                         {rTotal.toLocaleString('id-ID')}
                                     </td>
@@ -166,7 +165,7 @@ export function PivotGrid({
                         })}
                     </AnimatePresence>
 
-                    {/* Grand Total Row */}
+                    {}
                     <tr className="sticky bottom-0 z-30 bg-[var(--surface-50)]/90 backdrop-blur-md border-t border-[var(--surface-border)] shadow-[0_-8px_20px_-8px_rgba(0,0,0,0.08)]">
                         <td className="px-6 py-4 text-[10px] font-black text-[var(--surface-900)] uppercase tracking-[0.2em] sticky left-0 z-40 bg-[var(--surface-50)] shadow-sm">
                             Grand Total
@@ -184,7 +183,7 @@ export function PivotGrid({
             </table>
         </div>
 
-        {/* PAGINATION */}
+        {}
         <div className="relative z-10 px-6 py-4 border-t border-[var(--surface-border)] bg-[var(--surface-0)]/80 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="text-[10px] font-bold text-[var(--surface-400)] uppercase tracking-widest flex items-center gap-2">
                 <FileSpreadsheet size={12} className="text-[var(--brand-primary)]" />

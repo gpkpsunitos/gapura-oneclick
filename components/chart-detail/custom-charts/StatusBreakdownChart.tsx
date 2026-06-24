@@ -15,6 +15,7 @@ interface StatusBreakdownChartProps {
   explanation?: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const STATUS_CONFIG: Record<string, { color: string; bgColor: string; icon: any; label: string }> = {
   'CLOSED': { 
     color: '#16a34a', 
@@ -49,7 +50,7 @@ export function StatusBreakdownChart({
   title = 'Status Penyelesaian',
   explanation 
 }: StatusBreakdownChartProps) {
-  // Handle empty data
+
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-[#e0e0e0] flex flex-col overflow-hidden h-full">
@@ -81,13 +82,12 @@ export function StatusBreakdownChart({
   }
 
   const total = data.reduce((sum, item) => sum + item.count, 0);
-  
+
   const processedData = data.map(item => ({
     ...item,
     normalizedStatus: normalizeStatus(item.status)
   }));
 
-  // Calculate completion rate
   const closedCount = processedData
     .filter(item => item.normalizedStatus === 'CLOSED')
     .reduce((sum, item) => sum + item.count, 0);
@@ -101,9 +101,9 @@ export function StatusBreakdownChart({
         </h4>
         <div className="w-1.5 h-1.5 rounded-full bg-[#6b8e3d]" />
       </div>
-      
+
       <div className="p-4 pt-10 flex-1 flex flex-col">
-        {/* Completion Rate Indicator */}
+        {}
         <div className="mb-4 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-100">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-bold text-green-800 uppercase">Tingkat Penyelesaian</span>
@@ -120,10 +120,10 @@ export function StatusBreakdownChart({
           </div>
         </div>
 
-        {/* Donut Chart Representation */}
+        {}
         <div className="flex-1 flex items-center justify-center min-h-[140px]">
           <div className="relative">
-            {/* Simple donut representation using conic gradient */}
+            {}
             <div 
               className="w-28 h-28 rounded-full"
               style={{
@@ -144,13 +144,13 @@ export function StatusBreakdownChart({
               </div>
             </div>
           </div>
-          
-          {/* Legend */}
+
+          {}
           <div className="ml-4 space-y-1.5">
             {processedData.slice(0, 4).map((item) => {
               const config = STATUS_CONFIG[item.normalizedStatus] || STATUS_CONFIG['OPEN'];
               const Icon = config.icon;
-              
+
               return (
                 <div key={item.status} className="flex items-center gap-2">
                   <div 
@@ -167,11 +167,11 @@ export function StatusBreakdownChart({
           </div>
         </div>
 
-        {/* Progress Bars */}
+        {}
         <div className="mt-3 space-y-2">
           {processedData.slice(0, 3).map((item) => {
             const config = STATUS_CONFIG[item.normalizedStatus] || STATUS_CONFIG['OPEN'];
-            
+
             return (
               <div key={item.status} className="flex items-center gap-2">
                 <span className="text-[9px] text-gray-600 w-16 truncate">{config.label}</span>

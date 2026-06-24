@@ -31,6 +31,7 @@ async function debug() {
         const res2 = await sheets.spreadsheets.values.get({ spreadsheetId: joId!, range: `'${title}'!A1:Z1` });
         console.log('JOUMPA HEADERS:', res2.data.values?.[0]);
     }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch(e: any) { console.error('Joumpa Error', e.message); }
 
   try {
@@ -43,6 +44,7 @@ async function debug() {
         console.log(`GOOGLE [${title}] HEADERS:`, res2.data.values?.[0]);
       }
     }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch(e: any) { console.error('Google Error', e.message); }
 }
 

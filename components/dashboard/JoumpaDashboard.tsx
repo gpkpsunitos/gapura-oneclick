@@ -9,7 +9,6 @@ import {
 } from 'recharts';
 import { ArrowLeft, RefreshCw, Loader2, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
 
-// ─── Types ─────────────────────────────────────────────────────────────────
 interface JoumpaRecord {
   timestamp: string;
   email: string;
@@ -33,7 +32,6 @@ interface FilterState {
   branch: string;
 }
 
-// ─── Color Tokens ──────────────────────────────────────────────────────────
 const CATEGORY_COLORS: Record<string, string> = {
   Compliment: '#4caf50',
   Complaint: '#f44336',
@@ -45,8 +43,6 @@ const BAR_FILLS = ['#4caf50', '#f44336', '#ff9800'];
 const HEADER_BG = '#4caf50';
 const HEADER_TEXT = '#ffffff';
 
-// ─── Date Parser (DD/MM/YYYY) ──────────────────────────────────────────────
-// Complexity: Time O(1) | Space O(1)
 function parseDateDMY(raw: string): Date | null {
   if (!raw) return null;
   const parts = raw.split('/');
@@ -103,7 +99,6 @@ const WrappedYAxisTick = (props: YTickProps) => {
   );
 };
 
-// ─── Component ─────────────────────────────────────────────────────────────
 export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCategory?: boolean; backPath?: string }) {
   const { initialCategory, readOnlyCategory = false, backPath = '/dashboard/os' } = props || {};
   const router = useRouter();
@@ -123,7 +118,6 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
   const DETAIL_PAGE_SIZE = 3;
   const SERVICE_TYPE_PAGE_SIZE = 5;
 
-  // ─── Fetch ──────────────────────────────────────────────────────────────
   const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
@@ -150,8 +144,6 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ─── Derived: Filter Options ────────────────────────────────────────────
-  // Complexity: Time O(n) | Space O(k) — k = unique values
   const filterOptions = useMemo(() => {
     const serviceTypes = new Set<string>();
     const airlines = new Set<string>();
@@ -173,8 +165,6 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
     };
   }, [records]);
 
-  // ─── KPI Stats ──────────────────────────────────────────────────────────
-  // Complexity: Time O(n) | Space O(k)
   const kpiStats = useMemo(() => {
     const uniqueBranches = new Set(records.map(r => r.branch).filter(Boolean));
     const uniqueAirlines = new Set(records.map(r => r.airlines).filter(Boolean));
@@ -188,8 +178,6 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
     };
   }, [records]);
 
-  // ─── Case Category Data (Pie) ──────────────────────────────────────────
-  // Complexity: Time O(n) | Space O(k)
   const caseCategoryData = useMemo(() => {
     const counts: Record<string, number> = {};
     records.forEach(r => {
@@ -203,8 +191,6 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
     }));
   }, [records]);
 
-  // ─── Monthly Report Data (Bar) ─────────────────────────────────────────
-  // Complexity: Time O(n) | Space O(m) — m = unique months
   const monthlyReportData = useMemo(() => {
     const monthMap = new Map<string, Record<string, number>>();
 
@@ -224,8 +210,6 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
     }));
   }, [records]);
 
-  // ─── JOUMPA Service Type Data ──────────────────────────────────────────
-  // Complexity: Time O(n) | Space O(k)
   const serviceTypeData = useMemo(() => {
     const counts: Record<string, number> = {};
     records.forEach(r => {
@@ -237,8 +221,6 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
       .sort((a, b) => b.total - a.total);
   }, [records]);
 
-  // ─── Branch Report Data ────────────────────────────────────────────────
-  // Complexity: Time O(n) | Space O(b*c)
   const branchReportData = useMemo(() => {
     const branchMap: Record<string, Record<string, number>> = {};
     records.forEach(r => {
@@ -256,8 +238,6 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
       });
   }, [records]);
 
-  // ─── Category by Airlines Data ─────────────────────────────────────────
-  // Complexity: Time O(n) | Space O(a*c)
   const categoryByAirlinesData = useMemo(() => {
     const airlineMap: Record<string, Record<string, number>> = {};
     records.forEach(r => {
@@ -275,14 +255,12 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
       });
   }, [records]);
 
-  // ─── All unique categories for bar chart keys ──────────────────────────
   const allCategories = useMemo(() => {
     const cats = new Set<string>();
     records.forEach(r => { if (r.category) cats.add(r.category); });
     return Array.from(cats);
   }, [records]);
 
-  // ─── Detail Table Pagination ───────────────────────────────────────────
   const detailTotalPages = Math.max(1, Math.ceil(records.length / DETAIL_PAGE_SIZE));
   const detailSlice = records.slice(detailPage * DETAIL_PAGE_SIZE, (detailPage + 1) * DETAIL_PAGE_SIZE);
 
@@ -294,14 +272,12 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
 
   const maxServiceTypeTotal = useMemo(() => Math.max(...serviceTypeData.map(s => s.total), 1), [serviceTypeData]);
 
-  // ─── Format date for display ───────────────────────────────────────────
   const formatDate = (raw: string) => {
     const d = parseDateDMY(raw);
     if (!d) return raw;
     return `${d.getDate()} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getFullYear()}`;
   };
 
-  // ─── Loading State ─────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center px-4">
@@ -320,7 +296,7 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* ─── Header ───────────────────────────────────────────────────── */}
+      {}
       <div className="bg-white border-b border-gray-200 px-4 md:px-6 py-4">
         <div className="flex items-center gap-4 mb-4">
           <button
@@ -349,7 +325,7 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
           </button>
         </div>
 
-        {/* ─── Filter Row ────────────────────────────────────────────── */}
+        {}
         <div className="flex flex-wrap gap-2">
           <FilterDropdown
             label="Joumpa Service Type"
@@ -381,7 +357,7 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
       </div>
 
       <div className="px-4 md:px-6 py-6 space-y-6">
-        {/* ─── KPI Row ──────────────────────────────────────────────── */}
+        {}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KPICard label="Report" value={kpiStats.totalReports} color="#4caf50" />
           <KPICard label="Branch" value={kpiStats.branchCount} color="#2196f3" />
@@ -389,9 +365,9 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
           <KPICard label="Compliment Report" value={kpiStats.complimentCount} color="#4caf50" />
         </div>
 
-        {/* ─── Main Grid ────────────────────────────────────────────── */}
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Case Category Report (Pie) */}
+          {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <h3 className="text-base font-bold text-gray-800 mb-4">Case Category Report</h3>
             <div className="flex items-center justify-center" style={{ height: 220 }}>
@@ -418,7 +394,7 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
             </div>
           </div>
 
-          {/* Detail Report (Table) */}
+          {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 lg:col-span-1">
             <h3 className="text-base font-bold text-gray-800 mb-4">Detail Report</h3>
             <div className="overflow-x-auto">
@@ -466,7 +442,7 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
             </div>
           </div>
 
-          {/* Monthly Report (Bar) */}
+          {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col">
             <h3 className="text-base font-bold text-gray-800 mb-4">Monthly Report</h3>
             <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
@@ -501,9 +477,9 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
           </div>
         </div>
 
-        {/* ─── Bottom Grid ──────────────────────────────────────────── */}
+        {}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* JOUMPA Service Type (Table) */}
+          {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <h3 className="text-base font-bold text-gray-800 mb-4">JOUMPA Service Type</h3>
             <table className="w-full text-xs">
@@ -550,7 +526,7 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
             </div>
           </div>
 
-          {/* Branch Report (Bar) */}
+          {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col">
             <h3 className="text-base font-bold text-gray-800 mb-4">Branch Report</h3>
             <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
@@ -584,7 +560,7 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
             </div>
           </div>
 
-          {/* Category by Airlines (Bar) */}
+          {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col">
             <h3 className="text-base font-bold text-gray-800 mb-4">Category by Airlines</h3>
             <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
@@ -622,8 +598,6 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
     </div>
   );
 }
-
-// ─── Sub-Components ──────────────────────────────────────────────────────────
 
 interface KPICardProps {
   label: string;

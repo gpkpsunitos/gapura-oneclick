@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen pembuat filter untuk query builder
- */
 
 'use client';
 
@@ -11,15 +6,6 @@ import type { QueryFilter, FilterOperator, FieldDef } from '@/types/builder';
 import { getFieldDef } from '@/lib/builder/schema';
 import { cn } from '@/lib/utils';
 
-/**
- * Props untuk komponen FilterBuilder
- * @interface FilterBuilderProps
- * @property {QueryFilter[]} filters - Daftar filter yang dikonfigurasi
- * @property {Array<{table: string; field: FieldDef}>} availableFields - Daftar field yang tersedia
- * @property {Function} onAdd - Fungsi untuk menambah filter
- * @property {Function} onRemove - Fungsi untuk menghapus filter
- * @property {Function} onUpdate - Fungsi untuk memperbarui filter
- */
 interface FilterBuilderProps {
   filters: QueryFilter[];
   availableFields: Array<{ table: string; field: FieldDef }>;
@@ -28,10 +14,6 @@ interface FilterBuilderProps {
   onUpdate: (index: number, updates: Partial<QueryFilter>) => void;
 }
 
-/**
- * Operator berdasarkan tipe field
- * @constant {Record<string, {value: FilterOperator; label: string}[]>} OPERATORS_BY_TYPE
- */
 const OPERATORS_BY_TYPE: Record<string, { value: FilterOperator; label: string }[]> = {
   string: [
     { value: 'eq', label: '=' },
@@ -77,17 +59,10 @@ const OPERATORS_BY_TYPE: Record<string, { value: FilterOperator; label: string }
   ],
 };
 
-/**
- * Mendapatkan operator yang tersedia untuk field tertentu
- * @function getOperatorsForField
- * @param {string} table - Nama tabel
- * @param {string} field - Nama field
- * @returns {{value: FilterOperator; label: string}[]} Daftar operator yang tersedia
- */
 function getOperatorsForField(table: string, field: string): { value: FilterOperator; label: string }[] {
   const def = getFieldDef(table, field);
   if (!def) return OPERATORS_BY_TYPE.string;
-  // If has enum values, add 'in' option for string type
+
   if (def.enumValues && def.enumValues.length > 0) {
     return [
       { value: 'eq', label: '=' },
@@ -100,31 +75,8 @@ function getOperatorsForField(table: string, field: string): { value: FilterOper
   return OPERATORS_BY_TYPE[def.type] || OPERATORS_BY_TYPE.string;
 }
 
-/**
- * Komponen pembuat filter untuk query
- * Menyediakan UI untuk membuat dan mengelola filter query
- * Mendukung berbagai operator dan tipe field
- * 
- * @param {FilterBuilderProps} props - Props untuk konfigurasi pembuat filter
- * @returns {JSX.Element} Element React yang berisi pembuat filter
- * 
- * @example
- * ```tsx
- * <FilterBuilder
- *   filters={query.filters}
- *   availableFields={availableFields}
- *   onAdd={handleAddFilter}
- *   onRemove={handleRemoveFilter}
- *   onUpdate={handleUpdateFilter}
- * />
- * ```
- */
 export function FilterBuilder({ filters, availableFields, onAdd, onRemove, onUpdate }: FilterBuilderProps) {
-  /**
-   * Menangani penambahan filter baru
-   * @function handleAddFilter
-   * @returns {void}
-   */
+
   const handleAddFilter = () => {
     if (availableFields.length === 0) return;
     const first = availableFields[0];
@@ -146,7 +98,7 @@ export function FilterBuilder({ filters, availableFields, onAdd, onRemove, onUpd
 
         return (
           <div key={idx} className="flex items-center gap-2 flex-wrap">
-            {/* Conjunction */}
+            {}
             {idx > 0 && (
               <button
                 onClick={() => onUpdate(idx, { conjunction: filter.conjunction === 'AND' ? 'OR' : 'AND' })}
@@ -161,7 +113,7 @@ export function FilterBuilder({ filters, availableFields, onAdd, onRemove, onUpd
               </button>
             )}
 
-            {/* Field selector */}
+            {}
             <select
               value={`${filter.table}.${filter.field}`}
               onChange={e => {
@@ -177,7 +129,7 @@ export function FilterBuilder({ filters, availableFields, onAdd, onRemove, onUpd
               ))}
             </select>
 
-            {/* Operator */}
+            {}
             <select
               value={filter.operator}
               onChange={e => onUpdate(idx, { operator: e.target.value as FilterOperator, value: '' })}
@@ -188,7 +140,7 @@ export function FilterBuilder({ filters, availableFields, onAdd, onRemove, onUpd
               ))}
             </select>
 
-            {/* Value input */}
+            {}
             {needsValue && (
               <>
                 {fieldDef?.enumValues ? (
@@ -257,7 +209,7 @@ export function FilterBuilder({ filters, availableFields, onAdd, onRemove, onUpd
               </>
             )}
 
-            {/* Remove */}
+            {}
             <button
               onClick={() => onRemove(idx)}
               className="p-1 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 rounded transition-colors"

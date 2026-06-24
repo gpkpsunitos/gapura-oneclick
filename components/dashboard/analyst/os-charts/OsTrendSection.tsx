@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/preserve-manual-memoization, @typescript-eslint/no-unused-vars */
+
 'use client';
 
 import { useMemo, useState } from 'react';
@@ -155,10 +155,10 @@ export function OsTrendSection({
     const [areaFilter, setAreaFilter] = useState<string[]>([]);
     const [isFilterCollapsed, setIsFilterCollapsed] = useState(true);
 
-    // Derived values computed locally
     const branchOptions = useMemo(() => {
         const set = new Set<string>();
         (filteredReports as Report[]).forEach((r) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const code = (r as any).stations?.code || r.branch || r.reporting_branch || r.station_code;
             if (code) set.add(String(code).trim());
         });
@@ -168,6 +168,7 @@ export function OsTrendSection({
     const airlineOptions = useMemo(() => {
         const set = new Set<string>();
         (filteredReports as Report[]).forEach((r) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const a = (r as any).airlines || (r as any).airline;
             if (a) set.add(String(a).trim());
         });
@@ -177,6 +178,7 @@ export function OsTrendSection({
     const areaOptions = useMemo(() => {
         const set = new Set<string>();
         (filteredReports as Report[]).forEach((r) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const a = (r as any).area || (r as any).terminal_area_category || (r as any).apron_area_category || (r as any).general_category;
             if (!a) return;
             const v = String(a).toLowerCase();
@@ -190,18 +192,21 @@ export function OsTrendSection({
         let base = filteredReports as Report[];
         if (branchFilter.length > 0) {
             base = base.filter(r => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const code = (r as any).stations?.code || r.branch || r.reporting_branch || r.station_code;
                 return code ? branchFilter.includes(String(code)) : false;
             });
         }
         if (airlineFilter.length > 0) {
             base = base.filter(r => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const a = r.airlines || (r as any).airline;
                 return a ? airlineFilter.includes(String(a)) : false;
             });
         }
         if (areaFilter.length > 0) {
             base = base.filter(r => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const a = (r as any).area || (r as any).terminal_area_category || (r as any).apron_area_category || (r as any).general_category;
                 if (!a) return false;
                 const v = String(a).toLowerCase();
@@ -220,6 +225,7 @@ export function OsTrendSection({
                     to.setHours(23,59,59,999);
                     if (!isNaN(from.getTime()) && !isNaN(to.getTime()) && from.getTime() <= to.getTime()) {
                         base = base.filter(r => {
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             const dateStr = (r as any).date_of_event || r.created_at;
                             if (!dateStr) return false;
                             let d: Date;
@@ -236,6 +242,7 @@ export function OsTrendSection({
                 }
             } else {
                 base = base.filter(r => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const dateStr = (r as any).date_of_event || r.created_at;
                     if (!dateStr) return false;
                     let d: Date;
@@ -282,7 +289,6 @@ export function OsTrendSection({
         return ['total', 'irregularity', 'complaint', 'compliment'] as const;
     }, [focus]);
 
-    // Extract unique sub-categories for stacked bar chart
     const allSubCategories = useMemo(() => {
         const cats = new Set<string>();
         areaSubCategoryData.forEach(item => {
@@ -324,14 +330,14 @@ export function OsTrendSection({
             }))
             .sort((a, b) => b.total - a.total)
             .slice(0, 6);
-        
+
         const grandTotal = data.reduce((acc, row) => ({
             irregularity: acc.irregularity + row.irregularity,
             complaint: acc.complaint + row.complaint,
             compliment: acc.compliment + row.compliment,
             total: acc.total + row.total
         }), { irregularity: 0, complaint: 0, compliment: 0, total: 0 });
-        
+
         return { rows: data, grandTotal };
     }, [categoryByBranchData]);
 
@@ -346,7 +352,7 @@ export function OsTrendSection({
 
     const safeTrendData = useMemo(() => {
         if (analytics?.trendData?.length) return analytics.trendData;
-        
+
         if (monthlyComparisonData && monthlyComparisonData.length > 0) {
             return monthlyComparisonData.map(item => ({
                 month: item.month,
@@ -386,12 +392,15 @@ export function OsTrendSection({
             }));
     }, [monthlyReportData]);
 
-    // Case Report by Area table (Row 4)
     const caseReportByAreaData = useMemo(() => {
         const branchMap: Record<string, Record<string, { terminal: number; apron: number; general: number }>> = {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const normalize = (v: any) => (typeof v === 'string' ? v.trim() : String(v || '')).trim();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const getBranch = (r: any) => normalize(r.branch || r.stations?.code || r.station_code || 'Unknown') || 'Unknown';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const getAirline = (r: any) => normalize(r.airlines || r.airline || 'Unknown') || 'Unknown';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const getAreaKey = (r: any): 'terminal' | 'apron' | 'general' | null => {
             if (r?.terminal_area_category && String(r.terminal_area_category).trim()) return 'terminal';
             if (r?.apron_area_category && String(r.apron_area_category).trim()) return 'apron';
@@ -517,6 +526,7 @@ export function OsTrendSection({
                                             <label className="text-[10px] font-black uppercase tracking-widest text-[#64748b]">Focus</label>
                                             <select
                                                 value={focus}
+                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                 onChange={(e)=>setFocus(e.target.value as any)}
                                                 className="px-3 py-2.5 h-[42px] text-xs font-bold rounded-lg border border-slate-200 bg-[#f8fafc] text-slate-700 outline-none focus:border-[#3b82f6] transition-colors"
                                             >
@@ -586,7 +596,7 @@ export function OsTrendSection({
             >
                 <div className="grid grid-cols-1 gap-4">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {/* Card 1: Report by Case Category */}
+                        {}
                         <div
                             className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl relative")}
                             style={{
@@ -637,7 +647,7 @@ export function OsTrendSection({
                             </div>
                         </div>
 
-                        {/* Card 2: Tren Bulanan Irregularity, Complaint, Compliment */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-6 opacity-70">Tren Bulanan (Irregularity, Complaint, Compliment)</h3>
                             <div className="h-[280px]">
@@ -707,7 +717,7 @@ export function OsTrendSection({
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {/* Card 3: Category by Area */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-6 opacity-70">Category by Area</h3>
                             <div className="h-[280px] relative">
@@ -742,11 +752,11 @@ export function OsTrendSection({
                             </div>
                         </div>
 
-                        {/* Card 4: Case Category by Branch (Pivot Table) */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Case Category by Branch</h3>
                             <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Report Category / Record Count</p>
-                            
+
                             <div className="overflow-x-auto">
                                 <table className="w-full text-xs border-collapse">
                                     <thead>
@@ -791,7 +801,7 @@ export function OsTrendSection({
                                                 </td>
                                             </tr>
                                         ))}
-                                        {/* Grand Total Row */}
+                                        {}
                                         <tr className="bg-gray-100 font-black">
                                             <td className={cn("py-2 px-2 text-gray-800 border", OS_BORDER_CLASS)}>Grand total</td>
                                             <td className={cn("py-2 px-2 text-center text-gray-800 border", OS_BORDER_CLASS)}>
@@ -814,7 +824,7 @@ export function OsTrendSection({
                     </div>
 
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                        {/* Area and Sub-Category Breakdown */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                             <div className="flex items-center justify-between mb-6">
                                 <div>
@@ -825,6 +835,7 @@ export function OsTrendSection({
                             <div className="h-[320px] sm:h-[360px]">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         data={areaSubCategoryData as any[]}
                                         margin={{ top: 25, right: 10, left: -20, bottom: 5 }}
                                         barCategoryGap="30%"
@@ -848,6 +859,7 @@ export function OsTrendSection({
                                                      fill="var(--text-muted)"
                                                      fontSize={9}
                                                      fontWeight={700}
+                                                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                      formatter={(v: any) => v > 0 ? v : ''}
                                                  />
                                              </Bar>
@@ -865,7 +877,7 @@ export function OsTrendSection({
                             </div>
                         </div>
 
-                        {/* Case Classification */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                             <h3 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] mb-6 opacity-70">Case Classification</h3>
                             <div className="flex items-center justify-between mb-3">
@@ -877,7 +889,7 @@ export function OsTrendSection({
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-                        {/* Case Report by Area */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Case Report by Area</h3>
                             <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Area Report / Branch by Airlines</p>
@@ -962,7 +974,7 @@ export function OsTrendSection({
                             )}
                         </div>
 
-                        {/* Terminal Area Category */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Terminal Area Category</h3>
                             <div className="flex items-center justify-between mb-3">
@@ -972,7 +984,7 @@ export function OsTrendSection({
                             <CategoryBarList data={terminalAreaCategoryData} color="#08ad6f" />
                         </div>
 
-                        {/* Apron Area Category */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">Apron Area Category</h3>
                             <div className="flex items-center justify-between mb-3">
@@ -982,7 +994,7 @@ export function OsTrendSection({
                             <CategoryBarList data={apronAreaCategoryData} color="#0f86c1" />
                         </div>
 
-                        {/* General Category */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-6 opacity-70">General Category</h3>
                             <div className="flex items-center justify-between mb-3">

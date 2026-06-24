@@ -300,7 +300,7 @@ export function ResponsiveHeader({
       )}
     >
       <Plus size={18} className="mr-2" />
-      <span>Laporan</span>
+      <span>Create Report</span>
     </Button>
   );
 

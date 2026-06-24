@@ -439,7 +439,7 @@ export function AIAnalysisSection({
     setSingleIssueSignals([]);
 
     try {
-      // Convert report to AI service format
+
       const reportData = {
         Date_of_Event: report.date_of_event || report.event_date || report.created_at,
         Airlines: report.airlines || report.airline || "Unknown",
@@ -585,7 +585,6 @@ export function AIAnalysisSection({
     }
   }, [autoFetch, report, fetchAnalysis]);
 
-  // Extract first prediction data
   const prediction = analysis?.regression?.predictions?.[0];
   const classification = analysis?.nlp?.classifications?.[0];
   const entities = analysis?.nlp?.entities?.[0]?.entities || [];
@@ -595,7 +594,7 @@ export function AIAnalysisSection({
 
   return (
     <div className={cn("space-y-5", className)}>
-      {/* Header */}
+      {}
       <div className="flex items-center justify-between bg-white/80 backdrop-blur-xl p-5 rounded-3xl border border-slate-200/60 shadow-sm relative overflow-hidden group">
         <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
         <div className="flex items-center gap-4">
@@ -634,7 +633,7 @@ export function AIAnalysisSection({
         </button>
       </div>
 
-      {/* Loading State */}
+      {}
       {loading && !analysis && (
         <div className="flex flex-col items-center justify-center py-8 text-gray-500">
           <Loader2 className="w-8 h-8 animate-spin text-purple-500 mb-3" />
@@ -643,7 +642,7 @@ export function AIAnalysisSection({
         </div>
       )}
 
-      {/* Error State */}
+      {}
       {error && (
         <div className="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700">
           <AlertTriangle className="w-5 h-5 flex-shrink-0" />
@@ -654,10 +653,10 @@ export function AIAnalysisSection({
         </div>
       )}
 
-      {/* Analysis Results */}
+      {}
       {analysis && !loading && (
         <div className="space-y-3">
-          {/* Predicted Resolution Time */}
+          {}
           {prediction && (
             <CollapsibleSection title="Predicted Resolution Time" icon={Clock}>
               <div className="space-y-4">
@@ -702,7 +701,7 @@ export function AIAnalysisSection({
             </CollapsibleSection>
           )}
 
-          {/* Severity Classification */}
+          {}
           {classification && (
             <CollapsibleSection title="Severity Classification" icon={AlertTriangle}>
               <div className="space-y-3">
@@ -727,7 +726,7 @@ export function AIAnalysisSection({
             </CollapsibleSection>
           )}
 
-          {/* Extracted Entities */}
+          {}
           {entities.length > 0 && (
             <CollapsibleSection title="Extracted Entities" icon={Tag}>
               <div className="flex flex-wrap gap-2">
@@ -743,7 +742,7 @@ export function AIAnalysisSection({
             </CollapsibleSection>
           )}
 
-          {/* Executive Summary */}
+          {}
           {summary && (
             <CollapsibleSection title="Executive Summary" icon={FileText}>
               <div className="space-y-3">
@@ -767,7 +766,7 @@ export function AIAnalysisSection({
             </CollapsibleSection>
           )}
 
-          {/* Sentiment Analysis */}
+          {}
           {sentiment && (
             <CollapsibleSection title="Sentiment Analysis" icon={MessageSquare}>
               <div className="space-y-3">
@@ -832,11 +831,11 @@ export function AIAnalysisSection({
             </CollapsibleSection>
           )}
 
-          {/* Trend Analysis */}
+          {}
           {analysis?.trends && (
             <CollapsibleSection title="Trend Analysis" icon={TrendingUp} defaultOpen={false}>
               <div className="space-y-4">
-                {/* By Airline */}
+                {}
                 {analysis.trends.byAirline && Object.keys(analysis.trends.byAirline).length > 0 && (
                   <div>
                     <p className="text-xs text-gray-500 font-bold uppercase mb-2 flex items-center gap-1">
@@ -857,7 +856,7 @@ export function AIAnalysisSection({
                   </div>
                 )}
 
-                {/* By Hub */}
+                {}
                 {analysis.trends.byHub && Object.keys(analysis.trends.byHub).length > 0 && (
                   <div>
                     <p className="text-xs text-gray-500 font-bold uppercase mb-2 flex items-center gap-1">
@@ -878,7 +877,7 @@ export function AIAnalysisSection({
                   </div>
                 )}
 
-                {/* By Category */}
+                {}
                 {analysis.trends.byCategory && Object.keys(analysis.trends.byCategory).length > 0 && (
                   <div>
                     <p className="text-xs text-gray-500 font-bold uppercase mb-2 flex items-center gap-1">
@@ -905,7 +904,7 @@ export function AIAnalysisSection({
             </CollapsibleSection>
           )}
 
-          {/* Model Info */}
+          {}
           {analysis?.metadata?.modelVersions && (
             <div className="flex items-center justify-end gap-2 text-[10px] text-gray-400 pt-2">
               <span>Model v{analysis.metadata.modelVersions.nlp}</span>

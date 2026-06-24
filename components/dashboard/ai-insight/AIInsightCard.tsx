@@ -1,17 +1,5 @@
 'use client';
 
-/**
- * Executive-grade AI Insight card. Replaces the 918-line AIAnalysisSection
- * (audited in docs/audit/AUDIT_REPORT.md).
- *
- * Contract:
- *   - Calls ONE endpoint: /api/ai/insight/case
- *   - Renders only what passes Zod (lib/schemas/insight.ts)
- *   - Missing data -> "Data tidak cukup" badge, never silent hide
- *   - Single language (Bahasa Indonesia)
- *   - 5-level severity palette: TOP RISK / HIGH RISK / HIGH / MEDIUM / LOW
- *   - One headline, signal badge, lineage footer
- */
 import { useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle, TrendingUp, TrendingDown, Sparkles, RefreshCw,
@@ -250,7 +238,7 @@ export function AIInsightCard({ report, className }: Props) {
 
   return (
     <div className={cn('space-y-4', className)}>
-      {/* Header — minimal chrome */}
+      {}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-indigo-500" />
@@ -319,7 +307,7 @@ export function AIInsightCard({ report, className }: Props) {
 
           <RCAList drivers={data.rca_top_drivers} />
 
-          {/* Lineage footer */}
+          {}
           <div className="text-[11px] text-slate-400 flex items-center gap-2 flex-wrap pt-2 border-t border-slate-100">
             <span>Berdasarkan {data.records_basis} data terprofil</span>
             <span>·</span>

@@ -1,10 +1,4 @@
-/**
- * @file
- * Custom dashboard content component with multi-page support
- * 
- * File ini berisi komponen konten dashboard kustom dengan dukungan multi-halaman,
- * filter dinamis, export ke Excel/PPTX, dan visualisasi chart interaktif
- */
+
 'use client';
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
@@ -25,15 +19,8 @@ import type { QueryDefinition, QueryResult, ChartType, ChartVisualization, Dashb
 import { cn } from '@/lib/utils';
 import { DASHBOARD_FILTER_FIELDS, type DashboardScopeFilters } from '@/lib/dashboard-query-scope';
 
-// ─── Branding Palette ───────────────────────────────────────────────────────
-/**
- * Palet warna hijau untuk visualisasi chart
- */
 const GREEN_PALETTE = ['#7cb342', '#558b2f', '#aed581', '#33691e', '#9ccc65', '#689f38', '#c5e1a5', '#43a047', '#81c784', '#4caf50'];
 
-/**
- * Field filter yang tersedia untuk dashboard
- */
 const FILTER_FIELDS = DASHBOARD_FILTER_FIELDS.map((field) => ({
   key: field.key,
   label: field.key === 'hub'
@@ -53,9 +40,6 @@ const FILTER_FIELDS = DASHBOARD_FILTER_FIELDS.map((field) => ({
   field: field.field,
 }));
 
-/**
- * Interface untuk data chart
- */
 interface ChartData {
   id: string;
   title: string;
@@ -69,9 +53,6 @@ interface ChartData {
   page_name?: string;
 }
 
-/**
- * Interface untuk konfigurasi dashboard
- */
 interface Dashboard {
   id: string;
   name: string;
@@ -90,9 +71,6 @@ interface Dashboard {
   dashboard_charts: ChartData[];
 }
 
-/**
- * Interface untuk hasil chart
- */
 interface ChartResult {
   type: 'legacy' | 'query';
   stats?: {
@@ -103,19 +81,10 @@ interface ChartResult {
   queryResult?: QueryResult;
 }
 
-/**
- * Menerapkan palet warna hijau ke visualisasi chart
- * @param viz - Konfigurasi visualisasi chart
- * @returns Konfigurasi visualisasi dengan palet warna hijau
- */
 function greenify(viz: ChartVisualization): ChartVisualization {
   return { ...viz, colors: GREEN_PALETTE };
 }
 
-/**
- * Komponen konten dashboard kustom
- * @returns Komponen React
- */
 export function CustomDashboardContent() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -141,7 +110,6 @@ export function CustomDashboardContent() {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [investigativeResult, setInvestigativeResult] = useState<QueryResult | undefined>(undefined);
 
-  // ─── Lifecycle: Sync state with URL params ──────────────────────────────────
   useEffect(() => {
     const pageIndex = searchParams.get('pageIndex');
     if (pageIndex !== null) {
@@ -162,8 +130,6 @@ export function CustomDashboardContent() {
     if (from) setDateFrom(from);
     if (to) setDateTo(to);
   }, [searchParams]);
-
-  // ─── Lifecycle / Fetching ─────────────────────────────────────────────────
 
   const fetchDashboard = useCallback(async () => {
     try {
@@ -186,10 +152,9 @@ export function CustomDashboardContent() {
     }
   }, [slug, searchParams]);
 
-  // Sync state to URL params
   useEffect(() => {
     if (!filtersInitialized) return;
-    
+
     const params = new URLSearchParams(searchParams.toString());
     let changed = false;
 
@@ -270,7 +235,6 @@ export function CustomDashboardContent() {
     fetchChartDataRef.current = fetchPageData;
   }, [fetchPageData]);
 
-  // ─── Computed: pages & metadata ──────────────────────────────────────────
   const pages = useMemo(() => {
     if (!dashboard) return [];
     const charts = dashboard.dashboard_charts;
@@ -301,7 +265,7 @@ export function CustomDashboardContent() {
   }, [dashboard?.name, slug]);
 
   const isFiltered = useMemo(() => {
-    // Only check for domain filters, ignore date range or other technical params
+
     return Object.values(activeFilters).some(v => v && v !== 'all');
   }, [activeFilters]);
 
@@ -317,7 +281,6 @@ export function CustomDashboardContent() {
     }
   }, [dashboard, activePage, activeFilters, dateFrom, dateTo, filtersInitialized, isCustomerFeedbackDashboard, pages]);
 
-  // ─── Computed tiles ───────────────────────────────────────────────────────
   const currentPage = pages[activePage] || pages[0];
   const kpiTiles = useMemo(() => currentPage?.tiles.filter(c => (c.visualization_config?.chartType === 'kpi' || c.chart_type === 'kpi')) || [], [currentPage]);
   const contentTiles = useMemo(() => currentPage?.tiles.filter(c => (c.visualization_config?.chartType !== 'kpi' && c.chart_type !== 'kpi')) || [], [currentPage]);
@@ -327,7 +290,7 @@ export function CustomDashboardContent() {
     setExportingFormat(format);
     setShowExportMenu(false);
     try {
-      let completeChartsData = new Map(chartsData);
+      const completeChartsData = new Map(chartsData);
       for (let pageIndex = 0; pageIndex < pages.length; pageIndex += 1) {
         const pageTiles = pages[pageIndex]?.tiles || [];
         const hasMissingTiles = pageTiles.some((tile) => !completeChartsData.has(tile.id));
@@ -389,14 +352,14 @@ export function CustomDashboardContent() {
     Object.entries(activeFilters).forEach(([key, val]) => {
       if (val && val !== 'all') params.set(key, val);
     });
-    
+
     if (dateFrom) params.set('dateFrom', dateFrom);
     if (dateTo) params.set('dateTo', dateTo);
-    
+
     if (activePage > 0) {
       params.set('pageIndex', activePage.toString());
     }
-    
+
     if ([3, 4].includes(activePage)) {
       params.set('sourceSheet', 'CGO');
     }
@@ -418,9 +381,9 @@ export function CustomDashboardContent() {
     params.set('viewMode', 'static');
     const queryString = params.toString();
     const url = `${window.location.origin}/embed/${slug}/detail?${queryString}`;
-    
+
     navigator.clipboard.writeText(url).then(() => {
-      // Small visual feedback with native alert if toast is missing
+
       alert('Chart link copied to clipboard!');
     }).catch(err => {
       console.error('Failed to copy link:', err);
@@ -447,7 +410,7 @@ export function CustomDashboardContent() {
                 {!sidebarCollapsed && <span className="text-[13px] font-bold tracking-wide whitespace-nowrap overflow-hidden">{p.name}</span>}
               </button>
             ))}
-            
+
                 {isCustomerFeedbackDashboard && !isFiltered && (
                   <div className="pt-4 mt-4 border-t border-gray-100/50">
                     <button 
@@ -524,7 +487,7 @@ export function CustomDashboardContent() {
                             ))}
                           </div>
                         </div>
-                        
+
                         <div className="border-t border-gray-100 pt-5">
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 mb-3 block">Custom Range</label>
                           <div className="grid gap-3">

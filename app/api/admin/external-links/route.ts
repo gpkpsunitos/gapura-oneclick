@@ -14,10 +14,6 @@ async function requireSuperAdmin() {
   return payload;
 }
 
-/**
- * GET /api/admin/external-links
- * Returns all links from DB (raw, no defaults merged).
- */
 export async function GET() {
   const user = await requireSuperAdmin();
   if (!user) {
@@ -34,7 +30,6 @@ export async function GET() {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Merge with defaults so admin sees all 25 entries even if DB is partial
     const merged: Record<string, ExternalLinkEntry> = { ...DEFAULT_EXTERNAL_LINKS };
     for (const row of data || []) {
       merged[row.id] = {
@@ -52,11 +47,6 @@ export async function GET() {
   }
 }
 
-/**
- * PUT /api/admin/external-links
- * Upsert one or more links.
- * Body: { links: ExternalLinkEntry[] }
- */
 export async function PUT(request: Request) {
   const user = await requireSuperAdmin();
   if (!user) {
@@ -71,7 +61,6 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'links array is required' }, { status: 400 });
     }
 
-    // Validate each entry
     for (const link of links) {
       if (!link.id || !link.label || !link.url || !link.category) {
         return NextResponse.json(
@@ -104,10 +93,6 @@ export async function PUT(request: Request) {
   }
 }
 
-/**
- * POST /api/admin/external-links
- * Seed all default links into the database.
- */
 export async function POST() {
   const user = await requireSuperAdmin();
   if (!user) {

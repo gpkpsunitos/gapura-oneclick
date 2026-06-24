@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen untuk menampilkan status laporan dan analisis SLA
- */
 
 'use client';
 
@@ -13,9 +8,6 @@ import { DateRangeFilter } from '@/components/embed/DateRangeFilter';
 import { EmbedCard } from '@/components/embed/EmbedCard';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
-/**
- * Interface untuk data laporan
- */
 interface Report {
   id: string;
   title: string;
@@ -27,44 +19,29 @@ interface Report {
   sla_deadline: string | null;
 }
 
-/**
- * Interface untuk response API laporan
- */
 interface ReportsResponse {
   summary: { total: number; byStatus: Record<string, number>; bySeverity: Record<string, number> };
   reports: Report[];
 }
 
-/** Konfigurasi status dengan label, warna, dan class CSS */
 const STATUS_CONFIG: Record<string, { label: string; color: string; class: string }> = {
   'OPEN': { label: 'Open', color: '#fbbf24', class: 'pending' },
   'ON PROGRESS': { label: 'Dalam Proses', color: '#60a5fa', class: 'verified' },
   'CLOSED': { label: 'Selesai', color: '#22c55e', class: 'completed' }
 };
 
-/** Warna donut chart tetap untuk ranking */
 const FIXED_DONUT_RANK_COLORS = ['#81c784', '#13b5cb', '#cddc39'];
 
-/** Warna fallback donut chart */
 const DONUT_FALLBACK_COLORS = ['#66bb6a', '#9ccc65', '#aed581', '#4db6ac', '#80cbc4'];
 
-/**
- * Komponen untuk menampilkan status laporan dan analisis SLA
- * Menampilkan pipeline, SLA compliance, distribusi status, dan daftar laporan
- * @returns JSX element berisi analisis status
- */
 export function StatusDetailContent() {
   const searchParams = useSearchParams();
   const range = searchParams.get('range') || '7d';
   const statusFilter = searchParams.get('status');
-  
+
   const [data, setData] = useState<ReportsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  /**
-   * Mengambil data laporan dari API
-   * @param signal - AbortSignal untuk membatalkan request
-   */
+
   const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
@@ -79,7 +56,7 @@ export function StatusDetailContent() {
       setLoading(false);
     }
   }, [range, statusFilter]);
-  
+
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -92,11 +69,11 @@ export function StatusDetailContent() {
       clearInterval(interval);
     };
   }, [fetchData]);
-  
+
   if (loading && !data) {
     return <div className="embed-loading"><div className="embed-spinner" /></div>;
   }
-  
+
   const statusPieData = Object.entries(data?.summary.byStatus || {})
     .map(([name, value]) => ({
       name: STATUS_CONFIG[name]?.label || name,
@@ -104,8 +81,7 @@ export function StatusDetailContent() {
       color: STATUS_CONFIG[name]?.color || '#64748b'
     }))
     .sort((a, b) => b.value - a.value);
-  
-  // SLA Analysis - count overdue reports
+
   const now = new Date();
   let overdueCount = 0;
   let atRiskCount = 0;
@@ -117,22 +93,22 @@ export function StatusDetailContent() {
       else if (hoursLeft < 24) atRiskCount++;
     }
   }
-  
+
   const completionRate = data?.summary.total 
     ? Math.round(((data.summary.byStatus['CLOSED'] || 0) / data.summary.total) * 100) 
     : 0;
-  
+
   return (
     <>
       <Link href={`/embed/overview?range=${range}`} className="back-link">← Kembali ke Overview</Link>
-      
+
       <header className="page-header">
         <h1 className="page-title">Status Laporan</h1>
         <p className="page-subtitle">Pipeline dan SLA compliance</p>
       </header>
-      
+
       <DateRangeFilter />
-      
+
       <div className="kpi-grid">
         <div className="kpi-card">
           <div className="kpi-value">{data?.summary.total || 0}</div>
@@ -151,7 +127,7 @@ export function StatusDetailContent() {
           <div className="kpi-label">At Risk (&lt;24h)</div>
         </div>
       </div>
-      
+
       <div className="embed-grid embed-grid-2">
         <EmbedCard title="Distribusi Status" subtitle="Pipeline overview">
           <div className="chart-container">
@@ -178,7 +154,7 @@ export function StatusDetailContent() {
             </ResponsiveContainer>
           </div>
         </EmbedCard>
-        
+
         <EmbedCard title="Per Severity" subtitle="Breakdown by severity">
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
@@ -197,7 +173,7 @@ export function StatusDetailContent() {
           </div>
         </EmbedCard>
       </div>
-      
+
       <EmbedCard title="Daftar Laporan" className="mt-6">
         <div className="embed-table-container">
           <table className="embed-table">

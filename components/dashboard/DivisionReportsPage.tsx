@@ -48,7 +48,6 @@ function matchesSeverityFilter(report: Report, filter: string): boolean {
   return severity === filter;
 }
 
-// Complexity: Time O(n) | Space O(n)
 export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
   const endpoint = config.apiEndpoint ?? '/api/admin/reports';
   const { reports: allReports, isLoading: loading, refresh } = useReportsData(endpoint);
@@ -68,7 +67,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
 
   const filteredReports = useMemo(() => {
     const lowerSearch = search.toLowerCase();
-    
+
     return allReports.filter(report => {
       if (filter !== 'all' && report.status !== filter) return false;
       if (!matchesSeverityFilter(report, severityFilter)) return false;
@@ -118,7 +117,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
 
   return (
     <div className="min-h-screen bg-[var(--surface-0)] pb-24 overflow-x-hidden">
-      {/* Kinetic Hero Header */}
+      {}
       <div
         className="relative overflow-hidden rounded-b-[48px] px-4 md:px-8 pt-12 pb-24"
         style={{ background: `linear-gradient(135deg, ${config.color}, ${config.color}cc, ${config.color}99)` }}
@@ -157,7 +156,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
               </motion.p>
             </div>
 
-            {/* Quick Stats */}
+            {}
             <div className="flex flex-wrap gap-4">
               {[
                 { label: 'Total', value: stats.total },
@@ -181,11 +180,11 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
         </div>
       </div>
 
-      {/* Unified Filter Bar */}
+      {}
       <div className="max-w-[1700px] mx-auto px-4 md:px-8 -mt-12 relative z-20">
         <div className="bg-white p-4 rounded-[40px] shadow-[0_32px_64px_-16px_rgba(0,0,0,0.12)] border border-gray-100 space-y-4">
           <div className="flex flex-col lg:flex-row gap-4 items-center">
-            {/* Search */}
+            {}
             <div className="relative flex-1 w-full group">
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 transition-colors group-focus-within:text-emerald-500" />
               <input
@@ -213,7 +212,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
                 <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               </div>
 
-              {/* Severity Filter */}
+              {}
               <div className="relative flex-1 min-w-[150px]">
                 <select
                   value={severityFilter}
@@ -243,7 +242,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
                 </div>
               )}
 
-              {/* Refresh */}
+              {}
               <button
                 onClick={handleRefresh}
                 disabled={refreshing}
@@ -256,7 +255,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
         </div>
       </div>
 
-      {/* Reports Stream */}
+      {}
       <main className="max-w-[1700px] mx-auto px-4 md:px-8 mt-12">
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -277,7 +276,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
         />
       </main>
 
-      {/* Modal */}
+      {}
       <AnimatePresence>
         {selectedReport && (
           <ReportDetailModal

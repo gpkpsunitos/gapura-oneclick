@@ -1,12 +1,6 @@
-/**
- * Shared types for analyst dashboard components
- */
 
 import type { Report } from '@/types';
 
-/**
- * Chart data interfaces
- */
 export interface CaseCategoryItem {
     name: string;
     value: number;
@@ -107,9 +101,6 @@ export interface AnalyticsData {
     categoryData?: Array<{ category: string; count: number }>;
 }
 
-/**
- * Main component props for AnalystCharts (OS variant)
- */
 export interface OSAnalystChartsProps {
     readonly analytics: AnalyticsData | null;
     readonly caseCategoryData: readonly CaseCategoryItem[];
@@ -152,7 +143,4 @@ export interface OSAnalystChartsProps {
     };
 }
 
-/**
- * Re-export ComparisonData type
- */
 export type { ComparisonData, ComparisonMetric } from '@/types';

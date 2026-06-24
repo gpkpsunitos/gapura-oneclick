@@ -3,7 +3,6 @@ export { RiskSummaryCard } from './RiskSummaryCard';
 export { ActionSummaryCard } from './ActionSummaryCard';
 export { AIAnalysisSection } from './AIAnalysisSection';
 
-// Export types for external use
 export type {
   ActionSummaryResponse,
   CategoryData,

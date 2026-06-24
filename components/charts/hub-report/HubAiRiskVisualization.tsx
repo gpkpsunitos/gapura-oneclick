@@ -11,7 +11,7 @@ function RiskBadge({ level }: { level: string }) {
     Medium: 'bg-yellow-100 text-yellow-700 border-yellow-200',
     Low: 'bg-green-100 text-green-700 border-green-200',
   };
-  
+
   const colorClass = colors[level as keyof typeof colors] || 'bg-gray-100 text-gray-700 border-gray-200';
 
   return (
@@ -52,7 +52,7 @@ export function HubAiRiskVisualization({ data, isLoading, error }: {
   }
 
   if (!data) {
-    return null; // Hide if no data (and no error)
+    return null;
   }
 
   const sortedHubs = Object.entries(data).sort(([, a], [, b]) => b.risk_score - a.risk_score);

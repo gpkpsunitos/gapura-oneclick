@@ -32,6 +32,12 @@ interface StoredDivisionDocument {
     meeting_date?: string | null;
     activity_pic?: string | null;
     activity_location?: string | null;
+    station_id?: string | null;
+    airline?: string | null;
+    participants?: string | null;
+    materi_url?: string | null;
+    attendance_url?: string | null;
+    recording_url?: string | null;
     audience_label?: string | null;
     meeting_event_id?: string | null;
     source_type: 'upload' | 'link';
@@ -243,6 +249,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             meeting_date: body.meeting_date !== undefined ? (body.meeting_date ? String(body.meeting_date).trim() : null) : existing.meeting_date,
             activity_pic: body.activity_pic !== undefined ? (body.activity_pic ? String(body.activity_pic).trim() : null) : existing.activity_pic,
             activity_location: body.activity_location !== undefined ? (body.activity_location ? String(body.activity_location).trim() : null) : existing.activity_location,
+            station_id: body.station_id !== undefined ? (body.station_id ? String(body.station_id) : null) : existing.station_id,
+            airline: body.airline !== undefined ? (body.airline ? String(body.airline).trim() : null) : existing.airline,
+            participants: body.participants !== undefined ? (body.participants ? String(body.participants).trim() : null) : existing.participants,
+            materi_url: body.materi_url !== undefined ? (body.materi_url ? String(body.materi_url).trim() : null) : existing.materi_url,
+            attendance_url: body.attendance_url !== undefined ? (body.attendance_url ? String(body.attendance_url).trim() : null) : existing.attendance_url,
+            recording_url: body.recording_url !== undefined ? (body.recording_url ? String(body.recording_url).trim() : null) : existing.recording_url,
             audience_label: body.audience_label !== undefined ? (body.audience_label ? String(body.audience_label).trim() : null) : existing.audience_label,
             meeting_event_id: body.meeting_event_id !== undefined ? (body.meeting_event_id || null) : existing.meeting_event_id,
             source_type: sourceType,
@@ -286,7 +298,21 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
                 console.error('[Division Documents API] Failed to delete replaced Drive file:', cleanupError);
             });
         }
-        return NextResponse.json(data);
+
+        let station: { code?: string | null; name?: string | null } | null = null;
+        if (data.station_id) {
+            const { data: stationRow } = await supabaseAdmin
+                .from('stations')
+                .select('code, name')
+                .eq('id', data.station_id)
+                .maybeSingle();
+            station = stationRow;
+        }
+        return NextResponse.json({
+            ...data,
+            station_code: station?.code || data.station_id || null,
+            station_name: station?.name || null,
+        });
     } catch (error) {
         if (replacementDriveFileId) {
             await deleteDriveFile(replacementDriveFileId).catch((cleanupError) => {

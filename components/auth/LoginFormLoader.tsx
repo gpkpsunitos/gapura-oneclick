@@ -1,9 +1,5 @@
 'use client';
 
-// Complexity: Time O(1) | Space O(1)
-// ssr: false MUST live in a Client Component — forbidden in Server Components per Next.js 13+ App Router.
-// This thin wrapper is the sole owner of the dynamic import boundary.
-
 import dynamic from 'next/dynamic';
 
 const LoginForm = dynamic(() => import('@/components/auth/LoginForm'), {

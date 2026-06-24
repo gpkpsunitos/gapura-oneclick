@@ -7,11 +7,6 @@ interface PrettyPayloadProps {
     depth?: number;
 }
 
-/**
- * PrettyPayload
- * Recursively renders JSON payloads as a collection of elegant, spatial tokens.
- * Complexity: O(N) where N is number of keys in payload.
- */
 export function PrettyPayload({ payload, depth = 0 }: PrettyPayloadProps) {
     if (!payload || typeof payload !== 'object') {
         return <span className="text-white/80 font-mono text-[10px]">{String(payload)}</span>;
@@ -43,5 +38,3 @@ export function PrettyPayload({ payload, depth = 0 }: PrettyPayloadProps) {
         </div>
     );
 }
-
-// Complexity: Time O(N) | Space O(D) where D is max recursion depth

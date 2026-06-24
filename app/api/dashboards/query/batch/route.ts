@@ -36,13 +36,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Maksimal ${MAX_BATCH_SIZE} queries per batch` }, { status: 400 });
     }
 
-    // Normalize all queries first
     const normalizedQueries = queries.map(q => ({
       ...q,
       query: normalizeQuery(q.query)
     }));
 
-    // Validate all normalized queries
     for (const q of normalizedQueries) {
       const errors = validateQuery(q.query);
       if (errors.length > 0) {
@@ -53,13 +51,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Optimization: Fetch reports ONCE if any query needs them
     const needsReports = normalizedQueries.some(q => (q.query.source || 'reports').toLowerCase() === 'reports');
     const preloadedReports = needsReports ? await reportsService.getReports() : undefined;
 
-    // Execute all queries in parallel
     const startTime = Date.now();
-    
+
     const results = await Promise.all(
       normalizedQueries.map(async (q) => {
         try {

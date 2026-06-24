@@ -1,7 +1,3 @@
-/**
- * @file
- * Embed page for the Report Category dashboard.
- */
 
 'use client';
 

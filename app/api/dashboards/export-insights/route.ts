@@ -31,7 +31,6 @@ interface InsightsResponse {
   closingStatement: string;
 }
 
-// Complexity: Time O(tiles) | Space O(prompt_length + response)
 function buildInsightsPrompt(req: InsightRequest): string {
   const tileSections = req.tiles.map((t, i) => {
     const sampleStr = t.sampleRows.slice(0, 8).map(r =>
@@ -88,7 +87,6 @@ ATURAN KRUSIAL:
 5.  **JSON ONLY**: Jangan berikan teks pembuka, penutup, atau markdown code blocks. Berikan HANYA raw JSON object yang valid.`;
 }
 
-// Complexity: Time O(1) — single API call | Space O(response)
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
@@ -108,7 +106,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Tidak ada data tile' }, { status: 400 });
     }
 
-    // Call AI API
     const prompt = buildInsightsPrompt(body);
 
     let content;
@@ -132,12 +129,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'AI tidak mengembalikan respons' }, { status: 502 });
     }
 
-    // Clean <think> tags from reasoning models
     content = content.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
 
     let insights: InsightsResponse;
     try {
-      // Robust extraction: find the first { and the last }
+
       const firstBrace = content.indexOf('{');
       const lastBrace = content.lastIndexOf('}');
       if (firstBrace !== -1 && lastBrace !== -1) {

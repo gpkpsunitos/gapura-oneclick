@@ -1,9 +1,3 @@
-/**
- * @file
- *
- * File ini berisi halaman dashboard employee dengan statistik dan daftar laporan
- * Menampilkan KPI, daftar laporan terkini, dan fitur pembuatan laporan baru
- */
 
 'use client';
 
@@ -28,7 +22,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Lazy-load heavy document generators (~3.5MB combined) only on user action
 async function getPDFExporter() {
     const { generatePDF } = await import('@/lib/utils/document-generator');
     return generatePDF;
@@ -39,18 +32,11 @@ async function getWordExporter() {
     return downloadLatestSavedWordOrGenerate;
 }
 
-/**
- * Komponen halaman dashboard default employee
- * Menampilkan sapaan berdasarkan waktu, statistik laporan, dan daftar laporan terkini
- * Mendukung pembuatan laporan baru dan melihat detail laporan
- * @returns JSX element berisi layout dashboard employee dengan statistik dan daftar laporan
- */
 export default function EmployeeDashboard() {
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [exportingId, setExportingId] = useState<string | null>(null);
 
-    // SWR data fetching — provides caching, dedup, stale-while-revalidate
     const { data: rawData, mutate: refreshReports } = useData<Report[] | { reports: Report[] }>('/api/reports');
     const reports = useMemo(() => {
         if (Array.isArray(rawData)) return rawData;
@@ -93,20 +79,18 @@ export default function EmployeeDashboard() {
         }
     }, []);
 
-    // Memoized derived stats — avoids .filter() on every render
     const stats = useMemo(() => ({
         total: reports.length,
         inProgress: reports.filter(r => r.status === 'ON PROGRESS').length,
         resolved: reports.filter(r => r.status === 'CLOSED').length,
     }), [reports]);
 
-    // Memoized progress bar width
     const progressWidth = stats.total > 0 ? (stats.inProgress / stats.total) * 100 : 0;
 
     return (
         <div className="space-y-8 stagger-children p-6 md:p-8 pb-24">
 
-            {/* 1. EDITORIAL HEADER */}
+            {}
             <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 border-b border-slate-100 pb-10">
                 <div className="space-y-4 max-w-2xl">
 
@@ -129,10 +113,10 @@ export default function EmployeeDashboard() {
                 </div>
             </header>
 
-            {/* 2. ASYMMETRIC BENTO GRID — CSS animations replace motion.div */}
-            {/* 2. ANALYTIC BENTO GRID */}
+            {}
+            {}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {/* Total Reports */}
+                {}
                 <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm group hover:border-indigo-100 transition-all">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-3 bg-indigo-50 rounded-2xl text-indigo-600">
@@ -146,7 +130,7 @@ export default function EmployeeDashboard() {
                     </div>
                 </div>
 
-                {/* In Progress */}
+                {}
                 <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm group hover:border-amber-100 transition-all">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-3 bg-amber-50 rounded-2xl text-amber-600">
@@ -165,7 +149,7 @@ export default function EmployeeDashboard() {
                     </div>
                 </div>
 
-                {/* Resolved */}
+                {}
                 <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm group hover:border-emerald-100 transition-all">
                     <div className="flex justify-between items-start mb-6">
                         <div className="p-3 bg-emerald-50 rounded-2xl text-emerald-600">
@@ -180,7 +164,7 @@ export default function EmployeeDashboard() {
                 </div>
             </div>
 
-            {/* 3. REPORT ARCHIVE */}
+            {}
             <div className="space-y-8">
                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b border-slate-50">
                     <div>
@@ -202,9 +186,9 @@ export default function EmployeeDashboard() {
                     </div>
                 </div>
 
-                {/* Data Nodes Container — Tabular Ledger Design */}
+                {}
                 <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden transition-all duration-500">
-                    {/* Header Row (Desktop Only) */}
+                    {}
                     <div className="hidden md:grid grid-cols-12 gap-4 px-8 py-5 bg-slate-50/50 border-b border-slate-100">
                         <div className="col-span-2 text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">Reference</div>
                         <div className="col-span-5 text-[10px] font-bold text-slate-600 uppercase tracking-[0.2em]">Issue Description</div>
@@ -228,14 +212,14 @@ export default function EmployeeDashboard() {
                             reports.map((report, idx) => {
                                 const statusConfig = STATUS_CONFIG[report.status as ReportStatus] || STATUS_CONFIG.OPEN;
                                 const dateObj = new Date(report.date_of_event || report.event_date || report.created_at);
-                                
+
                                 return (
                                     <div
                                         key={report.id}
                                         onClick={() => handleReportClick(report)}
                                         className="group grid grid-cols-1 md:grid-cols-12 gap-4 px-6 md:px-8 py-6 md:py-5 hover:bg-slate-50/80 transition-all duration-300 cursor-pointer items-center relative"
                                     >
-                                        {/* Column 1: Reference */}
+                                        {}
                                         <div className="col-span-2 flex flex-row md:flex-col items-center md:items-start justify-between md:justify-center gap-2">
                                             <span className="text-[11px] font-bold text-indigo-500 tracking-wider font-mono">
                                                 #{report.id.slice(0, 8).toUpperCase()}
@@ -247,7 +231,7 @@ export default function EmployeeDashboard() {
                                             </div>
                                         </div>
 
-                                        {/* Column 2: Issue Description */}
+                                        {}
                                         <div className="col-span-5 space-y-1.5 min-w-0">
                                             <div className="flex items-center gap-2">
                                                 {(() => {
@@ -256,7 +240,7 @@ export default function EmployeeDashboard() {
                                                     if (cat.includes('IRREGULARITY')) style = "bg-amber-600 text-white";
                                                     else if (cat.includes('COMPLAINT')) style = "bg-rose-700 text-white";
                                                     else if (cat.includes('COMPLIMENT')) style = "bg-emerald-700 text-white";
-                                                    
+
                                                     return (
                                                         <span className={cn(
                                                             "text-[9px] font-black uppercase tracking-[0.1em] px-2 py-0.5 rounded-md shadow-sm",
@@ -277,7 +261,7 @@ export default function EmployeeDashboard() {
                                             </h4>
                                         </div>
 
-                                        {/* Column 3: Operations */}
+                                        {}
                                         <div className="col-span-2 hidden md:flex flex-col gap-1">
                                             <div className="flex items-center gap-1.5 text-[12px] font-bold text-slate-800">
                                                 <MapPin size={12} className="text-indigo-600" />
@@ -290,7 +274,7 @@ export default function EmployeeDashboard() {
                                             )}
                                         </div>
 
-                                        {/* Column 4: Status */}
+                                        {}
                                         <div className="col-span-2 flex items-center">
                                             <span className={cn(
                                                 "px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all duration-300 group-hover:shadow-sm",
@@ -300,7 +284,7 @@ export default function EmployeeDashboard() {
                                             </span>
                                         </div>
 
-                                        {/* Column 5: Actions */}
+                                        {}
                                         <div className="col-span-1 flex justify-end items-center gap-3">
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); handleReportClick(report); }}
@@ -308,7 +292,7 @@ export default function EmployeeDashboard() {
                                             >
                                                 <Eye size={14} />
                                             </button>
-                                            
+
                                             <div onClick={(e) => e.stopPropagation()}>
                                                 <DropdownMenu>
                                                     <DropdownMenuTrigger asChild>
@@ -335,7 +319,7 @@ export default function EmployeeDashboard() {
                 </div>
             </div>
 
-            {/* Mobile FAB */}
+            {}
             <button
                 onClick={() => setShowCreateModal(true)}
                 className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-[var(--brand-primary)] text-white rounded-full shadow-lg shadow-emerald-500/25 flex items-center justify-center z-40 hover:scale-110 active:scale-95 transition-all"
@@ -343,7 +327,7 @@ export default function EmployeeDashboard() {
                 <Plus size={24} />
             </button>
 
-            {/* Modals */}
+            {}
             <ReportDetailModal
                 isOpen={!!selectedReport}
                 onClose={() => setSelectedReport(null)}

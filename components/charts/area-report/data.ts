@@ -56,7 +56,7 @@ export interface AreaReportRecord {
 export interface CellIntelligence {
   title: string;
   total: number;
-  count: number; // For UI consistency
+  count: number;
   branchTotal: number;
   systemTotal: number;
   branchShare: number;

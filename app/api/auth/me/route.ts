@@ -3,10 +3,6 @@ import { supabase } from '@/lib/supabase';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 
-/**
- * GET /api/auth/me
- * Returns current user's profile including station info
- */
 export async function GET() {
     try {
         const cookieStore = await cookies();
@@ -21,7 +17,6 @@ export async function GET() {
             return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
         }
 
-        // Get user with station info
         const { data: userData, error } = await supabase
             .from('users')
             .select(`
@@ -48,7 +43,6 @@ export async function GET() {
             return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
         }
 
-        // Format response
         const resolvedRole = String(payload.role || userData.role || '').trim().toUpperCase();
 
         const response = {

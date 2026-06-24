@@ -67,10 +67,6 @@ const iconOnlyStyles: Record<ButtonSize, string> = {
     lg: 'w-12 h-12 p-0 grid place-items-center',
 };
 
-/**
- * PrismButton — Premium button with spring physics and magnetic hover.
- * Complexity: Time O(1) | Space O(1)
- */
 const PrismButton = forwardRef<HTMLButtonElement, PrismButtonProps>(
     (
         {
@@ -94,22 +90,22 @@ const PrismButton = forwardRef<HTMLButtonElement, PrismButtonProps>(
                 ref={ref}
                 disabled={isDisabled}
                 className={cn(
-                    // Base styles
+
                     'inline-flex items-center justify-center gap-[var(--gap-sm)]',
                     'font-[var(--font-display)] font-semibold',
                     'cursor-pointer border-none',
                     'transition-all duration-[var(--duration-normal)]',
                     'ease-[var(--spring-snappy)]',
-                    // Variant & Size
+
                     variantStyles[variant],
                     iconOnly ? iconOnlyStyles[size] : sizeStyles[size],
-                    // Disabled state
+
                     isDisabled && 'opacity-50 cursor-not-allowed transform-none hover:transform-none',
                     className
                 )}
                 {...props}
             >
-                {/* Loading Spinner */}
+                {}
                 {isLoading && (
                     <svg
                         className="animate-spin h-4 w-4"
@@ -134,15 +130,15 @@ const PrismButton = forwardRef<HTMLButtonElement, PrismButtonProps>(
                     </svg>
                 )}
 
-                {/* Left Icon */}
+                {}
                 {!isLoading && leftIcon && (
                     <span className="flex-shrink-0">{leftIcon}</span>
                 )}
 
-                {/* Label */}
+                {}
                 <span>{children}</span>
 
-                {/* Right Icon */}
+                {}
                 {rightIcon && <span className="flex-shrink-0">{rightIcon}</span>}
             </button>
         );

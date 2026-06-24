@@ -34,7 +34,7 @@ export async function GET() {
 
     const { data: rows, error } = await supabaseAdmin
         .from('reports_sync')
-        .select('id, status, severity, main_category, category, airline, airlines, area, date_of_event, created_at, source_sheet')
+        .select('*')
         .eq('station_id', stationId);
 
     if (error) {
@@ -111,6 +111,7 @@ export async function GET() {
             const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
             return {
                 month: `${monthNames[parseInt(m) - 1]} ${y}`,
+                rawMonth: month,
                 ...data,
             };
         });
@@ -129,5 +130,6 @@ export async function GET() {
         topAirlines,
         monthlyTrend,
         statusDistribution,
+        rows: reports,
     });
 }

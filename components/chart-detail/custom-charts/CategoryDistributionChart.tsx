@@ -46,7 +46,7 @@ export function CategoryDistributionChart({
   title = 'Distribusi Kategori',
   explanation 
 }: CategoryDistributionChartProps) {
-  // Handle empty data
+
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-[#e0e0e0] flex flex-col overflow-hidden h-full">
@@ -78,19 +78,17 @@ export function CategoryDistributionChart({
   }
 
   const total = data.reduce((sum, item) => sum + item.count, 0);
-  
+
   const sortedData = [...data].sort((a, b) => b.count - a.count);
-  
-  // Calculate health score (higher compliment % is better)
+
   const complimentData = sortedData.find(d => d.category.toUpperCase() === 'COMPLIMENT');
   const complaintData = sortedData.find(d => d.category.toUpperCase() === 'COMPLAINT');
   const irregularityData = sortedData.find(d => d.category.toUpperCase() === 'IRREGULARITY');
-  
+
   const complimentPercentage = complimentData?.percentage || 0;
   const complaintPercentage = complaintData?.percentage || 0;
   const irregularityPercentage = irregularityData?.percentage || 0;
-  
-  // Health score: 100 if all compliment, 0 if all complaint/irregularity
+
   const healthScore = complimentPercentage + (complaintPercentage * 0.3);
   const healthStatus = healthScore > 50 ? 'Baik' : healthScore > 25 ? 'Perlu Perhatian' : 'Kritis';
   const healthColor = healthScore > 50 ? 'text-green-600' : healthScore > 25 ? 'text-yellow-600' : 'text-red-600';
@@ -103,9 +101,9 @@ export function CategoryDistributionChart({
         </h4>
         <div className="w-1.5 h-1.5 rounded-full bg-[#6b8e3d]" />
       </div>
-      
+
       <div className="p-4 pt-10 flex-1 flex flex-col">
-        {/* Health Score Card */}
+        {}
         <div className="mb-4 p-3 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200">
           <div className="flex items-center justify-between">
             <div>
@@ -123,8 +121,8 @@ export function CategoryDistributionChart({
               </div>
             </div>
           </div>
-          
-          {/* Health progress bar */}
+
+          {}
           <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
             <div 
               className="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-red-500 via-yellow-500 to-green-500"
@@ -133,10 +131,10 @@ export function CategoryDistributionChart({
           </div>
         </div>
 
-        {/* Donut Chart Representation */}
+        {}
         <div className="flex-1 flex items-center justify-center min-h-[150px]">
           <div className="relative">
-            {/* Conic gradient for donut */}
+            {}
             <div 
               className="w-32 h-32 rounded-full"
               style={{
@@ -151,19 +149,19 @@ export function CategoryDistributionChart({
                 })`
               }}
             >
-              {/* Center hole */}
+              {}
               <div className="absolute inset-4 bg-white rounded-full flex flex-col items-center justify-center">
                 <span className="text-[9px] text-gray-400 uppercase">Total</span>
                 <span className="text-xl font-black text-gray-800">{total.toLocaleString('id-ID')}</span>
               </div>
             </div>
           </div>
-          
-          {/* Legend */}
+
+          {}
           <div className="ml-6 space-y-2">
             {sortedData.map((item) => {
               const config = CATEGORY_CONFIG[item.category.toUpperCase()] || CATEGORY_CONFIG['IRREGULARITY'];
-              
+
               return (
                 <div key={item.category} className="flex items-center gap-2">
                   <div 
@@ -185,11 +183,11 @@ export function CategoryDistributionChart({
           </div>
         </div>
 
-        {/* Category Cards */}
+        {}
         <div className="mt-3 grid grid-cols-3 gap-2">
           {sortedData.map((item) => {
             const config = CATEGORY_CONFIG[item.category.toUpperCase()] || CATEGORY_CONFIG['IRREGULARITY'];
-            
+
             return (
               <div 
                 key={item.category}
@@ -206,7 +204,7 @@ export function CategoryDistributionChart({
           })}
         </div>
 
-        {/* Ratio indicator */}
+        {}
         <div className="mt-3 pt-3 border-t border-gray-100">
           <div className="text-[9px] text-gray-500 text-center">
             <span className="font-bold text-red-500">{irregularityPercentage.toFixed(0)}%</span> Irregularity • 

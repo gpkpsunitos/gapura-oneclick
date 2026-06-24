@@ -29,11 +29,6 @@ interface MobileActionMenuProps {
   showOnDesktop?: boolean;
 }
 
-/**
- * Mobile Action Menu
- * Dropdown menu for actions that are hidden on mobile
- * Shows as button on mobile, optionally on desktop
- */
 export function MobileActionMenu({
   actions,
   triggerLabel,
@@ -62,7 +57,7 @@ export function MobileActionMenu({
             )}
           </Button>
         </DropdownMenuTrigger>
-        
+
         <DropdownMenuContent
           align={align}
           className="w-56 bg-[var(--surface-1)] border border-[var(--surface-3)] shadow-xl rounded-xl p-1 backdrop-blur-0"
@@ -94,10 +89,6 @@ export function MobileActionMenu({
   );
 }
 
-/**
- * Desktop Action Bar
- * Shows actions as buttons on desktop, hidden on mobile
- */
 interface DesktopActionBarProps {
   actions: ActionItem[];
   className?: string;
@@ -124,11 +115,6 @@ export function DesktopActionBar({ actions, className }: DesktopActionBarProps) 
   );
 }
 
-/**
- * Responsive Action Group
- * Combines MobileActionMenu and DesktopActionBar
- * Automatically switches based on viewport
- */
 interface ResponsiveActionGroupProps {
   actions: ActionItem[];
   mobileTriggerLabel?: string;

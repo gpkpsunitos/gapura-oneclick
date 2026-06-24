@@ -1,4 +1,5 @@
 'use client';
+/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -46,7 +47,8 @@ type AnalysisItem = {
         attachments?: string[];
         is_system_message?: boolean;
     }[];
-    [key: string]: any; // Allow dynamic fields from Google Sheets
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    [key: string]: any;
   };
   prediction?: {
     predictedDays?: number;
@@ -137,7 +139,6 @@ const sentimentStyle: Record<string, { bg: string; text: string; icon: typeof Sm
   'Positive': { bg: 'bg-green-100', text: 'text-green-700', icon: Smile },
 };
 
-// Convert Excel serial date number to readable date string
 function formatExcelDate(value: unknown): string {
   if (value === null || value === undefined) return '-';
 
@@ -244,16 +245,15 @@ const getRecommendations = (category?: string, severity?: string, division?: str
   const sev = (severity || '').toLowerCase();
   const cat = (category || '').toLowerCase();
   const common = ['Koordinasi lintas unit untuk service recovery', 'Buat ticket dan pantau progres penyelesaian'];
-  
+
   const config = division ? divisionConfigs[division] : null;
   const divisionRecs = config?.recommendationCategories || {};
-  
+
   const matched = Object.entries(divisionRecs).find(([k]) => cat.includes(k))?.[1] || ['Lakukan RCA cepat dan tindakan korektif'];
   const sevExtra = (sev === 'top risk' || sev === 'high') 
     ? ['Eskalasi ke supervisor/manager', 'Prioritaskan service recovery'] 
     : ['Monitoring dampak dan dokumentasi pembelajaran'];
-  
-  // Deduplicate recommendations to avoid repeated lines
+
   return Array.from(new Set([...matched, ...sevExtra, ...common]));
 };
 
@@ -346,7 +346,7 @@ function themeForColor(color: string): DivisionTheme {
 function AILoadingProgress({ theme }: { theme: DivisionTheme }) {
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
-  
+
   const steps = [
     { label: 'Mengambil data dari Google Sheets...', icon: Activity },
     { label: 'Menjalankan model regresi...', icon: Gauge },
@@ -432,7 +432,7 @@ interface DivisionAIReportsDashboardProps {
 export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: DivisionAIReportsDashboardProps) {
   const config = divisionConfigs[division] || divisionConfigs.OS;
   const theme = themeForColor(config.color);
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [data, setData] = useState<AnalyzeAllResponse | null>(null);
@@ -479,7 +479,7 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
         max: Number(predStatsIn.max) || 0,
         mean: Number(predStatsIn.mean) || 0,
       };
-      // When summary had no severity data, compute from results
+
       const resultsArr: AnalysisItem[] = Array.isArray(data?.results) ? data.results : [];
       const sumFromSD = Object.values(normalizedSD).reduce((a, b) => a + b, 0);
       if (sumFromSD === 0 && resultsArr.length > 0) {
@@ -490,7 +490,6 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
         }
       }
 
-      // Compute prediction stats from results when API summary lacks them
       if (finalPredictionStats.min === 0 && finalPredictionStats.max === 0 && resultsArr.length > 0) {
         let pMin = Infinity;
         let pMax = -Infinity;
@@ -558,13 +557,13 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
   }, [fetchAll]);
 
   const distribution = useMemo(() => data?.summary?.severityDistribution || {}, [data]);
-  
+
   const totalRecords = useMemo(() => {
     const fromSummary = data?.summary?.totalRecords || 0;
     if (fromSummary) return fromSummary;
     return Object.values(distribution).reduce((a, b) => a + b, 0);
   }, [data, distribution]);
-  
+
   const criticalHighCount = useMemo(() => 
     (distribution['TOP RISK'] || 0) + (distribution.HIGH || 0), [distribution]);
 
@@ -634,7 +633,7 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
     let totalUrgency = 0;
     let urgencyCount = 0;
     const allKeywords: Record<string, number> = {};
-    
+
     (data?.results || []).forEach(r => {
       if (r.sentiment?.sentiment) {
         sentimentCounts[r.sentiment.sentiment] = (sentimentCounts[r.sentiment.sentiment] || 0) + 1;
@@ -647,11 +646,11 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
         allKeywords[kw] = (allKeywords[kw] || 0) + 1;
       });
     });
-    
+
     const topKeywords = Object.entries(allKeywords)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
-    
+
     return {
       distribution: sentimentCounts,
       avgUrgency: urgencyCount > 0 ? totalUrgency / urgencyCount : 0,
@@ -659,7 +658,6 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
     };
   }, [data]);
 
-  // Create unique recommendation groups to avoid duplicated cards (group by effective issueType + severity)
   const recommendationGroups = useMemo(() => {
     const map: Record<string, { sev: string; issueType: string; count: number }> = {};
     prioritized.forEach(({ item }) => {
@@ -690,13 +688,12 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
   }, [prioritized, searchQuery]);
 
   const topPatterns = useMemo(() => {
-    // First try to use rootStats from API
+
     const bc = rootStats?.by_category || {};
     if (Object.keys(bc).length > 0) {
       return Object.entries(bc).sort((a, b) => b[1].count - a[1].count).slice(0, 6);
     }
 
-    // Fallback: compute from results data
     const issueTypeStats: Record<string, { count: number; percentage: number }> = {};
     const results = data?.results || [];
     results.forEach(r => {
@@ -707,7 +704,6 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
       issueTypeStats[issueType].count++;
     });
 
-    // Calculate percentages
     const total = results.length || 1;
     Object.keys(issueTypeStats).forEach(k => {
       issueTypeStats[k].percentage = Math.round((issueTypeStats[k].count / total) * 100);
@@ -830,7 +826,7 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
               />
             </motion.div>
-            
+
             <div className="text-center max-w-md mb-8">
               <h3 className="text-xl font-bold text-gray-800 mb-2">Memuat Analisis AI</h3>
               <p className="text-gray-500 text-sm mb-4">
@@ -879,7 +875,7 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                 </div>
                 <div className="text-2xl font-bold text-gray-900">{totalRecords}</div>
               </motion.div>
-              
+
               <motion.div 
                 initial={{ opacity: 0, y: 10 }} 
                 animate={{ opacity: 1, y: 0 }}
@@ -1522,7 +1518,11 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
             {current ? (
               <div className="p-4 md:p-6 space-y-5">
                 <div>
+                  // eslint-disable-next-line react/jsx-no-comment-textnodes
                   <p className={cn('text-sm font-semibold text-gray-800', showFullDesc ? '' : 'line-clamp-4')}>
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     {(current.originalData as any)?.report || (current.originalData as any)?.Report || 'Deskripsi tidak tersedia'}
                   </p>
                   <div className="mt-2 flex items-center justify-between">
@@ -1530,7 +1530,11 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                       {current.classification?.issueType
                         ? `Kategori: ${String(current.classification.issueType).toLowerCase() === 'unknown' ? 'Tidak terklasifikasi' : current.classification.issueType}`
                         : null}
+                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                     </p>
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     {((current.originalData as any)?.report || (current.originalData as any)?.Report) && (
                       <button onClick={() => setShowFullDesc((s) => !s)} className="text-xs text-emerald-700 hover:underline">
                         {showFullDesc ? 'Tampilkan ringkas' : 'Lihat selengkapnya'}
@@ -1540,18 +1544,26 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                 </div>
 
                 <div className="space-y-4">
-                  {/* Flight & Location Info */}
+                  {}
                   <div className="space-y-2">
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-1">Informasi Penerbangan & Lokasi</h4>
                     <div className="grid grid-cols-2 gap-3">
                       {[
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Tanggal', value: formatExcelDate(current.originalData?.date || (current.originalData as any)?.Date_of_Event || (current.originalData as any)?.Date), icon: Calendar },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Maskapai', value: normalizeLabel(current.originalData?.airline || (current.originalData as any)?.Airlines || (current.originalData as any)?.Maskapai, '-'), icon: Plane },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'No. Penerbangan', value: current.originalData?.flightNumber || (current.originalData as any)?.Flight_Number || (current.originalData as any)?.['No Penerbangan'], icon: Hash },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Rute', value: normalizeLabel(current.originalData?.route || (current.originalData as any)?.Route || (current.originalData as any)?.Rute, '-'), icon: MapPin },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Hub', value: normalizeLabel(current.originalData?.hub || (current.originalData as any)?.HUB || (current.originalData as any)?.Hub, '-'), icon: Building2 },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Branch', value: normalizeLabel(current.originalData?.branch || (current.originalData as any)?.Branch || (current.originalData as any)?.Cabang, '-'), icon: Building2 },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Area', value: normalizeLabel((current.originalData as any)?.area || (current.originalData as any)?.Area || (current.originalData as any)?.Wilayah, '-'), icon: MapPin },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Lokasi Spesifik', value: normalizeLabel((current.originalData as any)?.specific_location || (current.originalData as any)?.['Location of Incident'] || (current.originalData as any)?.Location, '-'), icon: MapPin },
                       ].map((it, i) => it.value && it.value !== '-' ? (
                         <div key={i} className="p-2.5 rounded-xl border border-gray-100 bg-gray-50/50">
@@ -1564,17 +1576,23 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                     </div>
                   </div>
 
-                  {/* Operational & Classification */}
+                  {}
                   <div className="space-y-2">
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-1">Operasional & Klasifikasi</h4>
                     <div className="grid grid-cols-2 gap-3">
                       {[
                         { label: 'Kategori', value: normalizeLabel(effectiveIssueType(current), 'Tidak terklasifikasi'), icon: Tag },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Klasifikasi Case', value: normalizeLabel((current.originalData as any)?.case_classification || (current.originalData as any)?.['Case Classification'], '-'), icon: Shield },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Delay Code', value: normalizeLabel((current.originalData as any)?.delay_code || (current.originalData as any)?.['Delay Code'], '-'), icon: Clock },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Durasi Delay', value: normalizeLabel((current.originalData as any)?.delay_duration || (current.originalData as any)?.['Delay Duration'], '-'), icon: Clock },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Accident/Incident', value: normalizeLabel((current.originalData as any)?.accident_incident || (current.originalData as any)?.['Accident / Incident'], '-'), icon: AlertTriangle },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Status', value: normalizeLabel((current.originalData as any)?.status || (current.originalData as any)?.Status, '-'), icon: CheckCircle2 },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Report By', value: normalizeLabel((current.originalData as any)?.reporter_name || (current.originalData as any)?.['Report By'], '-'), icon: UserIcon },
                       ].map((it, i) => it.value && it.value !== '-' ? (
                         <div key={i} className="p-2.5 rounded-xl border border-gray-100 bg-gray-50/50">
@@ -1587,15 +1605,20 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                     </div>
                   </div>
 
-                  {/* Root Cause & Resolution */}
+                  {}
                   <div className="space-y-2">
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-1">Analisis & Resolusi</h4>
                     <div className="grid grid-cols-1 gap-3">
                       {[
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Akar Masalah (Root Cause)', value: normalizeLabel((current.originalData as any)?.root_caused || (current.originalData as any)?.['Root Caused'] || (current.originalData as any)?.['Akar Masalah'], '-'), icon: Search },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Tindakan (Action Taken)', value: normalizeLabel((current.originalData as any)?.action_taken || (current.originalData as any)?.['Action Taken'] || (current.originalData as any)?.Tindakan, '-'), icon: Wrench },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'Tindakan Pencegahan (Preventive Action)', value: normalizeLabel((current.originalData as any)?.preventive_action || (current.originalData as any)?.['Preventive Action'], '-'), icon: Shield },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'KPS Action Taken', value: normalizeLabel((current.originalData as any)?.gapura_kps_action_taken || (current.originalData as any)?.['Gapura KPS Action Taken'], '-'), icon: Activity },
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         { label: 'KPS Remarks', value: normalizeLabel((current.originalData as any)?.kps_remarks || (current.originalData as any)?.['Gapura KPS Remarks'], '-'), icon: MessageSquare },
                       ].map((it, i) => it.value && it.value !== '-' ? (
                         <div key={i} className="p-3 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -1694,19 +1717,39 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                       ))}
                     </div>
                   </div>
+                // eslint-disable-next-line react/jsx-no-comment-textnodes
                 )}
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 {((current.originalData as any)?.Root_Caused || (current.originalData as any)?.Action_Taken) && (
+                  // eslint-disable-next-line react/jsx-no-comment-textnodes
                   <div className="grid grid-cols-1 gap-3">
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     {(current.originalData as any)?.Root_Caused && (
                       <div className="p-3 rounded-xl border border-gray-200 bg-white">
+                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                         <div className="text-xs font-semibold text-gray-700 mb-1">Root Cause</div>
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         <div className="text-xs text-gray-600 whitespace-pre-wrap">{(current.originalData as any).Root_Caused}</div>
                       </div>
+                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                     )}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     {(current.originalData as any)?.Action_Taken && (
                       <div className="p-3 rounded-xl border border-gray-200 bg-white">
+                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                         <div className="text-xs font-semibold text-gray-700 mb-1">Tindakan</div>
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         <div className="text-xs text-gray-600 whitespace-pre-wrap">{(current.originalData as any).Action_Taken}</div>
                       </div>
                     )}

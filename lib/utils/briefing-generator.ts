@@ -1,48 +1,25 @@
-/**
- * @file
- * 
- * File ini berisi fungsi untuk generate dokumen Word (.docx) dari data briefing
- * Digunakan untuk membuat formulir briefing dengan notulensi dan signature
- */
 
-/**
- * Interface untuk data briefing
- */
 interface BriefingData {
-    /** Tanggal briefing */
+
     tanggal: string;
-    /** Waktu briefing */
+
     waktu: string;
-    /** Tempat briefing */
+
     tempat: string;
-    /** Topik atau agenda briefing */
+
     topik: string;
-    /** Nama pemberi briefing */
+
     pembicara: string;
-    /** Isi notulensi briefing */
+
     notulensi: string;
 }
 
-/**
- * Menghasilkan dokumen Word (.docx) dari data briefing
- * Word berisi formulir briefing lengkap dengan notulensi dan signature
- * 
- * @param data - Object data briefing yang akan dijadikan Word
- * @param signatureDataUrl - Data URL untuk gambar tanda tangan (optional)
- * @returns Promise yang resolve dengan Blob dokumen Word
- * @throws Error jika library docx gagal di-load atau signature gagal diproses
- * @example
- * ```typescript
- * const blob = await generateBriefingWord(briefingData, signatureDataUrl);
- * saveAs(blob, 'Briefing.docx');
- * ```
- */
 export async function generateBriefingWord(data: BriefingData, signatureDataUrl: string | null): Promise<Blob> {
     const { Document, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, ImageRun, Packer } = await import('docx');
 
     const createBoldText = (text: string, size = 24) => new TextRun({ text, bold: true, font: "Arial", size });
     const createNormalText = (text: string, size = 24) => new TextRun({ text, font: "Arial", size });
-    
+
     let signatureRun: InstanceType<typeof ImageRun> | undefined = undefined;
     if (signatureDataUrl) {
         try {

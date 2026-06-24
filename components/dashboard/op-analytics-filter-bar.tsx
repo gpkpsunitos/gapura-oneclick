@@ -4,10 +4,6 @@ import { useCallback, useState, useMemo } from 'react';
 import { Calendar, MapPin, Plane, Filter, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-/**
- * Shared filter state for all OP sub-pages.
- * Shape mirrors `ReportAnalyticsFilters` from op-shortcut-analytics.ts
- */
 export interface OpFilterState {
   dateFrom?: string;
   dateTo?: string;
@@ -21,20 +17,19 @@ export interface OpFilterState {
 interface OpAnalyticsFilterBarProps {
   filters: OpFilterState;
   onFiltersChange: (filters: OpFilterState) => void;
-  /** Unique dropdown option sets — populated from data */
+
   hubOptions?: string[];
   branchOptions?: string[];
   areaOptions?: string[];
   airlineOptions?: string[];
-  /** Show area filter */
+
   showAreaFilter?: boolean;
-  /** Show source sheet toggle (hide for SLA/Joumpa pages) */
+
   showSourceSheetToggle?: boolean;
-  /** Additional className for the container */
+
   className?: string;
 }
 
-/** Preset time ranges */
 const TIME_PRESETS = [
   { key: '30d', label: '30 Hari' },
   { key: '90d', label: '90 Hari' },
@@ -135,7 +130,7 @@ export function OpAnalyticsFilterBar({
 
   return (
     <div className={cn('rounded-2xl border border-slate-200/60 bg-white/90 p-3 shadow-sm', className)}>
-      {/* Row 1: Time presets + source toggle */}
+      {}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1.5 rounded-xl bg-slate-50 px-1.5 py-1">
           <Calendar className="h-3.5 w-3.5 text-slate-500" />
@@ -176,7 +171,7 @@ export function OpAnalyticsFilterBar({
         )}
       </div>
 
-      {/* Expandable entity filters */}
+      {}
       {expanded && (
         <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {hubOptions.length > 0 && (
@@ -222,7 +217,7 @@ export function OpAnalyticsFilterBar({
         </div>
       )}
 
-      {/* Expand/collapse + clear */}
+      {}
       <div className="mt-2 flex items-center justify-between">
         <button
           onClick={() => setExpanded(!expanded)}
@@ -250,9 +245,6 @@ export function OpAnalyticsFilterBar({
   );
 }
 
-/**
- * Hook to extract unique values from report data for filter dropdowns.
- */
 export function useFilterOptions(reports: Record<string, unknown>[]) {
   return useMemo(() => {
     const hubs = [...new Set(reports.map((r) => String(r.hub || '').trim()).filter(Boolean))].sort();

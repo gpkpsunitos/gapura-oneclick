@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk pembuatan laporan publik
- * Mendukung pembuatan laporan tanpa login dengan email reporter
- */
 
 import { NextResponse } from 'next/server';
 import { reportsService } from '@/lib/services/reports-service';
@@ -13,26 +7,6 @@ import { checkDbRateLimit, getClientIpFromRequest } from '@/lib/security/rate-li
 import { linkEvidenceFilesToReport, normalizeEvidenceSubmissionId, validateEvidenceForReport } from '@/lib/evidence-files';
 import type { Report } from '@/types';
 
-/**
- * Menangani request POST untuk membuat laporan publik
- * Menerima data laporan dengan email reporter, menyimpan ke database,
- * dan mengirim notifikasi email
- * @param request - Request object berisi data laporan publik di body JSON
- * @returns Response JSON dengan status sukses dan data laporan yang dibuat
- * @throws {Error} Jika terjadi kesalahan saat membuat laporan
- * @example
- * ```json
- * {
- *   "reporter_email": "user@example.com",
- *   "reporter_name": "John Doe",
- *   "title": "Judul Laporan",
- *   "description": "Deskripsi kejadian",
- *   "airline": "Garuda",
- *   "flight_number": "GA-101",
- *   "station_id": "CGK-001"
- * }
- * ```
- */
 export async function POST(request: Request) {
   try {
     const clientIp = getClientIpFromRequest(request);
@@ -129,7 +103,7 @@ export async function POST(request: Request) {
       severity: severity || 'low',
       status: 'OPEN',
       created_at: new Date().toISOString(),
-      // CSV-aligned / derived fields
+
       station_id: station_id || null,
       station_code: station_code || station_id || null,
       branch: station_code || station_id || null,

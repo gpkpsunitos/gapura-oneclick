@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen panel hasil query dengan tampilan tabel dan grafik
- */
 
 'use client';
 
@@ -12,14 +7,6 @@ import { DataTable } from './DataTable';
 import type { QueryResult } from '@/types/builder';
 import { cn } from '@/lib/utils';
 
-/**
- * Props untuk komponen ResultsPanel
- * @interface ResultsPanelProps
- * @property {QueryResult | null} result - Hasil query
- * @property {boolean} loading - Status loading
- * @property {string | null} error - Pesan error
- * @property {React.ReactNode} chartPreview - Komponen preview grafik
- */
 interface ResultsPanelProps {
   result: QueryResult | null;
   loading: boolean;
@@ -27,24 +14,6 @@ interface ResultsPanelProps {
   chartPreview: React.ReactNode;
 }
 
-/**
- * Komponen panel hasil query
- * Menampilkan hasil query dalam format tabel atau grafik
- * Mendukung switching antara view tabel dan grafik
- * 
- * @param {ResultsPanelProps} props - Props untuk konfigurasi panel hasil
- * @returns {JSX.Element} Element React yang berisi panel hasil
- * 
- * @example
- * ```tsx
- * <ResultsPanel
- *   result={queryResult}
- *   loading={isLoading}
- *   error={errorMessage}
- *   chartPreview={<ChartPreview result={queryResult} />}
- * />
- * ```
- */
 export function ResultsPanel({ result, loading, error, chartPreview }: ResultsPanelProps) {
   const [tab, setTab] = useState<'table' | 'chart'>('table');
 
@@ -80,7 +49,7 @@ export function ResultsPanel({ result, loading, error, chartPreview }: ResultsPa
 
   return (
     <div className="flex flex-col h-full">
-      {/* Tab bar + stats */}
+      {}
       <div className="flex items-center justify-between px-3 py-1.5 bg-[var(--surface-2)] border-b border-[var(--surface-4)]">
         <div className="flex items-center gap-1">
           <button
@@ -119,7 +88,7 @@ export function ResultsPanel({ result, loading, error, chartPreview }: ResultsPa
         </div>
       </div>
 
-      {/* Content */}
+      {}
       <div className="flex-1 overflow-hidden">
         {tab === 'table' ? (
           <DataTable columns={result.columns} rows={result.rows} />

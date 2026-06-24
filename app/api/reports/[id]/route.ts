@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk mengambil (GET) dan mengupdate (PATCH) laporan berdasarkan ID
- * Mendukung otorisasi berdasarkan role user dan komentar sistem
- */
 
 import { NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
@@ -39,18 +33,6 @@ function normalizeUrlList(value: unknown): string[] {
     return [];
 }
 
-/**
- * Menangani request GET untuk mengambil laporan berdasarkan ID
- * Fetch laporan lengkap dengan semua data terkait termasuk user dan komentar
- * @param request - Request object
- * @param params - Route parameters berisi ID laporan
- * @returns Response JSON berisi data laporan yang diperkaya dengan user dan komentar
- * @throws {Error} Jika laporan tidak ditemukan atau user tidak memiliki akses
- * @example
- * ```http
- * GET /api/reports/uuid-here
- * ```
- */
 export async function GET(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -70,14 +52,12 @@ export async function GET(
             return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
         }
 
-        // Fetch report from Google Sheets
         const report = await reportsService.getReportById(id);
 
         if (!report) {
             return NextResponse.json({ error: 'Report not found' }, { status: 404 });
         }
 
-        // Authorization check: Ensure users can only access reports they're permitted to see
         if (payload.role === 'STAFF_CABANG') {
             const payloadEmail = normalizeAccessValue(payload.email);
             const payloadName = normalizeAccessValue(payload.full_name);
@@ -98,7 +78,6 @@ export async function GET(
                 return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
             }
         }
-        // Other roles (ANALYST, OS, ADMIN, etc.) have full access
 
         const commentIds = [id, report.original_id].filter((val): val is string => !!val);
 
@@ -125,12 +104,11 @@ export async function GET(
         const user = userResult?.data;
         const comments = commentsResult?.data;
 
-        // Enrich report using data from Sheets and User profile
         const enrichedReport = {
             ...report,
             users: user || (report.reporter_name ? { full_name: report.reporter_name } : null),
             comments: comments || [],
-            // Legacy / Frontend compatibility
+
             user: user || (report.reporter_name ? { full_name: report.reporter_name } : null),
             station: report.stations ? { ...report.stations, id: report.station_id } : undefined,
         };
@@ -142,22 +120,6 @@ export async function GET(
     }
 }
 
-/**
- * Menangani request PATCH untuk mengupdate laporan berdasarkan ID
- * Mendukung update field-field tertentu dan pembuatan komentar sistem otomatis
- * @param request - Request object berisi data update di body JSON
- * @param params - Route parameters berisi ID laporan
- * @returns Response JSON dengan status sukses dan data laporan yang diupdate
- * @throws {Error} Jika terjadi kesalahan saat mengupdate laporan
- * @example
- * ```json
- * {
- *   "status": "ON PROGRESS",
- *   "priority": "high",
- *   "action_taken": "Laporan sedang dalam proses investigasi"
- * }
- * ```
- */
 export async function PATCH(
     request: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -197,8 +159,7 @@ export async function PATCH(
                 return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
             }
         }
-        
-        // Define allowed fields to update
+
         const {
             title,
             description,
@@ -233,7 +194,6 @@ export async function PATCH(
 
         const updates: Record<string, unknown> = {};
 
-        // Normalize status to canonical value
         const normalizeStatus = (val: unknown) => {
             if (!val) return val;
             const up = String(val).trim().toUpperCase().replace(/_/g, ' ');
@@ -265,13 +225,11 @@ export async function PATCH(
         if (preventive_action !== undefined) updates.preventive_action = preventive_action;
         if (reporter_name !== undefined) updates.reporter_name = reporter_name;
         if (attachments !== undefined) updates.attachments = attachments;
-        
-        // Triage
+
         if (primary_tag !== undefined) updates.primary_tag = primary_tag;
         if (sub_category_note !== undefined) updates.sub_category_note = sub_category_note;
         if (target_division !== undefined) updates.target_division = target_division;
 
-        // Additional Fields
         if (route !== undefined) updates.route = route;
         if (airline !== undefined) updates.airline = airline;
         if (area !== undefined) updates.area = area;
@@ -319,7 +277,6 @@ export async function PATCH(
             }
         }
 
-        // Perform the update in Google Sheets
         const updatedReport = await reportsService.updateReport(id, updates);
 
         if (!updatedReport) {
@@ -366,8 +323,7 @@ export async function PATCH(
 
             return NextResponse.json({ error: 'Report not found or update failed' }, { status: 404 });
         }
-        
-        // --- STATUS CHANGE LOGIC: Create system comment in Supabase ---
+
         if (updates.status !== undefined) {
             try {
                 const statusMsg = `Status laporan diubah ke ${updates.status}${updates.action_taken ? ` — Catatan: ${updates.action_taken}` : ''}`;

@@ -1,10 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi Service Worker untuk PWA dengan konfigurasi caching dan offline support
- */
-
-/// <reference lib="webworker" />
 
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import {
@@ -29,9 +22,6 @@ import {
   processOfflineQueue,
 } from "@/lib/pwa/offline-queue-core";
 
-/**
- * Interface untuk scope global Service Worker
- */
 declare global {
   interface WorkerGlobalScope extends SerwistGlobalConfig {
     __SW_MANIFEST: (PrecacheEntry | string)[] | undefined;
@@ -141,18 +131,12 @@ const serwist = new Serwist({
 
 serwist.addEventListeners();
 
-/**
- * Event listener untuk pesan SKIP_WAITING dari client
- */
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") {
     void self.skipWaiting();
     return;
   }
 
-  /**
-   * Event listener untuk menghapus runtime cache yang di-update
-   */
   if (event.data?.type === "PURGE_RUNTIME_CACHE") {
     event.waitUntil(
       caches.keys().then((keys) =>
@@ -166,26 +150,17 @@ self.addEventListener("message", (event) => {
     return;
   }
 
-  /**
-   * Event listener untuk sinkronisasi queue offline
-   */
   if (event.data?.type === "SYNC_REPORT_QUEUE") {
     event.waitUntil(syncOfflineQueue());
   }
 });
 
-/**
- * Event listener untuk sinkronisasi ketika tag tertentu diubah
- */
 self.addEventListener("sync", (event) => {
   if (event.tag === PWA_SYNC_TAG) {
     event.waitUntil(syncOfflineQueue());
   }
 });
 
-/**
- * Fungsi untuk memproses queue offline dan sinkronisasi dengan server
- */
 async function syncOfflineQueue() {
   let summary = EMPTY_OFFLINE_QUEUE_SUMMARY;
 
@@ -198,7 +173,6 @@ async function syncOfflineQueue() {
     }
   }
 
-  // Post sync notification ke semua clients
   const clients = await self.clients.matchAll({ type: "window" });
 
   clients.forEach((client) => {

@@ -1,9 +1,4 @@
-/**
- * @file
- * 
- * File ini berisi halaman feedback JOUMPA dengan tampilan QR code
- * untuk scan dan memberikan feedback layanan hospitality & VIP
- */
+
 'use client';
 
 import GuestNav from '@/components/GuestNav';
@@ -11,10 +6,6 @@ import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
 import { getLinkUrl } from '@/lib/external-links';
 import { QRCodeWithLogo } from '@/components/ui/QRCodeWithLogo';
 
-/**
- * Halaman feedback JOUMPA
- * @returns Komponen React
- */
 export default function JoumpaFeedbackPage() {
   const externalLinks = useExternalLinks();
 

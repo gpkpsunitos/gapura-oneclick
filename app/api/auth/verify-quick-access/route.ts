@@ -2,8 +2,6 @@ import { NextResponse } from 'next/server';
 import { randomUUID, timingSafeEqual } from 'crypto';
 import { checkRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
 
-// Server-side password verification for quick access protected items
-// This replaces the insecure client-side NEXT_PUBLIC_QUICK_ACCESS_PASSWORD approach
 const QUICK_ACCESS_PASSWORD = process.env.QUICK_ACCESS_PASSWORD;
 
 export async function POST(request: Request) {

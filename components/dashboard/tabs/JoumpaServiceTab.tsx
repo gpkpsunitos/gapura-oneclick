@@ -636,7 +636,7 @@ function JoumpaPiePanel({
     <JoumpaPanel title={title} className={className} bodyClassName="flex min-h-0 items-stretch gap-3 px-3 py-2">
       {rows.length === 0 ? <EmptyPanel /> : (
         <>
-          {/* Donut with center total — absolute wrapper gives Recharts a real pixel height */}
+          {}
           <div className="relative flex-1">
             <div className="absolute inset-0">
               <ResponsiveContainer width="100%" height="100%">
@@ -667,7 +667,7 @@ function JoumpaPiePanel({
             </div>
           </div>
 
-          {/* Right legend — name + big number + % bar */}
+          {}
           <div className="flex w-1/2 shrink-0 flex-col justify-center gap-3">
             {rows.map((row) => {
               const pct = total > 0 ? Math.round((row.value / total) * 100) : 0;
@@ -1058,7 +1058,7 @@ function JoumpaCategoryMatrixTable({
   groupByPrimary?: boolean;
   onCellClick?: (row: JoumpaCategoryMatrixRow, key?: JoumpaCategoryKey) => void;
 }) {
-  // Compute rowspans when groupByPrimary is active
+
   const primarySpans = useMemo(() => {
     if (!groupByPrimary) return new Map<number, number>();
     const spans = new Map<number, number>();
@@ -1169,7 +1169,6 @@ function JoumpaIssueDetailTable({
   const openCount = reports.filter((r) => String(r.status || '').toUpperCase() !== 'CLOSED').length;
   const closedCount = reports.filter((r) => String(r.status || '').toUpperCase() === 'CLOSED').length;
 
-  // Sort by category group then preserve original order within group
   const sorted = useMemo(() => {
     const groupOrder = new Map<string, number>();
     reports.forEach((r) => {
@@ -1183,7 +1182,6 @@ function JoumpaIssueDetailTable({
     });
   }, [reports]);
 
-  // Compute rowspans for Category Case Joumpa column
   const primarySpans = useMemo(() => {
     const spans = new Map<number, number>();
     let i = 0;
@@ -1588,7 +1586,7 @@ function LookerQrCard({ title, url, qrUrl }: { title: string; url: string; qrUrl
           </div>
           <div className="flex justify-center sm:justify-end">
             <button type="button" onClick={() => setShowQrModal(true)} className="rounded-lg border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] p-3 shadow-sm transition-all hover:border-[color:var(--sr-accent-soft-2)] hover:bg-[color:var(--sr-accent-tint)] hover:shadow-md" aria-label={`Show QR code ${title}`}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {}
               <img src={qrUrl} alt={`QR code ${title}`} className="h-36 w-36 object-contain" loading="lazy" decoding="async" />
             </button>
           </div>
@@ -1609,7 +1607,7 @@ function LookerQrCard({ title, url, qrUrl }: { title: string; url: string; qrUrl
             <h3 className="pr-10 text-xl font-black tracking-[-0.03em] text-[#20282b]">{title}</h3>
             <div className="mt-5 flex justify-center">
               <div className="border border-[color:var(--sr-border)] bg-white p-4 shadow-sm">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                {}
                 <img src={qrUrl} alt={`QR code ${title}`} className="h-64 w-64 object-contain" loading="lazy" decoding="async" />
               </div>
             </div>
@@ -1782,7 +1780,6 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
     [joumpaDashboardReports]
   );
 
-  // SECTION 1: OPERATIONAL FEEDBACK
   const operationalReports = useMemo(
     () => scopedMainReports.filter((r) => normalizeLower(resolveReportCategory(r)) !== 'compliment'),
     [scopedMainReports]
@@ -1832,7 +1829,6 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
     [operationalReports]
   );
 
-  // SECTION 2: COMPLIMENT FROM OPERATIONAL FEEDBACK
   const compReports = useMemo(
     () => scopedMainReports.filter(r => {
       const cat = normalizeLower(resolveReportCategory(r));
@@ -1849,9 +1845,8 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
     [compReports]
   );
 
-  // SECTION 3 & 4: VOICE OF PASSENGER
   const filteredVoice = useMemo(() => voiceRecords.filter((record) => normalize(record.reportType).length > 0 && normalize(record.serviceType).length > 0 && normalize(record.category).length > 0), [voiceRecords]);
-  
+
   const voiceMonthlyStacked = useMemo(() => {
     const rowMap = new Map<string, { month: string, staff: number, customer: number, order: number }>();
     filteredVoice.forEach(r => {
@@ -1944,7 +1939,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
         </div>
       </div>
 
-      {/* Looker dashboard links — placed before overview section */}
+      {}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <LookerQrCard title="Joumpa Customer Feedback Lookers Version" url={joumpaLookerUrl} qrUrl={joumpaLookerQr} />
         <LookerQrCard title="JOUMPA Customer Survey Lookers Version" url={joumpaSurveyUrl} qrUrl={joumpaSurveyQr} />
@@ -1953,7 +1948,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
       <JoumpaSection title="Joumpa Service Customer Handling Overview">
         <JoumpaKpiStrip items={joumpaKpis} onItemClick={(item) => openDrilldown(getJoumpaKpiRecords(item.id, joumpaDashboardReports), item.label)} />
 
-        {/* Tier 1: stack on tablet, 3-col only on desktop */}
+        {}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           <JoumpaHorizontalBarPanel
             title="Joumpa Monthly Report"
@@ -1987,7 +1982,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
           />
         </div>
 
-        {/* Tier 2: flat 2x2 on tablet, 1x4 on desktop — avoids per-cell crowding */}
+        {}
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <JoumpaHorizontalBarPanel
             title="HUB Report"
@@ -2031,7 +2026,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
           />
         </div>
 
-        {/* Tier 3: matrices stack on tablet (they need full width for columns), side-by-side at xl */}
+        {}
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <JoumpaCategoryMatrixTable
             title="Joumpa Service Type Report by Case Category"
@@ -2064,7 +2059,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
           />
         </div>
 
-        {/* Tier 4: Detail issue bar table */}
+        {}
         <JoumpaBarTable
           title="Detail Issue Joumpa Report"
           headerLabel="Case Joumpa"
@@ -2076,7 +2071,7 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
           )}
         />
 
-        {/* Tier 5: Full detail tables */}
+        {}
         <div className="grid gap-4 xl:grid-cols-1">
           <JoumpaIssueDetailTable
             reports={joumpaDashboardReports}

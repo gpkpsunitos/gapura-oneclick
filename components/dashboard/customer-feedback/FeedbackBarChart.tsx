@@ -16,6 +16,7 @@ interface FeedbackBarChartProps {
   compact?: boolean;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const WrappedTick = (props: any) => {
   const { x, y, payload } = props;
   const compact = props.compact ?? false;

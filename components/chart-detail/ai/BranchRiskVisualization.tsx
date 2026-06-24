@@ -22,11 +22,10 @@ interface BranchRiskAnalysisProps {
 
 export function BranchRiskAnalysisVisualization({ data, selectedBranch }: BranchRiskAnalysisProps) {
   const isAllBranches = selectedBranch === 'all' || !selectedBranch;
-  
-  // If specific branch selected, show detailed view
+
   if (!isAllBranches) {
     const branchData = data[selectedBranch];
-    
+
     if (!branchData) {
       return (
         <div className="p-6 bg-white rounded-xl border border-gray-200 shadow-sm text-center">
@@ -52,7 +51,7 @@ export function BranchRiskAnalysisVisualization({ data, selectedBranch }: Branch
 
     return (
       <div className="space-y-6">
-        {/* Main Risk Score Card */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm border-l-4 border-l-blue-500 p-6">
             <div className="flex justify-between items-start">
@@ -129,7 +128,7 @@ export function BranchRiskAnalysisVisualization({ data, selectedBranch }: Branch
           </div>
         </div>
 
-        {/* Detailed Metrics */}
+        {}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -187,10 +186,9 @@ export function BranchRiskAnalysisVisualization({ data, selectedBranch }: Branch
     );
   }
 
-  // Aggregate view for all branches
   const sortedBranches = Object.entries(data)
     .sort(([, a], [, b]) => b.risk_score - a.risk_score)
-    .slice(0, 12); // Top 12 risky branches
+    .slice(0, 12);
 
   return (
     <div className="space-y-6">
@@ -201,7 +199,7 @@ export function BranchRiskAnalysisVisualization({ data, selectedBranch }: Branch
         </h3>
         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Top 12 by Risk Score</span>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {sortedBranches.map(([branchName, branchData]) => (
           <div 
@@ -226,7 +224,7 @@ export function BranchRiskAnalysisVisualization({ data, selectedBranch }: Branch
                 <div className="text-xs text-gray-500">Risk Score</div>
               </div>
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Issues</span>

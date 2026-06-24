@@ -1,16 +1,6 @@
-/**
- * @file
- *
- * File ini berisi konfigurasi PWA manifest untuk aplikasi OneClick.
- * Mengikuti standar Google Play Protect dan Web App Manifest spec.
- */
 
 import type { MetadataRoute } from "next";
 
-/**
- * Mengenerate manifest PWA untuk aplikasi OneClick
- * @returns Object manifest dengan konfigurasi PWA
- */
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
@@ -67,8 +57,7 @@ export default function manifest(): MetadataRoute.Manifest {
         label: "Form public report untuk pelaporan cepat dari perangkat mobile.",
         form_factor: "wide",
       },
-      // Narrow (mobile) screenshots — required by Google Play Store / ChromeOS install UX
-      // Buat screenshot mobile 390x844 atau 750x1334 dan taruh di /screenshots/
+
       {
         src: "/screenshots/login-narrow.png",
         sizes: "750x1334",

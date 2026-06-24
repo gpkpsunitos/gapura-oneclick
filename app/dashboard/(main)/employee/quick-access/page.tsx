@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi halaman akses cepat (Quick Access) untuk karyawan,
- * menyediakan akses cepat ke berbagai tool, formulir, dan link operasional.
- */
 
 'use client';
 
@@ -17,33 +11,15 @@ import { QRCodeWithLogo } from '@/components/ui/QRCodeWithLogo';
 import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
 import { getLinkUrl } from '@/lib/external-links';
 
-/**
- * Tipe data untuk link QR Code
- * @interface QRLink
- * @property {string} label - Label untuk link QR Code
- * @property {string} url - URL tujuan dari link
- */
 type QRLink = { label: string; url: string };
 type CategoryIcon = ComponentType<{ className?: string; style?: CSSProperties }>;
 
-/**
- * Tipe data union untuk kategori akses cepat
- * Bisa berisi QR links, regular links, atau kategori tanpa link khusus
- */
 type Category =
   | { id: string; title: string; description?: string; icon: CategoryIcon; color: string; span: string; qrLinks: QRLink[] }
   | { id: string; title: string; description?: string; icon: CategoryIcon; color: string; span: string; links: { label: string; sublabel?: string; url: string }[] }
   | { id: string; title: string; description?: string; icon: CategoryIcon; color: string; span: string; primaryHref: string; primaryLabel?: string }
   | { id: string; title: string; description?: string; icon: CategoryIcon; color: string; span: string };
 
-/**
- * Komponen modal akses cepat
- * Menampilkan detail kategori yang dipilih, termasuk QR Code atau link eksternal
- * @param {Object} props - Properti komponen
- * @param {Category | null} props.category - Kategori yang sedang ditampilkan
- * @param {() => void} props.onClose - Fungsi yang dipanggil saat modal ditutup
- * @returns {JSX.Element | null} Tampilan modal akses cepat atau null jika tidak ada kategori
- */
 function QuickAccessModal({
   category,
   onClose
@@ -162,11 +138,6 @@ function QuickAccessModal({
   );
 }
 
-/**
- * Komponen halaman akses cepat (Quick Access) untuk karyawan
- * Menampilkan grid kategori akses cepat dan modal detail kategori
- * @returns {JSX.Element} Tampilan halaman akses cepat
- */
 export default function QuickAccessPage() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const externalLinks = useExternalLinks();

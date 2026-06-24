@@ -3,13 +3,13 @@
 import dynamic from 'next/dynamic';
 import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWorkspaceSkeleton';
 
-const AnalystDocumentViewerPage = dynamic(
-    () => import('@/components/analyst/AnalystDocumentViewerPage').then((m) => m.AnalystDocumentViewerPage),
+const EskalasiDocumentsViewerPage = dynamic(
+    () => import('@/components/analyst/EskalasiDocumentsViewerPage').then((m) => m.EskalasiDocumentsViewerPage),
     {
         ssr: false,
         loading: () => (
             <DashboardWorkspaceSkeleton
-                title="Documents"
+                title="Circulars & Materials"
                 subtitle="Loading all documents uploaded by the analyst team."
             />
         ),
@@ -17,5 +17,5 @@ const AnalystDocumentViewerPage = dynamic(
 );
 
 export default function EskalasiDocumentsPage() {
-    return <AnalystDocumentViewerPage />;
+    return <EskalasiDocumentsViewerPage />;
 }

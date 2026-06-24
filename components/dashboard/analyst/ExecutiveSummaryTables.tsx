@@ -12,11 +12,11 @@ interface ExecutiveSummaryTablesProps {
 }
 
 export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ data, className }) => {
-    // 1. Group Monthly Data by Year
+
     const { yearGroups, allYears } = useMemo(() => {
         const groups: Record<number, Record<string, MonthlyBucket & { monthKey: string }>> = {};
         const years = new Set<number>();
-        
+
         data.monthlyTrend.forEach(bucket => {
             const parts = bucket.month.split(' ');
             if (parts.length >= 2) {
@@ -29,7 +29,7 @@ export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ 
                 }
             }
         });
-        
+
         return { 
             yearGroups: groups, 
             allYears: Array.from(years).sort((a, b) => b - a)
@@ -41,10 +41,9 @@ export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ 
 
     const monthsOrder = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 
-    // 2. Compute Yearly Totals
     const summaryMetrics = useMemo(() => {
         if (!latestYear) return [];
-        
+
         const computeTotals = (y: number) => {
             const group = yearGroups[y] || {};
             return Object.values(group).reduce((acc, curr) => ({
@@ -80,10 +79,10 @@ export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ 
         return (
             <div className="flex-1 min-w-[340px] flex flex-col items-center">
                 <div className="text-center font-black text-[#1f2937] mb-5 text-[15px] tracking-[0.15em]">{year}</div>
-                {/* PRISM V3: Glass/Noise container */}
+                {}
                 <div className="w-full relative rounded-2xl overflow-hidden bg-white/70 backdrop-blur-2xl border border-white/40 shadow-xl shadow-slate-200/50 before:absolute before:inset-0 before:bg-[url('/noise.svg')] before:opacity-[0.03] before:pointer-events-none">
                     <table className="w-full text-xs text-center border-collapse relative z-10">
-                        {/* PRISM V3: Vibrant, deep headers */}
+                        {}
                         <thead className="bg-[#1f2937] text-slate-100">
                             <tr>
                                 <th className="px-5 py-4 font-bold text-left border-r border-[#374151] tracking-widest text-[10px] md:text-[11px] uppercase">MONTH</th>
@@ -100,7 +99,7 @@ export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ 
                                 const irr = row?.irregularity || 0;
                                 const comp = row?.complaint || 0;
                                 const compl = row?.compliment || 0;
-                                
+
                                 return (
                                     <motion.tr 
                                         key={month} 
@@ -134,7 +133,7 @@ export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ 
             transition={{ duration: 0.5, ease: [0.25, 1, 0.5, 1] }}
             className={cn("flex flex-col gap-12 w-full max-w-[1600px] mx-auto", className)}
         >
-            {/* PRISM V3 Header Design */}
+            {}
             <div className="relative pl-5 py-1">
                 <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-emerald-500 rounded-full" />
                 <h2 className="text-2xl font-black text-[#0f172a] tracking-tight">
@@ -151,18 +150,18 @@ export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ 
             </div>
 
             <div className="flex flex-col 2xl:flex-row gap-8 lg:gap-14 items-start justify-between">
-                
-                {/* Years Split Tables */}
+
+                {}
                 <div className="flex flex-col lg:flex-row gap-8 lg:gap-10 w-full 2xl:w-[70%]">
                     {prevYear && renderMonthlyTable(prevYear)}
                     {renderMonthlyTable(latestYear)}
                 </div>
 
-                {/* Summary Table: PRISM UI */}
+                {}
                 <div className="w-full lg:w-3/4 2xl:w-[30%] mt-4 lg:mt-11 mx-auto 2xl:mx-0">
                     <div className="rounded-2xl overflow-hidden bg-white/60 backdrop-blur-xl border border-white/40 shadow-2xl shadow-[#1e3a8a]/10 relative before:absolute before:inset-0 before:bg-[url('/noise.svg')] before:opacity-[0.03] before:pointer-events-none">
                         <table className="w-full text-sm border-collapse relative z-10">
-                            {/* Royal / Deep Header */}
+                            {}
                             <thead className="bg-[#1e3a8a] text-white">
                                 <tr>
                                     <th className="px-6 py-5 text-[11px] font-bold tracking-widest text-left uppercase text-white/90">CATEGORY</th>
@@ -209,7 +208,7 @@ export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ 
                                     );
                                 })}
                             </tbody>
-                            {/* Emphasized Footer */}
+                            {}
                             <tfoot className="bg-gradient-to-r from-[#1e3a8a] to-[#2563eb] text-white">
                                 {summaryMetrics.filter(sm => sm.label === 'TOTAL').map(sm => (
                                     <tr key={sm.label}>

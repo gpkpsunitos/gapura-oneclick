@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi API route untuk mengambil data master (reference data)
- * Menyediakan data referensi seperti stasiun, unit, posisi, tipe insiden, dan lokasi
- */
 
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
@@ -11,7 +5,6 @@ import { reportsService } from '@/lib/services/reports-service';
 import { Report } from '@/types';
 import { INDONESIAN_AIRPORTS } from '@/data/airports';
 
-// ponytail: head-office "branch" not in airport list; keep here so form has it
 const EXTRA_BRANCHES: Array<{ code: string; name: string }> = [
   { code: 'GPS', name: 'Gapura Pusat' },
 ];
@@ -30,25 +23,12 @@ function mergeStationsWithAirports(dbStations: Array<{ id: string; code: string;
   return Array.from(byCode.values()).sort((a, b) => a.code.localeCompare(b.code));
 }
 
-/**
- * Menangani request GET untuk mengambil data master
- * Menerima query parameter 'type' untuk menentukan jenis data yang diambil
- * Mendukung caching dan memiliki fallback data
- * @param request - Request object dengan query parameter type
- * @returns Response JSON berisi data master yang diminta
- * @throws {Error} Jika terjadi kesalahan saat mengambil data
- * @example
- * GET /api/master-data?type=stations
- * GET /api/master-data?type=units
- * GET /api/master-data?type=positions
- * GET /api/master-data?type=incident_types
- * GET /api/master-data?type=locations&station_id=xxx
- */
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const type = searchParams.get('type');
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let data: any[] = [];
         switch (type) {
             case 'stations':
@@ -73,7 +53,7 @@ export async function GET(request: Request) {
                     if (Array.isArray(fromDb) && fromDb.length > 0) {
                         data = fromDb;
                     } else {
-                        // Final fallback: minimal units untuk registrasi UX
+
                         data = [
                             { id: '00000000-0000-0000-0000-000000000101', name: 'Ramp' },
                             { id: '00000000-0000-0000-0000-000000000102', name: 'Passenger Service' },
@@ -95,9 +75,9 @@ export async function GET(request: Request) {
                     if (Array.isArray(fromDb) && fromDb.length > 0) {
                         data = fromDb;
                     } else {
-                        // Final fallback: include both central and branch roles
+
                         data = [
-                            // Central / GPS
+
                             { id: '00000000-0000-0000-0000-000000000201', name: 'Super Admin', level: 1 },
                             { id: '00000000-0000-0000-0000-000000000202', name: 'Analyst', level: 2 },
                             { id: '00000000-0000-0000-0000-000000000203', name: 'DIVISI OP', level: 3 },
@@ -106,7 +86,7 @@ export async function GET(request: Request) {
                             { id: '00000000-0000-0000-0000-000000000206', name: 'OS', level: 3 },
                             { id: '00000000-0000-0000-0000-000000000207', name: 'OSF', level: 3 },
                             { id: '00000000-0000-0000-0000-000000000208', name: 'OSL', level: 3 },
-                            // Branch
+
                             { id: '00000000-0000-0000-0000-000000000209', name: 'Staff', level: 10 },
                             { id: '00000000-0000-0000-0000-00000000020A', name: 'Officer', level: 9 },
                             { id: '00000000-0000-0000-0000-00000000020B', name: 'Supervisor', level: 8 },

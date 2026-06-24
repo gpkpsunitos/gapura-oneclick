@@ -6,10 +6,6 @@ import { resolveCachedAI } from '@/lib/ai-route-cache';
 
 export const dynamic = 'force-dynamic';
 
-/**
- * API endpoint untuk mendapatkan ringkasan risiko
- * Proxies request to Python AI service
- */
 export async function GET(req: NextRequest) {
   try {
     const cookieStore = await cookies();
@@ -59,7 +55,7 @@ export async function GET(req: NextRequest) {
       });
     } catch (aiError) {
       console.error('AI Service Error:', aiError);
-      
+
       return NextResponse.json(
         { 
           error: 'AI service tidak tersedia',

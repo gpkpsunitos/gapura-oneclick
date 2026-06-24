@@ -43,7 +43,7 @@ export default function AnalystDrilldownPage() {
     }, []);
 
     const filteredReports = useMemo(() => {
-        // Apply date range filter first
+
         let filtered = allReports;
         if (period !== 'all') {
             const now = new Date();
@@ -55,7 +55,6 @@ export default function AnalystDrilldownPage() {
             }
         }
 
-        // Apply type-specific filter
         switch (type) {
             case 'category':
                 return filtered.filter(r => r.category === value);

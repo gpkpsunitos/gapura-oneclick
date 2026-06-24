@@ -12,7 +12,7 @@ import { SupportingCharts } from './SupportingCharts';
 import { ViewMode, Normalization } from './GlobalControlBar';
 import { generateAnalyticalCharts, fetchAnalyticalChartData } from '@/lib/chart-detail-generator';
 import type { AnalyticalChart } from '@/lib/chart-detail-generator';
-import { MapPin, Plane, Layers, Crosshair, Target, Bug } from 'lucide-react';
+import { MapPin, Plane, Layers, Crosshair, Target } from 'lucide-react';
 
 interface ChartDetailData {
   tile: DashboardTile;
@@ -20,11 +20,9 @@ interface ChartDetailData {
   dashboardId?: string;
 }
 
-// ─── CONTEXT RIBBON COMPONENT ───────────────────────────────────────────────
-
 function ContextRibbon({ query }: { query: DashboardTile['query'] }) {
   const filters = query.filters || [];
-  
+
   const getFilterValue = (fields: string[]) => {
     const filter = filters.find(f => fields.includes(f.field));
     return filter?.value || null;
@@ -71,20 +69,14 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
   const [fetchError, setFetchError] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
 
-  // Global Analytical State
   const [viewMode] = useState<ViewMode>('values');
   const [normalization] = useState<Normalization>('none');
 
-  // Analytical supporting charts — cross-dimensional breakdown from real data
   const [analyticalCharts, setAnalyticalCharts] = useState<AnalyticalChart[]>([]);
   const [analyticalDataMap, setAnalyticalDataMap] = useState<Record<number, QueryResult>>({});
   const [analyticalLoading, setAnalyticalLoading] = useState(false);
 
-  // Debug panel state
-  const [showDebug, setShowDebug] = useState(false);
 
-  // Compute chart definitions from tile + result (synchronous, no fetch)
-  // Complexity: Time O(1) | Space O(charts)
   const chartDefs = useMemo(() => {
     if (!data) return null;
     const displayResult = fullData || data.result;
@@ -93,7 +85,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
 
   const fetchFullData = useCallback(async (tile: DashboardTile): Promise<QueryResult> => {
     try {
-      // Normalize query before sending
+
       const normalizedQuery = {
         ...tile.query,
         dimensions: tile.query.dimensions || [],
@@ -101,7 +93,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
         filters: tile.query.filters || [],
         joins: tile.query.joins || [],
         sorts: tile.query.sorts || [],
-        limit: 100000 // Unlimited
+        limit: 100000
       };
 
       const response = await fetch('/api/dashboards/query', {
@@ -111,17 +103,16 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
           query: normalizedQuery
         })
       });
-      
+
       if (response.ok) {
         return await response.json();
       }
     } catch (error) {
       console.error('Failed to fetch full data:', error);
     }
-    
-    // Pure fetcher: return empty result on failure to avoid loops
+
     return { columns: [], rows: [], rowCount: 0, executionTimeMs: 0 };
-  }, []); // No dependencies for stability
+  }, []);
 
   const handleDownloadImage = async () => {
     if (chartRef.current) {
@@ -138,7 +129,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
   const handleExportCSV = () => {
     const displayData = fullData || data?.result;
     if (!displayData) return;
-    
+
     const headers = displayData.columns.join(',');
     const rows = displayData.rows.map(row => 
       displayData.columns.map(col => {
@@ -146,7 +137,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
         return typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell;
       }).join(',')
     ).join('\n');
-    
+
     const csvContent = `${headers}\n${rows}`;
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     saveAs(blob, `${data?.tile.visualization.title || 'data'}.csv`);
@@ -159,7 +150,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
   };
 
   useEffect(() => {
-    // 1. Try sessionStorage first (fastest for dashboard navigation)
+
     const storedData = sessionStorage.getItem('chartDetailData');
     if (storedData) {
       try {
@@ -174,7 +165,6 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
       }
     }
 
-    // 2. Fallback: Fetch from API using tileId from URL (for direct/public links)
     const searchParams = new URLSearchParams(window.location.search);
     const tileId = searchParams.get('tileId');
 
@@ -183,7 +173,6 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
       return;
     }
 
-    // Guard: Don't fetch if already have data, currently loading, or already failed for this ID
     if (data?.tile.id === tileId || loadingTile || fetchError === tileId) return;
 
     const loadTileData = async () => {
@@ -191,7 +180,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
       try {
         const res = await fetch(`/api/dashboards?tileId=${tileId}`);
         const tile = await res.json();
-        
+
         if (tile.error) throw new Error(tile.error);
 
         const dashboardTile: DashboardTile = {
@@ -210,7 +199,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
         };
 
         const result = await fetchFullData(dashboardTile);
-        
+
         setData({
           tile: dashboardTile,
           result: result,
@@ -228,18 +217,15 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
     loadTileData();
   }, [router, isPublic, fetchFullData, loadingTile, data?.tile.id, fetchError]); 
 
-  // Fetch full data once on mount or when tile ID changes
   useEffect(() => {
     if (data && !fullData) {
       fetchFullData(data.tile).then(setFullData);
     }
   }, [data, fullData, fetchFullData]);
 
-  // Fetch cross-dimensional analytical chart data once definitions are ready
-  // Complexity: Time O(k * API_latency) parallelized | Space O(k * n)
   useEffect(() => {
     if (!chartDefs || chartDefs.charts.length === 0 || analyticalCharts.length > 0) return;
-    
+
     setAnalyticalCharts(chartDefs.charts);
     setAnalyticalDataMap(chartDefs.dataMap);
     setAnalyticalLoading(true);
@@ -294,7 +280,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
 
   return (
     <div className="min-h-screen bg-[#f5f5f5]">
-      {/* Header */}
+      {}
       <header className="bg-white border-b border-[#e0e0e0] sticky top-0 z-50 w-full px-4 sm:px-6">
         <div className="h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
@@ -312,7 +298,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
               </h1>
             </div>
           </div>
-          
+
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <div className="hidden sm:flex items-center gap-1 sm:gap-2">
               <button
@@ -351,13 +337,6 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
                     <Share2 size={20} />
                   )}
                 </button>
-                <button
-                  onClick={() => setShowDebug(!showDebug)}
-                  className={`hidden md:block p-2 hover:bg-[#f5f5f5] rounded-full transition-colors ${showDebug ? 'text-blue-600' : 'text-[#666]'}`}
-                  title="Toggle Debug Panel"
-                >
-                  <Bug size={20} />
-                </button>
               </div>
             )}
             {!isPublic && (
@@ -377,10 +356,10 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
 
       <main className="w-full px-4 sm:px-6 py-4 sm:py-6 font-sans">
         <div className="max-w-[1700px] mx-auto space-y-6 sm:space-y-8">
-          {/* CONTEXT RIBBON */}
+          {}
           <ContextRibbon query={tile.query} />
 
-          {/* HERO CHART */}
+          {}
           <EnlargedChart 
             tile={tile} 
             result={displayData}
@@ -394,47 +373,8 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
           </div>
         )}
 
-        {/* DEBUG PANEL */}
-        {showDebug && (
-          <div className="bg-gray-900 text-green-400 p-4 rounded-xl font-mono text-xs overflow-auto max-h-96">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-bold text-white">🔍 Debug Panel</h3>
-              <button 
-                onClick={() => console.log('Analytical Charts:', analyticalCharts, 'DataMap:', analyticalDataMap)}
-                className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Log to Console
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <div>
-                <h4 className="text-white font-bold mb-2">Analytical Charts ({analyticalCharts.length})</h4>
-                {analyticalCharts.map((chart, idx) => {
-                  const data = analyticalDataMap[idx];
-                  return (
-                    <div key={idx} className="mb-3 p-2 bg-gray-800 rounded">
-                      <div className="text-yellow-400 font-bold">[{idx}] {chart.visualization.title}</div>
-                      <div className="text-gray-400">Type: {chart.customChartType || chart.visualization.chartType}</div>
-                      <div className="text-gray-400">Dimensions: {chart.query.dimensions?.map(d => d.field).join(', ')}</div>
-                      {data ? (
-                        <>
-                          <div className="text-green-400">✓ Data: {data.rows?.length || 0} rows</div>
-                          <div className="text-gray-500">Columns: {data.columns?.join(', ')}</div>
-                          <div className="text-gray-500 mt-1">Sample: {JSON.stringify(data.rows?.slice(0, 2), null, 2)}</div>
-                        </>
-                      ) : (
-                        <div className="text-red-400">✗ No data</div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        )}
 
-        {/* SUPPORTING CHARTS */}
+        {}
         <div className="space-y-6 pt-4 border-t border-gray-100">
           <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
             <span className="w-1 h-6 bg-indigo-500 rounded-full"></span>
@@ -450,7 +390,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
           />
         </div>
 
-        {/* Data Table */}
+        {}
         <section className="bg-white rounded-xl shadow-sm border border-[#e0e0e0] overflow-hidden">
           <InvestigativeTable 
             data={displayData}

@@ -23,10 +23,9 @@ export async function executeQuery(query: QueryDefinition, context: QueryContext
   const startTime = Date.now();
 
   if (source === 'reports') {
-    // 1. Fetch all data from Sheets (use preloaded if available)
+
     const reports = context.preloadedReports || await reportsService.getReports();
-    
-    // 1.5 Apply Security Filter (RBAC)
+
     let accessibleReports = reports;
     if (!context.canViewAll) {
       if (context.userStationCode) {
@@ -35,10 +34,9 @@ export async function executeQuery(query: QueryDefinition, context: QueryContext
         accessibleReports = [];
       }
     }
-    
-    // Delegate to pure query processor
+
     const result = processQuery(query, accessibleReports);
-    
+
     return {
       ...result,
       executionTimeMs: Date.now() - startTime

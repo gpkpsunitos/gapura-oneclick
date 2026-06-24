@@ -31,6 +31,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         if (body.description !== undefined) {
             updates.description = body.description ? String(body.description).trim() : null;
         }
+        if (body.thumbnail_url !== undefined) {
+            updates.thumbnail_url = body.thumbnail_url ? String(body.thumbnail_url).trim() : null;
+        }
+        if (body.category !== undefined) {
+            updates.category = body.category === 'joumpa' ? 'joumpa' : 'ground-handling';
+        }
 
         const { data, error } = await supabaseAdmin
             .from('performance_links')

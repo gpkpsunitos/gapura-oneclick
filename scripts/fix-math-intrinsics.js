@@ -6,7 +6,9 @@
  * File ini berisi script untuk memperbaiki missing file pada package math-intrinsics
  */
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const fs = require('fs');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const path = require('path');
 
 const pkgDir = path.join(process.cwd(), 'node_modules', 'math-intrinsics');

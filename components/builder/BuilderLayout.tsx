@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen layout utama untuk builder dashboard dengan fitur AI
- */
 
 'use client';
 
@@ -22,16 +17,8 @@ import type { ChartVisualization, QueryResult, FieldDef, AggregateFunction, Char
 import { useAIDashboard } from '@/lib/hooks/useAIDashboard';
 import { cn } from '@/lib/utils';
 
-/**
- * Mode operasi builder
- * @type {('explore' | 'dashboard')} Mode
- */
 type Mode = 'explore' | 'dashboard';
 
-/**
- * Saran prompt AI untuk membuat dashboard
- * @constant {{label: string; prompt: string}[]} PROMPT_SUGGESTIONS
- */
 const PROMPT_SUGGESTIONS = [
   { label: 'Laporan Bulanan', prompt: 'Buatkan dashboard laporan bulanan yang menampilkan trend, distribusi kategori, dan perbandingan antar stasiun' },
   { label: 'Perbandingan Maskapai', prompt: 'Buat dashboard perbandingan jumlah laporan per maskapai dengan breakdown severity dan kategori' },
@@ -39,10 +26,6 @@ const PROMPT_SUGGESTIONS = [
   { label: 'Severity Analysis', prompt: 'Buat dashboard analisis severity laporan dengan heatmap per stasiun dan trend waktu' },
 ];
 
-/**
- * Langkah-langkah proses AI
- * @constant {{label: string; delay: number}[]} AI_STEPS
- */
 const AI_STEPS = [
   { label: 'Menganalisis schema...', delay: 0 },
   { label: 'Merancang query...', delay: 3000 },
@@ -50,16 +33,6 @@ const AI_STEPS = [
   { label: 'Menyelesaikan dashboard...', delay: 15000 },
 ];
 
-/**
- * Filter global untuk dashboard
- * @interface GlobalFilters
- * @property {string} [hub] - Filter hub
- * @property {string} [branch] - Filter cabang
- * @property {string} [maskapai] - Filter maskapai
- * @property {string} [airlines] - Filter airlines
- * @property {string} [category] - Filter kategori
- * @property {string} [area] - Filter area
- */
 interface GlobalFilters {
   hub?: string;
   branch?: string;
@@ -69,30 +42,11 @@ interface GlobalFilters {
   area?: string;
 }
 
-/**
- * Props untuk komponen BuilderLayout
- * @interface BuilderLayoutProps
- * @property {Function} onSaveDashboard - Fungsi untuk menyimpan dashboard
- * @property {string[]} [existingFolders=[]] - Daftar folder yang sudah ada
- */
 interface BuilderLayoutProps {
   onSaveDashboard: (name: string, description: string, tiles: SaveTile[], config?: SaveConfig, folder?: string | null) => Promise<{ embedUrl: string } | null>;
   existingFolders?: string[];
 }
 
-/**
- * Interface untuk tile yang akan disimpan
- * @interface SaveTile
- * @property {string} title - Judul tile
- * @property {ChartType} chartType - Tipe grafik
- * @property {string} dataField - Field data
- * @property {('full' | 'half' | 'third')} width - Lebar tile
- * @property {number} position - Posisi tile
- * @property {QueryDefinition} query_config - Konfigurasi query
- * @property {ChartVisualization} visualization_config - Konfigurasi visualisasi
- * @property {TileLayout} layout - Layout tile
- * @property {string} page_name - Nama halaman
- */
 export interface SaveTile {
   title: string;
   chartType: ChartType;
@@ -105,15 +59,6 @@ export interface SaveTile {
   page_name: string;
 }
 
-/**
- * Interface untuk konfigurasi penyimpanan
- * @interface SaveConfig
- * @property {string} dateRange - Rentang tanggal
- * @property {boolean} autoRefresh - Auto refresh
- * @property {string[]} pages - Daftar halaman
- * @property {string} [dateFrom] - Tanggal mulai
- * @property {string} [dateTo] - Tanggal akhir
- */
 export interface SaveConfig {
   dateRange: string;
   autoRefresh: boolean;
@@ -122,10 +67,6 @@ export interface SaveConfig {
   dateTo?: string;
 }
 
-/**
- * Konfigurasi visualisasi default
- * @constant {ChartVisualization} defaultVisualization
- */
 const defaultVisualization: ChartVisualization = {
   chartType: 'bar',
   yAxis: [],
@@ -133,22 +74,6 @@ const defaultVisualization: ChartVisualization = {
   showLabels: false,
 };
 
-/**
- * Komponen layout utama untuk builder dashboard
- * Menyediakan antarmuka untuk menjelajahi data, membuat query, dan menyusun dashboard
- * Mendukung pembuatan dashboard otomatis menggunakan AI
- * 
- * @param {BuilderLayoutProps} props - Props untuk konfigurasi layout builder
- * @returns {JSX.Element} Element React yang berisi layout builder
- * 
- * @example
- * ```tsx
- * <BuilderLayout
- *   onSaveDashboard={saveDashboard}
- *   existingFolders={['Laporan Bulanan', 'KPI']}
- * />
- * ```
- */
 export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: BuilderLayoutProps) {
   const [mode, setMode] = useState<Mode>('explore');
   const [visualization, setVisualization] = useState<ChartVisualization>({ ...defaultVisualization });
@@ -161,7 +86,6 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
   const [aiFolder, setAiFolder] = useState('');
   const [aiStep, setAiStep] = useState(0);
 
-  // Customer Feedback template
   const [cfDateFrom, setCfDateFrom] = useState('');
   const [cfDateTo, setCfDateTo] = useState('');
   const [cfFolder, setCfFolder] = useState('');
@@ -184,18 +108,16 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
   const hasQuery = hasDimensions || hasMeasures;
   const hasResult = qe.data !== null && qe.data.rows.length > 0;
 
-  // Hide welcome once they interact
   useEffect(() => {
     if (hasQuery) {
-      // Use a microtask to avoid synchronous setState in effect
+
       Promise.resolve().then(() => setShowWelcome(false));
     }
   }, [hasQuery]);
 
-  // AI loading progress stepper
   useEffect(() => {
     if (!ai.loading) {
-      // Use a microtask to avoid synchronous setState in effect
+
       Promise.resolve().then(() => setAiStep(0));
       return;
     }
@@ -205,13 +127,6 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     return () => timers.forEach(clearTimeout);
   }, [ai.loading]);
 
-  /**
-   * Menangani klik field untuk ditambahkan ke query
-   * @function handleFieldClick
-   * @param {string} table - Nama tabel
-   * @param {FieldDef} field - Definisi field
-   * @returns {void}
-   */
   const handleFieldClick = useCallback((table: string, field: FieldDef) => {
     if (field.type === 'number' || field.type === 'uuid') {
       const fn: AggregateFunction = field.type === 'uuid' ? 'COUNT' : 'SUM';
@@ -232,11 +147,6 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     }
   }, [qb]);
 
-  /**
-   * Menjalankan query dan memperbarui visualisasi
-   * @async function handleExecute
-   * @returns {Promise<QueryResult | null>} Hasil query atau null
-   */
   const handleExecute = useCallback(async () => {
     const result = await qe.execute(qb.query);
 
@@ -269,15 +179,9 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     return () => window.removeEventListener('keydown', handler);
   }, [handleExecute]);
 
-  /**
-   * Menjalankan query untuk semua tile dashboard
-   * @async function executeTileQueries
-   * @returns {Promise<void>}
-   */
   const executeTileQueries = useCallback(async () => {
     const results = new Map<string, QueryResult>();
-    
-    // Construct global filters to inject
+
     const globalFilterDefs: QueryFilter[] = [];
     if (globalFilters.hub !== 'all' && globalFilters.hub !== undefined) globalFilterDefs.push({ table: 'reports', field: 'hub', operator: 'eq', value: globalFilters.hub, conjunction: 'AND' });
     if (globalFilters.branch !== 'all' && globalFilters.branch !== undefined) globalFilterDefs.push({ table: 'reports', field: 'branch', operator: 'eq', value: globalFilters.branch, conjunction: 'AND' });
@@ -290,11 +194,10 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
       dash.tiles.map(async tile => {
         if (tile.query.dimensions.length > 0 || tile.query.measures.length > 0) {
           try {
-            // Blend global filters into tile query
-            // Override existing tile filters with global ones if they target the same field
+
             const globalFields = globalFilterDefs.map(gf => gf.field);
             const filteredTileFilters = tile.query.filters.filter(tf => !globalFields.includes(tf.field));
-            
+
             const blendedQuery = {
               ...tile.query,
               filters: [...filteredTileFilters, ...globalFilterDefs]
@@ -309,7 +212,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
               const data = await res.json();
               results.set(tile.id, data);
             }
-          } catch { /* ignore */ }
+          } catch {  }
         }
       })
     );
@@ -318,16 +221,11 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
 
   useEffect(() => {
     if (mode === 'dashboard') {
-      // Use a microtask to avoid synchronous setState in effect
+
       Promise.resolve().then(() => executeTileQueries());
     }
   }, [mode, executeTileQueries]);
 
-  /**
-   * Menangani pembuatan dashboard dengan AI
-   * @async function handleAIGenerate
-   * @returns {Promise<void>}
-   */
   const handleAIGenerate = useCallback(async () => {
     if (!aiPrompt.trim()) return;
     const def = await ai.generate(aiPrompt.trim());
@@ -337,10 +235,6 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     }
   }, [aiPrompt, ai, aiFolder, dash]);
 
-  /**
-   * Menghitung range tahun untuk template Customer Feedback
-   * @constant {string} yearRange
-   */
   const yearRange = useMemo(() => {
     if (!cfDateFrom || !cfDateTo) return '';
     const fy = new Date(cfDateFrom).getFullYear();
@@ -348,11 +242,6 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     return fy === ty ? `${fy}` : `${fy} - ${ty}`;
   }, [cfDateFrom, cfDateTo]);
 
-  /**
-   * Menangani pembuatan dashboard Customer Feedback
-   * @async function handleCustomerFeedbackGenerate
-   * @returns {Promise<void>}
-   */
   const handleCustomerFeedbackGenerate = useCallback(async () => {
     if (!cfDateFrom || !cfDateTo) return;
     const def = await ai.generateCustomerFeedback(cfDateFrom, cfDateTo);
@@ -362,23 +251,12 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     }
   }, [cfDateFrom, cfDateTo, cfFolder, ai, dash]);
 
-  /**
-   * Menambahkan query saat ini sebagai tile
-   * @function addCurrentAsTile
-   * @returns {void}
-   */
   const addCurrentAsTile = useCallback(() => {
     if (!hasQuery) return;
     dash.addTile(qb.query, visualization);
     setMode('dashboard');
   }, [qb.query, visualization, dash, hasQuery]);
 
-  /**
-   * Menangani edit tile
-   * @function handleEditTile
-   * @param {string} tileId - ID tile yang akan diedit
-   * @returns {void}
-   */
   const handleEditTile = useCallback((tileId: string) => {
     const tile = dash.tiles.find(t => t.id === tileId);
     if (!tile) return;
@@ -388,11 +266,6 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     setMode('explore');
   }, [dash.tiles, qb]);
 
-  /**
-   * Menyimpan perubahan edit tile
-   * @async function handleSaveTileEdit
-   * @returns {Promise<void>}
-   */
   const handleSaveTileEdit = useCallback(async () => {
     if (!editingTileId) return;
     const result = await handleExecute();
@@ -408,16 +281,8 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     setMode('dashboard');
   }, [editingTileId, qb.query, visualization, dash, handleExecute]);
 
-  /**
-   * Menyimpan dashboard
-   * @async function handleSave
-   * @param {string} name - Nama dashboard
-   * @param {string} description - Deskripsi dashboard
-   * @param {string | null} folder - Folder untuk menyimpan
-   * @returns {Promise<{embedUrl: string} | null>} URL embed atau null
-   */
   const handleSave = useCallback(async (name: string, description: string, folder: string | null) => {
-    // Build a tile -> page_name lookup from pages
+
     const tilePageMap = new Map<string, string>();
     if (dash.pages.length > 0) {
       for (const page of dash.pages) {
@@ -450,12 +315,6 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     return onSaveDashboard(name, description, tiles, config, folder);
   }, [dash.tiles, dash.pages, onSaveDashboard, cfDateFrom, cfDateTo]);
 
-  /**
-   * Memperbarui konfigurasi visualisasi
-   * @function updateVisualization
-   * @param {Partial<ChartVisualization>} updates - Update parsial untuk visualisasi
-   * @returns {void}
-   */
   const updateVisualization = useCallback((updates: Partial<ChartVisualization>) => {
     setVisualization(prev => ({ ...prev, ...updates }));
   }, []);
@@ -466,10 +325,10 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
 
   return (
     <div className="flex flex-col h-full">
-      {/* Top bar with steps */}
+      {}
       <div className="flex items-center justify-between px-4 py-3 bg-[var(--surface-1)] border-b border-[var(--surface-4)]">
         <div className="flex items-center gap-3">
-          {/* Mode toggle */}
+          {}
           <div className="flex bg-[var(--surface-2)] rounded-xl p-0.5 border border-[var(--surface-4)]">
             <button
               onClick={() => setMode('explore')}
@@ -547,10 +406,10 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
         </div>
       </div>
 
-      {/* Main content */}
+      {}
       {mode === 'explore' ? (
         <div className="flex flex-1 overflow-hidden">
-          {/* Left: Field Sidebar */}
+          {}
           <div className="w-[300px] shrink-0 overflow-hidden">
             <FieldSidebar
               source={qb.query.source}
@@ -561,9 +420,9 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
             />
           </div>
 
-          {/* Center: Query + Results */}
+          {}
           <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Query Config (top) */}
+            {}
             <div className="border-b border-[var(--surface-4)] max-h-[45%] overflow-auto">
               <QueryPanel
                 query={qb.query}
@@ -582,15 +441,15 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
               />
             </div>
 
-            {/* Results (bottom) */}
+            {}
             <div className="flex-1 overflow-hidden">
               {showWelcome && !hasQuery ? (
-                /* Welcome / onboarding state with AI prompt */
+
                 <div className="flex items-center justify-center h-full p-8 overflow-auto">
                   <div className="w-full max-w-4xl animate-fade-in-up">
-                    {/* AI Prompt Card */}
+                    {}
                     <div className="relative p-[1px] rounded-2xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 mb-5 shadow-lg shadow-purple-500/10">
-                      {/* Decorative sparkle */}
+                      {}
                       <Sparkles size={12} className="absolute -top-1 -right-1 text-purple-400 animate-sparkle-pulse" style={{ animationDelay: '0.5s' }} />
                       <div className="bg-[var(--surface-1)] rounded-2xl p-5">
                         <div className="flex items-center gap-2 mb-3">
@@ -623,7 +482,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
                           />
                         </div>
 
-                        {/* Prompt suggestion chips */}
+                        {}
                         {!ai.loading && (
                           <div className="flex flex-wrap gap-1.5 mt-2">
                             {PROMPT_SUGGESTIONS.map(s => (
@@ -638,7 +497,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
                           </div>
                         )}
 
-                        {/* AI Loading Progress Stepper */}
+                        {}
                         {ai.loading && (
                           <div className="mt-3 space-y-2">
                             {AI_STEPS.map((step, idx) => (
@@ -691,7 +550,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
                       </div>
                     </div>
 
-                    {/* Customer Feedback Template Card */}
+                    {}
                     <div className="p-[1px] rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 mb-5 shadow-lg shadow-emerald-500/10">
                       <div className="bg-[var(--surface-1)] rounded-2xl p-5">
                         <div className="flex items-center gap-2 mb-3">
@@ -754,14 +613,14 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
                       </div>
                     </div>
 
-                    {/* Divider */}
+                    {}
                     <div className="flex items-center gap-3 mb-5">
                       <div className="flex-1 h-px bg-[var(--surface-4)]" />
                       <span className="text-[10px] text-[var(--text-muted)] font-medium uppercase tracking-wider">atau buat manual</span>
                       <div className="flex-1 h-px bg-[var(--surface-4)]" />
                     </div>
 
-                    {/* Enhanced 3-step guide cards */}
+                    {}
                     <div className="flex gap-3">
                       <div className="flex-1 p-3 bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-xl hover:-translate-y-0.5 transition-transform cursor-default group">
                         <div className="flex items-center gap-2 mb-1.5">
@@ -798,7 +657,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
             </div>
           </div>
 
-          {/* Right: Chart Config — only show when we have results */}
+          {}
           {hasResult && (
             <div className="w-[280px] shrink-0 overflow-hidden">
               <ChartConfigPanel

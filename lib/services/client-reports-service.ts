@@ -7,7 +7,7 @@ import { buildPwaScopedStorageKey } from '@/lib/pwa/client-state';
 
 const CACHE_KEY = 'gapura_reports_cache_v2';
 const META_KEY = 'gapura_reports_meta_v2';
-const CACHE_DURATION = 1000 * 60 * 15; // 15 minutes
+const CACHE_DURATION = 1000 * 60 * 15;
 
 interface CacheMeta {
   timestamp: number;
@@ -32,12 +32,10 @@ class ClientReportsService {
   async getReports(forceRefresh = false): Promise<Report[]> {
     if (typeof window === 'undefined') return [];
 
-    // Deduplicate concurrent requests
     if (this.pendingPromise) {
       return this.pendingPromise;
     }
 
-    // 1. Check memory cache with staleness check
     if (!forceRefresh && this.memoryCache) {
       const meta = this.loadMeta();
       if (meta && Date.now() - meta.timestamp > CACHE_DURATION) {
@@ -46,34 +44,30 @@ class ClientReportsService {
       return this.memoryCache;
     }
 
-    // 2. Check local storage
     if (!forceRefresh) {
       const cached = this.loadFromStorage();
       if (cached) {
         this.memoryCache = cached;
-        // Background refresh if older than 5 mins but less than 15?
-        // For now, strict expiration
+
         return cached;
       }
     }
 
-    // 3. Fetch from API
     this.pendingPromise = (async () => {
       try {
 
         const response = await fetch('/api/reports/sync');
         if (!response.ok) throw new Error('Failed to sync reports');
-        
+
         const data = await response.json();
         const reports = data.reports as Report[];
-        
+
         this.saveToStorage(reports);
         this.memoryCache = reports;
-        
+
         return reports;
       } catch (err) {
 
-        // Fallback to stale cache if available
         const stale = this.loadFromStorage(true);
         if (stale) {
 
@@ -111,10 +105,11 @@ class ClientReportsService {
         this.saveToStorage(reports);
         this.memoryCache = reports;
       } catch {
-        // Silent background refresh failure
+
       } finally {
         this.pendingPromise = null;
       }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     })() as any;
   }
 
@@ -122,7 +117,7 @@ class ClientReportsService {
     const reports = await this.getReports();
     return processQuery(query, reports);
   }
-  
+
   private saveToStorage(reports: Report[]) {
     if (typeof window === 'undefined') return;
     try {
@@ -130,7 +125,7 @@ class ClientReportsService {
       const scopedMetaKey = buildPwaScopedStorageKey(META_KEY);
       const serialized = JSON.stringify(reports);
       localStorage.setItem(scopedCacheKey, serialized);
-      
+
       const meta: CacheMeta = {
         timestamp: Date.now(),
         count: reports.length,
@@ -139,10 +134,9 @@ class ClientReportsService {
       localStorage.setItem(scopedMetaKey, JSON.stringify(meta));
     } catch (e) {
 
-      // Strategy: maybe clear other keys or warn user
     }
   }
-  
+
   private loadFromStorage(ignoreExpiration = false): Report[] | null {
     if (typeof window === 'undefined') return null;
     try {
@@ -150,25 +144,25 @@ class ClientReportsService {
       const scopedCacheKey = buildPwaScopedStorageKey(CACHE_KEY);
       const metaStr = localStorage.getItem(scopedMetaKey);
       if (!metaStr) return null;
-      
+
       const meta: CacheMeta = JSON.parse(metaStr);
       const now = Date.now();
-      
+
       if (!ignoreExpiration && (now - meta.timestamp > CACHE_DURATION)) {
 
-        return null; // Expired
+        return null;
       }
-      
+
       const dataStr = localStorage.getItem(scopedCacheKey);
       if (!dataStr) return null;
-      
+
       return JSON.parse(dataStr);
     } catch (e) {
 
       return null;
     }
   }
-  
+
   clearCache() {
     this.memoryCache = null;
     if (typeof window !== 'undefined') {

@@ -1,19 +1,14 @@
-/**
- * Aviation Command Center Chart Configuration
- * Distinctive color palette avoiding generic defaults
- */
 
 export const AVIATION_CHART_COLORS = {
-  primary: 'oklch(0.65 0.18 160)',      // Emerald
-  secondary: 'oklch(0.7 0.15 200)',     // Cyan
-  tertiary: 'oklch(0.75 0.14 75)',      // Amber
-  quaternary: 'oklch(0.62 0.16 280)',   // Purple
-  quinary: 'oklch(0.68 0.15 30)',       // Coral-red
+  primary: 'oklch(0.65 0.18 160)',
+  secondary: 'oklch(0.7 0.15 200)',
+  tertiary: 'oklch(0.75 0.14 75)',
+  quaternary: 'oklch(0.62 0.16 280)',
+  quinary: 'oklch(0.68 0.15 30)',
 
-  // Category-specific
-  irregularity: 'oklch(0.65 0.18 160)', // Emerald
-  complaint: 'oklch(0.65 0.18 25)',     // Coral
-  compliment: 'oklch(0.7 0.15 200)',    // Cyan
+  irregularity: 'oklch(0.65 0.18 160)',
+  complaint: 'oklch(0.65 0.18 25)',
+  compliment: 'oklch(0.7 0.15 200)',
 } as const;
 
 export const CHART_AXIS_STYLE = {

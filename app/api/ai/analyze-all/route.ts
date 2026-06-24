@@ -8,17 +8,11 @@ import { resolveCachedAI } from '@/lib/ai-route-cache';
 export const maxDuration = 300;
 export const dynamic = 'force-dynamic';
 
-/**
- * GET /api/ai/analyze-all
- * 
- * Analyze all reports from Google Sheets using the AI service
- * This is a proxy endpoint that calls the Python AI service
- */
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
-    
+
     if (!token) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -104,7 +98,7 @@ export async function GET(request: NextRequest) {
             console.log('[AI API] Primary failed, /fast succeeded');
           }
         } catch {
-          // handled below
+
         }
       }
 
@@ -244,7 +238,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('[AI API] Error in analyze-all route:', error);
-    
+
     return NextResponse.json(
       { error: 'Internal server error', message: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

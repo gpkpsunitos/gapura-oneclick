@@ -1,5 +1,5 @@
 "use client";
-// Fetch all dashboard data in parallel (reports, analytics, dashboards)
+
 async function fetchData() {
   const [reportsRes, analyticsRes, dbRes] = await Promise.all([
     fetch('/api/admin/reports'),
@@ -108,11 +108,9 @@ const DashboardLinkModals = dynamic(
   { ssr: false }
 );
 
-// AnalystCharts is now exported directly from ChartSection.tsx
 import { AnalystCharts } from '@/components/dashboard/analyst/ChartSection';
 
 import { ChartSection } from '@/components/dashboard/analyst/ChartSection';
-
 
 interface DivisionAnalystDashboardProps {
   division: DivisionConfig;
@@ -142,8 +140,7 @@ const DeferredChartRegion = memo(function DeferredChartRegion({
         }
       },
       {
-        // 100px pre-load margin — starts loading charts just before they enter view.
-        // Reduced from 320px which was eagerly parsing 1.5 screens of JS on mobile.
+
         rootMargin: '100px 0px',
       }
     );
@@ -198,12 +195,9 @@ export function DivisionAnalystDashboard({
 }: DivisionAnalystDashboardProps & {
   initialReports?: Report[];
   initialAnalytics?: AnalyticsData | null;
-  // ponytail: hard-lock branch scope (manager-cabang use case). When set, the
-  // server has already filtered `initialReports` to these branches; we also
-  // clamp the client filter + skip the SWR widening fetch so the manager
-  // can't widen scope from the UI.
+
   lockedBranches?: string[];
-  // Pin the view (e.g. 'reports' for manager All Reports), ignoring ?view.
+
   forceView?: DashboardView;
 }) {
   const router = useRouter();
@@ -212,7 +206,6 @@ export function DivisionAnalystDashboard({
 
   const isScopeLocked = Boolean(lockedBranches && lockedBranches.length > 0);
 
-  // Derived directly — no intermediate useState to avoid double-renders
   const view: DashboardView = forceView
     ? forceView
     : searchParams.get('view') === 'reports'
@@ -251,7 +244,6 @@ export function DivisionAnalystDashboard({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Global Filters State
   const [globalFilters, setGlobalFilters] = useState<{
     hubs: string[];
     branches: string[];
@@ -264,11 +256,6 @@ export function DivisionAnalystDashboard({
     categories: [],
   });
 
-  // SWR hooks — data consumed directly to avoid double-render (SWR→state→useEffect cascade).
-  // Using useData from lib/swr for LRU cache sharing across hooks and routes.
-  // ponytail: when scope is locked (manager-cabang), skip the /api/admin/reports
-  // fetch entirely — that endpoint returns all stations and would leak data
-  // past the lock. Rely on the server-filtered initialReports.
   const { data: swrReports, isLoading: swrLoading, mutate: mutateReports } = useSWR<Report[]>(
     isScopeLocked ? null : '/api/admin/reports',
     (url) => fetch(url).then(res => res.json()).then((json) => Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : []),
@@ -287,7 +274,6 @@ export function DivisionAnalystDashboard({
     needsCustomerFeedbackData ? '/api/dashboards' : null
   );
 
-  // Derive savedDashboards without intermediate setState
   const savedDashboards = useMemo(
     () => dashboardsData?.dashboards ?? [],
     [dashboardsData]
@@ -334,8 +320,7 @@ export function DivisionAnalystDashboard({
 
     await refreshData();
   }, [refreshData]);
-  
-  // Debounced search effect
+
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(listSearch);
@@ -343,20 +328,16 @@ export function DivisionAnalystDashboard({
     return () => clearTimeout(timer);
   }, [listSearch]);
 
-  // ponytail: re-clamp the toolbar branch picker if anything (reset, init,
-  // user pick) drifts off the locked station.
   useEffect(() => {
     if (lockedBranches && lockedBranches.length > 0 && listBranch !== lockedBranches[0]) {
       setListBranch(lockedBranches[0]);
     }
   }, [lockedBranches, listBranch]);
 
-  // Removed localStorage hydration for dashboard links (SSR safe)
-
   const filteredReports = useMemo(() => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
-    
+
     let cutoffDate: Date;
     let explicitEndDate: Date | null = null;
 
@@ -372,14 +353,14 @@ export function DivisionAnalystDashboard({
     } else {
       cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
     }
-    
+
     const endDate = explicitEndDate || today;
 
     const safeReports = Array.isArray(reports) ? reports : [];
     const base = safeReports.filter((r) => {
       const dateStr = r.date_of_event || r.created_at;
       if (!dateStr) return false;
-      
+
       let d: Date;
       if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
         const [y, m, day] = dateStr.split('-').map(Number);
@@ -387,13 +368,12 @@ export function DivisionAnalystDashboard({
       } else {
         d = new Date(dateStr);
       }
-      
+
       return d >= cutoffDate && d <= endDate;
     });
 
     let result = base;
 
-    // ponytail: hard branch lock — survives any user-side filter changes.
     if (lockedBranches && lockedBranches.length > 0) {
       const allowed = new Set(lockedBranches.map((b) => b.toUpperCase()));
       result = result.filter((r) => {
@@ -550,7 +530,6 @@ export function DivisionAnalystDashboard({
       value
     )}&period=${dateRange}`;
 
-  // Filter options
   const availableOptions = useMemo(() => {
     const hubs = new Set<string>();
     const branches = new Set<string>();
@@ -684,11 +663,6 @@ export function DivisionAnalystDashboard({
         break;
     }
   };
-
-  // Chart data computations moved to ChartSection component, which only
-  // mounts when DeferredChartRegion becomes visible (IntersectionObserver).
-  // This saves ~15 useMemo array transformations per render when charts
-  // are below the fold.
 
   const isOpDivision = division.code === 'OP';
 

@@ -22,12 +22,11 @@ export async function POST(request: Request) {
 
     const form = await request.formData();
     const file = form.get('file');
-    
+
     if (!file || !(file instanceof File)) {
       return NextResponse.json({ error: 'File is required' }, { status: 400 });
     }
 
-    // Validate file type and size
     const validation = validateMedia(file, {
       maxImageSizeMB: 10,
       maxVideoSizeMB: 100
@@ -42,10 +41,10 @@ export async function POST(request: Request) {
 
     console.log(`[UPLOAD] Processing ${isVideo ? 'video' : 'image'}: ${(file.size / 1024).toFixed(2)}KB`);
 
-    // Compress media
     const arrayBuffer = await file.arrayBuffer();
     let compressedBuffer: Buffer;
     let contentType: string;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let metadata: any = {};
 
     try {
@@ -80,17 +79,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // Determine storage bucket and path
     const bucket = isVideo ? 'videos' : 'evidence';
     const ext = contentType.includes('webp') ? 'webp' :
                 contentType.includes('mp4') ? 'mp4' :
                 contentType.includes('png') ? 'png' : 'jpg';
-    
+
     const folder = `uploads/${payload.id || 'anonymous'}/${randomUUID()}`;
     const fileName = `${Date.now()}.${ext}`;
     const path = `${folder}/${fileName}`;
 
-    // Upload to appropriate bucket
     const { error: uploadErr } = await supabaseAdmin.storage
       .from(bucket)
       .upload(path, compressedBuffer, { contentType, upsert: false });
@@ -100,10 +97,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: uploadErr.message }, { status: 500 });
     }
 
-    // Get public URL
     const { data: pub } = supabaseAdmin.storage.from(bucket).getPublicUrl(path);
     const publicUrl = pub?.publicUrl;
-    
+
     if (!publicUrl) {
       return NextResponse.json({ error: 'Failed to get public URL' }, { status: 500 });
     }

@@ -1,8 +1,3 @@
-/**
- * Static bento grid — server-rendered for instant LCP.
- * Shows the card layout immediately without waiting for JS.
- * The client wizard replaces this once hydrated.
- */
 
 const BENTO_ITEMS = [
   {

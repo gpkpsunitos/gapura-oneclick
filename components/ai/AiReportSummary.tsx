@@ -115,9 +115,9 @@ export function AiReportSummary({
       variants={containerVariants}
       className="space-y-8"
     >
-      {/* Header & Strategic Insight Grid */}
+      {}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Key Insights - The "Soul" of the summary */}
+        {}
         <motion.div 
           variants={itemVariants}
           className="lg:col-span-2 p-8 rounded-3xl bg-[var(--surface-glass)] backdrop-blur-3xl border border-[var(--surface-4)] shadow-sm relative overflow-hidden group"
@@ -125,7 +125,7 @@ export function AiReportSummary({
           <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
             <Lightbulb size={120} />
           </div>
-          
+
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2.5 rounded-2xl bg-amber-500/10 text-amber-500">
               <Lightbulb size={24} className="fill-current" />
@@ -158,7 +158,7 @@ export function AiReportSummary({
           </div>
         </motion.div>
 
-        {/* Quick Stats & Severity */}
+        {}
         <div className="space-y-6">
           <motion.div variants={itemVariants} className="p-6 rounded-3xl bg-[var(--surface-glass)] backdrop-blur-3xl border border-[var(--surface-4)]">
             <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-4">
@@ -229,7 +229,7 @@ export function AiReportSummary({
         </div>
       </div>
 
-      {/* Common Issues & Distribution */}
+      {}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <motion.div variants={itemVariants} className="lg:col-span-2 p-6 rounded-3xl bg-[var(--surface-glass)] backdrop-blur-3xl border border-[var(--surface-4)]">
            <div className="flex items-center gap-2 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-widest mb-6">

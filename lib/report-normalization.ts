@@ -108,9 +108,7 @@ export function resolveReportAirline(report: Partial<Report>): string {
 }
 
 export function resolveCaseClassification(report: Partial<Report>): string {
-  // ponytail: exclude report-category fields (main_category, category,
-  // irregularity_complain_category, accident_incident) — those feed
-  // resolveReportCategory and represent a different concept.
+
   return firstReportValue(
     report.case_classification,
     report.case_category,

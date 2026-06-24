@@ -11,13 +11,13 @@ export function DateRangeFilter({ className = '' }: DateRangeFilterProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentRange = searchParams.get('range') || '7d';
-  
+
   const handleRangeChange = (range: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set('range', range);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
-  
+
   return (
     <div className={`date-filter-wrap ${className}`}>
       <div className="date-filter-pill">

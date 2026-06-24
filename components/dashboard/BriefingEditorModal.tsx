@@ -11,9 +11,11 @@ import { generateBriefingWord } from '../../lib/utils/briefing-generator';
 interface BriefingEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reportData: any;
   uploadType: 'CORRECTIVE' | 'PREVENTIVE';
   divisionName?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onSuccess: (updatedReport: any) => void;
 }
 
@@ -61,24 +63,22 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
       alert("Please provide a signature for the briefing first.");
       return;
     }
-    
+
     setIsSaving(true);
     try {
-      // 1. Generate DOCX Blob
+
       const docxBlob = await generateBriefingWord(formData, signatureData);
-      
-      // 2. Format filename with metadata tags: TYPE__UPLOADER__timestamp_Briefing.docx
-      const typeStr = uploadType; // e.g. CORRECTIVE or PREVENTIVE
+
+      const typeStr = uploadType;
       const uploaderStr = divisionName ? divisionName.replace(/[^a-zA-Z0-9]/g, '-') : 'Unknown';
       const timestamp = new Date().getTime();
       const filename = `${typeStr}__${uploaderStr}__${timestamp}__Briefing-Form.docx`;
-      
+
       const file = new File([docxBlob], filename, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-      
-      // 3. Upload to /api/uploads/evidence
+
       const uploadForm = new FormData();
       uploadForm.append('file', file);
-      
+
       const uploadResponse = await fetch(`/api/reports/${reportData.id}/evidence`, {
         method: 'POST',
         body: uploadForm,
@@ -90,8 +90,7 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
 
       const { url } = await uploadResponse.json();
       setUploadedUrl(url);
-      
-      // 4. Update Report Evidence Array in DB (Robust merge)
+
       const currentEvidence = [
         ...(reportData.evidence_urls || []),
         ...(reportData.evidence_url ? [reportData.evidence_url] : []),
@@ -99,17 +98,17 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
         ...(reportData.video_url ? [reportData.video_url] : [])
       ];
       const newEvidence = [...new Set([...currentEvidence, url])].filter(Boolean);
-      
+
       const patchRes = await fetch(`/api/reports/${reportData.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ evidence_urls: newEvidence }),
       });
-      
+
       if (!patchRes.ok) throw new Error('Failed to save evidence URL to report');
-      
+
       const patchData = await patchRes.json();
-      
+
       setIsSuccess(true);
       onSuccess(patchData.data || patchData);
     } catch (error) {
@@ -149,7 +148,7 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
                   Briefing form has been uploaded to the report and saved as evidence.
                 </p>
               </div>
-              
+
               <div className="flex flex-col sm:flex-row gap-4 w-full max-w-sm pt-4">
                 <Button
                   onClick={handleDownload}
@@ -169,7 +168,7 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
             </div>
           ) : (
             <>
-              {/* Header */}
+              {}
               <div className="flex items-center justify-between p-5 sm:px-8 sm:py-6 border-b border-gray-100 shrink-0 bg-gray-50/80 backdrop-blur-md">
                 <div>
                   <h2 className="text-xl font-bold tracking-tight text-gray-900">
@@ -189,7 +188,7 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
 
               <div className="flex-1 overflow-y-auto p-5 sm:p-8 custom-scrollbar">
                 <div className="space-y-8 max-w-2xl mx-auto">
-                  {/* Form Grid */}
+                  {}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <PrismInput
                       label="Briefing Date"
@@ -237,7 +236,7 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
                     </div>
                   </div>
 
-                  {/* Notulensi */}
+                  {}
                   <div className="space-y-2">
                     <label className="text-sm font-semibold text-gray-700">Minutes / Briefing Notes</label>
                     <textarea
@@ -249,7 +248,7 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
                     />
                   </div>
 
-                  {/* Signature Pad */}
+                  {}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <label className="text-sm font-semibold text-gray-700">Speaker Signature</label>
@@ -262,7 +261,7 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
                 </div>
               </div>
 
-              {/* Footer Actions */}
+              {}
               <div className="p-4 sm:p-5 sm:px-8 border-t border-gray-100 bg-gray-50/80 backdrop-blur-md shrink-0">
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                   <Button

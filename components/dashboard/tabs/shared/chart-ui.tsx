@@ -6,8 +6,6 @@ import {
 } from 'recharts';
 import { ChartAiAnalysisButton, type ChartAiContext } from '@/components/dashboard/ai/ChartAiAnalysisButton';
 
-// ── Color Palette ────────────────────────────────────────────────────────────
-
 export const REFERENCE_COLORS = {
   irregularity: 'oklch(0.65 0.18 160)',
   complaint: 'oklch(0.6 0.14 240)',
@@ -25,8 +23,6 @@ export const CHART_PALETTE = [
   'oklch(0.75 0.1 190)',
 ];
 
-// ── Responsive Container ─────────────────────────────────────────────────────
-
 export function ResponsiveContainer(props: ComponentProps<typeof RechartsResponsiveContainer>) {
   return (
     <RechartsResponsiveContainer
@@ -36,8 +32,6 @@ export function ResponsiveContainer(props: ComponentProps<typeof RechartsRespons
     />
   );
 }
-
-// ── Y-Axis Tick Wrapper ──────────────────────────────────────────────────────
 
 export const WrappedYAxisTick = (props: { x?: number; y?: number; payload?: { value?: unknown } }) => {
   const { x, y, payload } = props;
@@ -76,8 +70,6 @@ export const WrappedYAxisTick = (props: { x?: number; y?: number; payload?: { va
     </g>
   );
 };
-
-// ── Custom Tooltip ───────────────────────────────────────────────────────────
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -119,8 +111,6 @@ export function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
   );
 }
 
-// ── Heat Color ───────────────────────────────────────────────────────────────
-
 export function heatColor(value: number, max: number): { bg: string; fg: string } {
   if (value === 0 || max === 0) return { bg: 'transparent', fg: 'var(--text-muted)' };
   const ratio = Math.min(1, Math.max(0, value / max));
@@ -132,8 +122,6 @@ export function heatColor(value: number, max: number): { bg: string; fg: string 
     fg: l < 0.65 ? '#ffffff' : '#0f172a',
   };
 }
-
-// ── Chart Card ───────────────────────────────────────────────────────────────
 
 export function ChartCard({
   title,
@@ -171,8 +159,6 @@ export function ChartCard({
   );
 }
 
-// ── Heatmap Table Card ───────────────────────────────────────────────────────
-
 export function HeatmapTableCard({
   title,
   subtitle,
@@ -208,8 +194,6 @@ export function HeatmapTableCard({
     </div>
   );
 }
-
-// ── Category Bar List ────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 5;
 
@@ -283,8 +267,6 @@ export function CategoryBarList({ data, color = '#4ade80', title, onClick }: { d
   );
 }
 
-// ── Heatmap Table Primitives ─────────────────────────────────────────────────
-
 export function formatStatusValue(value: number) {
   return value > 0 ? value.toLocaleString() : '-';
 }
@@ -314,8 +296,6 @@ export function StatusBadge({ status }: { status: string | undefined }) {
     </span>
   );
 }
-
-// ── KPI Card ────────────────────────────────────────────────────────────────
 
 export function KpiCard({
   label,
@@ -353,8 +333,6 @@ export function KpiCard({
     </div>
   );
 }
-
-// ── Donut/Pie Slice Label ────────────────────────────────────────────────────
 
 export function renderPieLabel({
   cx,
@@ -413,8 +391,6 @@ export const PIE_LABEL_LINE_PROPS = {
   stroke: 'oklch(0.68 0.12 180 / 0.7)',
   strokeWidth: 1,
 };
-
-// ── Detail Report Table ─────────────────────────────────────────────────────
 
 const DETAIL_PAGE_SIZE = 10;
 

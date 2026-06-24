@@ -1,12 +1,4 @@
-/**
- * Zod schemas mirroring dl-space/schemas/predictive.py CaseInsightResponse.
- * The single Pydantic-on-server / Zod-on-client guard that kills the
- * findValue/findList hallucination pipe identified in Task 1 audit (C1).
- *
- * Any payload from /api/ai/insight/case that doesn't parse here is dropped
- * before render. Frontend shows "Data tidak cukup" placeholder for missing
- * fields rather than rendering arbitrary keys.
- */
+
 import { z } from 'zod';
 
 export const Severity = z.enum(['TOP RISK', 'HIGH RISK', 'HIGH', 'MEDIUM', 'LOW']);

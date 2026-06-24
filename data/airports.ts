@@ -1,15 +1,6 @@
-/**
- * @file
- * 
- * File ini berisi data master bandara di Indonesia
- */
 
-/**
- * Daftar bandara Indonesia dengan kode, nama, dan kota
- * @constant INDONESIAN_AIRPORTS
- */
 export const INDONESIAN_AIRPORTS = [
-    // Java, Bali, Lombok
+
     { code: 'CGK', name: 'Soekarno-Hatta International Airport', city: 'Jakarta (Tangerang)' },
     { code: 'HLP', name: 'Halim Perdanakusuma International Airport', city: 'Jakarta' },
     { code: 'DPS', name: 'I Gusti Ngurah Rai International Airport', city: 'Denpasar' },
@@ -24,7 +15,6 @@ export const INDONESIAN_AIRPORTS = [
     { code: 'BWX', name: 'Banyuwangi International Airport', city: 'Banyuwangi' },
     { code: 'MLG', name: 'Abdul Rachman Saleh Airport', city: 'Malang' },
 
-    // Sumatra
     { code: 'KNO', name: 'Kualanamu International Airport', city: 'Medan' },
     { code: 'BTH', name: 'Hang Nadim International Airport', city: 'Batam' },
     { code: 'PDG', name: 'Minangkabau International Airport', city: 'Padang' },
@@ -37,7 +27,6 @@ export const INDONESIAN_AIRPORTS = [
     { code: 'PGK', name: 'Depati Amir Airport', city: 'Pangkal Pinang' },
     { code: 'TJQ', name: 'H.A.S. Hanandjoeddin Airport', city: 'Tanjung Pandan' },
 
-    // Kalimantan
     { code: 'BPN', name: 'Sultan Aji Muhammad Sulaiman Sepinggan Airport', city: 'Balikpapan' },
     { code: 'PNK', name: 'Supadio International Airport', city: 'Pontianak' },
     { code: 'BDJ', name: 'Syamsudin Noor International Airport', city: 'Banjarmasin' },
@@ -45,14 +34,12 @@ export const INDONESIAN_AIRPORTS = [
     { code: 'TRK', name: 'Juwata International Airport', city: 'Tarakan' },
     { code: 'PKY', name: 'Tjilik Riwut Airport', city: 'Palangkaraya' },
 
-    // Sulawesi
     { code: 'UPG', name: 'Sultan Hasanuddin International Airport', city: 'Makassar' },
     { code: 'MDC', name: 'Sam Ratulangi International Airport', city: 'Manado' },
     { code: 'KDI', name: 'Haluoleo Airport', city: 'Kendari' },
     { code: 'PLW', name: 'Mutiara SIS Al-Jufrie Airport', city: 'Palu' },
     { code: 'GTO', name: 'Djalaluddin Airport', city: 'Gorontalo' },
 
-    // Nusa Tenggara & Maluku & Papua
     { code: 'KOE', name: 'El Tari International Airport', city: 'Kupang' },
     { code: 'LBJ', name: 'Komodo International Airport', city: 'Labuan Bajo' },
     { code: 'AMQ', name: 'Pattimura Airport', city: 'Ambon' },

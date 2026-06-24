@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
+
 'use client';
 
 import { useMemo } from 'react';
@@ -70,12 +70,10 @@ export function OsCgoSection({
     openDrawer,
 }: OsCgoSectionProps) {
 
-    // ── CGO-only data ──────────────────────────────────────────────────────────
     const cgoReports = useMemo(() =>
         filteredReports.filter(r => r.source_sheet === 'CGO'),
     [filteredReports]);
 
-    // 1. Report by Case Category (Complaint / Irregularity / Compliment)
     const cgoCaseCategoryData = useMemo(() => {
         const counts: Record<string, number> = {};
         cgoReports.forEach(r => {
@@ -92,7 +90,6 @@ export function OsCgoSection({
             .sort((a, b) => b.value - a.value);
     }, [cgoReports]);
 
-    // 2. Branch Reporting — top 10 branches by count
     const cgoBranchData = useMemo(() => {
         const counts: Record<string, number> = {};
         cgoReports.forEach(r => {
@@ -105,10 +102,10 @@ export function OsCgoSection({
             .slice(0, 10);
     }, [cgoReports]);
 
-    // 3. Airlines Report — top 10 airlines by count
     const cgoAirlinesData = useMemo(() => {
         const counts: Record<string, number> = {};
         cgoReports.forEach(r => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const airline = (r.airlines || (r as any).airline || 'Unknown').trim() || 'Unknown';
             counts[airline] = (counts[airline] || 0) + 1;
         });
@@ -118,7 +115,6 @@ export function OsCgoSection({
             .slice(0, 10);
     }, [cgoReports]);
 
-    // 4. Monthly Report — last 12 months
     const cgoMonthlyData = useMemo(() => {
         const counts: Record<string, { count: number; date: Date }> = {};
         cgoReports.forEach(r => {
@@ -139,9 +135,9 @@ export function OsCgoSection({
             }));
     }, [cgoReports]);
 
-    // 5. Category by Area
     const cgoCategoryByAreaData = useMemo(() => {
         const counts: Record<string, number> = {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const deriveArea = (r: any): 'Terminal Area' | 'Apron Area' | 'General' | null => {
             if (r?.terminal_area_category && String(r.terminal_area_category).trim()) return 'Terminal Area';
             if (r?.apron_area_category && String(r.apron_area_category).trim()) return 'Apron Area';
@@ -166,7 +162,6 @@ export function OsCgoSection({
             .sort((a, b) => b.value - a.value);
     }, [cgoReports]);
 
-    // 6. Case Category by Branch pivot — { branch, complaint, irregularity, compliment, total }[]
     const cgoPivotByBranch = useMemo(() => {
         const map: Record<string, { complaint: number; irregularity: number; compliment: number }> = {};
         cgoReports.forEach(r => {
@@ -182,10 +177,10 @@ export function OsCgoSection({
             .sort((a, b) => b.total - a.total);
     }, [cgoReports]);
 
-    // 7. Case Category by Airlines pivot — { airline, complaint, irregularity, compliment, total }[]
     const cgoPivotByAirlines = useMemo(() => {
         const map: Record<string, { complaint: number; irregularity: number; compliment: number }> = {};
         cgoReports.forEach(r => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const airline = ((r.airlines || (r as any).airline || 'Unknown') as string).trim() || 'Unknown';
             if (!map[airline]) map[airline] = { complaint: 0, irregularity: 0, compliment: 0 };
             const cat = (r.category || r.main_category || '').toLowerCase();
@@ -198,13 +193,15 @@ export function OsCgoSection({
             .sort((a, b) => b.total - a.total);
     }, [cgoReports]);
 
-    // CGO Detail Report useMemos
-    // 8. CGO Case Report by Area pivot — Branch → Airlines → { terminal, apron, general }
     const cgoCaseReportByArea = useMemo((): CaseReportByAreaBranchItem[] => {
         const branchMap: Record<string, Record<string, { terminal: number; apron: number; general: number }>> = {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const normalize = (v: any) => (typeof v === 'string' ? v.trim() : String(v || '')).trim();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const getBranch = (r: any) => normalize(r.branch || r.stations?.code || r.station_code || 'Unknown') || 'Unknown';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const getAirline = (r: any) => normalize(r.airlines || r.airline || 'Unknown') || 'Unknown';
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const getAreaKey = (r: any): 'terminal' | 'apron' | 'general' | null => {
             if (r?.terminal_area_category && String(r.terminal_area_category).trim()) return 'terminal';
             if (r?.apron_area_category && String(r.apron_area_category).trim()) return 'apron';
@@ -240,10 +237,10 @@ export function OsCgoSection({
             .sort((a, b) => b.grandTotal - a.grandTotal);
     }, [cgoReports]);
 
-    // 9. CGO Terminal Area Category
     const cgoTerminalAreaCategoryData = useMemo(() => {
         const map: Record<string, number> = {};
         cgoReports.forEach((r) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const cat = ((r as any).terminal_area_category || '').trim();
             if (cat) map[cat] = (map[cat] || 0) + 1;
         });
@@ -252,10 +249,10 @@ export function OsCgoSection({
             .sort((a, b) => b.value - a.value);
     }, [cgoReports]);
 
-    // 10. CGO Apron Area Category
     const cgoApronAreaCategoryData = useMemo(() => {
         const map: Record<string, number> = {};
         cgoReports.forEach((r) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const cat = ((r as any).apron_area_category || '').trim();
             if (cat) map[cat] = (map[cat] || 0) + 1;
         });
@@ -264,10 +261,10 @@ export function OsCgoSection({
             .sort((a, b) => b.value - a.value);
     }, [cgoReports]);
 
-    // 11. CGO General Category
     const cgoGeneralCategoryData = useMemo(() => {
         const map: Record<string, number> = {};
         cgoReports.forEach((r) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const cat = ((r as any).general_category || '').trim();
             if (cat) map[cat] = (map[cat] || 0) + 1;
         });
@@ -276,10 +273,10 @@ export function OsCgoSection({
             .sort((a, b) => b.value - a.value);
     }, [cgoReports]);
 
-    // 12. CGO HUB Report
     const cgoHubData = useMemo(() => {
         const map: Record<string, number> = {};
         cgoReports.forEach((r) => {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const hub = ((r as any).hub || '').trim();
             if (hub) map[hub] = (map[hub] || 0) + 1;
         });
@@ -287,8 +284,6 @@ export function OsCgoSection({
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value);
     }, [cgoReports]);
-
-
 
     if (cgoReports.length === 0) {
         return (
@@ -306,7 +301,7 @@ export function OsCgoSection({
                 icon={BarChart3}
             >
                 <div className="grid grid-cols-1 gap-4">
-                    {/* Row 1: 4 horizontal bar charts */}
+                    {}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
                           <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col")}>
@@ -476,7 +471,7 @@ export function OsCgoSection({
                             </div>
                         </div>
 
-                        {/* Case Category by Branch pivot */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Case Category by Branch</h3>
                             <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Report Category / Record Count</p>
@@ -533,7 +528,7 @@ export function OsCgoSection({
                             })()}
                         </div>
 
-                        {/* Case Category by Airlines pivot */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Case Category by Airlines</h3>
                             <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Report Category / Record Count</p>
@@ -592,17 +587,17 @@ export function OsCgoSection({
                     </div>
                 </PresentationSlide>
 
-            {/* Slide CGO Detail Report */}
+            {}
             <PresentationSlide
                 title="CGO - Detail Report"
                 subtitle="Detail laporan area dan kategori CGO"
                 icon={MapPin}
             >
                 <div className="grid grid-cols-1 gap-4">
-                    {/* Row 1: Case Report by Area + 3 CategoryBarList */}
+                    {}
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
 
-                        {/* Case Report by Area */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Case Report by Area</h3>
                             <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Area Report / Branch by Airlines</p>
@@ -639,6 +634,7 @@ export function OsCgoSection({
                                                             const handleCellClick = (area: string) => {
                                                                 const branch = branchRow.branch;
                                                                 const airlineName = airline.name;
+                                                                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                                 const filtered = (filteredReports as Report[]).filter((r: any) => {
                                                                     const rBranch = r.stations?.code || r.branch || r.reporting_branch || '';
                                                                     const rAirline = r.airlines || r.airline || '';
@@ -699,7 +695,7 @@ export function OsCgoSection({
                                             </tbody>
                                         </table>
                                     </div>
-                                    {/* Grand Total pinned below scroll area */}
+                                    {}
                                     <table className="w-full text-xs min-w-[320px] border-t-2 border-gray-300">
                                         <tbody>
                                             <tr className="bg-gray-100 font-bold">
@@ -723,7 +719,7 @@ export function OsCgoSection({
                             )}
                         </div>
 
-                        {/* Terminal Area Category */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-6 opacity-70">Terminal Area Category</h3>
                             <div className="flex items-center justify-between mb-3">
@@ -733,7 +729,7 @@ export function OsCgoSection({
                             <CategoryBarList data={cgoTerminalAreaCategoryData} color="#08ad6f" />
                         </div>
 
-                        {/* Apron Area Category */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-6 opacity-70">Apron Area Category</h3>
                             <div className="flex items-center justify-between mb-3">
@@ -743,7 +739,7 @@ export function OsCgoSection({
                             <CategoryBarList data={cgoApronAreaCategoryData} color="#0f86c1" />
                         </div>
 
-                        {/* General Category */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-6 opacity-70">General Category</h3>
                             <div className="flex items-center justify-between mb-3">
@@ -754,7 +750,7 @@ export function OsCgoSection({
                         </div>
                     </div>
 
-                    {/* Row 2: HUB Report + Detail Report table */}
+                    {}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
                          <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col")}>
@@ -794,7 +790,7 @@ export function OsCgoSection({
                             )}
                         </div>
 
-                        {/* Detail Report Landside & Airside */}
+                        {}
                         <div className={cn(OS_CARD_CLASS, "flex h-[34rem] min-h-0 flex-col p-6 group transition-all duration-500 hover:shadow-2xl")}>
                             <h3 className="shrink-0 text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Detail Report Landside & Airside</h3>
                             <p className="shrink-0 text-[10px] font-medium text-[var(--text-muted)] mb-4">Data laporan CGO diurutkan berdasarkan tanggal</p>

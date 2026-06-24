@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi utilitas untuk manajemen notifikasi email dan in-app
- */
 
 import 'server-only';
 
@@ -12,76 +7,55 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { buildReportFingerprint, isNewRecordCategory, resolveReportCategory, resolveReportBranch } from '@/lib/report-fingerprint';
 import type { Report } from '@/types';
 
-/**
- * Payload notifikasi generik
- * @interface NotificationPayload
- */
 interface NotificationPayload {
-    /** Tipe notifikasi */
+
     type: 'NEW_REPORT' | 'STATUS_CHANGE' | 'SLA_BREACH' | 'COMMENT';
-    /** ID laporan */
+
     reportId: string;
-    /** Divisi tujuan (opsional) */
+
     targetDivision?: string;
-    /** Judul notifikasi */
+
     title: string;
-    /** Pesan notifikasi */
+
     message: string;
-    /** Prioritas (opsional) */
+
     priority?: string;
-    /** Deadline SLA (opsional) */
+
     slaDeadline?: string;
 }
 
-/**
- * Pesan email untuk dikirim
- * @interface EmailMessage
- */
 interface EmailMessage {
-    /** Entity notifikasi */
+
     entity: string;
-    /** Subject email */
+
     subject: string;
-    /** Teks email */
+
     text: string;
-    /** HTML email (opsional) */
+
     html?: string;
-    /** Daftar penerima */
+
     recipients: string[];
-    /** Base fingerprint untuk deduplikasi */
+
     fingerprintBase: string;
-    /** Payload tambahan (opsional) */
+
     payload?: Record<string, unknown>;
 }
 
-/**
- * Sumber notifikasi record baru
- * @typedef NewRecordNotificationSource
- */
 export type NewRecordNotificationSource = 'internal' | 'public' | 'batch' | 'sheets-sync';
 
-/**
- * Opsi untuk email test
- * @interface TestEmailOptions
- */
 interface TestEmailOptions {
-    /** Email penerima */
+
     to: string;
-    /** Subject email (opsional) */
+
     subject?: string;
-    /** Teks email (opsional) */
+
     text?: string;
-    /** User yang meminta (opsional) */
+
     requestedBy?: string;
 }
 
-/** Transporter nodemailer untuk pengiriman email */
 let emailTransporter: nodemailer.Transporter | null = null;
 
-/**
- * Mendapatkan konfigurasi SMTP dari environment variables
- * @returns Object konfigurasi SMTP
- */
 function smtpConfig() {
     const host = process.env.SMTP_HOST || 'smtp.gmail.com';
     const port = Number(process.env.SMTP_PORT || '465');
@@ -94,10 +68,6 @@ function smtpConfig() {
     return { host, port, secure, user, pass };
 }
 
-/**
- * Mendapatkan email pengirim notifikasi
- * @returns Email pengirim dari konfigurasi atau default
- */
 function notificationFrom() {
     const configuredFrom = process.env.NOTIFICATION_FROM_EMAIL?.trim();
     if (configuredFrom) return configuredFrom;
@@ -106,25 +76,10 @@ function notificationFrom() {
     return smtpUser ? `OneKlik <${smtpUser}>` : 'OneKlik <notifications@localhost>';
 }
 
-/**
- * Membuat hash dari fingerprint untuk deduplikasi
- * @param value - Nilai untuk di-hash
- * @returns Hash SHA1 dalam bentuk hex string
- */
 function hashFingerprint(value: string): string {
     return crypto.createHash('sha1').update(value).digest('hex');
 }
 
-/**
- * Mencadangkan slot pengiriman notifikasi untuk mencegah duplikasi
- * @param fingerprint - Fingerprint unik
- * @param entity - Entity notifikasi
- * @param recipientEmail - Email penerima
- * @param subject - Subject email
- * @param payload - Payload tambahan
- * @returns true jika slot berhasil dicadangkan, false jika sudah ada
- * @throws Error jika terjadi error database
- */
 async function reserveDelivery(
     fingerprint: string,
     entity: string,
@@ -158,13 +113,6 @@ async function reserveDelivery(
     return true;
 }
 
-/**
- * Finalisasi status pengiriman notifikasi
- * @param fingerprint - Fingerprint notifikasi
- * @param status - Status pengiriman ('sent', 'skipped', atau 'failed')
- * @param errorMessage - Pesan error (opsional)
- * @returns Promise yang resolve setelah update berhasil
- */
 async function finalizeDelivery(
     fingerprint: string,
     status: 'sent' | 'skipped' | 'failed',
@@ -186,12 +134,6 @@ async function finalizeDelivery(
     }
 }
 
-/**
- * Mengirim email dengan deduplikasi dan logging
- * @param message - Pesan email yang akan dikirim
- * @returns Promise yang resolve setelah email diproses
- * @throws Error jika terjadi error pengiriman
- */
 async function sendEmail(message: EmailMessage) {
     const { host, port, secure, user, pass } = smtpConfig();
 
@@ -248,11 +190,6 @@ async function sendEmail(message: EmailMessage) {
     }
 }
 
-/**
- * Mendapatkan daftar penerima notifikasi untuk entity tertentu
- * @param entity - Entity notifikasi
- * @returns Promise yang berisi array email penerima
- */
 async function getNotificationRecipients(entity: string): Promise<string[]> {
     const { data, error } = await supabaseAdmin
         .from('notification_recipients')
@@ -274,7 +211,6 @@ async function getNotificationRecipients(entity: string): Promise<string[]> {
         return fromDb;
     }
 
-    // Fallback to environment variables
     const fallbackEmails = (
         process.env.DEFAULT_NOTIFICATION_EMAIL || 
         process.env.GMAIL_SMTP_USER || 
@@ -298,20 +234,10 @@ async function getNotificationRecipients(entity: string): Promise<string[]> {
     return [];
 }
 
-/**
- * Mendapatkan nama cabang dari laporan
- * @param report - Objek laporan parsial
- * @returns Nama cabang atau '-'
- */
 function reportBranch(report: Partial<Report>): string {
     return resolveReportBranch(report) || '-';
 }
 
-/**
- * Mendapatkan label sumber notifikasi
- * @param source - Sumber notifikasi
- * @returns Label sumber dalam Bahasa Indonesia
- */
 function sourceLabel(source: NewRecordNotificationSource): string {
     switch (source) {
         case 'public':
@@ -326,16 +252,6 @@ function sourceLabel(source: NewRecordNotificationSource): string {
     }
 }
 
-/**
- * Mengirim notifikasi email untuk record baru
- * @param report - Data laporan parsial
- * @param source - Sumber notifikasi
- * @returns Promise yang resolve setelah notifikasi diproses
- * @example
- * ```ts
- * await notifyNewRecordEmail(report, 'public');
- * ```
- */
 export async function notifyNewRecordEmail(
     report: Partial<Report>,
     source: NewRecordNotificationSource
@@ -356,7 +272,7 @@ export async function notifyNewRecordEmail(
     const branchName = reportBranch(report);
     const reporter = report.reporter_name || report.reporter_email || '-';
     const severityLabel = report.severity ? String(report.severity).toUpperCase() : '-';
-    
+
     console.log(`[NOTIFICATIONS] Preparing new record notification for: ${report.title || report.report} (Source: ${source}, Severity: ${severityLabel})`);
 
     const text = [
@@ -395,10 +311,6 @@ export async function notifyNewRecordEmail(
     });
 }
 
-/**
- * Mengirim notifikasi ke pelapor saat laporan ditutup.
- * Deduplikasi memakai fingerprint report + recipient agar status CLOSED berulang tidak mengirim email ganda.
- */
 export async function notifyReportClosedEmail(report: Partial<Report>) {
     const recipient = String(report.reporter_email || '').trim();
     if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
@@ -449,20 +361,6 @@ export async function notifyReportClosedEmail(report: Partial<Report>) {
     });
 }
 
-/**
- * Mengirim email test untuk verifikasi konfigurasi SMTP
- * @param options - Opsi email test
- * @param options.to - Email penerima
- * @param options.subject - Subject email (opsional)
- * @param options.text - Teks email (opsional)
- * @param options.requestedBy - User yang meminta (opsional)
- * @returns Promise yang resolve setelah email dikirim
- * @throws Error jika email penerima tidak valid
- * @example
- * ```ts
- * await sendTestEmail({ to: 'test@example.com', subject: 'Test Email' });
- * ```
- */
 export async function sendTestEmail(options: TestEmailOptions) {
     const to = String(options.to || '').trim();
     if (!to) {
@@ -491,40 +389,10 @@ export async function sendTestEmail(options: TestEmailOptions) {
     });
 }
 
-/**
- * Backward-compatible placeholder for generic in-app notifications.
- */
-/**
- * Placeholder untuk notifikasi in-app generik
- * @param payload - Payload notifikasi
- * @returns Promise yang resolve setelah notifikasi diproses
- * @example
- * ```ts
- * await sendNotification({
- *   type: 'NEW_REPORT',
- *   reportId: '123',
- *   title: 'Laporan Baru',
- *   message: 'Laporan baru telah dibuat'
- * });
- * ```
- */
 export async function sendNotification(payload: NotificationPayload): Promise<void> {
     console.info('[NOTIFICATIONS] Generic notification payload:', payload);
 }
 
-/**
- * Mengirim notifikasi untuk laporan baru
- * @param reportId - ID laporan
- * @param targetDivision - Divisi tujuan
- * @param title - Judul laporan
- * @param priority - Prioritas laporan
- * @param slaDeadline - Deadline SLA
- * @returns Promise yang resolve setelah notifikasi diproses
- * @example
- * ```ts
- * await notifyNewReport('123', 'OS', 'Report Title', 'high', '2024-12-31');
- * ```
- */
 export async function notifyNewReport(
     reportId: string,
     targetDivision: string,
@@ -543,17 +411,6 @@ export async function notifyNewReport(
     });
 }
 
-/**
- * Mengirim notifikasi untuk pelanggaran SLA
- * @param reportId - ID laporan
- * @param title - Judul laporan
- * @param hoursOverdue - Jumlah jam keterlambatan
- * @returns Promise yang resolve setelah notifikasi diproses
- * @example
- * ```ts
- * await notifySLABreach('123', 'Report Title', 24);
- * ```
- */
 export async function notifySLABreach(
     reportId: string,
     title: string,
@@ -567,18 +424,6 @@ export async function notifySLABreach(
     });
 }
 
-/**
- * Mengirim notifikasi untuk perubahan status laporan
- * @param reportId - ID laporan
- * @param title - Judul laporan
- * @param oldStatus - Status lama
- * @param newStatus - Status baru
- * @returns Promise yang resolve setelah notifikasi diproses
- * @example
- * ```ts
- * await notifyStatusChange('123', 'Report Title', 'OPEN', 'IN_PROGRESS');
- * ```
- */
 export async function notifyStatusChange(
     reportId: string,
     title: string,

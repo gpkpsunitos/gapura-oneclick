@@ -96,15 +96,15 @@ export function DashboardHeader({
                 className
             )}
         >
-            {/* Decorative Background Elements */}
+            {}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute -top-20 -right-20 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
                 <div className="absolute -bottom-32 -left-20 w-80 h-80 bg-teal-300/20 rounded-full blur-3xl" />
             </div>
 
-            {/* Content */}
+            {}
             <div className="relative z-10">
-                {/* Title + Filter Row */}
+                {}
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-2xl lg:text-3xl font-bold text-white tracking-tight">
@@ -119,7 +119,7 @@ export function DashboardHeader({
                     <TimePeriodFilter value={period} onChange={onPeriodChange} />
                 </div>
 
-                {/* Summary Cards */}
+                {}
                 <div className="flex flex-col sm:flex-row gap-4">
                     <StatCard
                         label="Total Laporan"

@@ -21,8 +21,6 @@ interface InsightFilters {
   source?: 'all' | 'NON CARGO' | 'CGO';
 }
 
-// Fetches raw data from Google Sheets, applies filters, returns structured rows
-// Complexity: Time O(n) per sheet | Space O(n)
 async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
   rows: Record<string, string>[];
   headers: string[];
@@ -46,21 +44,19 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
     })
   );
 
-  // Extract and build the HUB mapping
   const hubSheetIndex = results.findIndex(r => r.sheetName === VLOOKUP_SHEET);
-  let branchToHubMap: Record<string, string> = {};
+  const branchToHubMap: Record<string, string> = {};
   if (hubSheetIndex !== -1) {
     const hubRows = results[hubSheetIndex].data;
     if (hubRows.length > 1) {
-      // Assuming column B is Branch and column C is HUB as per image
-      // Let's dynamically find it if headers exist
+
       const headers = (hubRows[0] as string[]).map(h => String(h).trim().toLowerCase());
       const branchIdx = headers.findIndex(h => h === 'branch' || h === 'kode cabang');
       const hubIdx = headers.findIndex(h => h === 'hub' || h === 'kode hub');
-      
-      const bIdx = branchIdx !== -1 ? branchIdx : 1; // fallback to B
-      const hIdx = hubIdx !== -1 ? hubIdx : 2; // fallback to C
-      
+
+      const bIdx = branchIdx !== -1 ? branchIdx : 1;
+      const hIdx = hubIdx !== -1 ? hubIdx : 2;
+
       for (let i = 1; i < hubRows.length; i++) {
         const branch = String(hubRows[i][bIdx] || '').trim().toUpperCase();
         const hubValue = String(hubRows[i][hIdx] || '').trim().toUpperCase();
@@ -71,7 +67,6 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
     }
   }
 
-  // Process data sheets
   const dataResults = results
     .filter(r => r.sheetName !== VLOOKUP_SHEET)
     .map(({ sheetName, data: allRows }) => {
@@ -80,19 +75,15 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
       const headers = (allRows[0] as string[]).map((h: string) => String(h).trim());
       const dataRows = allRows.slice(1);
 
-      // Convert to Record<string, string> for structured access
       const structured = dataRows.map((row) => {
         const obj: Record<string, string> = {};
         headers.forEach((h, i) => {
           obj[h] = String(row[i] || '').trim();
         });
         obj['_sheet'] = sheetName;
-        
-        // --- NORMALIZATION LAYER ---
-        
-        // 1. Normalize Area
-        let area = obj['Area'] || '';
-        // Known anomalies from Sheets (ex: names of people instead of area)
+
+        const area = obj['Area'] || '';
+
         const areaLower = area.toLowerCase();
         if (
           areaLower.includes('dennis') ||
@@ -109,9 +100,8 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
         } else if (areaLower === 'general') {
           obj['Area'] = 'General';
         }
-        
-        // 2. Normalize Airlines
-        let airline = obj['Airlines'] || obj['Airline'] || '';
+
+        const airline = obj['Airlines'] || obj['Airline'] || '';
         if (airline) {
             const al = airline.toLowerCase();
             if (al === 'thai airways') obj['Airlines'] = 'Thai Airways';
@@ -120,12 +110,11 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
             else if (al === 'vietjet air') obj['Airlines'] = 'VietJet Air';
             else if (al === 'indigo') obj['Airlines'] = 'IndiGo';
             else if (al === 'ethiopian airline') obj['Airlines'] = 'Ethiopian Airlines';
-            // ONLY copy across non-vlookup columns to keep things clean.
+
             obj['Airline'] = obj['Airlines'];
-            delete obj['MASKAPAI (VLOOKUP)']; // Discard poisonous field
+            delete obj['MASKAPAI (VLOOKUP)'];
         }
 
-        // 3. Explicitly inject calculated HUB based on Branch if missing or to override
         const activeBranch = obj['Branch'] || obj['Reporting Branch'] || obj['Reporting_Branch'] || obj['Station'] || '';
         if (activeBranch && branchToHubMap[activeBranch.toUpperCase()]) {
           obj['MAPPED_HUB'] = branchToHubMap[activeBranch.toUpperCase()];
@@ -136,13 +125,12 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
         return obj;
       });
 
-      // Apply client-side filters
       const filtered = structured.filter((row) => {
-        // Date filter
+
         if (filters.dateFrom || filters.dateTo) {
           const dateField = row['Date of Event'] || row['Date_of_Event'] || row['Tanggal'] || row['Date'] || '';
           if (!dateField) return false;
-          // ponytail: live sheet stores Excel serial ints (e.g. 45682) — convert before Date()
+
           let rowDate: Date;
           const asInt = Number(dateField);
           if (Number.isFinite(asInt) && asInt > 20000 && asInt < 80000) {
@@ -159,27 +147,23 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
           }
         }
 
-        // Hub filter (now using explicitly mapped hub)
         if (filters.hubs && filters.hubs.length > 0) {
           const hub = row['MAPPED_HUB'];
           if (!filters.hubs.some((h) => hub.toLowerCase().includes(h.toLowerCase()))) return false;
         }
 
-        // Branch filter
         if (filters.branches && filters.branches.length > 0) {
           const branch = row['Branch'] || row['Reporting Branch'] || row['Reporting_Branch'] || row['Station'] || row['KODE CABANG (VLOOKUP)'] || '';
           if (!filters.branches.some((b) => branch.toLowerCase().includes(b.toLowerCase()))) return false;
         }
 
-        // Airline filter
         if (filters.airlines && filters.airlines.length > 0) {
           const airline = row['Airlines'] || row['Airline'] || row['Maskapai'] || row['MASKAPAI (VLOOKUP)'] || '';
           if (!filters.airlines.some((a) => airline.toLowerCase().includes(a.toLowerCase()))) return false;
         }
 
-        // Category filter
         if (filters.categories && filters.categories.length > 0) {
-          // ponytail: include the live 3-bucket area-categories since the old combined column is gone
+
           const cat =
             row['Irregularity/Complain Category'] ||
             row['Irregularity_Complain_Category'] ||
@@ -202,9 +186,6 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
   return dataResults;
 }
 
-// Summarizes data into a compact text for the LLM context window.
-// Limits to ~200 rows to stay within token budget
-// Complexity: Time O(n) | Space O(n)
 function buildDataContext(
   sheetResults: { rows: Record<string, string>[]; headers: string[]; sheetName: string }[]
 ): string {
@@ -218,7 +199,6 @@ function buildDataContext(
     parts.push(`\n## Sheet: ${sheetName} (${rows.length} rows)`);
     parts.push(`Kolom: ${headers.join(', ')}`);
 
-    // Key statistics
     const statusCount: Record<string, number> = {};
     const reportCategoryCount: Record<string, number> = {};
     const specificCategoryCount: Record<string, number> = {};
@@ -236,8 +216,6 @@ function buildDataContext(
       const repCat = row['Report Category'] || row['Report_Category'] || '';
       if (repCat) reportCategoryCount[repCat] = (reportCategoryCount[repCat] || 0) + 1;
 
-      // ponytail: live schema dropped "Irregularity/Complain Category". Specific category is now
-      // expressed via Terminal/Apron/General buckets — fall through gracefully if absent.
       const specCat =
         row['Irregularity/Complain Category'] ||
         row['Irregularity_Complain_Category'] ||
@@ -249,12 +227,11 @@ function buildDataContext(
 
       const area = row['Area'] || '';
       if (area) {
-        // Only count valid top level areas
+
         const normalizedArea = area.trim();
         if (['Terminal Area', 'Apron Area', 'General'].includes(normalizedArea)) {
           terminalAreaCount[normalizedArea] = (terminalAreaCount[normalizedArea] || 0) + 1;
-          
-          // Cross-tabulate with Report Category
+
           const repCat2 = row['Report Category'] || row['Report_Category'] || '';
           if (repCat2) {
              if (!areaByReportCategory[normalizedArea]) areaByReportCategory[normalizedArea] = {};
@@ -291,7 +268,6 @@ function buildDataContext(
     parts.push(`Hub Distribution: ${JSON.stringify(hubCount)}`);
     parts.push(`--------------------------------------------------`);
 
-    // Sample rows (up to 200 for detailed context)
     const sampleLimit = Math.min(rows.length, 200);
     const relevantFields = [
       'Date of Event', 'Date_of_Event',
@@ -310,7 +286,6 @@ function buildDataContext(
       'Gapura KPS Remarks', 'Gapura KPS Action Taken'
     ];
 
-    // Determine which fields are present or injected
     const injectedFields = ['MAPPED_HUB'];
     const activeFields = relevantFields.filter((f) => headers.includes(f) || injectedFields.includes(f));
 
@@ -321,7 +296,7 @@ function buildDataContext(
         .map((f) => {
           const val = row[f];
           if (!val) return null;
-          // Truncate long values
+
           const truncated = val.length > 120 ? val.slice(0, 120) + '...' : val;
           return `${f}:${truncated}`;
         })
@@ -348,7 +323,7 @@ Bentuk JSON harus valid dan memiliki property \`isChart: true\` seperti ini:
 \`\`\`json
 {
   "isChart": true,
-  "type": "bar", // pilihan: "bar", "pie", "line"
+  "type": "bar",
   "title": "Top Kategori Irregularity",
   "data": [
     {"name": "Kategori A", "value": 45},
@@ -405,7 +380,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing "question" field' }, { status: 400 });
     }
 
-    // Step 1: Fetch data from Google Sheets with filters
     const sheetResults = await fetchFilteredSheetData(filters || {});
     const totalRows = sheetResults.reduce((sum, s) => sum + s.rows.length, 0);
 
@@ -419,10 +393,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Step 2: Build compact data context for the LLM
     const dataContext = buildDataContext(sheetResults);
 
-    // Step 3: Call OpenRouter AI
     const messages: OpenRouterMessage[] = [
       { role: 'system', content: SYSTEM_PROMPT },
       {
@@ -433,7 +405,6 @@ export async function POST(request: NextRequest) {
 
     const aiResponse = await callOpenRouterAI(messages);
 
-    // Extract highlights from the data
     const highlights: string[] = [`${totalRows} data dianalisis`];
     for (const s of sheetResults) {
       if (s.rows.length > 0) {

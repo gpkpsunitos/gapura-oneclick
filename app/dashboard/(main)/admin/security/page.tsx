@@ -16,10 +16,6 @@ const ThreatPatternHeatMap = dynamic(
     { ssr: false, loading: () => <div className="h-64 bg-slate-50 animate-pulse rounded-3xl" /> }
 );
 
-/**
- * SUPER_ADMIN Security Dashboard Entry Point
- * Design Style: Prism Protocol V3 (Spatial, Glassmorphism, Kinetic)
- */
 export default function SecurityDashboardPage() {
     const [data, setData] = useState<{
         stats: SecurityStats;
@@ -92,7 +88,6 @@ export default function SecurityDashboardPage() {
         }
         fetchInitialMetrics();
 
-        // 2. Real-Time Subscription
         const channel = supabase
             .channel('security-realtime')
             .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'security_alerts' }, (payload) => {
@@ -105,8 +100,7 @@ export default function SecurityDashboardPage() {
                         intrusionAttempts: prev.stats.intrusionAttempts + (newAlert.severity === 'CRITICAL' ? 1 : 0)
                     }
                 } : null);
-                
-                // Kinetic feedback for critical alerts
+
                 if (newAlert.severity === 'CRITICAL') {
                     window.dispatchEvent(new CustomEvent('security-pulse', { detail: 'critical' }));
                 }
@@ -115,10 +109,10 @@ export default function SecurityDashboardPage() {
                 const event = payload.new as SecurityEvent;
                 setData(prev => {
                     if (!prev) return null;
-                    
+
                     const eventPayload = event.payload as Record<string, unknown>;
                     const isFailedLogin = event.event_type === 'login' && eventPayload.success === false;
-                    
+
                     return {
                         ...prev,
                         stats: {
@@ -165,7 +159,7 @@ export default function SecurityDashboardPage() {
 
     return (
         <div className="space-y-8 p-6 md:p-10 overflow-hidden w-full">
-            {/* --- Spatial Header Context --- */}
+            {}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                 <div className="space-y-2">
                     <motion.div 
@@ -194,7 +188,7 @@ export default function SecurityDashboardPage() {
                     </h1>
                 </div>
 
-                {/* System Health Orb */}
+                {}
                 <motion.div 
                     initial={{ scale: 0.9, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
@@ -233,12 +227,12 @@ export default function SecurityDashboardPage() {
                 </motion.div>
             </div>
 
-            {/* --- Kinetic Bento Grid 2.0 (3-Column War Room) --- */}
+            {}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 pb-20">
-                
-                {/* --- Left Column: Intelligence Core --- */}
+
+                {}
                 <div className="lg:col-span-3 space-y-8">
-                    {/* 1. Primary Metrics */}
+                    {}
                     <div className="space-y-6">
                         <StatCard 
                             title="Blocked Attacks" 
@@ -263,7 +257,7 @@ export default function SecurityDashboardPage() {
                         />
                     </div>
 
-                    {/* 2. Auth Intelligence Pulse */}
+                    {}
                     <div className="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-2xl border border-white/5">
                         <div className="absolute top-0 right-0 p-6 opacity-10">
                             <Users className="w-16 h-16" />
@@ -284,7 +278,7 @@ export default function SecurityDashboardPage() {
                         </div>
                     </div>
 
-                    {/* 3. Security Hygiene */}
+                    {}
                     <div className="bg-emerald-50 rounded-3xl p-8 border border-emerald-100 shadow-xl space-y-6">
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-emerald-500/10 rounded-2xl">
@@ -309,9 +303,9 @@ export default function SecurityDashboardPage() {
                     </div>
                 </div>
 
-                {/* --- Middle Column: Incident & Analysis --- */}
+                {}
                 <div className="lg:col-span-6 space-y-8">
-                    {/* Pattern Matrix */}
+                    {}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between px-2">
                             <h2 className="text-xl font-black text-slate-800 tracking-tight flex items-center gap-2">
@@ -326,7 +320,7 @@ export default function SecurityDashboardPage() {
                         <ThreatPatternHeatMap events={data.alerts} />
                     </div>
 
-                    {/* Recent Incidents Pulse */}
+                    {}
                     <div className="space-y-4">
                         <div className="flex items-center justify-between px-2">
                             <h2 className="text-xl font-black text-slate-800 tracking-tight">System Intervention Required</h2>
@@ -341,7 +335,7 @@ export default function SecurityDashboardPage() {
                         </div>
                     </div>
 
-                    {/* Threat Actor Tracking */}
+                    {}
                     <div className="space-y-4">
                          <div className="flex items-center justify-between px-2">
                             <h2 className="text-xl font-black text-slate-800 tracking-tight">Threat Actor Analysis</h2>
@@ -354,15 +348,15 @@ export default function SecurityDashboardPage() {
                         />
                     </div>
 
-                    {/* Active Sessions Control */}
+                    {}
                     <div className="space-y-4">
                         <ActiveSessions />
                     </div>
                 </div>
 
-                {/* --- Right Column: Live Feed & Network --- */}
+                {}
                 <div className="lg:col-span-3 space-y-8">
-                     {/* Network Perimeter Stats */}
+                     {}
                     <div className="bg-white rounded-3xl p-8 border border-slate-100 shadow-xl space-y-6 relative overflow-hidden group">
                         <div className="absolute -right-4 -top-4 w-24 h-24 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-colors" />
                         <div className="flex items-center gap-3">
@@ -383,7 +377,7 @@ export default function SecurityDashboardPage() {
                         </div>
                     </div>
 
-                    {/* Tall Live Telemetry Feed */}
+                    {}
                     <div className="h-[calc(100vh-280px)] min-h-[600px] sticky top-8">
                         <LiveSecurityFeed className="h-full" />
                     </div>

@@ -57,7 +57,7 @@ export function EmbedDetailLayout({
           className,
         )}
       >
-        {/* Subtle Spatial Mesh Gradient Background */}
+        {}
         <div className="absolute inset-0 -z-10 bg-aurora-mesh opacity-[0.03] pointer-events-none mix-blend-multiply" />
         <div className="max-w-none mx-auto">{children}</div>
       </div>
@@ -71,7 +71,7 @@ export function EmbedDetailLayout({
         className,
       )}
     >
-      {/* Dynamic Background */}
+      {}
       <div className="absolute inset-0 -z-10 bg-aurora-mesh opacity-[0.02] pointer-events-none mix-blend-multiply transition-opacity duration-1000" />
       <div
         className="fixed inset-0 pointer-events-none z-[-5]"
@@ -80,7 +80,7 @@ export function EmbedDetailLayout({
         }}
       />
 
-      {/* Dynamic Spatial Header */}
+      {}
       <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -141,7 +141,7 @@ export function EmbedDetailLayout({
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Dynamic Island Filter Summary */}
+            {}
             <AnimatePresence>
               {(hasActiveFilters || dateRange) && (
                 <motion.div
@@ -158,7 +158,7 @@ export function EmbedDetailLayout({
               )}
             </AnimatePresence>
 
-            {/* Actions */}
+            {}
             <div className="flex items-center gap-2 pl-4 border-l border-[oklch(0.9_0.01_90/0.8)]">
               <motion.button
                 whileHover={{ scale: 1.05 }}

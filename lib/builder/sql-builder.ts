@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi builder untuk menghasilkan query SQL dari definisi query
- * Menyediakan validasi, parameterization, dan error handling
- */
 
 import type {
   QueryDefinition,
@@ -13,29 +7,13 @@ import { isValidField, isValidTable, getJoinDef, getFieldDef } from './schema';
 
 const MAX_LIMIT = 5000;
 
-/**
- * Hasil build query SQL
- * @interface BuildResult
- */
 interface BuildResult {
-  /** String query SQL */
+
   sql: string;
-  /** Array parameter untuk query */
+
   params: (string | number | boolean)[];
 }
 
-/**
- * Validasi QueryDefinition dan mengembalikan error yang human-readable
- * @param def - Definisi query yang akan divalidasi
- * @returns Array error validasi
- * @example
- * ```ts
- * const errors = validateQuery(queryDef);
- * if (errors.length > 0) {
- *   console.log('Errors:', errors.join(', '));
- * }
- * ```
- */
 export function validateQuery(def: QueryDefinition): string[] {
   const errors: string[] = [];
 
@@ -58,7 +36,6 @@ export function validateQuery(def: QueryDefinition): string[] {
     errors.push('Pilih minimal satu dimensi atau ukuran');
   }
 
-  // Collect valid tables (source + joined tables)
   const validTables = new Set<string>([def.source]);
   for (const join of joins) {
     const joinDef = getJoinDef(join.joinKey);
@@ -69,7 +46,6 @@ export function validateQuery(def: QueryDefinition): string[] {
     }
   }
 
-  // Validate dimensions
   for (const dim of dimensions) {
     if (!validTables.has(dim.table)) {
       errors.push(`Tabel dimensi "${dim.table}" belum di-join`);
@@ -78,7 +54,6 @@ export function validateQuery(def: QueryDefinition): string[] {
     }
   }
 
-  // Validate measures
   for (const m of measures) {
     if (!validTables.has(m.table)) {
       errors.push(`Tabel ukuran "${m.table}" belum di-join`);
@@ -87,7 +62,6 @@ export function validateQuery(def: QueryDefinition): string[] {
     }
   }
 
-  // Validate filters
   for (const f of filters) {
     if (!validTables.has(f.table)) {
       errors.push(`Tabel filter "${f.table}" belum di-join`);
@@ -99,16 +73,6 @@ export function validateQuery(def: QueryDefinition): string[] {
   return errors;
 }
 
-/**
- * Membangun parameterized SQL dari definisi query
- * @param def - Definisi query
- * @returns Hasil build query dengan SQL dan params
- * @throws Error jika terjadi error parsing
- * @example
- * ```ts
- * const { sql, params } = buildQuery(queryDef);
- * ```
- */
 export function buildQuery(def: QueryDefinition): BuildResult {
   const params: (string | number | boolean)[] = [];
   let paramIdx = 0;
@@ -125,7 +89,6 @@ export function buildQuery(def: QueryDefinition): BuildResult {
     return `$${paramIdx}`;
   };
 
-  // === SELECT ===
   const selectParts: string[] = [];
 
   for (const dim of dimensions) {
@@ -143,16 +106,16 @@ export function buildQuery(def: QueryDefinition): BuildResult {
   for (const m of measures) {
     const col = qualifiedCol(m.table, m.field);
     const alias = m.alias || `${m.function.toLowerCase()}_${m.table}_${m.field}`;
-    
-    // Defensive check: prevent SUM/AVG on non-numeric fields as a final safety layer
+
     let func = m.function;
     if (func === 'SUM' || func === 'AVG') {
       const fieldDef = getFieldDef(m.table, m.field);
       if (fieldDef && ['uuid', 'string', 'date', 'datetime', 'boolean'].includes(fieldDef.type)) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         func = 'COUNT' as any;
       }
     }
-    
+
     const aggExpr = buildAggregate(func, col);
     selectParts.push(`${aggExpr} AS "${alias}"`);
   }
@@ -161,10 +124,8 @@ export function buildQuery(def: QueryDefinition): BuildResult {
     selectParts.push('1');
   }
 
-  // === FROM ===
   const fromClause = `"${def.source}"`;
 
-  // === JOINS ===
   const joinClauses: string[] = [];
   for (const join of joins) {
     const joinDef = getJoinDef(join.joinKey);
@@ -174,7 +135,6 @@ export function buildQuery(def: QueryDefinition): BuildResult {
     );
   }
 
-  // === WHERE ===
   const whereParts: string[] = [];
   for (let i = 0; i < filters.length; i++) {
     const f = filters[i];
@@ -192,7 +152,6 @@ export function buildQuery(def: QueryDefinition): BuildResult {
     }
   }
 
-  // === GROUP BY ===
   const groupByParts: string[] = [];
   if (measures.length > 0 && dimensions.length > 0) {
     for (let i = 0; i < dimensions.length; i++) {
@@ -200,7 +159,6 @@ export function buildQuery(def: QueryDefinition): BuildResult {
     }
   }
 
-  // === ORDER BY ===
   const orderByParts: string[] = [];
   const validSortAliases = new Set([
     ...dimensions.map(d => d.alias || `${d.table}_${d.field}`),
@@ -212,16 +170,15 @@ export function buildQuery(def: QueryDefinition): BuildResult {
     if (s.alias && validSortAliases.has(s.alias)) {
       orderByParts.push(`"${s.alias}" ${dir}`);
     } else if (validSortAliases.has(s.field)) {
-      // Fallback: If s.field is actually an alias of a select column, use it
+
       orderByParts.push(`"${s.field}" ${dir}`);
     } else if (groupByParts.length === 0) {
-      // Only allow sorting by raw fields if NOT grouping
+
       orderByParts.push(`"${s.field}" ${dir}`);
     }
-    // If grouped and field is not a valid alias, we skip it to prevent 500
+
   }
 
-  // Default sort: first measure desc, or first dimension asc
   if (orderByParts.length === 0) {
     if (measures.length > 0) {
       const m = measures[0];
@@ -232,10 +189,8 @@ export function buildQuery(def: QueryDefinition): BuildResult {
     }
   }
 
-  // === LIMIT ===
   const limit = Math.min(def.limit || 1000, MAX_LIMIT);
 
-  // === Assemble ===
   let sql = `SELECT ${selectParts.join(', ')}\nFROM ${fromClause}`;
 
   if (joinClauses.length > 0) {
@@ -259,10 +214,8 @@ export function buildQuery(def: QueryDefinition): BuildResult {
   return { sql, params };
 }
 
-// ===== Internal Helpers =====
-
 function qualifiedCol(table: string, field: string): string {
-  // Handle virtual time fields on reports table
+
   if (table === 'reports') {
     switch (field) {
       case 'year':

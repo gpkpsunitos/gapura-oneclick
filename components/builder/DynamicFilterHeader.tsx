@@ -1,56 +1,24 @@
-/**
- * @file
- * 
- * File ini berisi komponen header filter dinamis dengan opsi filter otomatis
- */
 
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
 import { PrismSelect } from '@/components/ui/PrismSelect';
 
-/**
- * Opsi select untuk filter
- * @interface SelectOption
- * @property {string} value - Nilai opsi
- * @property {string} label - Label opsi
- */
 interface SelectOption {
   value: string;
   label: string;
 }
 
-/**
- * Data filter untuk dashboard
- * @interface FilterData
- * @property {string} [hub] - Filter hub
- * @property {string} [branch] - Filter cabang
- * @property {string} [maskapai] - Filter maskapai (Travel type)
- * @property {string} [airline] - Filter nama airlines
- * @property {string} [main_category] - Filter kategori utama
- * @property {string} [area] - Filter area
- * @property {string} [target_division] - Filter divisi target
- */
 export interface FilterData {
   hub?: string;
   branch?: string;
-  maskapai?: string; // Travel type (Jenis Maskapai)
-  airline?: string;  // Actual Airline Name
+  maskapai?: string;
+  airline?: string;
   main_category?: string;
   area?: string;
   target_division?: string;
 }
 
-/**
- * State opsi filter
- * @interface FilterOptionsState
- * @property {SelectOption[]} hub - Opsi hub
- * @property {SelectOption[]} branch - Opsi cabang
- * @property {SelectOption[]} airline - Opsi airlines
- * @property {SelectOption[]} airline_type - Opsi tipe maskapai
- * @property {SelectOption[]} main_category - Opsi kategori utama
- * @property {SelectOption[]} area - Opsi area
- */
 interface FilterOptionsState {
   hub: SelectOption[];
   branch: SelectOption[];
@@ -60,36 +28,12 @@ interface FilterOptionsState {
   area: SelectOption[];
 }
 
-/**
- * Props untuk komponen DynamicFilterHeader
- * @interface DynamicFilterHeaderProps
- * @property {Function} onFilterChange - Fungsi saat filter berubah
- * @property {FilterData} [initialFilters] - Filter awal
- * @property {'default' | 'white'} [variant='default'] - Variasi tampilan
- */
 interface DynamicFilterHeaderProps {
   onFilterChange: (filters: FilterData) => void;
   initialFilters?: FilterData;
   variant?: 'default' | 'white';
 }
 
-/**
- * Komponen header filter dinamis
- * Menampilkan dropdown filter yang diambil secara otomatis dari API
- * Mendukung filter untuk hub, branch, maskapai, airlines, kategori, dan area
- * 
- * @param {DynamicFilterHeaderProps} props - Props untuk konfigurasi header filter
- * @returns {JSX.Element} Element React yang berisi header filter dinamis
- * 
- * @example
- * ```tsx
- * <DynamicFilterHeader
- *   onFilterChange={handleFilterChange}
- *   initialFilters={{ hub: 'CGK', branch: 'all' }}
- *   variant="default"
- * />
- * ```
- */
 export function DynamicFilterHeader({ onFilterChange, initialFilters, variant = 'default' }: DynamicFilterHeaderProps) {
   const current = useMemo(() => ({
     hub: initialFilters?.hub || 'all',
@@ -109,18 +53,13 @@ export function DynamicFilterHeader({ onFilterChange, initialFilters, variant = 
     area: [{ value: 'all', label: 'Area: All' }]
   });
 
-  /**
-   * Mengambil opsi filter dari API
-   * @async function fetchFilters
-   * @returns {Promise<void>}
-   */
   useEffect(() => {
     async function fetchFilters() {
       try {
         const fields = ['hub', 'branch', 'airline', 'airline_type', 'main_category', 'area'].join(',');
         const res = await fetch(`/api/dashboards/filter-options?fields=${fields}`);
         const data = await res.json();
-        
+
         const mapToOptions = (vals: string[]) => [
           { value: 'all', label: 'All' },
           ...(vals || []).map(v => ({ value: v, label: v }))
@@ -141,12 +80,6 @@ export function DynamicFilterHeader({ onFilterChange, initialFilters, variant = 
     fetchFilters();
   }, []);
 
-  /**
-   * Menggabungkan filter parsial dan mengirim perubahan
-   * @function mergeAndChange
-   * @param {Partial<FilterData>} partial - Update parsial untuk filter
-   * @returns {void}
-   */
   const mergeAndChange = (partial: Partial<FilterData>) => {
     onFilterChange({ ...(initialFilters || {}), ...partial });
   };

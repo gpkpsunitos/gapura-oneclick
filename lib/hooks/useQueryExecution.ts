@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi React hook untuk eksekusi query dashboard,
- * termasuk handle loading, error, dan hasil query
- */
 
 'use client';
 
@@ -11,22 +5,11 @@ import { useState, useCallback } from 'react';
 import type { QueryDefinition, QueryResult } from '@/types/builder';
 import { fetchWithDemo } from '@/lib/utils';
 
-/**
- * Hook untuk eksekusi query dashboard
- * 
- * @returns Object berisi state dan fungsi untuk eksekusi query
- */
 export function useQueryExecution() {
   const [data, setData] = useState<QueryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /**
-   * Eksekusi query ke API
-   * 
-   * @param query - Definisi query yang akan dieksekusi
-   * @returns Promise berisi hasil query atau null jika gagal
-   */
   const execute = useCallback(async (query: QueryDefinition) => {
     setLoading(true);
     setError(null);
@@ -67,9 +50,6 @@ export function useQueryExecution() {
     }
   }, []);
 
-  /**
-   * Clear data dan error
-   */
   const clear = useCallback(() => {
     setData(null);
     setError(null);

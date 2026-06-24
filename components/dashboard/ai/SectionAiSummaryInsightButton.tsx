@@ -382,7 +382,7 @@ function SummaryChart({ rows }: { rows: SummaryChartRow[] }) {
 }
 
 function PointList({ title, items }: { title: string; items: string[] }) {
-  // ponytail: strip leading "1." / "1) " upstream-prefixes so we don't render "1. 1. foo"
+
   const cleaned = items
     .map((item) => String(item ?? '').replace(/^\s*\d+[.)]\s*/, '').trim())
     .filter(Boolean);
@@ -440,7 +440,7 @@ function FeatureInsightCard({ feature }: { feature: FeatureResult }) {
       <FeatureVisual visual={feature.visual} />
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <PointList title="Endpoint Signal" items={feature.chartSignal || []} />
-        {/* ponytail: no fallback to chartSignal — duplicating panels reads as a bug, not data */}
+        {}
         <PointList title="Recommended Action" items={feature.recommendations || []} />
       </div>
     </div>
@@ -449,7 +449,7 @@ function FeatureInsightCard({ feature }: { feature: FeatureResult }) {
 
 function FeatureVisual({ visual }: { visual?: FeatureResult['visual'] }) {
   if (!visual?.rows?.length) return null;
-  // ponytail: drop UNKNOWN/empty rows and zero-value rows before rendering — single-bar UNKNOWN was a fake chart
+
   const rows = visual.rows
     .filter((row) => {
       const label = String(row.label ?? '').trim();
@@ -481,7 +481,7 @@ function FeatureVisual({ visual }: { visual?: FeatureResult['visual'] }) {
       <div className="h-[260px] border border-[#d7ded2] bg-[#fbfdf8] p-3">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
-            {/* ponytail: percent labels — raw counts at the rim were being misread as percentages */}
+            {}
             <Pie
               data={rows}
               dataKey="value"

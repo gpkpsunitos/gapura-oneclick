@@ -9,8 +9,6 @@ import { EventDetailModal } from './EventDetailModal';
 import { CalendarEvent, CalendarType } from '@/types';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
-// Local type to avoid importing react-big-calendar at the page level.
-// react-big-calendar (~200KB) is now only loaded when the Calendar component renders.
 type CalendarView = 'month' | 'week' | 'work_week' | 'day' | 'agenda';
 
 const Calendar = dynamic(() => import('./Calendar').then((mod) => mod.Calendar), {
@@ -244,7 +242,7 @@ export function CalendarPage({
   return (
     <div className="min-h-screen w-full p-4 md:p-6">
       <div className="w-full max-w-none space-y-5 md:space-y-6 stagger-children">
-        {/* Page header */}
+        {}
         <div className="animate-fade-in-up">
           <h1 className="text-2xl md:text-3xl font-bold font-display tracking-tight text-[var(--text-primary)]">
             {displayTitle}
@@ -254,7 +252,7 @@ export function CalendarPage({
           </p>
         </div>
 
-        {/* Error state */}
+        {}
         {error && (
           <div className="animate-fade-in-up flex items-center gap-3 p-4 rounded-xl bg-[oklch(0.6_0.22_25/0.08)] border border-[oklch(0.6_0.22_25/0.15)]" role="alert">
             <AlertCircle className="w-5 h-5 text-[oklch(0.55_0.2_25)] flex-shrink-0" />
@@ -272,7 +270,7 @@ export function CalendarPage({
           </div>
         )}
 
-        {/* Calendar card */}
+        {}
         <section className="animate-fade-in-up w-full rounded-2xl border border-[var(--surface-4)] bg-[var(--surface-1)] p-4 shadow-sm md:p-6">
           <CalendarHeader
             currentDate={currentDate}
@@ -303,7 +301,7 @@ export function CalendarPage({
         </section>
       </div>
 
-      {/* Modals */}
+      {}
       {selectedEvent && (
         <QuickEditPopover
           event={selectedEvent}

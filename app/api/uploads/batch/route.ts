@@ -22,8 +22,7 @@ export async function POST(request: Request) {
 
     const form = await request.formData();
     const reportId = form.get('reportId') as string | null;
-    
-    // Get all files (can be multiple)
+
     const files: File[] = [];
     let i = 0;
     while (true) {
@@ -37,9 +36,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'At least one file is required' }, { status: 400 });
     }
 
-    // Validate file types
     const validFiles = files.filter(f => f.type.startsWith('image/') || f.type.startsWith('video/'));
-    
+
     if (validFiles.length !== files.length) {
       return NextResponse.json(
         { error: 'Only image and video files are allowed' },
@@ -47,7 +45,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate each file
     for (const file of files) {
       const validation = validateMedia(file, {
         maxImageSizeMB: 10,
@@ -74,13 +71,11 @@ export async function POST(request: Request) {
       compressedSize: number;
     }> = [];
 
-    // Process each file
     for (const file of files) {
       try {
         const isVideo = file.type.startsWith('video/');
         console.log(`[BATCH UPLOAD] Processing ${isVideo ? 'video' : 'image'}: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`);
 
-        // Compress media
         const arrayBuffer = await file.arrayBuffer();
         const result = await compressMedia(Buffer.from(arrayBuffer), file.type, {
           maxSizeKB: 5,
@@ -94,19 +89,17 @@ export async function POST(request: Request) {
 
         console.log(`[BATCH UPLOAD] Compressed from ${result.originalSize}B to ${result.size}B (${result.compressionRatio.toFixed(1)}% reduction)`);
 
-        // Determine storage bucket and path
         const bucket = isVideo ? 'videos' : 'evidence';
         const ext = contentType.includes('webp') ? 'webp' :
                       contentType.includes('mp4') ? 'mp4' :
                       contentType.includes('png') ? 'png' : 'jpg';
-        
+
         const folder = reportId 
           ? `reports/${reportId}`
           : `uploads/${payload.id || 'anonymous'}/${randomUUID()}`;
         const fileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}.${ext}`;
         const path = `${folder}/${fileName}`;
 
-        // Upload to appropriate bucket
         const { error: uploadErr } = await supabaseAdmin.storage
           .from(bucket)
           .upload(path, compressedBuffer, { contentType, upsert: false });
@@ -119,10 +112,9 @@ export async function POST(request: Request) {
           );
         }
 
-        // Get public URL
         const { data: pub } = supabaseAdmin.storage.from(bucket).getPublicUrl(path);
         const publicUrl = pub?.publicUrl;
-        
+
         if (!publicUrl) {
           return NextResponse.json(
             { error: `Failed to get public URL for ${file.name}` },

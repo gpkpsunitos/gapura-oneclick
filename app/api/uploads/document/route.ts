@@ -20,7 +20,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File is required' }, { status: 400 });
     }
 
-    // Accept PDF, Word, Excel, and PowerPoint files for manuals and meeting materials.
     const validTypes = [
       'application/pdf',
       'application/msword',
@@ -36,7 +35,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Only PDF, Word, Excel, and PowerPoint files are allowed' }, { status: 400 });
     }
 
-    // Server guard: max 20MB for documents
     const MAX_BYTES = 20 * 1024 * 1024;
     if (file.size > MAX_BYTES) {
       return NextResponse.json({ error: 'File too large (max 20MB)' }, { status: 413 });

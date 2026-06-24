@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useMemo, useState, type ReactNode } from 'react';
+import { Fragment, useState, type ReactNode } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import type { Report } from '@/types';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
@@ -16,8 +16,6 @@ import {
 interface ReportsStatusTabProps {
   reports: Report[];
 }
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function val(v: unknown): string {
   return String(v || '').trim();
@@ -84,8 +82,6 @@ function buildStatusRows(reports: Report[], key: (r: Report) => string): StatusR
   }
   return Array.from(map.values()).sort((a, b) => b.total - a.total);
 }
-
-// ── Sub-components ────────────────────────────────────────────────────────────
 
 const PANEL_FRAME = 'sr-table-card flex min-h-0 min-w-0 flex-col';
 
@@ -209,7 +205,6 @@ function StatusDonut({
   );
 }
 
-// Stacked horizontal bar — used for Area/Branch and Severity/Airline
 function StackedHBar({
   rows,
   maxRows = 12,
@@ -373,14 +368,12 @@ function RecordsTable({ rows, title }: { rows: RecordRow[]; title: string }) {
   );
 }
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-
 export function ReportsStatusTab({ reports }: ReportsStatusTabProps) {
   const { openDrilldown, DrilldownRenderer } = useDrilldown();
 
   return (
     <div className="sr-scope space-y-6 bg-[color:var(--sr-canvas)] px-4 py-6 pb-10 text-[color:var(--sr-text)] sm:px-6 lg:px-8">
-      {/* Header */}
+      {}
       <div className="sr-card relative flex flex-col gap-4 overflow-hidden px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="absolute inset-x-0 top-0 h-[5px] bg-[color:var(--sr-accent)]" aria-hidden="true" />
         <div className="flex min-w-0 items-center gap-4">
@@ -403,14 +396,12 @@ export function ReportsStatusTab({ reports }: ReportsStatusTabProps) {
         const closedCount = closed.length;
         const total = filtered.length;
 
-        const categoryRows = useMemo(() => buildStatusRows(filtered, getCategory), [filtered]);
-        const areaRows = useMemo(() => buildStatusRows(filtered, getArea), [filtered]);
-        const branchRows = useMemo(() => buildStatusRows(filtered, getBranch), [filtered]);
-        const severityRows = useMemo(() => {
-          const order = ['TOP RISK', 'HIGH', 'MEDIUM', 'LOW'];
-          return buildStatusRows(filtered, getSeverity).sort((a, b) => order.indexOf(a.label) - order.indexOf(b.label));
-        }, [filtered]);
-        const airlineRows = useMemo(() => buildStatusRows(filtered, getAirline), [filtered]);
+        const categoryRows = buildStatusRows(filtered, getCategory);
+        const areaRows = buildStatusRows(filtered, getArea);
+        const branchRows = buildStatusRows(filtered, getBranch);
+        const order = ['TOP RISK', 'HIGH', 'MEDIUM', 'LOW'];
+        const severityRows = buildStatusRows(filtered, getSeverity).sort((a, b) => order.indexOf(a.label) - order.indexOf(b.label));
+        const airlineRows = buildStatusRows(filtered, getAirline);
 
         const openRecords = open.map(buildRecordRow).sort((a, b) => b.date.localeCompare(a.date));
         const closedRecords = closed.map(buildRecordRow).sort((a, b) => b.date.localeCompare(a.date));
@@ -420,7 +411,7 @@ export function ReportsStatusTab({ reports }: ReportsStatusTabProps) {
 
         return (
           <>
-            {/* KPI Strip */}
+            {}
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
               {[
                 { label: 'Total Reports', value: total, color: 'var(--sr-text)', records: filtered },
@@ -439,7 +430,7 @@ export function ReportsStatusTab({ reports }: ReportsStatusTabProps) {
               ))}
             </div>
 
-            {/* Overview + toggle */}
+            {}
             <section>
               <div className="sr-section-h">
                 <span className="sr-section-rule" aria-hidden="true" />
@@ -490,7 +481,7 @@ export function ReportsStatusTab({ reports }: ReportsStatusTabProps) {
               </div>
             </section>
 
-            {/* By Area & Branch — stacked horizontal bar */}
+            {}
             <section>
               <div className="sr-section-h">
                 <span className="sr-section-rule" aria-hidden="true" />
@@ -526,7 +517,7 @@ export function ReportsStatusTab({ reports }: ReportsStatusTabProps) {
               </div>
             </section>
 
-            {/* By Severity & Airline — stacked horizontal bar */}
+            {}
             <section>
               <div className="sr-section-h">
                 <span className="sr-section-rule" aria-hidden="true" />
@@ -562,7 +553,7 @@ export function ReportsStatusTab({ reports }: ReportsStatusTabProps) {
               </div>
             </section>
 
-            {/* Records */}
+            {}
             <section>
               <div className="sr-section-h">
                 <span className="sr-section-rule" aria-hidden="true" />

@@ -1,9 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen modal password untuk akses cepat (quick access)
- * yang memerlukan verifikasi password sebelum mengakses link tertentu.
- */
 
 'use client';
 
@@ -11,39 +5,19 @@ import { useEffect, useRef, useState } from 'react';
 import { Lock, X, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-/**
- * Props untuk komponen QuickAccessPasswordModal
- * @interface QuickAccessPasswordModalProps
- */
 interface QuickAccessPasswordModalProps {
-    /** Apakah modal terbuka */
+
     isOpen: boolean;
-    /** Callback saat modal ditutup */
+
     onClose: () => void;
-    /** Judul yang ditampilkan di header modal */
+
     label: string;
-    /** URL tujuan setelah sukses */
+
     href: string;
-    /** Apakah tujuan adalah eksternal (target=_blank) */
+
     external?: boolean;
 }
 
-/**
- * Komponen modal password untuk akses cepat
- * Memerlukan password verification sebelum membuka link tujuan
- * @param QuickAccessPasswordModalProps - Props komponen
- * @returns JSX element modal atau null jika tidak terbuka
- * @example
- * ```tsx
- * <QuickAccessPasswordModal
- *   isOpen={showModal}
- *   onClose={() => setShowModal(false)}
- *   label="Handbook SLA"
- *   href="https://example.com"
- *   external={true}
- * />
- * ```
- */
 export function QuickAccessPasswordModal({
     isOpen,
     onClose,
@@ -58,7 +32,6 @@ export function QuickAccessPasswordModal({
     const [loading, setLoading] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    // Reset state whenever modal opens
     useEffect(() => {
         if (isOpen) {
             setValue('');
@@ -67,10 +40,6 @@ export function QuickAccessPasswordModal({
         }
     }, [isOpen]);
 
-    /**
-     * Handle submit form password
-     * @param e - Form event
-     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -93,7 +62,7 @@ export function QuickAccessPasswordModal({
                 }
             }
         } catch {
-            // Fall through to error state
+
         } finally {
             setLoading(false);
         }
@@ -107,7 +76,7 @@ export function QuickAccessPasswordModal({
         <AnimatePresence>
             {isOpen && (
                 <>
-                    {/* Backdrop */}
+                    {}
                     <motion.div
                         key="backdrop"
                         initial={{ opacity: 0 }}
@@ -118,7 +87,7 @@ export function QuickAccessPasswordModal({
                         aria-hidden="true"
                     />
 
-                    {/* Modal */}
+                    {}
                     <motion.div
                         key="modal"
                         initial={{ opacity: 0, scale: 0.92, y: 16 }}
@@ -135,7 +104,7 @@ export function QuickAccessPasswordModal({
                             transition={{ duration: 0.4 }}
                             className="pointer-events-auto w-full max-w-sm bg-white rounded-2xl shadow-2xl border border-gray-100 overflow-hidden"
                         >
-                            {/* Header */}
+                            {}
                             <div className="flex items-start justify-between p-5 border-b border-gray-100">
                                 <div className="flex items-center gap-3">
                                     <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center ring-1 ring-emerald-100">
@@ -162,7 +131,7 @@ export function QuickAccessPasswordModal({
                                 </button>
                             </div>
 
-                            {/* Body */}
+                            {}
                             <form onSubmit={handleSubmit} className="p-5 space-y-4">
                                 <div className="flex flex-col gap-1.5">
                                     <label

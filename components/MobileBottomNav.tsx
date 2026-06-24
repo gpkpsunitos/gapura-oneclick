@@ -75,7 +75,7 @@ export function MobileBottomNav({ role }: MobileBottomNavProps) {
         const groups = LINKS_CONFIG[configKey] || [];
         const allItems = groups.flatMap(group => group.items);
         const mainItems = allItems.slice(0, 4);
-        
+
         return {
             main: mainItems,
             all: [...allItems, { href: '#logout', label: 'Logout', icon: LogOut, isDanger: true }]
@@ -84,34 +84,30 @@ export function MobileBottomNav({ role }: MobileBottomNavProps) {
 
     const navItems: NavItem[] = useMemo(() => {
         const isStaff = role === 'STAFF_CABANG' || role === 'EMPLOYEE' || role.includes('CABANG');
-        
+
         const items: NavItem[] = [];
 
         if (isStaff) {
             const reportsHref = role === 'MANAGER_CABANG' ? '/dashboard/employee/reports' : '/dashboard/employee';
             const reportsLabel = role === 'MANAGER_CABANG' ? 'All Reports' : 'Reports';
-            // SYMMETRICAL 3-ITEM LAYOUT: Cleanest for Staff
+
             items.push({ href: reportsHref, label: reportsLabel, icon: FileText });
             items.push({ href: '/dashboard/employee/new', label: 'Create', icon: PlusCircle, isPrimary: true });
             items.push({ href: '#menu', label: 'Menu', icon: Menu });
         } else {
-            // Slot 1: Home/Dashboard
+
             items.push({ href: '/dashboard', label: 'Home', icon: LayoutDashboard });
 
-            // Slot 2: Docs/Reports
             items.push({ href: '/dashboard/employee', label: 'Reports', icon: FileText });
 
-            // Slot 3: Center Action (Primary)
             items.push({ href: '/dashboard/employee/new', label: 'Create', icon: PlusCircle, isPrimary: true });
 
-            // Slot 4: AI — hidden for OP / OS divisi per product request.
             const isOpOrOs = role === 'DIVISI_OP' || role === 'PARTNER_OP'
                 || role === 'DIVISI_OS' || role === 'PARTNER_OS';
             if (!isOpOrOs) {
                 items.push({ href: '/dashboard/ai-reports', label: 'AI', icon: Brain });
             }
 
-            // Slot 5: Menu
             items.push({ href: '#menu', label: 'Menu', icon: Menu });
         }
 
@@ -135,7 +131,7 @@ export function MobileBottomNav({ role }: MobileBottomNavProps) {
                     {isVisible && (
                         <nav className="mx-auto max-w-md pointer-events-auto relative">
                             <div className="absolute inset-0 rounded-[2rem] sm:rounded-[3rem] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-gray-100/50" />
-                            
+
                             <div className="relative flex items-center justify-between px-1 sm:px-2 h-[3.75rem] sm:h-[4.5rem]">
                                 {navItems.map((item, idx) => {
                                     const Icon = item.icon;
@@ -177,14 +173,14 @@ export function MobileBottomNav({ role }: MobileBottomNavProps) {
                                                     isActive ? "text-[#E91E63]" : "text-slate-400 group-active:scale-90"
                                                 )}
                                             />
-                                            
+
                                             <span className={cn(
                                                 "text-[9px] sm:text-[10px] font-semibold mt-0.5 tracking-tight transition-colors duration-300",
                                                 isActive ? "text-[#E91E63]" : "text-slate-400"
                                             )}>
                                                 {item.label}
                                             </span>
-                                            
+
                                             {isActive && (
                                                 <div className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-[#E91E63]" />
                                             )}
@@ -201,7 +197,7 @@ export function MobileBottomNav({ role }: MobileBottomNavProps) {
 
 function MenuSheet({ items, onClose, onLogout }: { items: MenuSheetItem[]; onClose: () => void; onLogout: () => void }) {
     const router = useRouter();
-    
+
     return (
         <>
             <div 
@@ -214,12 +210,12 @@ function MenuSheet({ items, onClose, onLogout }: { items: MenuSheetItem[]; onClo
                 <div className="sticky top-0 bg-[#F8FAFC] z-10 pt-3 sm:pt-4 pb-2">
                     <div className="w-10 sm:w-12 h-1.5 bg-slate-200 rounded-full mx-auto" />
                 </div>
-                
+
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-y-6 sm:gap-y-8 gap-x-3 sm:gap-x-4 mt-6 sm:mt-8 pb-4 sm:pb-8">
                     {items.map((item, idx) => {
                         const Icon = item.icon;
                         const isLogout = item.href === '#logout';
-                        
+
                         return (
                             <button
                                 key={item.label + idx}

@@ -32,8 +32,11 @@ export default function EskalasiDashboard() {
 
                 setStats({
                     total: reportList.length,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     open: reportList.filter((r: any) => r.status === 'OPEN').length,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     onProgress: reportList.filter((r: any) => r.status === 'ON PROGRESS').length,
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     closed: reportList.filter((r: any) => r.status === 'CLOSED').length,
                 });
             } catch (error) {

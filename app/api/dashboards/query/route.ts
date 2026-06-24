@@ -22,7 +22,6 @@ export async function POST(request: NextRequest) {
     const canViewAll = ['SUPER_ADMIN', 'ANALYST', 'DIVISI_ESKALASI'].includes(payload.role);
     const userStationCode = canViewAll ? null : payload.station_id || null;
 
-    // Parse and Normalize
     const body = await request.json();
     let query: QueryDefinition = body.query;
 
@@ -30,10 +29,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Query definition diperlukan' }, { status: 400 });
     }
 
-    // Apply normalization (Type-aware fixes, default source, etc.)
     query = normalizeQuery(query);
-    
-    // Validate
+
     const errors = validateQuery(query);
     if (errors.length > 0) {
       console.warn('[Query API] Validation failed:', {
@@ -43,7 +40,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Query tidak valid', details: errors }, { status: 400 });
     }
 
-    // Execute Query
     const result = await executeQuery(query, {
       canViewAll,
       userStationCode

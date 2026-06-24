@@ -1,8 +1,3 @@
-/**
- * @file
- * 
- * File ini berisi komponen untuk menampilkan detail dan analisis berdasarkan severity laporan
- */
 
 'use client';
 
@@ -13,9 +8,6 @@ import { DateRangeFilter } from '@/components/embed/DateRangeFilter';
 import { EmbedCard } from '@/components/embed/EmbedCard';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
-/**
- * Interface untuk data laporan
- */
 interface Report {
   id: string;
   title: string;
@@ -27,51 +19,35 @@ interface Report {
   created_at: string;
 }
 
-/**
- * Interface untuk response API laporan
- */
 interface ReportsResponse {
   summary: { total: number; byStatus: Record<string, number>; bySeverity: Record<string, number> };
   reports: Report[];
 }
 
-/** Konfigurasi severity dengan label dan warna */
 const SEVERITY_CONFIG: Record<string, { label: string; color: string }> = {
   'low': { label: 'Low', color: '#22c55e' },
   'medium': { label: 'Medium', color: '#fbbf24' },
   'high': { label: 'High', color: '#ef4444' }
 };
 
-/** Warna donut chart tetap untuk ranking */
 const FIXED_DONUT_RANK_COLORS = ['#81c784', '#13b5cb', '#cddc39'];
 
-/** Warna fallback donut chart */
 const DONUT_FALLBACK_COLORS = ['#66bb6a', '#9ccc65', '#aed581', '#4db6ac', '#80cbc4'];
 
-/** Mapping status dengan label dan class CSS */
 const STATUS_MAP: Record<string, { label: string; class: string }> = {
   'OPEN': { label: 'Open', class: 'pending' },
   'ON PROGRESS': { label: 'Dalam Proses', class: 'verified' },
   'CLOSED': { label: 'Selesai', class: 'completed' }
 };
 
-/**
- * Komponen untuk menampilkan detail dan analisis berdasarkan severity laporan
- * Menampilkan chart distribusi severity, breakdown per kategori, dan daftar laporan
- * @returns JSX element berisi analisis severity
- */
 export function SeverityDetailContent() {
   const searchParams = useSearchParams();
   const range = searchParams.get('range') || '7d';
   const levelFilter = searchParams.get('level');
-  
+
   const [data, setData] = useState<ReportsResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  
-  /**
-   * Mengambil data laporan dari API
-   * @param signal - AbortSignal untuk membatalkan request
-   */
+
   const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
@@ -86,7 +62,7 @@ export function SeverityDetailContent() {
       setLoading(false);
     }
   }, [range, levelFilter]);
-  
+
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
@@ -99,11 +75,11 @@ export function SeverityDetailContent() {
       clearInterval(interval);
     };
   }, [fetchData]);
-  
+
   if (loading && !data) {
     return <div className="embed-loading"><div className="embed-spinner" /></div>;
   }
-  
+
   const severityPieData = Object.entries(data?.summary.bySeverity || {})
     .map(([name, value]) => ({
       name: SEVERITY_CONFIG[name]?.label || name,
@@ -111,36 +87,35 @@ export function SeverityDetailContent() {
       color: SEVERITY_CONFIG[name]?.color || '#64748b'
     }))
     .sort((a, b) => b.value - a.value);
-  
-  // Aggregate by category for this severity level
+
   const catMap = new Map<string, number>();
   const areaMap = new Map<string, number>();
   for (const r of data?.reports || []) {
     catMap.set(r.main_category || 'Unknown', (catMap.get(r.main_category || 'Unknown') || 0) + 1);
     areaMap.set(r.area || 'Unknown', (areaMap.get(r.area || 'Unknown') || 0) + 1);
   }
-  
+
   const catBarData = Array.from(catMap.entries())
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count);
-  
+
   const highCount = data?.summary.bySeverity?.high || 0;
   const mediumCount = data?.summary.bySeverity?.medium || 0;
   const lowCount = data?.summary.bySeverity?.low || 0;
-  
+
   const title = levelFilter ? `Severity: ${SEVERITY_CONFIG[levelFilter]?.label || levelFilter}` : 'Analisis Severity';
-  
+
   return (
     <>
       <Link href={`/embed/overview?range=${range}`} className="back-link">← Kembali ke Overview</Link>
-      
+
       <header className="page-header">
         <h1 className="page-title">{title}</h1>
         <p className="page-subtitle">Breakdown laporan berdasarkan tingkat keparahan</p>
       </header>
-      
+
       <DateRangeFilter />
-      
+
       <div className="kpi-grid">
         <div className="kpi-card">
           <div className="kpi-value" style={{ color: '#ef4444' }}>{highCount}</div>
@@ -159,7 +134,7 @@ export function SeverityDetailContent() {
           <div className="kpi-label">Total</div>
         </div>
       </div>
-      
+
       <div className="embed-grid embed-grid-2">
         <EmbedCard title="Distribusi Severity">
           <div className="chart-container">
@@ -186,7 +161,7 @@ export function SeverityDetailContent() {
             </ResponsiveContainer>
           </div>
         </EmbedCard>
-        
+
         <EmbedCard title="Per Kategori">
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
@@ -201,7 +176,7 @@ export function SeverityDetailContent() {
           </div>
         </EmbedCard>
       </div>
-      
+
       <EmbedCard title="Daftar Laporan" className="mt-6">
         <div className="embed-table-container">
           <table className="embed-table">

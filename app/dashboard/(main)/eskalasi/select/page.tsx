@@ -50,7 +50,7 @@ const divisionCards = [
     },
 ];
 
-const COMING_SOON_DIVISIONS = new Set(['OS', 'HT', 'DOCUMENTS']);
+const COMING_SOON_DIVISIONS = new Set(['OS']);
 
 export default function DivisionSelectPage() {
     const [error, setError] = useState<string | null>(null);
@@ -169,7 +169,7 @@ export default function DivisionSelectPage() {
                                     <div className="relative z-10">
                                         <div className={`
                                             inline-flex items-center justify-center
-                                            w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl mb-4
+                                            w-12 h-12 md:w-14 md:h-14 rounded-full mb-4
                                             bg-gradient-to-br ${card.gradient}
                                             shadow-lg
                                         `}>
@@ -223,7 +223,7 @@ export default function DivisionSelectPage() {
                             <div className="relative z-10">
                                 <div className={`
                                     inline-flex items-center justify-center
-                                    w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl mb-4
+                                    w-12 h-12 md:w-14 md:h-14 rounded-full mb-4
                                     bg-gradient-to-br from-rose-500 via-red-600 to-orange-600
                                     shadow-lg
                                 `}>

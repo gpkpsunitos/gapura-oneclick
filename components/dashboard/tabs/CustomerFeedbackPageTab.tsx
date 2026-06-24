@@ -1,15 +1,5 @@
 'use client';
 
-/**
- * Renders one page of customer-feedback-main inside an OS tab, styled with the
- * same .sr-scope card system the OP tabs (SummaryReportTab, ServiceQualityImprovementTab,
- * GsePerformanceTab, JoumpaServiceTab, CgoCargoReportTab, DelayCodeReportTab) use.
- *
- * Speed: dashboard config is module-cached, and on first mount the component
- * prefetches all 5 pages in parallel — subsequent tab switches read from cache
- * and render instantly.
- */
-
 import { useEffect, useMemo, useState } from 'react';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import {
@@ -67,7 +57,6 @@ interface ChartResult {
   stats?: unknown;
 }
 
-// ── module-level cache + prefetch ──────────────────────────────────────────
 let dashboardCache: DashboardConfig | null = null;
 let dashboardPromise: Promise<DashboardConfig> | null = null;
 const pageCache: Map<number, PagePayload> = new Map();
@@ -131,7 +120,6 @@ function kickPrefetch() {
   prefetchCustomerFeedback();
 }
 
-// ── component ──────────────────────────────────────────────────────────────
 interface Props {
   pageIndex: number;
 }
@@ -186,7 +174,7 @@ export function CustomerFeedbackPageTab({ pageIndex }: Props) {
   }, [dashboard]);
 
   const currentPage = pages[pageIndex];
-  // KPI-borrowing rule from CustomDashboardContent: pages 0/3 borrow KPIs from 1/4.
+
   const kpiSourceIndex = pageIndex === 0 ? 1 : pageIndex === 3 ? 4 : pageIndex;
   const extraKpis = useMemo(() => {
     const src = pages[kpiSourceIndex];
@@ -343,7 +331,7 @@ export function CustomerFeedbackPageTab({ pageIndex }: Props) {
             <span className="sr-section-rule" aria-hidden="true" />
             <h2>Key Indicators</h2>
           </div>
-          {/* One full row on tablet+, 2-col wrap on mobile. Dynamic template avoids Tailwind purge issues. */}
+          {}
           <div
             className="grid grid-cols-2 gap-3 sm:gap-4"
             style={{ gridTemplateColumns: `repeat(${extraKpis.length}, minmax(0, 1fr))` }}
@@ -407,7 +395,6 @@ export function CustomerFeedbackPageTab({ pageIndex }: Props) {
   );
 }
 
-// ── Visual primitives mirroring OP tab components ─────────────────────────
 type Point = { name: string; value: number };
 
 function SrEmpty({ label = 'No data available' }: { label?: string }) {
@@ -432,10 +419,9 @@ function SrHBar({
   if (sortByValue) rows.sort((a, b) => b.value - a.value);
   if (limit > 0) rows = rows.slice(0, limit);
   const longest = rows.reduce((m, r) => Math.max(m, r.name.length), 0);
-  // Wider cap so multi-word labels like "Passenger, Baggage & Document Profiling" aren't pixel-clipped.
+
   const yAxisWidth = Math.min(220, Math.max(80, longest * 6.2));
-  // ponytail: fixed pixel height per row keeps sparse charts (HUB REPORT = 1 bar) from
-  // stretching to fill sibling height in the grid row.
+
   const chartHeight = Math.max(140, Math.min(440, rows.length * 30 + 56));
   const truncate = (s: string) => (s.length > 32 ? `${s.slice(0, 30)}…` : s);
   return (
@@ -531,7 +517,6 @@ function isNumericCell(v: unknown): v is number {
   return typeof v === 'number' && Number.isFinite(v);
 }
 
-// Strip leading underscores ("_COUNT" → "COUNT") and normalise to title-ish display.
 function prettyHeader(c: string) {
   const cleaned = c.replace(/^_+/, '').replace(/_/g, ' ').trim();
   return cleaned || c;
@@ -541,8 +526,6 @@ const EVIDENCE_COL = /(evidence|link|url|attachment|bukti)/i;
 const COUNT_COL = /^_?(count|total|jumlah|qty)$/i;
 const REPORT_TEXT_COL = /^(report|root\s*caus(ed)?|action(\s*taken)?|preventive(\s*action)?|final\s*remarks?|remarks?|description|deskripsi)$/i;
 
-// Drop redundant columns: constant-valued helpers like "_count" = 1, or numeric leaders that
-// duplicate another column ("_count" alongside "record count").
 function dedupeColumns(cols: string[], rows: Record<string, unknown>[]): string[] {
   if (cols.length <= 1 || rows.length === 0) return cols;
   const drop = new Set<number>();
@@ -553,11 +536,11 @@ function dedupeColumns(cols: string[], rows: Record<string, unknown>[]): string[
     if (drop.has(i)) continue;
     const a = norm(cols[i]);
     if (!COUNT_COL.test(a)) continue;
-    // Constant column (every value identical) → useless when count is just "1" per row.
+
     const first = sample[0]?.[cols[i]];
     const constant = sample.every((r) => r[cols[i]] === first);
     if (constant && (first === 1 || first === '1')) { drop.add(i); continue; }
-    // Duplicate of another numeric column with a more descriptive name (e.g. "record count", "total").
+
     for (let j = 0; j < cols.length; j++) {
       if (i === j || drop.has(j)) continue;
       const b = norm(cols[j]);
@@ -570,7 +553,6 @@ function dedupeColumns(cols: string[], rows: Record<string, unknown>[]): string[
   return cols.filter((_, i) => !drop.has(i));
 }
 
-// Relative column weights (0–1). Long text columns get the bulk; codes/dates stay narrow.
 function colWeight(name: string): number {
   if (EVIDENCE_COL.test(name)) return 1.2;
   if (REPORT_TEXT_COL.test(name)) return 3;
@@ -622,7 +604,7 @@ function CellValue({ column, value }: { column: string; value: unknown }) {
 function SrPivot({ result, isFullWidth }: { result: QueryResult | undefined; isFullWidth: boolean }) {
   if (!result || !result.columns?.length || !result.rows?.length) return <SrEmpty />;
   const cols = result.columns;
-  // Heatmap shading on numeric columns
+
   const numericMax = (() => {
     let max = 0;
     for (const r of result.rows) {

@@ -48,7 +48,6 @@ const HEADER_MAP: Record<string, keyof JoumpaRecord> = {
   'rating rata-rata': 'averageRating',
 };
 
-// Complexity: Time O(n) | Space O(n) where n = row count
 function parseRows(headers: string[], rows: string[][]): JoumpaRecord[] {
   const colMap = new Map<keyof JoumpaRecord, number>();
 
@@ -71,8 +70,7 @@ function parseRows(headers: string[], rows: string[][]): JoumpaRecord[] {
     colMap.forEach((colIdx, field) => {
       const val = (row[colIdx] ?? '').toString().trim();
       record[field] = val;
-      
-      // Split evidence into array if it's the evidence/supporting evidence field
+
       if (field === 'evidence' && val) {
         record.evidence_urls = val.split(/\s*[|\n,]\s*/).map(s => s.trim()).filter(url => url.startsWith('http'));
       }
@@ -81,7 +79,6 @@ function parseRows(headers: string[], rows: string[][]): JoumpaRecord[] {
   });
 }
 
-// Complexity: Time O(n) | Space O(1) per filter check
 function applyFilters(records: JoumpaRecord[], params: URLSearchParams): JoumpaRecord[] {
   const serviceType = params.get('service_type');
   const airlines = params.get('airlines');

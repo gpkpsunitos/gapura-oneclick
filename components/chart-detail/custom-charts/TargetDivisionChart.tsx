@@ -53,7 +53,7 @@ export function TargetDivisionChart({
   title = 'Distribusi per Divisi',
   explanation 
 }: TargetDivisionChartProps) {
-  // Handle empty data
+
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-[#e0e0e0] flex flex-col overflow-hidden h-full">
@@ -96,9 +96,9 @@ export function TargetDivisionChart({
         </h4>
         <div className="w-1.5 h-1.5 rounded-full bg-[#6b8e3d]" />
       </div>
-      
+
       <div className="p-4 flex-1 flex flex-col">
-        {/* Division Cards */}
+        {}
         <div className="grid grid-cols-2 gap-2 mb-4">
           {sortedData.slice(0, 4).map((item) => {
             const config = DIVISION_CONFIG[item.division] || { 
@@ -107,7 +107,7 @@ export function TargetDivisionChart({
               label: item.division,
               description: 'Lainnya'
             };
-            
+
             return (
               <div 
                 key={item.division} 
@@ -134,7 +134,7 @@ export function TargetDivisionChart({
           })}
         </div>
 
-        {/* Horizontal Bar Chart */}
+        {}
         <div className="flex-1 space-y-2">
           {sortedData.map((item) => {
             const config = DIVISION_CONFIG[item.division] || { 
@@ -144,7 +144,7 @@ export function TargetDivisionChart({
               description: 'Lainnya'
             };
             const barWidth = (item.count / maxCount) * 100;
-            
+
             return (
               <div key={item.division} className="group">
                 <div className="flex items-center gap-2 mb-1">
@@ -171,7 +171,7 @@ export function TargetDivisionChart({
           })}
         </div>
 
-        {/* Summary Stats */}
+        {}
         <div className="mt-3 pt-3 border-t border-gray-100 grid grid-cols-3 gap-2">
           <div className="text-center">
             <div className="text-lg font-bold text-gray-800">{sortedData.length}</div>

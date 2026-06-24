@@ -243,7 +243,6 @@ function normalizeSeverity(key: string): string {
   return key.toUpperCase();
 }
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
 function calculateTopRisky(
   items: Record<string, { count: number; severity: Record<string, number> }>,
   limit = 5
@@ -258,7 +257,6 @@ function calculateTopRisky(
   });
   return scored.sort((a, b) => b.score - a.score).slice(0, limit).map((x) => x.name);
 }
-/* eslint-enable @typescript-eslint/no-unused-vars */
 
 export async function fetchSeverityDistributionsAi(signal?: AbortSignal): Promise<SeverityDistributionsAiResponse | null> {
   try {
@@ -270,7 +268,7 @@ export async function fetchSeverityDistributionsAi(signal?: AbortSignal): Promis
 
     const data = await response.json();
     const results = data.results || [];
-    
+
     const severityByArea: Record<string, Record<string, number>> = {};
     const severityByCategory: Record<string, Record<string, number>> = {};
     const severityByBranch: Record<string, Record<string, number>> = {};
@@ -325,7 +323,6 @@ export async function fetchSeverityDistributionsAi(signal?: AbortSignal): Promis
 export async function fetchRiskSummaryAi(signal?: AbortSignal): Promise<AiRiskSummary | null> {
   try {
     const url = `${GAPURA_AI_BASE_URL}/api/ai/risk/summary?esklasi_regex=`;
-    console.log('[gapura-ai] Fetching risk summary from:', url);
     const response = await fetchWithTimeout(url, { signal }, 120000);
     if (!response.ok) {
       console.error('[gapura-ai] Failed to fetch risk summary:', response.status);
@@ -510,9 +507,8 @@ export type HubRiskSummaryResponse = Record<string, HubRiskAnalysis>;
 
 export async function fetchHubRiskAnalysis(signal?: AbortSignal): Promise<HubRiskSummaryResponse | null> {
   try {
-    // Use local proxy to avoid CORS and hide upstream URL
+
     const url = '/api/ai/risk/hubs?esklasi_regex=';
-    console.log('[gapura-ai] Fetching hub risk analysis from:', url);
     const response = await fetchWithTimeout(url, { signal }, 120000);
     if (!response.ok) {
       console.error('[gapura-ai] Failed to fetch hub risk analysis:', response.status);
@@ -521,7 +517,6 @@ export async function fetchHubRiskAnalysis(signal?: AbortSignal): Promise<HubRis
 
     const data = await response.json();
     if (Object.keys(data).length === 0) {
-      console.warn('[gapura-ai] API returned empty data');
       return null;
     }
     return data as HubRiskSummaryResponse;
@@ -532,13 +527,11 @@ export async function fetchHubRiskAnalysis(signal?: AbortSignal): Promise<HubRis
   }
 }
 
-
 export async function fetchBranchRiskAnalysisAi(signal?: AbortSignal): Promise<BranchRiskSummaryResponse | null> {
   try {
-    // Use local proxy to avoid CORS and align with server-side config
+
     const url = `/api/ai/risk/branches?esklasi_regex=`;
-    console.log('[gapura-ai] Fetching branch risk analysis from:', url);
-    let response = await fetchWithTimeout(url, { signal }, 120000);
+    const response = await fetchWithTimeout(url, { signal }, 120000);
     if (!response.ok) {
       console.error('[gapura-ai] Failed to fetch branch risk analysis:', response.status);
       return null;
@@ -546,7 +539,6 @@ export async function fetchBranchRiskAnalysisAi(signal?: AbortSignal): Promise<B
 
     const data = await response.json();
     if (Object.keys(data).length === 0) {
-      console.warn('[gapura-ai] API returned empty data');
       return null;
     }
     return data as BranchRiskSummaryResponse;

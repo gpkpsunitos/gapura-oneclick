@@ -35,7 +35,6 @@ export function PrismMultiSelect({
     const [searchTerm, setSearchTerm] = useState('');
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Close on click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -73,8 +72,8 @@ export function PrismMultiSelect({
                     {label} {required && <span className="text-[var(--status-error)]">*</span>}
                 </label>
             )}
-            
-            {/* Trigger Button */}
+
+            {}
             <button
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
@@ -127,13 +126,13 @@ export function PrismMultiSelect({
                 />
             </button>
 
-            {/* Dropdown Menu */}
+            {}
             {isOpen && (
                 <div 
                     className="absolute top-full left-0 right-0 mt-2 p-2 rounded-2xl bg-[var(--surface-2)] border border-[var(--surface-3)] shadow-xl z-50 animate-scale-in origin-top"
                     style={{ maxHeight: '300px', display: 'flex', flexDirection: 'column' }}
                 >
-                    {/* Search Bar */}
+                    {}
                     {searchable && (
                         <div className="sticky top-0 px-2 pb-2 mb-2 border-b border-[var(--surface-3)]">
                             <div className="relative">
@@ -150,7 +149,7 @@ export function PrismMultiSelect({
                         </div>
                     )}
 
-                    {/* Options List */}
+                    {}
                     <div className="overflow-y-auto custom-scrollbar flex-1 space-y-1">
                         {filteredOptions.length === 0 ? (
                             <div className="p-4 text-center text-sm text-[var(--text-muted)]">
@@ -173,7 +172,7 @@ export function PrismMultiSelect({
                                         `}
                                     >
                                         <div className="flex items-center gap-3">
-                                            {/* Checkbox-like UI */}
+                                            {}
                                             <div className={`
                                                 w-4 h-4 rounded border flex items-center justify-center transition-colors
                                                 ${isSelected 

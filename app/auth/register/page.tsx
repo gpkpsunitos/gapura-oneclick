@@ -1,9 +1,4 @@
-/**
- * @file
- * 
- * File ini berisi halaman registrasi akun baru dengan formulir pendaftaran lengkap
- * termasuk validasi NIK, email, telepon, dan pemilihan station/unit/posisi
- */
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -13,33 +8,18 @@ import Image from 'next/image';
 import { User, Mail, Lock, UserPlus, Loader2, CheckCircle, Phone, Building2, Users, Briefcase, CreditCard, Info, Shield, Eye, EyeOff, Layers } from 'lucide-react';
 import type { DivisionType } from '@/types';
 
-/**
- * Interface untuk data station
- */
 interface Station { id: string; code: string; name: string; }
 
-/**
- * Interface untuk data unit
- */
 interface Unit { id: string; name: string; }
 
-/**
- * Interface untuk data posisi
- */
 interface Position { id: string; name: string; }
 
-/**
- * Opsi divisi untuk registrasi
- */
 const DIVISION_OPTIONS: { value: DivisionType; label: string }[] = [
     { value: 'OS', label: 'Operational Services (OS)' },
     { value: 'OP', label: 'Operasi (OP)' },
     { value: 'GENERAL', label: 'Umum / Lainnya' },
 ];
 
-/**
- * Data unit default untuk fallback
- */
 const DEFAULT_UNITS: Unit[] = [
     { id: '00000000-0000-0000-0000-000000000101', name: 'Ramp' },
     { id: '00000000-0000-0000-0000-000000000102', name: 'Passenger Service' },
@@ -49,9 +29,6 @@ const DEFAULT_UNITS: Unit[] = [
     { id: '00000000-0000-0000-0000-000000000106', name: 'Administrasi' },
 ];
 
-/**
- * Data posisi default untuk fallback
- */
 const DEFAULT_POSITIONS: Array<Position & { level?: number }> = [
     { id: '00000000-0000-0000-0000-000000000201', name: 'Super Admin', level: 1 },
     { id: '00000000-0000-0000-0000-000000000202', name: 'Analyst', level: 2 },
@@ -67,10 +44,6 @@ const DEFAULT_POSITIONS: Array<Position & { level?: number }> = [
     { id: '00000000-0000-0000-0000-00000000020C', name: 'Manager', level: 7 },
 ];
 
-/**
- * Halaman registrasi akun baru
- * @returns Komponen React
- */
 export default function RegisterPage() {
     const router = useRouter();
     const [formData, setFormData] = useState({
@@ -96,13 +69,11 @@ export default function RegisterPage() {
     const [units, setUnits] = useState<Unit[]>([]);
     const [positions, setPositions] = useState<Position[]>([]);
 
-    // Check if selected station is GPS (Gapura Pusat)
     const isGPS = useMemo(() => {
         const station = stations.find(s => s.id === formData.station_id);
         return station?.code === 'GPS';
     }, [formData.station_id, stations]);
 
-    // Clear email hint when switching to GPS station
     useEffect(() => {
         if (isGPS) {
             setEmailHint('');
@@ -111,11 +82,8 @@ export default function RegisterPage() {
 
     useEffect(() => {
         const fetchMasterData = async () => {
-            /**
-             * Menyelesaikan JSON response dari promise
-             * @param p - Promise dari fetch
-             * @returns Promise<any[]> Array data
-             */
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const settleJson = async (p: Promise<Response>): Promise<any[]> => {
                 try {
                     const res = await p;
@@ -140,7 +108,6 @@ export default function RegisterPage() {
         fetchMasterData();
     }, []);
 
-    // Filter positions based on station selection
     const filteredPositions = useMemo(() => {
         const pool = positions.length ? positions : DEFAULT_POSITIONS;
         const centralRoles = ['Super Admin', 'Analyst', 'OS', 'OSF', 'OSL', 'DIVISI OP'];
@@ -158,19 +125,12 @@ export default function RegisterPage() {
         return result;
     }, [positions, isGPS]);
 
-    // Filter stations to exclude GPS for branch registration
     const filteredStations = useMemo(() => {
         const gps = stations.find(s => s.code === 'GPS');
         const others = stations.filter(s => s.code !== 'GPS');
         return gps ? [gps, ...others] : others;
     }, [stations]);
 
-    /**
-     * Validasi field formulir
-     * @param name - Nama field
-     * @param value - Nilai field
-     * @returns Pesan error atau string kosong jika valid
-     */
     const validateField = (name: string, value: string): string => {
         switch (name) {
             case 'nik':
@@ -202,16 +162,10 @@ export default function RegisterPage() {
         return '';
     };
 
-    /**
-     * Menangani perubahan nilai field formulir
-     * @param name - Nama field
-     * @param value - Nilai baru field
-     */
     const handleChange = (name: string, value: string) => {
-        // Transform NIK to uppercase
+
         if (name === 'nik') value = value.toUpperCase();
 
-        // Email domain hint - use memoized isGPS
         if (name === 'email') {
             if (!isGPS) {
                 const emailLower = value.toLowerCase();
@@ -237,16 +191,11 @@ export default function RegisterPage() {
         }
     };
 
-    /**
-     * Menangani submit formulir registrasi
-     * @param e - Event form
-     */
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         setSuccess('');
 
-        // Validate all fields
         const errors: Record<string, string> = {};
         Object.entries(formData).forEach(([key, value]) => {
             if (key !== 'confirmPassword' && key !== 'division') {
@@ -255,7 +204,6 @@ export default function RegisterPage() {
             }
         });
 
-        // Password confirmation check
         if (formData.password !== formData.confirmPassword) {
             errors.confirmPassword = 'Password tidak cocok';
         }
@@ -345,7 +293,7 @@ export default function RegisterPage() {
                     <p className="text-white/80 text-base xl:text-lg max-w-md">
                         Daftarkan diri Anda untuk mengakses sistem pelaporan irregularity yang terintegrasi.
                     </p>
-                    
+
                     <div className="flex items-center gap-4 pt-4">
                         <div className="flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full">
                             <Shield size={16} className="text-white" />

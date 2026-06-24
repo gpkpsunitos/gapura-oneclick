@@ -18,10 +18,6 @@ const sizeStyles = {
     lg: 'py-4 px-5 text-[var(--text-lg)]',
 };
 
-/**
- * PrismInput — Premium input with floating label animation and micro-interactions.
- * Complexity: Time O(1) | Space O(1)
- */
 const PrismInput = forwardRef<HTMLInputElement, PrismInputProps>(
     (
         {
@@ -45,16 +41,16 @@ const PrismInput = forwardRef<HTMLInputElement, PrismInputProps>(
 
         return (
             <div className="relative w-full">
-                {/* Input Container */}
+                {}
                 <div className="relative">
-                    {/* Left Icon */}
+                    {}
                     {leftIcon && (
                         <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none z-10">
                             {leftIcon}
                         </div>
                     )}
 
-                    {/* Input Field */}
+                    {}
                     <input
                         ref={ref}
                         id={inputId}
@@ -67,7 +63,7 @@ const PrismInput = forwardRef<HTMLInputElement, PrismInputProps>(
                             props.onBlur?.(e);
                         }}
                         className={cn(
-                            // Base styles
+
                             'w-full',
                             'bg-[var(--surface-3)]',
                             'border-2 rounded-[var(--radius-xl)]',
@@ -75,14 +71,14 @@ const PrismInput = forwardRef<HTMLInputElement, PrismInputProps>(
                             'text-[var(--text-primary)]',
                             'placeholder:text-transparent',
                             'transition-all duration-[var(--duration-normal)] ease-[var(--spring-snappy)]',
-                            // Size
+
                             sizeStyles[size],
-                            // Icon padding
+
                             leftIcon && 'pl-12',
                             rightIcon && 'pr-12',
-                            // Label padding (floating label needs more top space)
+
                             label && 'pt-6 pb-2',
-                            // States
+
                             error
                                 ? 'border-[var(--status-error)] focus:border-[var(--status-error)] focus:shadow-[0_0_0_4px_oklch(60%_0.22_25_/_0.15)]'
                                 : 'border-[var(--border-subtle)] hover:border-[var(--border-medium)] focus:border-[var(--brand-primary)] focus:shadow-[0_0_0_4px_var(--border-focus)]',
@@ -92,7 +88,7 @@ const PrismInput = forwardRef<HTMLInputElement, PrismInputProps>(
                         {...props}
                     />
 
-                    {/* Floating Label */}
+                    {}
                     {label && (
                         <label
                             htmlFor={inputId}
@@ -111,7 +107,7 @@ const PrismInput = forwardRef<HTMLInputElement, PrismInputProps>(
                         </label>
                     )}
 
-                    {/* Right Icon */}
+                    {}
                     {rightIcon && (
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">
                             {rightIcon}
@@ -119,14 +115,14 @@ const PrismInput = forwardRef<HTMLInputElement, PrismInputProps>(
                     )}
                 </div>
 
-                {/* Error Message */}
+                {}
                 {error && (
                     <p className="mt-2 text-[var(--text-sm)] text-[var(--status-error)] font-medium animate-spring-up">
                         {error}
                     </p>
                 )}
 
-                {/* Hint Message */}
+                {}
                 {hint && !error && (
                     <p className="mt-2 text-[var(--text-xs)] text-[var(--text-muted)]">
                         {hint}

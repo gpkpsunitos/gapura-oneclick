@@ -2,19 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SyncService } from '@/lib/services/sync-service';
 import { logSecurityAudit } from '@/lib/security/audit-logger';
 
-/**
- * Cron-safe sync endpoint designed for Vercel Hobby's 10-second function timeout.
- *
- * Instead of running the full sync in one request, this endpoint:
- * 1. Delegates to SyncService which has its own deduplication (activeSyncPromise)
- * 2. Sets a soft time-budget (8s) and returns early if sync is still in progress
- * 3. Returns a `continuation` flag the caller can use to re-trigger
- *
- * The Vercel cron should point here instead of `/api/admin/sync-reports`.
- * If sync doesn't complete within one invocation, the Vercel cron schedule
- * (daily at 3 AM) or a manual admin trigger can pick it up.
- */
-
 const SOFT_TIMEOUT_MS = 8000;
 
 function isCronRequest(request: NextRequest): boolean {

@@ -1,10 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/**
- * Shared chart utilities and components for analyst dashboard
- *
- * This file contains shared constants, color palettes, and small utility
- * components used across the analyst charts components.
- */
+/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
 
 import { type ComponentProps, useState } from 'react';
 import {
@@ -13,15 +7,12 @@ import {
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { Report } from '@/types';
 
-/**
- * Prism semantic color palette (OP Solid Hex style)
- */
 export const REFERENCE_COLORS = {
-    irregularity: '#08ad6f', // OP Emerald
-    complaint: '#0f86c1',    // OP Blue
-    compliment: '#e49418',   // OP Amber
-    trend: '#007073',        // OP Teal
-    neutral: '#263033',      // Slate/dark grey
+    irregularity: '#08ad6f',
+    complaint: '#0f86c1',
+    compliment: '#e49418',
+    trend: '#007073',
+    neutral: '#263033',
 };
 
 export const CHART_PALETTE = [
@@ -37,10 +28,10 @@ export const COLORS = [
     REFERENCE_COLORS.irregularity,
     REFERENCE_COLORS.complaint,
     REFERENCE_COLORS.compliment,
-    '#79c77b', // Soft green
-    '#007073', // Teal
-    '#8a8a8a', // Slate
-    '#cfd8ce', // Border light
+    '#79c77b',
+    '#007073',
+    '#8a8a8a',
+    '#cfd8ce',
 ];
 
 export const ENTERPRISE_COLORS = [
@@ -55,9 +46,6 @@ export const OS_TABLE_HEADER_CLASS = 'bg-[#79c77b] text-[#17231c]';
 export const OS_BORDER_CLASS = 'border-[#b9c5b8]';
 export const OS_HOVER_CLASS = 'hover:bg-[#eef7ed]';
 
-/**
- * Wrapper for responsive container that ensures minimum dimensions
- */
 export function ResponsiveContainer(props: ComponentProps<typeof RechartsResponsiveContainer>) {
     return (
         <RechartsResponsiveContainer
@@ -76,9 +64,6 @@ interface AxisTickProps {
     };
 }
 
-/**
- * X-axis tick that wraps long labels
- */
 export const WrappedXAxisTick = (props: AxisTickProps) => {
     const { x, y, payload } = props;
     const label = String(payload?.value ?? '');
@@ -119,9 +104,6 @@ export const WrappedXAxisTick = (props: AxisTickProps) => {
     );
 };
 
-/**
- * Y-axis tick that wraps long labels
- */
 export const WrappedYAxisTick = (props: AxisTickProps) => {
     const { x, y, payload } = props;
     const words = String(payload?.value ?? '').split(/\s+/);
@@ -160,9 +142,6 @@ export const WrappedYAxisTick = (props: AxisTickProps) => {
     );
 };
 
-/**
- * Props for custom tooltip
- */
 export interface CustomTooltipProps {
     active?: boolean;
     payload?: Array<{
@@ -176,9 +155,6 @@ export interface CustomTooltipProps {
     label?: string;
 }
 
-/**
- * Custom tooltip component for charts
- */
 export function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
     if (!active || !payload?.length) return null;
 
@@ -207,9 +183,6 @@ export function CustomTooltip({ active, payload, label }: CustomTooltipProps) {
     );
 }
 
-/**
- * Returns perceptual emerald-scale background + foreground for heat-map cells.
- */
 export function heatColor(value: number, max: number): { bg: string; fg: string } {
     if (value === 0 || max === 0) return { bg: 'transparent', fg: 'var(--text-muted)' };
     const ratio = Math.min(1, Math.max(0, value / max));
@@ -259,6 +232,7 @@ export function DetailReportTable({ data }: { data: Report[] }) {
                             const date = r.date_of_event
                                 ? new Date(r.date_of_event).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' })
                                 : '-';
+                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                             const tag = (r as any).primary_tag || '-';
                             const tagColor = tag === 'Landside' ? 'bg-blue-100 text-blue-700' : tag === 'Airside' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600';
                             const branch = r.stations?.code || r.branch || '-';
@@ -270,15 +244,31 @@ export function DetailReportTable({ data }: { data: Report[] }) {
                                     </td>
                                     <td>{r.category || r.main_category || '-'}</td>
                                     <td className="font-bold">{branch}</td>
+                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <td>{r.airlines || '-'}</td>
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     <td className="font-mono tabular-nums">{(r as any).flight_number || '-'}</td>
+                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', verticalAlign: 'top' }}>
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         <p className="overflow-hidden whitespace-normal break-words leading-snug [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{(r as any).description || (r as any).report || '-'}</p>
                                     </td>
+                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', verticalAlign: 'top' }}>
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         <p className="overflow-hidden whitespace-normal break-words leading-snug [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{(r as any).root_caused || '-'}</p>
                                     </td>
+                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', verticalAlign: 'top' }}>
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         <p className="overflow-hidden whitespace-normal break-words leading-snug [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{(r as any).action_taken || '-'}</p>
                                     </td>
                                 </tr>

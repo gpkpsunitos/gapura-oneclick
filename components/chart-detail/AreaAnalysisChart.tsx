@@ -11,12 +11,11 @@ interface AreaAnalysisChartProps {
   explanation?: string;
 }
 
-// ── COLORS ───────────────────────────────────────────────────────────────────
 const COLORS = {
-  irregularity: '#ef4444', // Red-500
-  complaint: '#f97316',    // Orange-500
-  compliment: '#22c55e',   // Green-500
-  default: '#9ca3af'       // Gray-400
+  irregularity: '#ef4444',
+  complaint: '#f97316',
+  compliment: '#22c55e',
+  default: '#9ca3af'
 };
 
 const AREA_ICONS = {
@@ -35,41 +34,33 @@ const AREA_LABELS: Record<string, string> = {
 const CATEGORIES = ['Irregularity', 'Complaint', 'Compliment'];
 
 export function AreaAnalysisChart({ visualization, result, title, explanation }: AreaAnalysisChartProps) {
-  
-  // 1. Data Transformation
+
   const areaData = useMemo(() => {
     if (!result || !result.rows.length) return [];
 
-    // Initialize groups
     const groups: Record<string, Record<string, number>> = {
       TERMINAL: { Irregularity: 0, Complaint: 0, Compliment: 0, Total: 0 },
       APRON: { Irregularity: 0, Complaint: 0, Compliment: 0, Total: 0 },
       GENERAL: { Irregularity: 0, Complaint: 0, Compliment: 0, Total: 0 }
     };
 
-    // Parse Data
-    // Expecting columns like: area, category, jumlah
-    // Or if stacked query: dimension=area, category=category
-    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     result.rows.forEach((row: any) => {
-      // Find Area
+
       let area = 'GENERAL';
       const rowArea = String(row.area || row.AREA || row.Area || '').toUpperCase();
       if (rowArea.includes('TERMINAL')) area = 'TERMINAL';
       else if (rowArea.includes('APRON')) area = 'APRON';
       else if (rowArea.includes('GENERAL')) area = 'GENERAL';
 
-      // Find Category
       let category = 'Irregularity';
       const rowCat = String(row.category || row.CATEGORY || row.Category || '').toLowerCase();
       if (rowCat.includes('irregularity')) category = 'Irregularity';
       else if (rowCat.includes('complaint') || rowCat.includes('keluhan')) category = 'Complaint';
       else if (rowCat.includes('compliment') || rowCat.includes('pujian')) category = 'Compliment';
-      
-      // Value
+
       const val = Number(row.jumlah || row.JUMLAH || row.count || row.COUNT || row.total || row.TOTAL || 0);
 
-      // Accumulate
       if (groups[area]) {
         groups[area][category] = (groups[area][category] || 0) + val;
         groups[area].Total += val;
@@ -87,8 +78,8 @@ export function AreaAnalysisChart({ visualization, result, title, explanation }:
 
   return (
     <div className="flex flex-col h-auto bg-white font-sans text-sm rounded-3xl border border-gray-100 shadow-[0_4px_20px_-8px_rgba(0,0,0,0.08)] overflow-hidden">
-      
-      {/* HEADER */}
+
+      {}
       <div className="px-5 py-3 border-b border-gray-50 flex items-center justify-between bg-white/50 backdrop-blur-sm">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
@@ -104,7 +95,7 @@ export function AreaAnalysisChart({ visualization, result, title, explanation }:
         </div>
       </div>
 
-      {/* BODY - 3 AREA CARDS */}
+      {}
       <div className="p-5 grid grid-cols-1 md:grid-cols-3 gap-4">
         {areaData.map((item) => {
           const Icon = AREA_ICONS[item.key as keyof typeof AREA_ICONS] || AREA_ICONS.DEFAULT;
@@ -112,8 +103,8 @@ export function AreaAnalysisChart({ visualization, result, title, explanation }:
 
           return (
             <div key={item.key} className="flex flex-col gap-3 p-4 rounded-2xl bg-slate-50/50 border border-slate-100">
-              
-              {/* Card Header */}
+
+              {}
               <div className="flex items-center gap-2 mb-2">
                 <div className={`p-2 rounded-xl ${
                   item.key === 'TERMINAL' ? 'bg-blue-100 text-blue-600' :
@@ -128,9 +119,9 @@ export function AreaAnalysisChart({ visualization, result, title, explanation }:
                 </div>
               </div>
 
-              {/* Stats Rows */}
+              {}
               <div className="space-y-2">
-                {/* Irregularity */}
+                {}
                 <StatRow 
                   label="Irregularity" 
                   value={item.stats.Irregularity} 
@@ -138,8 +129,8 @@ export function AreaAnalysisChart({ visualization, result, title, explanation }:
                   color={COLORS.irregularity}
                   icon={<AlertTriangle size={10} />}
                 />
-                
-                {/* Complaint */}
+
+                {}
                 <StatRow 
                   label="Complaint" 
                   value={item.stats.Complaint} 
@@ -148,7 +139,7 @@ export function AreaAnalysisChart({ visualization, result, title, explanation }:
                   icon={<MessageSquare size={10} />}
                 />
 
-                {/* Compliment */}
+                {}
                 <StatRow 
                   label="Compliment" 
                   value={item.stats.Compliment} 
@@ -163,7 +154,7 @@ export function AreaAnalysisChart({ visualization, result, title, explanation }:
         })}
       </div>
 
-      {/* EXPLANATION */}
+      {}
       {explanation && (
         <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-50 flex gap-2 items-start">
           <div className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-gray-400">
@@ -180,7 +171,7 @@ export function AreaAnalysisChart({ visualization, result, title, explanation }:
 
 function StatRow({ label, value, total, color, icon }: { label: string, value: number, total: number, color: string, icon: React.ReactNode }) {
   const percent = total > 0 ? Math.round((value / total) * 100) : 0;
-  
+
   return (
     <div className="flex items-center justify-between text-[11px]">
       <div className="flex items-center gap-1.5 text-slate-600">
