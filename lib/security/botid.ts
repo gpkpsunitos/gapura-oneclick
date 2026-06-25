@@ -1,52 +1,52 @@
-import { NextResponse } from 'next/server';
-import { checkBotId } from 'botid/server';
+  import { NextResponse } from 'next/server';
+  import { checkBotId } from 'botid/server';
 
-export const BOTID_PROTECTED_ROUTES = [
-    {
-        path: '/api/auth/login',
-        method: 'POST',
-        advancedOptions: {
-            checkLevel: 'basic',
-        },
-    },
-    {
-        path: '/api/auth/register',
-        method: 'POST',
-        advancedOptions: {
-            checkLevel: 'basic',
-        },
-    },
-    {
-        path: '/api/reports',
-        method: 'POST',
-        advancedOptions: {
-            checkLevel: 'basic',
-        },
-    },
-    {
-        path: '/api/uploads/evidence',
-        method: 'POST',
-        advancedOptions: {
-            checkLevel: 'basic',
-        },
-    },
-    {
-        path: '/api/investigative-ai',
-        method: 'POST',
-        advancedOptions: {
-            checkLevel: 'deepAnalysis',
-        },
-    },
-    {
-        path: '/api/ai/analyze',
-        method: 'POST',
-        advancedOptions: {
-            checkLevel: 'deepAnalysis',
-        },
-    },
-] as const;
+  export const BOTID_PROTECTED_ROUTES = [
+      {
+          path: '/api/auth/login',
+          method: 'POST',
+          advancedOptions: {
+              checkLevel: 'basic',
+          },
+      },
+      {
+          path: '/api/auth/register',
+          method: 'POST',
+          advancedOptions: {
+              checkLevel: 'basic',
+          },
+      },
+      {
+          path: '/api/reports',
+          method: 'POST',
+          advancedOptions: {
+              checkLevel: 'basic',
+          },
+      },
+      {
+          path: '/api/uploads/evidence',
+          method: 'POST',
+          advancedOptions: {
+              checkLevel: 'basic',
+          },
+      },
+      {
+          path: '/api/investigative-ai',
+          method: 'POST',
+          advancedOptions: {
+              checkLevel: 'deepAnalysis',
+          },
+      },
+      {
+          path: '/api/ai/analyze',
+          method: 'POST',
+          advancedOptions: {
+              checkLevel: 'deepAnalysis',
+          },
+      },
+  ] as const;
 
-export async function enforceBotProtection() {
+  export async function enforceBotProtection() {
       if (process.env.BOTID_ENABLED !== 'true') {
           return null;
       }
@@ -67,4 +67,3 @@ export async function enforceBotProtection() {
 
       return null;
   }
-
