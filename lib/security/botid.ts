@@ -47,14 +47,24 @@ export const BOTID_PROTECTED_ROUTES = [
 ] as const;
 
 export async function enforceBotProtection() {
-    const verification = await checkBotId();
+      if (process.env.BOTID_ENABLED !== 'true') {
+          return null;
+      }
 
-    if (verification.isBot) {
-        return NextResponse.json(
-            { error: 'Permintaan ditolak oleh proteksi bot' },
-            { status: 403 }
-        );
-    }
+      try {
+          const verification = await checkBotId();
 
-    return null;
-}
+          if (verification.isBot) {
+              return NextResponse.json(
+                  { error: 'Permintaan ditolak oleh proteksi bot' },
+                  { status: 403 }
+              );
+          }
+      } catch (error) {
+          console.warn('[BOTID] Disabled after verification error:', error);
+          return null;
+      }
+
+      return null;
+  }
+
