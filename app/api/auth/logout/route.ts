@@ -1,79 +1,88 @@
-import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { readSessionPayload, evictSessionCache } from '@/lib/auth-utils';
-import { supabaseAdmin } from '@/lib/supabase-admin';
-import { parseAuthBundle } from '@/lib/auth-bundle';
+  import { NextResponse } from 'next/server';
+  import { cookies } from 'next/headers';
+  import { readSessionPayload, evictSessionCache } from '@/lib/auth-utils';
+  import { supabaseAdmin } from '@/lib/supabase-admin';
+  import { parseAuthBundle } from '@/lib/auth-bundle';
 
-function resolveLogoutRedirect(request: Request) {
-    const url = new URL(request.url);
-    const redirect = url.searchParams.get('redirect');
+  function getAppOrigin(request: Request) {
+      return (
+          process.env.NEXT_PUBLIC_APP_URL ||
+          process.env.APP_ORIGIN ||
+          request.url
+      );
+  }
 
-    if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
-        return new URL(redirect, request.url);
-    }
+  function resolveLogoutRedirect(request: Request) {
+      const url = new URL(request.url);
+      const redirect = url.searchParams.get('redirect');
+      const appOrigin = getAppOrigin(request);
 
-    return new URL('/auth/login?logout=1', request.url);
-}
+      if (redirect && redirect.startsWith('/') && !redirect.startsWith('//')) {
+          return new URL(redirect, appOrigin);
+      }
 
-async function destroySession() {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-    const bundleRaw = cookieStore.get('auth_bundle')?.value;
+      return new URL('/auth/login?logout=1', appOrigin);
+  }
 
-    const sidsToRevoke: string[] = [];
+  async function destroySession() {
+      const cookieStore = await cookies();
+      const token = cookieStore.get('session')?.value;
+      const bundleRaw = cookieStore.get('auth_bundle')?.value;
 
-    if (token) {
-        const payload = await readSessionPayload(token).catch(() => null);
-        if (payload?.sid) sidsToRevoke.push(payload.sid);
-    }
+      const sidsToRevoke: string[] = [];
 
-    if (bundleRaw) {
-        const bundle = parseAuthBundle(bundleRaw);
-        if (bundle) {
-            for (const [, sessionToken] of Object.entries(bundle.sessions)) {
-                const p = await readSessionPayload(sessionToken).catch(() => null);
-                if (p?.sid && !sidsToRevoke.includes(p.sid)) {
-                    sidsToRevoke.push(p.sid);
-                }
-            }
-        }
-    }
+      if (token) {
+          const payload = await readSessionPayload(token).catch(() => null);
+          if (payload?.sid) sidsToRevoke.push(payload.sid);
+      }
 
-    for (const sid of sidsToRevoke) {
-        evictSessionCache(sid);
-        supabaseAdmin
-            .from('security_sessions')
-            .update({ is_revoked: true })
-            .eq('session_id', sid)
-            .then();
-    }
+      if (bundleRaw) {
+          const bundle = parseAuthBundle(bundleRaw);
+          if (bundle) {
+              for (const [, sessionToken] of Object.entries(bundle.sessions)) {
+                  const p = await readSessionPayload(sessionToken).catch(() => null);
+                  if (p?.sid && !sidsToRevoke.includes(p.sid)) {
+                      sidsToRevoke.push(p.sid);
+                  }
+              }
+          }
+      }
 
-    const opts = {
-        maxAge: 0,
-        path: '/',
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax' as const,
-    };
+      for (const sid of sidsToRevoke) {
+          evictSessionCache(sid);
+          supabaseAdmin
+              .from('security_sessions')
+              .update({ is_revoked: true })
+              .eq('session_id', sid)
+              .then();
+      }
 
-    cookieStore.set('session', '', opts);
-    cookieStore.set('auth_bundle', '', opts);
-}
+      const opts = {
+          maxAge: 0,
+          path: '/',
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'lax' as const,
+      };
 
-export async function POST(request: Request) {
-    await destroySession();
+      cookieStore.set('session', '', opts);
+      cookieStore.set('auth_bundle', '', opts);
+  }
 
-    const response = NextResponse.redirect(resolveLogoutRedirect(request), { status: 303 });
-    response.headers.set('Clear-Site-Data', '"cache", "storage"');
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    return response;
-}
+  export async function POST(request: Request) {
+      await destroySession();
 
-export async function GET(request: Request) {
-    await destroySession();
+      const response = NextResponse.redirect(resolveLogoutRedirect(request), { status: 303 });
+      response.headers.set('Clear-Site-Data', '"cache", "storage"');
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      return response;
+  }
 
-    const response = NextResponse.redirect(resolveLogoutRedirect(request), { status: 303 });
-    response.headers.set('Clear-Site-Data', '"cache", "storage"');
-    response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-    return response;
-}
+  export async function GET(request: Request) {
+      await destroySession();
+
+      const response = NextResponse.redirect(resolveLogoutRedirect(request), { status: 303 });
+      response.headers.set('Clear-Site-Data', '"cache", "storage"');
+      response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+      return response;
+  }
