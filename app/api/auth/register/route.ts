@@ -2,16 +2,10 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabase-admin';
 import { hashPassword } from '@/lib/auth-utils';
-import { enforceBotProtection } from '@/lib/security/botid';
 import { checkRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
 
 export async function POST(request: Request) {
     try {
-        const botProtectionResponse = await enforceBotProtection();
-        if (botProtectionResponse) {
-            return botProtectionResponse;
-        }
-
         const clientIp = getClientIpFromRequest(request);
         const rateLimit = checkRateLimit(`register:${clientIp}`, 3, 60 * 60_000);
         if (!rateLimit.success) {

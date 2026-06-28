@@ -9,7 +9,6 @@ import { persistReportMetadata } from '@/lib/report-persistence';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { bumpSyncVersion } from '@/lib/sync-state';
 import { purgeDashboardSnapshots, purgeExpiredDashboardSnapshots } from '@/lib/dashboard-cache';
-import { enforceBotProtection } from '@/lib/security/botid';
 import { linkEvidenceFilesToReport, normalizeEvidenceSubmissionId, validateEvidenceForReport } from '@/lib/evidence-files';
 
 const DEFAULT_REPORT_SUMMARY_FIELDS = [
@@ -202,11 +201,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        const botProtectionResponse = await enforceBotProtection();
-        if (botProtectionResponse) {
-            return botProtectionResponse;
-        }
-
         const cookieStore = await cookies();
         const token = cookieStore.get('session')?.value;
 

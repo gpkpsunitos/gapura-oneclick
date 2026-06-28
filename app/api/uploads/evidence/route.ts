@@ -4,7 +4,6 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { compressToExactSize } from '@/lib/image-compression';
 import { validateImageFile } from '@/lib/security/file-validation';
-import { enforceBotProtection } from '@/lib/security/botid';
 import { normalizeEvidenceSubmissionId, recordEvidenceUpload } from '@/lib/evidence-files';
 import { deleteDriveFile, sha256Hex, uploadEvidenceToDrive } from '@/lib/google-drive';
 
@@ -12,11 +11,6 @@ export async function POST(request: Request) {
   let uploadedDriveFileId: string | null = null;
 
   try {
-    const botProtectionResponse = await enforceBotProtection();
-    if (botProtectionResponse) {
-      return botProtectionResponse;
-    }
-
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

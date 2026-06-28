@@ -11,7 +11,6 @@ import {
 } from '@/lib/auth-utils';
 import { serializeAuthBundle } from '@/lib/auth-bundle';
 import { logSecurityEvent } from '@/lib/security/event-service';
-import { enforceBotProtection } from '@/lib/security/botid';
 import { getClientIp } from '@/lib/security/utils';
 import { SyncService } from '@/lib/services/sync-service';
 import { checkDbRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
@@ -22,11 +21,6 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
     try {
-        const botProtectionResponse = await enforceBotProtection();
-        if (botProtectionResponse) {
-            return botProtectionResponse;
-        }
-
         const clientIp = getClientIpFromRequest(request);
 
         const body = await request.json();
@@ -182,7 +176,7 @@ export async function POST(request: Request) {
             }
         });
 
-        return NextResponse.json({ success: true, role: finalRole, email: user.email, phone: user.phone || null });
+        return NextResponse.json({ success: true, role: finalRole, division: user.division || null, email: user.email, phone: user.phone || null });
     } catch (err) {
         console.error('Login error:', err);
         return NextResponse.json(

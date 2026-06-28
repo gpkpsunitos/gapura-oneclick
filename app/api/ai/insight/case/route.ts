@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
-import { enforceBotProtection } from '@/lib/security/botid';
 import { CaseInsightResponse } from '@/lib/schemas/insight';
 
 export const dynamic = 'force-dynamic';
@@ -12,9 +11,6 @@ const HF_BASE = process.env.AI_SERVICE_URL
   || 'https://gapura-dev-gapura-ai.hf.space';
 
 export async function POST(req: NextRequest) {
-  const botBlock = await enforceBotProtection();
-  if (botBlock) return botBlock;
-
   const cookieStore = await cookies();
   const token = cookieStore.get('session')?.value;
   const session = token ? await verifySession(token) : null;

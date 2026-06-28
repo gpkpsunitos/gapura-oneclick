@@ -3,18 +3,11 @@ import { verifySession } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { getHfClient } from '@/lib/hf-client';
 import { resolveCachedAI } from '@/lib/ai-route-cache';
-import { enforceBotProtection } from '@/lib/security/botid';
-
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
 export async function POST(req: NextRequest) {
   try {
-    const botProtectionResponse = await enforceBotProtection();
-    if (botProtectionResponse) {
-      return botProtectionResponse;
-    }
-
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
     const session = token ? await verifySession(token) : null;

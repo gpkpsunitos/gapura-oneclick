@@ -2,15 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { callOpenRouterAI } from '@/lib/ai/openrouter';
-import { enforceBotProtection } from '@/lib/security/botid';
-
 export async function POST(request: NextRequest) {
   try {
-    const botProtectionResponse = await enforceBotProtection();
-    if (botProtectionResponse) {
-      return botProtectionResponse;
-    }
-
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
     if (!token) {
