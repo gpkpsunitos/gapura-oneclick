@@ -124,7 +124,7 @@ export default function OSReportDetailPage() {
                 report={report}
                 onUpdateStatus={handleStatusUpdate}
                 onRefresh={fetchReport}
-                onClose={() => router.push('/dashboard/os/reports')}
+                onClose={() => router.push('/dashboard/ocs/reports')}
                 userRole={user?.role || 'DIVISI_OS'}
                 isModal={false}
                 currentUserId={user?.id}

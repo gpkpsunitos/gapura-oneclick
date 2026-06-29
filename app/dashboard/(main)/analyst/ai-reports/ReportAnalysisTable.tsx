@@ -1,5 +1,5 @@
 'use client';
-/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
+/* eslint-disable react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
 
 import { useState, useMemo, Fragment, useEffect } from 'react';
 import { 
@@ -45,7 +45,7 @@ interface AIReport {
   hub?: string;
   flight_number?: string;
   route?: string;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   [key: string]: any;
 }
 
@@ -54,7 +54,7 @@ interface ReportAnalysisTableProps {
   title: string;
   className?: string;
   onAnalyze: (report: AIReport) => void;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   analysisResult: any;
   analyzing: boolean;
   selectedId: string;
@@ -288,11 +288,7 @@ export function ReportAnalysisTable({
                          {row.main_category || '-'}
                       </td>
                       <td className="px-3 py-3 text-xs text-gray-600 align-top">
-                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                         <div className="line-clamp-2 leading-relaxed break-words">
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
                           {row.description || (row as any).report || '-'}
                         </div>
                       </td>
@@ -350,11 +346,7 @@ export function ReportAnalysisTable({
                                     <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-2 flex items-center gap-2">
                                       <FileText size={14} /> Isi Laporan Lengkap
                                     </h4>
-                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                       {row.description || (row as any).report || 'Tidak ada deskripsi.'}
                                     </p>
                                   </div>
@@ -432,11 +424,7 @@ export function ReportAnalysisTable({
                                                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2 mt-4">
                                                  <LinkIcon size={14} className="text-blue-500" /> Laporan Serupa
                                                </h4>
-                                               // eslint-disable-next-line react/jsx-no-comment-textnodes
                                                <div className="space-y-2">
-                                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                                  {analysisResult.similarReports.results.map((sim: any, i: number) => (
                                                    <div key={i} className="p-3 bg-white border border-gray-100 rounded-lg text-xs flex justify-between items-center hover:bg-gray-50 transition-colors">
                                                      <div className="flex-1 min-w-0 pr-4">
@@ -472,10 +460,7 @@ export function ReportAnalysisTable({
                                                        {analysisResult.classification.primary_category} ({(analysisResult.classification.confidence * 100).toFixed(0)}%)
                                                     </Badge>
                                                  </div>
-                                                 // eslint-disable-next-line react/jsx-no-comment-textnodes
                                                  <p className="text-[11px] text-emerald-700/80 leading-relaxed italic">
-                                                    // eslint-disable-next-line react/no-unescaped-entities
-                                                    // eslint-disable-next-line react/no-unescaped-entities
                                                     "{analysisResult.classification.description}"
                                                  </p>
                                               </div>

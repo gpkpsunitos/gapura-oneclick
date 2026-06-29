@@ -36,6 +36,14 @@ export async function POST(request: Request) {
             );
         }
 
+        const rateLimit = await checkDbRateLimit(`login:${clientIp}`, 10, 15 * 60_000);
+        if (!rateLimit.success) {
+            return NextResponse.json(
+                { error: 'Terlalu banyak percobaan login. Coba lagi dalam beberapa menit.' },
+                { status: 429 }
+            );
+        }
+
         const { data: user, error: fetchError } = await supabase
             .from('users')
             .select('id, email, password, role, status, division, station_id, full_name, phone, nik, unit_id, position_id')
@@ -102,8 +110,11 @@ export async function POST(request: Request) {
         const emailUpper = email.toUpperCase();
 
         if (finalRole === 'CABANG' || finalRole.includes('PARTNER')) {
-            if (division === 'OS' || posName.includes('OS') || emailUpper.includes('PARTNER.OS')) finalRole = 'PARTNER_OS';
+            if (division === 'OCS' || posName.includes('OCS') || emailUpper.includes('PARTNER.OCS')) finalRole = 'PARTNER_OCS';
+            else if (division === 'OS' || posName.includes('OS') || emailUpper.includes('PARTNER.OS')) finalRole = 'PARTNER_OS';
             else if (division === 'OP' || posName.includes('OP') || posName.includes('OPERASI') || emailUpper.includes('PARTNER.OP')) finalRole = 'PARTNER_OP';
+            else if (division === 'OT' || posName.includes('OT') || emailUpper.includes('PARTNER.OT')) finalRole = 'PARTNER_OT';
+            else if (division === 'UQ' || posName.includes('UQ') || emailUpper.includes('PARTNER.UQ')) finalRole = 'PARTNER_UQ';
             else if (division === 'HC' || posName.includes('HC') || posName.includes('HUMAN CAPITAL') || emailUpper.includes('PARTNER.HC')) finalRole = 'PARTNER_HC';
             else if (division === 'HT' || posName.includes('HT') || emailUpper.includes('PARTNER.HT')) finalRole = 'PARTNER_HT';
         }

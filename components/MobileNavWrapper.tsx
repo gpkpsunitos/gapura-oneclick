@@ -8,6 +8,6 @@ const MobileBottomNavContent = dynamic(
     { ssr: false }
 );
 
-export function MobileNavWrapper({ role }: { role: string }) {
-    return <MobileBottomNavContent role={role} />;
+export function MobileNavWrapper({ role, division }: { role: string; division?: string | null }) {
+    return <MobileBottomNavContent role={role} division={division} />;
 }

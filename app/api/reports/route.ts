@@ -122,7 +122,6 @@ export async function GET(request: Request) {
         const bypassFiltering = unfiltered && (isDivisionOrPartner || adminBypass);
 
         if (bypassFiltering) {
-            console.log(`[REPORTS_API] Unfiltered mode active for role: ${role}`);
             const reports = await reportsService.getReports({
                 fields: requestedFields as unknown as string[],
                 source: 'sheets',

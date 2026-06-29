@@ -59,7 +59,6 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log(`[BATCH UPLOAD] Processing ${files.length} files`);
 
     const uploadedFiles: Array<{
       url: string;
@@ -74,7 +73,6 @@ export async function POST(request: Request) {
     for (const file of files) {
       try {
         const isVideo = file.type.startsWith('video/');
-        console.log(`[BATCH UPLOAD] Processing ${isVideo ? 'video' : 'image'}: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`);
 
         const arrayBuffer = await file.arrayBuffer();
         const result = await compressMedia(Buffer.from(arrayBuffer), file.type, {
@@ -87,7 +85,6 @@ export async function POST(request: Request) {
         const compressedBuffer = result.buffer;
         const contentType = result.mimeType;
 
-        console.log(`[BATCH UPLOAD] Compressed from ${result.originalSize}B to ${result.size}B (${result.compressionRatio.toFixed(1)}% reduction)`);
 
         const bucket = isVideo ? 'videos' : 'evidence';
         const ext = contentType.includes('webp') ? 'webp' :
@@ -122,7 +119,6 @@ export async function POST(request: Request) {
           );
         }
 
-        console.log(`[BATCH UPLOAD] Successfully uploaded ${file.name} to ${bucket}`);
 
         uploadedFiles.push({
           url: publicUrl,
@@ -143,7 +139,6 @@ export async function POST(request: Request) {
       }
     }
 
-    console.log(`[BATCH UPLOAD] Successfully uploaded ${uploadedFiles.length} files`);
 
     return NextResponse.json({ 
       success: true, 

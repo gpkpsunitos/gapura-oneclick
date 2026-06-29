@@ -63,7 +63,6 @@ function parseRows(headers: string[], rows: string[][]): JoumpaRecord[] {
     if (normalized.startsWith('based on the passenger')) colMap.set('satisfactionRating', idx);
   });
 
-  console.log('[JOUMPA API] Header mapping complete:', Object.fromEntries(colMap));
 
   return rows.map(row => {
     const record: Partial<Record<keyof JoumpaRecord, string | string[]>> = {};

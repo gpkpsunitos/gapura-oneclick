@@ -5,21 +5,30 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
 
+// Division roles funnel through the escalation select screen (green Customer
+// Service card is shown there only for OS/OCS divisions). HC keeps its own page.
+const ESKALASI_SELECT = '/dashboard/eskalasi/select';
 const roleRedirects: Record<string, string> = {
     SUPER_ADMIN: '/dashboard/admin',
-    DIVISI_ESKALASI: '/dashboard/eskalasi/select',
-    DIVISI_OS: '/dashboard/os',
-    DIVISI_OP: '/dashboard/op',
+    DIVISI_ESKALASI: ESKALASI_SELECT,
+    DIVISI_OCS: ESKALASI_SELECT,
+    DIVISI_OS: ESKALASI_SELECT,
+    DIVISI_OP: ESKALASI_SELECT,
+    DIVISI_OT: ESKALASI_SELECT,
+    DIVISI_UQ: ESKALASI_SELECT,
+    DIVISI_HT: ESKALASI_SELECT,
     DIVISI_HC: '/dashboard/hc',
-    DIVISI_HT: '/dashboard/ht',
     ANALYST: '/dashboard/analyst',
     MANAGER_CABANG: '/dashboard/manager',
     STAFF_CABANG: '/dashboard/employee',
     CABANG: '/dashboard/employee',
-    PARTNER_OS: '/dashboard/os',
-    PARTNER_OP: '/dashboard/op',
+    PARTNER_OCS: ESKALASI_SELECT,
+    PARTNER_OS: ESKALASI_SELECT,
+    PARTNER_OP: ESKALASI_SELECT,
+    PARTNER_OT: ESKALASI_SELECT,
+    PARTNER_UQ: ESKALASI_SELECT,
+    PARTNER_HT: ESKALASI_SELECT,
     PARTNER_HC: '/dashboard/hc',
-    PARTNER_HT: '/dashboard/ht',
 };
 
 export default function LoginForm() {
@@ -41,13 +50,13 @@ export default function LoginForm() {
                 body: JSON.stringify(formData),
             });
 
-            let data: { error?: string; role?: string } | null = null;
+            let data: { error?: string; role?: string; division?: string | null } | null = null;
             const ct = res.headers.get('content-type') || '';
 
             if (ct.includes('application/json')) {
                 const parsed = await res.json() as unknown;
                 if (parsed && typeof parsed === 'object') {
-                    data = parsed as { error?: string; role?: string };
+                    data = parsed as { error?: string; role?: string; division?: string | null };
                 }
             } else {
                 const text = await res.text();
@@ -68,7 +77,9 @@ export default function LoginForm() {
             }
 
             const normalizedRole = data?.role ? String(data.role).trim().toUpperCase() : '';
-            router.push(roleRedirects[normalizedRole] || '/dashboard/employee');
+            const normalizedDivision = data?.division ? String(data.division).trim().toUpperCase() : '';
+            const dest = roleRedirects[normalizedRole] || '/dashboard/employee';
+            router.push(dest);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Login gagal');
         } finally {

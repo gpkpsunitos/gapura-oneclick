@@ -1,5 +1,5 @@
 'use client';
-/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useState, useMemo } from 'react';
 import {
@@ -287,9 +287,9 @@ function CategoryCompositionChart({ data }: { data: CategoryCompositionData[] })
   };
 
   const rechartsData = chartData.labels.map((label, i) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const obj: any = { name: label };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
     return obj;
   });
@@ -302,11 +302,7 @@ function CategoryCompositionChart({ data }: { data: CategoryCompositionData[] })
           <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} angle={0} />
           <YAxis tick={{ fontSize: 10 }} />
           <Tooltip />
-          // eslint-disable-next-line react/jsx-no-comment-textnodes
           <Legend />
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {chartData.datasets.map((ds: any, i: number) => (
             <Bar key={i} dataKey={ds.label} fill={ds.backgroundColor} radius={[4,4,0,0]} />
           ))}
@@ -327,9 +323,9 @@ function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
   };
 
   const rechartsData = chartData.labels.map((label, i) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const obj: any = { name: label };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
     return obj;
   });
@@ -342,11 +338,7 @@ function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
           <XAxis dataKey="name" tick={{ fontSize: 10 }} />
           <YAxis tick={{ fontSize: 10 }} />
           <Tooltip />
-          // eslint-disable-next-line react/jsx-no-comment-textnodes
           <Legend />
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {chartData.datasets.map((ds: any, i: number) => (
             <Line key={i} type="monotone" dataKey={ds.label} stroke={ds.borderColor} strokeWidth={2} dot={{ r: 3 }} />
           ))}
@@ -382,9 +374,9 @@ function AreaBreakdownChart({ data }: { data: AreaBreakdownData[] }) {
   const chartData = { labels: branches, datasets };
 
   const rechartsData = chartData.labels.map((label, i) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const obj: any = { name: label };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
     return obj;
   });
@@ -397,11 +389,7 @@ function AreaBreakdownChart({ data }: { data: AreaBreakdownData[] }) {
           <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
           <YAxis tick={{ fontSize: 10 }} />
           <Tooltip />
-          // eslint-disable-next-line react/jsx-no-comment-textnodes
           <Legend />
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {chartData.datasets.map((ds: any, i: number) => (
             <Bar key={i} dataKey={ds.label} fill={ds.backgroundColor} radius={[4,4,0,0]} />
           ))}
@@ -736,13 +724,13 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalReports = branchData.reduce((sum: number, b: any) => sum + b.total, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalIrreg = branchData.reduce((sum: number, b: any) => sum + b.irregularity, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalComplaint = branchData.reduce((sum: number, b: any) => sum + b.complaint, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalCompliment = branchData.reduce((sum: number, b: any) => sum + b.compliment, 0);
 
   const topBranch = branchData[0];
@@ -753,7 +741,7 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
     ? ((totalCompliment - totalComplaint) / (totalCompliment + totalComplaint)) * 100 
     : 0;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const avgRiskIndex = branchData.length > 0 ? branchData.reduce((sum: number, b: any) => sum + b.riskIndex, 0) / branchData.length : 0;
 
   const benchmarkBranch = (filters.branch && filters.branch !== 'all') ? filters.branch : (topBranch?.branch || '');

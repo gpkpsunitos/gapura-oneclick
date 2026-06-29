@@ -238,7 +238,7 @@ export function DivisionAnalystDashboard({
   const [showOSDashboardModal, setShowOSDashboardModal] = useState(false);
   const [osDashboardLink, setOsDashboardLink] = useState<string>(getLinkUrl(externalLinks, 'os-dashboard-analyst'));
 
-  const needsCustomerFeedbackData = (division.code === 'OS' || division.code === 'ANALYST') && showFilterModal;
+  const needsCustomerFeedbackData = (division.code === 'OCS' || division.code === 'ANALYST') && showFilterModal;
 
   const handleScrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -697,9 +697,9 @@ export function DivisionAnalystDashboard({
             onDateRangeChange={setDateRange}
             onRefresh={refreshData}
             refreshing={refreshing}
-            onCustomerFeedback={division.code === 'OS' || division.code === 'ANALYST' ? handleCustomerFeedbackShortcut : undefined}
-            cfLoading={division.code === 'OS' || division.code === 'ANALYST' ? cfLoading : false}
-            onFilterClick={division.code === 'OS' || division.code === 'ANALYST' ? () => setShowFilterModal(true) : undefined}
+            onCustomerFeedback={division.code === 'OCS' || division.code === 'ANALYST' ? handleCustomerFeedbackShortcut : undefined}
+            cfLoading={division.code === 'OCS' || division.code === 'ANALYST' ? cfLoading : false}
+            onFilterClick={division.code === 'OCS' || division.code === 'ANALYST' ? () => setShowFilterModal(true) : undefined}
             onExportExcel={exportToExcel}
             onExportPDF={exportToPDF}
             exporting={exporting}
@@ -722,7 +722,7 @@ export function DivisionAnalystDashboard({
               </button>
             </div>
           )}
-          {view === 'dashboard' && (division.code === 'OS' || division.code === 'ANALYST') && (
+          {view === 'dashboard' && (division.code === 'OCS' || division.code === 'ANALYST') && (
             <div className="mt-2 sm:mt-3 flex flex-wrap gap-2">
               <button
                 onClick={() => window.open(getLinkUrl(externalLinks, 'analyst-joumpa'), '_blank', 'noopener,noreferrer')}
@@ -757,7 +757,7 @@ export function DivisionAnalystDashboard({
                 <span>SLA</span>
               </button>
               <button
-                onClick={() => router.push('/dashboard/os/wsn')}
+                onClick={() => router.push('/dashboard/ocs/wsn')}
                 aria-label="Open WSN Dashboard"
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 bg-cyan-600 text-white hover:bg-cyan-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
               >

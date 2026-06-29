@@ -5,7 +5,7 @@ import { verifySession } from '@/lib/auth-utils';
 import { getHfClient } from '@/lib/hf-client';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {

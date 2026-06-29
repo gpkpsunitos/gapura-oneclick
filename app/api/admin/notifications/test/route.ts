@@ -48,7 +48,6 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Email tidak valid' }, { status: 400 });
         }
 
-        console.log(`[NOTIFICATIONS] Triggering test email to: ${email} (Requested by: ${user.full_name})`);
 
         await sendTestEmail({
             to: email,

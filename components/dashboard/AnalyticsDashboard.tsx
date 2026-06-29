@@ -133,7 +133,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                 if (!res.ok) return;
                 const data = await res.json();
                 const role = String(data?.user?.role || '').trim().toUpperCase();
-                setAllowCF(role === 'ANALYST' || role === 'SUPER_ADMIN' || role === 'DIVISI_OS');
+                setAllowCF(role === 'ANALYST' || role === 'SUPER_ADMIN' || (role === 'DIVISI_OS' || role === 'DIVISI_OCS'));
             } catch (_) {
                 setAllowCF(false);
             }

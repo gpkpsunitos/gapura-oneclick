@@ -105,19 +105,31 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
         }
     ],
 
+    'OCS': [
+        {
+            title: 'Monitoring',
+            items: [
+                { href: '/dashboard/ocs', label: 'Dashboard', icon: LayoutDashboard },
+                { href: '/dashboard/ocs/reports', label: 'All Reports', icon: ClipboardList },
+            ]
+        },
+        {
+            title: 'Schedule',
+            items: [
+                { href: '/dashboard/ocs/calendar', label: 'Event Calendar', icon: Calendar },
+                { href: '/dashboard/ocs/meetings', label: 'Meeting Calendar', icon: Calendar },
+            ]
+        }
+    ],
+
+    // ponytail: new OS is an independent copy of OCS; only Dashboard + Reports
+    // shipped now. Fork the OCS subroutes (calendar/sla/wsn/...) here when OS needs them.
     'OS': [
         {
             title: 'Monitoring',
             items: [
                 { href: '/dashboard/os', label: 'Dashboard', icon: LayoutDashboard },
                 { href: '/dashboard/os/reports', label: 'All Reports', icon: ClipboardList },
-            ]
-        },
-        {
-            title: 'Schedule',
-            items: [
-                { href: '/dashboard/os/calendar', label: 'Event Calendar', icon: Calendar },
-                { href: '/dashboard/os/meetings', label: 'Meeting Calendar', icon: Calendar },
             ]
         }
     ],
@@ -214,7 +226,6 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
                 { href: '/dashboard/analyst/import', label: 'Import Data', icon: FolderOpen },
                 { href: '/dashboard/analyst/documents', label: 'Documents', icon: BookOpen },
                 { href: '/dashboard/analyst/performance-links', label: 'Performance Links', icon: QrCode },
-                { href: '/dashboard/employee/new', label: 'Create Report', icon: Plane },
             ]
         },
         {
@@ -226,6 +237,27 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             ]
         }
     ]
+};
+
+// Only OCS-division analysts keep these features; every other analyst loses
+// performance evaluation, circulars/documents, import, calendars, notifications.
+const OCS_ONLY_ANALYST_PATHS = /\/(ocs|calendar|meetings|notifications|performance-links|import|builder|dashboards)(\?|$|\/)/;
+
+export const resolveNavGroups = (role: string, division?: string | null): NavGroupConfig[] => {
+    const groups = LINKS_CONFIG[GET_LINKS_KEY(role)] || [];
+    const r = (role || '').toUpperCase();
+    const div = (division || '').toUpperCase();
+
+    if (r === 'ANALYST' && div !== 'OCS') {
+        return groups
+            .map((group) => ({
+                ...group,
+                items: group.items.filter((item) => !OCS_ONLY_ANALYST_PATHS.test(item.href)),
+            }))
+            .filter((group) => group.items.length > 0);
+    }
+
+    return groups;
 };
 
 export const GET_LINKS_KEY = (role: string): string => {
@@ -240,10 +272,16 @@ export const GET_LINKS_KEY = (role: string): string => {
         return 'DIVISI_ESKALASI';
     }
 
+    if (r === 'DIVISI_OCS' || r === 'PARTNER_OCS') return 'OCS';
     if (r === 'DIVISI_OS' || r === 'PARTNER_OS') return 'OS';
     if (r === 'DIVISI_HC' || r === 'PARTNER_HC') return 'HC';
-    if (r === 'DIVISI_OP' || r === 'PARTNER_OP') return 'OP';
-    if (r === 'DIVISI_HT' || r === 'PARTNER_HT') return 'HT';
+    // OP / OT / UQ / HT all share the operational monitoring dashboard ("same UI as OP").
+    if (
+        r === 'DIVISI_OP' || r === 'PARTNER_OP' ||
+        r === 'DIVISI_OT' || r === 'PARTNER_OT' ||
+        r === 'DIVISI_UQ' || r === 'PARTNER_UQ' ||
+        r === 'DIVISI_HT' || r === 'PARTNER_HT'
+    ) return 'OP';
 
     return 'EMPLOYEE';
 };

@@ -45,10 +45,8 @@ function readAirline(r: Report): string {
 }
 const NOISY_CARGO_VALUES = new Set(['unknown', '#n/a', 'n/a', '-', '_', '–', '—']);
 function readCargoCategory(r: Report): string {
-  const raw = val(r.category_case_cargo);
-  if (!raw) return '';
-  if (raw.length <= 1) return '';
-  if (NOISY_CARGO_VALUES.has(raw.toLowerCase())) return '';
+  const raw = val(r.category_case_cargo) || val(r.supporting_evidence);
+  if (!raw || raw.length <= 1 || NOISY_CARGO_VALUES.has(raw.toLowerCase())) return '';
   return raw;
 }
 
@@ -116,6 +114,7 @@ function Panel({
   title,
   subtitle,
   total,
+  totalLabel = 'cases',
   className = '',
   bodyClassName = '',
   aiContext,
@@ -124,6 +123,7 @@ function Panel({
   title: string;
   subtitle?: string;
   total?: number;
+  totalLabel?: string;
   className?: string;
   bodyClassName?: string;
   aiContext?: ChartAiContext;
@@ -149,7 +149,7 @@ function Panel({
           {typeof total === 'number' ? (
             <span className="inline-flex items-baseline gap-1 rounded-md bg-[color:var(--sr-accent-soft)] px-2 py-0.5 text-[color:var(--sr-accent-dark)]">
               <span className="font-mono text-[13px] font-bold tabular-nums">{total}</span>
-              <span className="text-[9px] font-bold uppercase tracking-[0.12em]">cases</span>
+              <span className="text-[9px] font-bold uppercase tracking-[0.12em]">{totalLabel}</span>
             </span>
           ) : null}
           {aiContext ? <ChartAiAnalysisButton context={aiContext} /> : null}
@@ -1136,6 +1136,7 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
           <Panel
             title="Cargo Report Category"
             total={cargoCategoryRows.reduce((s, r) => s + r.total, 0)}
+            totalLabel="identified"
             className="h-[18rem] xl:col-span-2"
             aiContext={{
               section: 'CGO Cargo Report',

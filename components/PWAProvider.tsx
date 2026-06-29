@@ -31,6 +31,7 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
 
     let updateInterval: number | undefined;
     let cancelled = false;
+    let swRegistration: ServiceWorkerRegistration | undefined;
 
     const handleMessage = (event: MessageEvent) => {
       if (event.data?.type === PWA_QUEUE_EVENT) {
@@ -83,6 +84,7 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
           trackInstallingWorker(registration.installing);
         });
 
+        swRegistration = registration;
         updateInterval = window.setInterval(() => {
           void registration.update();
         }, 60 * 60 * 1000);
@@ -91,8 +93,15 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
       }
     };
 
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && swRegistration) {
+        void swRegistration.update();
+      }
+    };
+
     navigator.serviceWorker.addEventListener('message', handleMessage);
     navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     if (document.readyState === 'complete') {
       void registerServiceWorker();
@@ -107,6 +116,7 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
       }
       navigator.serviceWorker.removeEventListener('message', handleMessage);
       navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [isUpdating]);
 

@@ -1,5 +1,5 @@
 
-export type UserRole = 'SUPER_ADMIN' | 'DIVISI_ESKALASI' | 'DIVISI_OS' | 'DIVISI_OP' | 'DIVISI_HC' | 'DIVISI_HT' | 'ANALYST' | 'MANAGER_CABANG' | 'STAFF_CABANG';
+export type UserRole = 'SUPER_ADMIN' | 'DIVISI_ESKALASI' | 'DIVISI_OCS' | 'DIVISI_OS' | 'DIVISI_OP' | 'DIVISI_OT' | 'DIVISI_UQ' | 'DIVISI_HC' | 'DIVISI_HT' | 'ANALYST' | 'MANAGER_CABANG' | 'STAFF_CABANG';
 
 export type ReportStatus = 'OPEN' | 'ON PROGRESS' | 'CLOSED';
 
@@ -7,7 +7,7 @@ export type ReportPriority = 'low' | 'medium' | 'high' | 'urgent';
 
 export type ReportSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | 'TOP RISK';
 
-export type DivisionType = 'OS' | 'OP' | 'HC' | 'HT' | 'GENERAL';
+export type DivisionType = 'OCS' | 'OS' | 'OP' | 'OT' | 'UQ' | 'HC' | 'HT' | 'GENERAL';
 
 export interface SessionPayload {
 

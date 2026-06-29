@@ -1,5 +1,5 @@
 'use client';
-/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useState, useMemo } from 'react';
 import {
@@ -534,7 +534,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
     kpis: null as MonthlyKPIs | null,
     trendData: [] as MonthlyTrendData[],
     aiRiskSummary: null as AiRiskSummary | null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     aiRiskHeatmap: [] as any[],
   });
   const investigativeData: QueryResult = useMemo(() => {
@@ -580,7 +580,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
             dominantBranch: aggregated.dominantBranch || { name: '-', count: 0, percent: 0 },
             dominantAirline: aggregated.dominantAirline || { name: '-', count: 0, percent: 0 },
             kpis: aggregated.kpis,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             trendData: (aggregated.trend || []) as any,
           }));
         } else {
@@ -605,7 +605,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
           if (err.name === 'AbortError') return;
         });
       } catch (err) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         if ((err as any).name === 'AbortError') return;
         console.error('Failed to load aggregated monthly data:', err);
         setError('Failed to load primary dashboard data.');
@@ -670,23 +670,23 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
   const currentMonth = chartData.monthlyData[chartData.monthlyData.length - 1];
   const prevMonth = chartData.monthlyData[chartData.monthlyData.length - 2];
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalCurrentReports = chartData.monthlyData.reduce((s: number, m: any) => s + m.total, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalPrevReports = chartData.monthlyData.reduce((s: number, m: any) => s + m.prevMonthTotal, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalPrevYearReportsSelection = chartData.monthlyData.reduce((s: number, m: any) => s + (m.prevYearTotal || 0), 0);
 
   const overallMomGrowth = totalPrevReports > 0 ? ((totalCurrentReports - totalPrevReports) / totalPrevReports) * 100 : 0;
   const overallYoyGrowth = totalPrevYearReportsSelection > 0 ? ((totalCurrentReports - totalPrevYearReportsSelection) / totalPrevYearReportsSelection) * 100 : undefined;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalReportsSum = chartData.monthlyData.reduce((sum: number, m: any) => sum + m.total, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalIrregSum = chartData.monthlyData.reduce((sum: number, m: any) => sum + m.irregularity, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalComplaintSum = chartData.monthlyData.reduce((sum: number, m: any) => sum + (m.complaint || 0), 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalComplimentSum = chartData.monthlyData.reduce((sum: number, m: any) => sum + (m.compliment || 0), 0);
 
   const overallIrregRate = totalReportsSum > 0 ? (totalIrregSum / totalReportsSum) * 100 : 0;
@@ -696,15 +696,8 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
 
   return (
     <div className="space-y-8">
-      // eslint-disable-next-line react/jsx-no-comment-textnodes
       {}
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any, react/jsx-no-comment-textnodes
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       <AiReportSummary source={filters.sourceSheet as any} />
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       <AiBranchSummary source={filters.sourceSheet as any} />
       <AiSeasonalForecast />
       <AiSeasonalityForecast />

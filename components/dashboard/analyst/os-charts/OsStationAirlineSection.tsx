@@ -1,6 +1,6 @@
 
 'use client';
-/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useMemo, useCallback } from 'react';
 import {
@@ -46,7 +46,7 @@ export function OsStationAirlineSection({
 }: OsStationAirlineSectionProps) {
 
     const drilldownByBranchCategory = (branch: string, category: string, area?: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const filtered = (filteredReports as Report[]).filter((r: any) => {
             const code = r.stations?.code || r.branch || r.reporting_branch || '';
             const cat = (r.terminal_area_category || r.apron_area_category || r.general_category || '').trim();
@@ -67,7 +67,7 @@ export function OsStationAirlineSection({
     };
 
     const drilldownByAirlineCategory = (airline: string, category: string, area?: string) => {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const filtered = (filteredReports as Report[]).filter((r: any) => {
             const rAirline = r.airlines || r.airline || '';
             const cat = (r.terminal_area_category || r.apron_area_category || r.general_category || '').trim();
@@ -91,20 +91,20 @@ export function OsStationAirlineSection({
 
         const categoryBranchCounts: Record<string, Record<string, number>> = {};
         const branchTotals: Record<string, number> = {};
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const areaGuard = (report: any) => {
             const area = String(report.area || '').toLowerCase();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             if (categoryField === 'terminal_area_category') return area.includes('terminal') || !!(report as any).terminal_area_category;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             if (categoryField === 'apron_area_category') return area.includes('apron') || !!(report as any).apron_area_category;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             if (categoryField === 'general_category') return area.includes('general') || !!(report as any).general_category;
             return true;
         };
         filteredReports.forEach(report => {
             if (!areaGuard(report)) return;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             const raw = (report as any)[categoryField];
             if (!raw || String(raw).trim() === '') return;
             const category = String(raw).trim();
@@ -171,20 +171,20 @@ export function OsStationAirlineSection({
 
         const categoryAirlineCounts: Record<string, Record<string, number>> = {};
         const airlineTotals: Record<string, number> = {};
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         const areaGuard = (report: any) => {
             const area = String(report.area || '').toLowerCase();
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             if (categoryField === 'terminal_area_category') return area.includes('terminal') || !!(report as any).terminal_area_category;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             if (categoryField === 'apron_area_category') return area.includes('apron') || !!(report as any).apron_area_category;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             if (categoryField === 'general_category') return area.includes('general') || !!(report as any).general_category;
             return true;
         };
         filteredReports.forEach(report => {
             if (!areaGuard(report)) return;
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+             
             const raw = (report as any)[categoryField];
             if (!raw || String(raw).trim() === '') return;
             const category = String(raw).trim();
@@ -284,14 +284,14 @@ export function OsStationAirlineSection({
                                         name="Laporan"
                                         fill={REFERENCE_COLORS.irregularity}
                                         radius={[4, 4, 0, 0]}
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                         
                                         onClick={(data: any) => {
                                             const station = data?.payload?.station;
                                             if (!station) {
                                                 openDrawer('Station Reports', [...filteredReports] as Report[]);
                                                 return;
                                             }
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                             
                                             const filtered = (filteredReports as Report[]).filter((r: any) => {
                                                 const code = r.stations?.code || r.branch || r.reporting_branch || '';
                                                 return code === station;
@@ -343,68 +343,44 @@ export function OsStationAirlineSection({
                                             wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
                                             iconType="square"
                                             iconSize={10}
-                                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                                         />
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         <Bar dataKey="irregularity" name="Irregularity" fill={REFERENCE_COLORS.irregularity} radius={[6, 6, 0, 0]} maxBarSize={28} style={{ cursor: 'pointer' }} onClick={(entry: any) => {
                                             const branch = entry?.payload?.branch;
                                             if (!branch) return;
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                             
                                             const filtered = (filteredReports as Report[]).filter((r: any) => {
                                                 const code = r.stations?.code || r.branch || r.reporting_branch || '';
                                                 const cat = (r.category || r.main_category || r.irregularity_complain_category || '').toLowerCase();
                                                 return code === branch && cat === 'irregularity';
                                             });
                                             openDrawer(`${branch} — Irregularity`, filtered);
-                                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                                         }}>
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             <LabelList dataKey="irregularity" position="top" style={{ fill: 'var(--text-muted)', fontSize: 9, fontWeight: 700 }} formatter={(v: any) => v > 0 ? v : ''} />
-                                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                                         </Bar>
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         <Bar dataKey="complaint" name="Complaint" fill={REFERENCE_COLORS.complaint} radius={[6, 6, 0, 0]} maxBarSize={28} style={{ cursor: 'pointer' }} onClick={(entry: any) => {
                                             const branch = entry?.payload?.branch;
                                             if (!branch) return;
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                             
                                             const filtered = (filteredReports as Report[]).filter((r: any) => {
                                                 const code = r.stations?.code || r.branch || r.reporting_branch || '';
                                                 const cat = (r.category || r.main_category || r.irregularity_complain_category || '').toLowerCase();
                                                 return code === branch && cat === 'complaint';
                                             });
                                             openDrawer(`${branch} — Complaint`, filtered);
-                                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                                         }}>
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             <LabelList dataKey="complaint" position="top" style={{ fill: 'var(--text-muted)', fontSize: 9, fontWeight: 700 }} formatter={(v: any) => v > 0 ? v : ''} />
-                                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                                         </Bar>
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         <Bar dataKey="compliment" name="Compliment" fill={REFERENCE_COLORS.compliment} radius={[6, 6, 0, 0]} maxBarSize={28} style={{ cursor: 'pointer' }} onClick={(entry: any) => {
                                             const branch = entry?.payload?.branch;
                                             if (!branch) return;
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                             
                                             const filtered = (filteredReports as Report[]).filter((r: any) => {
                                                 const code = r.stations?.code || r.branch || r.reporting_branch || '';
                                                 const cat = (r.category || r.main_category || r.irregularity_complain_category || '').toLowerCase();
                                                 return code === branch && cat === 'compliment';
                                             });
                                             openDrawer(`${branch} — Compliment`, filtered);
-                                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                                         }}>
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             <LabelList dataKey="compliment" position="top" style={{ fill: 'var(--text-muted)', fontSize: 9, fontWeight: 700 }} formatter={(v: any) => v > 0 ? v : ''} />
                                         </Bar>
                                     </BarChart>
@@ -431,11 +407,8 @@ export function OsStationAirlineSection({
                                             <th className={cn("text-center py-2.5 px-3 font-black uppercase tracking-widest text-[9px] whitespace-nowrap border", OS_BORDER_CLASS)}>Total</th>
                                         </tr>
                                     </thead>
-                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <tbody>
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                        { }
                                         {terminalAreaByBranch.rows.map((row: any, idx: number) => (
                                             <tr key={idx} className={cn("border-b hover:bg-[#eef7ed]", OS_BORDER_CLASS)}>
                                                 <td className={cn("py-2 px-2 font-medium text-gray-800 truncate w-32 border", OS_BORDER_CLASS)} title={row.category}>
@@ -496,11 +469,7 @@ export function OsStationAirlineSection({
                                             <th className={cn("text-center py-2.5 px-3 font-black uppercase tracking-widest text-[9px] whitespace-nowrap border", OS_BORDER_CLASS)}>Total</th>
                                         </tr>
                                     </thead>
-                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <tbody>
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         {apronAreaByBranch.rows.map((row: any, idx: number) => (
                                             <tr key={idx} className={cn("border-b hover:bg-[#eef7ed]", OS_BORDER_CLASS)}>
                                                 <td className={cn("py-2 px-2 font-medium text-gray-800 truncate w-32 border", OS_BORDER_CLASS)} title={row.category}>
@@ -561,11 +530,7 @@ export function OsStationAirlineSection({
                                             <th className={cn("text-center py-2.5 px-3 font-black uppercase tracking-widest text-[9px] whitespace-nowrap border", OS_BORDER_CLASS)}>Total</th>
                                         </tr>
                                     </thead>
-                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <tbody>
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         {generalCategoryByBranch.rows.map((row: any, idx: number) => (
                                             <tr key={idx} className={cn("border-b hover:bg-[#eef7ed]", OS_BORDER_CLASS)}>
                                                 <td className={cn("py-2 px-2 font-medium text-gray-800 truncate w-32 border", OS_BORDER_CLASS)} title={row.category}>
@@ -641,14 +606,14 @@ export function OsStationAirlineSection({
                                         name="Total"
                                         fill={CHART_PALETTE[1]}
                                         radius={[4, 4, 0, 0]}
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                         
                                         onClick={(data: any) => {
                                             const airline = data?.payload?.airline;
                                             if (!airline) {
                                                 openDrawer('Airline Reports', [...filteredReports] as Report[]);
                                                 return;
                                             }
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                             
                                             const filtered = (filteredReports as Report[]).filter((r: any) => {
                                                 const rAirline = r.airlines || r.airline || '';
                                                 return rAirline === airline;
@@ -683,45 +648,33 @@ export function OsStationAirlineSection({
                                     <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="var(--surface-4)" />
                                     <XAxis dataKey="airline" tick={<WrappedXAxisTick />} axisLine={false} tickLine={false} height={80} interval={0} />
                                     <YAxis tick={{fill: 'var(--text-secondary)', fontSize: 10}} axisLine={false} tickLine={false} />
-                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <Tooltip content={<CustomTooltip />} />
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     <Bar dataKey="irregularity" name="Irregularity" fill={REFERENCE_COLORS.irregularity} radius={[6, 6, 0, 0]} style={{ cursor: 'pointer' }} onClick={(entry: any) => {
                                         const airline = entry?.payload?.airline;
                                         if (!airline) return;
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                         
                                         const filtered = (filteredReports as Report[]).filter((r: any) => {
                                             const rAirline = r.airlines || r.airline || '';
                                             const cat = (r.category || r.main_category || r.irregularity_complain_category || '').toLowerCase();
                                             return rAirline === airline && cat === 'irregularity';
                                         });
                                         openDrawer(`${airline} — Irregularity`, filtered);
-                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     }} />
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     <Bar dataKey="complaint" name="Complaint" fill={REFERENCE_COLORS.complaint} radius={[6, 6, 0, 0]} style={{ cursor: 'pointer' }} onClick={(entry: any) => {
                                         const airline = entry?.payload?.airline;
                                         if (!airline) return;
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                         
                                         const filtered = (filteredReports as Report[]).filter((r: any) => {
                                             const rAirline = r.airlines || r.airline || '';
                                             const cat = (r.category || r.main_category || r.irregularity_complain_category || '').toLowerCase();
                                             return rAirline === airline && cat === 'complaint';
                                         });
                                         openDrawer(`${airline} — Complaint`, filtered);
-                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     }} />
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     <Bar dataKey="compliment" name="Compliment" fill={REFERENCE_COLORS.compliment} radius={[6, 6, 0, 0]} style={{ cursor: 'pointer' }} onClick={(entry: any) => {
                                         const airline = entry?.payload?.airline;
                                         if (!airline) return;
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                                         
                                         const filtered = (filteredReports as Report[]).filter((r: any) => {
                                             const rAirline = r.airlines || r.airline || '';
                                             const cat = (r.category || r.main_category || r.irregularity_complain_category || '').toLowerCase();
@@ -751,11 +704,7 @@ export function OsStationAirlineSection({
                                                 <th className={cn("text-center py-2.5 px-3 font-black uppercase tracking-widest text-[9px] whitespace-nowrap border", OS_BORDER_CLASS)}>Total</th>
                                             </tr>
                                         </thead>
-                                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                                         <tbody>
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             {terminalAreaByAirline.rows.map((row: any, idx: number) => (
                                                 <tr key={idx} className={cn("border-b hover:bg-[#eef7ed]", OS_BORDER_CLASS)}>
                                                     <td className={cn("py-2 px-2 font-medium text-gray-800 truncate w-32 border", OS_BORDER_CLASS)} title={row.category}>
@@ -816,11 +765,7 @@ export function OsStationAirlineSection({
                                                 <th className={cn("text-center py-2.5 px-3 font-black uppercase tracking-widest text-[9px] whitespace-nowrap border", OS_BORDER_CLASS)}>Total</th>
                                             </tr>
                                         </thead>
-                                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                                         <tbody>
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             {apronAreaByAirline.rows.map((row: any, idx: number) => (
                                                 <tr key={idx} className={cn("border-b hover:bg-[#eef7ed]", OS_BORDER_CLASS)}>
                                                     <td className={cn("py-2 px-2 font-medium text-gray-800 truncate w-32 border", OS_BORDER_CLASS)} title={row.category}>
@@ -881,11 +826,7 @@ export function OsStationAirlineSection({
                                                 <th className={cn("text-center py-2.5 px-3 font-black uppercase tracking-widest text-[9px] whitespace-nowrap border", OS_BORDER_CLASS)}>Total</th>
                                             </tr>
                                         </thead>
-                                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                                         <tbody>
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                             {generalCategoryByAirline.rows.map((row: any, idx: number) => (
                                                 <tr key={idx} className={cn("border-b hover:bg-[#eef7ed]", OS_BORDER_CLASS)}>
                                                     <td className={cn("py-2 px-2 font-medium text-gray-800 truncate w-32 border", OS_BORDER_CLASS)} title={row.category}>

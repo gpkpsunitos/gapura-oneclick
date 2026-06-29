@@ -8,5 +8,5 @@ const DivisionAIReportsDashboard = dynamic(
 );
 
 export default function OSAIReportsPage() {
-  return <DivisionAIReportsDashboard division="OS" />;
+  return <DivisionAIReportsDashboard division="OCS" />;
 }

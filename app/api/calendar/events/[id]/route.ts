@@ -25,9 +25,10 @@ export async function GET(
     }
 
     const role = String(payload.role).trim().toUpperCase();
-    if (role !== 'ANALYST' && role !== 'DIVISI_OS') {
+    const division = String(payload.division || '').trim().toUpperCase();
+    if (role !== 'DIVISI_OCS' && !(role === 'ANALYST' && division === 'OCS')) {
       return NextResponse.json(
-        { error: 'Forbidden: Access limited to ANALYST and DIVISI_OS roles' },
+        { error: 'Forbidden: Access limited to DIVISI_OCS and OCS analysts' },
         { status: 403 }
       );
     }
@@ -71,7 +72,6 @@ export async function GET(
       deleted_at: data.deleted_at,
     };
 
-    console.log(`[CALENDAR_API] Fetched event: ${id}`);
     return NextResponse.json(event, {
         headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
     });
@@ -195,7 +195,6 @@ export async function PATCH(
           );
         }
 
-        console.log(`[CALENDAR_API] Updated parent and all children of event: ${id}`);
         return NextResponse.json({ success: true, updated: 'all' });
       }
 
@@ -229,7 +228,6 @@ export async function PATCH(
           );
         }
 
-        console.log(`[CALENDAR_API] Updated parent and all children of event: ${id}`);
         return NextResponse.json({ success: true, updated: 'all' });
       }
     }
@@ -275,7 +273,6 @@ export async function PATCH(
       deleted_at: data.deleted_at,
     };
 
-    console.log(`[CALENDAR_API] Updated single event: ${id}`);
     return NextResponse.json(event);
   } catch (error) {
     console.error('[CALENDAR_API] Error in PATCH /api/calendar/events/[id]:', error);
@@ -365,7 +362,6 @@ export async function DELETE(
           );
         }
 
-        console.log(`[CALENDAR_API] Soft deleted parent and all children of event: ${id}`);
         return NextResponse.json({ success: true, deleted: 'all' });
       }
 
@@ -399,7 +395,6 @@ export async function DELETE(
           );
         }
 
-        console.log(`[CALENDAR_API] Soft deleted parent and all children of event: ${id}`);
         return NextResponse.json({ success: true, deleted: 'all' });
       }
     }
@@ -418,7 +413,6 @@ export async function DELETE(
       );
     }
 
-    console.log(`[CALENDAR_API] Soft deleted single event: ${id}`);
     return NextResponse.json({ success: true, deleted: 'single' });
   } catch (error) {
     console.error('[CALENDAR_API] Error in DELETE /api/calendar/events/[id]:', error);

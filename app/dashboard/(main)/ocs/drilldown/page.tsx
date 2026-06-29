@@ -61,7 +61,7 @@ export default function OSDrilldownPage() {
     return (
         <DrilldownDetailView
             title={title}
-            backHref="/dashboard/os"
+            backHref="/dashboard/ocs"
             reports={filteredReports}
             loading={loading}
             userRole="DIVISI_OS"

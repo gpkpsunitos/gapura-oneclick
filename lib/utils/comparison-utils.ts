@@ -40,7 +40,6 @@ function incrementCategory(entry: Pick<ComparisonMonthEntry, 'irregularity' | 'c
 }
 
 export function calculateComparisonData(filteredReports: Report[]): ComparisonData {
-    console.log('[calculateComparisonData] Starting with reports:', filteredReports.length);
     const monthMap = new Map<string, ComparisonMonthEntry>();
 
     filteredReports.forEach((r) => {
@@ -79,7 +78,6 @@ export function calculateComparisonData(filteredReports: Report[]): ComparisonDa
         entry.airlines[airline] = (entry.airlines[airline] || 0) + 1;
     });
 
-    console.log('[calculateComparisonData] Processed monthMap size:', monthMap.size);
 
     const sortedKeys = Array.from(monthMap.keys()).sort();
 
@@ -228,6 +226,5 @@ export function calculateComparisonData(filteredReports: Report[]): ComparisonDa
         areaMetrics,
     };
 
-    console.log('[calculateComparisonData] Returning data keys:', Object.keys(result));
     return result;
 }

@@ -88,7 +88,6 @@ export function generateCustomerFeedbackDashboard(dateFrom: string, dateTo: stri
   const displayTitle = 'Customer Feedback Dashboard';
   const displayDescription = 'Comprehensive Customer Feedback Dashboard – Irregularity, Complaint & Compliment Report';
 
-  console.log('[Customer Feedback] Date range:', { dateFrom, dateTo, fromYear, toYear, yearRange });
 
   const page1Tiles: DashboardTile[] = [
 

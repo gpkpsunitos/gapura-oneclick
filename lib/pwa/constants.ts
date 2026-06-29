@@ -20,11 +20,14 @@ export const PWA_CACHEABLE_PAGE_ROUTES = [
   "/auth/login",
   "/auth/public-report",
   "/dashboard/employee/new",
+  "/offline",
 ];
 
 export const PWA_READONLY_API_PATHS = [
   "/api/master-data",
   "/api/dashboards/filter-options",
+  "/api/wsn",
+  "/api/joumpa",
 ];
 
 export const PWA_DOCUMENT_PATH_MATCHERS = [

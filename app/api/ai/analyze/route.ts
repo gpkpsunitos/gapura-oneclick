@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { getHfClient } from '@/lib/hf-client';
 import { resolveCachedAI } from '@/lib/ai-route-cache';
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,11 +54,6 @@ export async function POST(req: NextRequest) {
       generateSummary: options.generateSummary !== false,
       analyzeTrends: options.analyzeTrends !== false,
     };
-
-    console.log('[AI Analyze Route] Sending payload to AI service:', JSON.stringify({
-      data: convertedData.slice(0, 2),
-      options: analysisOptions,
-    }, null, 2));
 
     const { searchParams } = new URL(req.url);
     const esklasiRegex = searchParams.get('esklasi_regex') || '';

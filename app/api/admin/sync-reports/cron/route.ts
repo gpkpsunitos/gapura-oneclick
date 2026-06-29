@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SyncService } from '@/lib/services/sync-service';
 import { logSecurityAudit } from '@/lib/security/audit-logger';
 
-const SOFT_TIMEOUT_MS = 8000;
+// Vercel Hobby caps functions at 60s. Pin the budget and give the sync most of it
+// to finish in a single run (the old 3:15 continuation cron was dropped to stay
+// within Hobby's 2-cron limit).
+export const maxDuration = 60;
+
+const SOFT_TIMEOUT_MS = 50000;
 
 function isCronRequest(request: NextRequest): boolean {
     return request.headers.get('x-vercel-cron') === 'true' ||
@@ -25,7 +30,6 @@ async function handleCronSync(request: NextRequest) {
         ]);
 
         if ('timeout' in result && result.timeout) {
-            console.log('[CRON-SYNC] Soft timeout reached, sync continuing in background');
 
             await logSecurityAudit({
                 actorId: 'vercel-cron',

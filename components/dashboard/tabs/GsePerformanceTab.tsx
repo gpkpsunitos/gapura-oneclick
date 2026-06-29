@@ -365,14 +365,14 @@ function CrossMatrix({
   };
 
   return (
-    <div className="overflow-y-auto" style={{ maxHeight: 280 }}>
-      <table className="sr-table w-full text-[13px]">
+    <div className="overflow-y-auto" style={{ maxHeight: 280, '--sr-sticky-col-1-width': '150px' } as React.CSSProperties}>
+      <table className="sr-table w-full text-[11px]">
         <thead>
           <tr>
-            <th className="sr-sticky-col-1 !text-left">Category Case GSE</th>
-            <th className="sr-center">GSE Motorized</th>
-            <th className="sr-center">GSE Non-Motorized</th>
-            <th className="sr-center">Total</th>
+            <th className="sr-sticky-col-1 !text-left text-[10px]">Category Case GSE</th>
+            <th className="sr-center text-[10px]">Motorized</th>
+            <th className="sr-center text-[10px]">Non-Motorized</th>
+            <th className="sr-center text-[10px]">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -387,13 +387,13 @@ function CrossMatrix({
             const nFg = row.nonMotorized.total / Math.max(1, maxCell) > 0.5 ? 'white' : 'var(--sr-text)';
             return (
               <tr key={cat.id}>
-                <td className="sr-label sr-sticky-col-1 align-middle">{cat.label}</td>
+                <td className="sr-label sr-sticky-col-1 align-middle text-[11px]">{cat.label}</td>
                 <td className="sr-center align-middle !p-0">
                   <button
                     type="button"
                     disabled={!row.motorized.total}
                     onClick={() => onOpen(row.motorized.reports, `${cat.label} · GSE Motorized`)}
-                    className="h-full w-full px-3 py-3 font-mono text-[15px] font-bold tabular-nums transition-opacity hover:opacity-80 disabled:cursor-default disabled:opacity-100"
+                    className="h-full w-full px-2 py-2 font-mono text-[13px] font-bold tabular-nums transition-opacity hover:opacity-80 disabled:cursor-default disabled:opacity-100"
                     style={{ backgroundColor: mShade, color: row.motorized.total ? mFg : 'var(--sr-text-3)' }}
                   >
                     {row.motorized.total || '–'}
@@ -404,27 +404,27 @@ function CrossMatrix({
                     type="button"
                     disabled={!row.nonMotorized.total}
                     onClick={() => onOpen(row.nonMotorized.reports, `${cat.label} · GSE Non-Motorized`)}
-                    className="h-full w-full px-3 py-3 font-mono text-[15px] font-bold tabular-nums transition-opacity hover:opacity-80 disabled:cursor-default disabled:opacity-100"
+                    className="h-full w-full px-2 py-2 font-mono text-[13px] font-bold tabular-nums transition-opacity hover:opacity-80 disabled:cursor-default disabled:opacity-100"
                     style={{ backgroundColor: nShade, color: row.nonMotorized.total ? nFg : 'var(--sr-text-3)' }}
                   >
                     {row.nonMotorized.total || '–'}
                   </button>
                 </td>
-                <td className="sr-center align-middle font-mono text-[15px] font-bold tabular-nums">{cat.total}</td>
+                <td className="sr-center align-middle font-mono text-[13px] font-bold tabular-nums">{cat.total}</td>
               </tr>
             );
           })}
           <tr>
-            <td className="sr-label sr-sticky-col-1 align-middle !bg-[color:var(--sr-overlay)] font-bold uppercase tracking-[0.06em]">
+            <td className="sr-label sr-sticky-col-1 align-middle !bg-[color:var(--sr-overlay)] font-bold uppercase tracking-[0.06em] text-[10px]">
               Grand Total
             </td>
-            <td className="sr-center align-middle !bg-[color:var(--sr-overlay)] font-mono text-[15px] font-bold tabular-nums">
+            <td className="sr-center align-middle !bg-[color:var(--sr-overlay)] font-mono text-[13px] font-bold tabular-nums">
               {motorizedTotal}
             </td>
-            <td className="sr-center align-middle !bg-[color:var(--sr-overlay)] font-mono text-[15px] font-bold tabular-nums">
+            <td className="sr-center align-middle !bg-[color:var(--sr-overlay)] font-mono text-[13px] font-bold tabular-nums">
               {nonMotorizedTotal}
             </td>
-            <td className="sr-center align-middle !bg-[color:var(--sr-overlay)] font-mono text-[15px] font-bold tabular-nums">
+            <td className="sr-center align-middle !bg-[color:var(--sr-overlay)] font-mono text-[13px] font-bold tabular-nums">
               {grandTotal}
             </td>
           </tr>
@@ -488,6 +488,19 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
     });
     return { matrix: m, motorizedTotal: mTot, nonMotorizedTotal: nTot, grandTotal: gTot };
   }, [gseReports]);
+
+  const gseDelayReports = useMemo(
+    () => gseReports.filter((r) => {
+      const code = val(r.delay_code).toLowerCase();
+      return code && !/^(no[\s-]?delay|none|n\/?a|tidak ada|nil|null|-+|0)$/.test(code);
+    }),
+    [gseReports]
+  );
+
+  const delayCodeRows = useMemo(
+    () => aggregate(gseDelayReports, (r) => val(r.delay_code)),
+    [gseDelayReports]
+  );
 
   const matrixCategories = useMemo(
     () => categoryRows.map((row) => ({ id: row.id, label: row.label, total: row.total })),
@@ -647,31 +660,48 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
           <span className="sr-section-rule" aria-hidden="true" />
           <h2>GSE Availability Overview</h2>
         </div>
-        <Panel
-          title="GSE Availability Category"
-          total={grandTotal}
-          aiContext={{
-            section: 'GSE Performance',
-            chartTitle: 'GSE Availability Category Matrix',
-            chartType: 'category_equipment_matrix',
-            chartData: matrixCategories.map((cat) => ({
-              category: cat.label,
-              motorized: matrix[cat.id]?.motorized.total || 0,
-              non_motorized: matrix[cat.id]?.nonMotorized.total || 0,
-              total: cat.total,
-            })),
-            featureHints: ['riskScoring', 'rootCause', 'summarization'],
-          }}
-        >
-          <CrossMatrix
-            categories={matrixCategories}
-            matrix={matrix}
-            motorizedTotal={motorizedTotal}
-            nonMotorizedTotal={nonMotorizedTotal}
-            grandTotal={grandTotal}
-            onOpen={(items, context) => openDrilldown(items, context)}
-          />
-        </Panel>
+        <div className="grid gap-4 xl:grid-cols-2">
+          <Panel
+            title="GSE Availability Category"
+            total={grandTotal}
+            aiContext={{
+              section: 'GSE Performance',
+              chartTitle: 'GSE Availability Category Matrix',
+              chartType: 'category_equipment_matrix',
+              chartData: matrixCategories.map((cat) => ({
+                category: cat.label,
+                motorized: matrix[cat.id]?.motorized.total || 0,
+                non_motorized: matrix[cat.id]?.nonMotorized.total || 0,
+                total: cat.total,
+              })),
+              featureHints: ['riskScoring', 'rootCause', 'summarization'],
+            }}
+          >
+            <CrossMatrix
+              categories={matrixCategories}
+              matrix={matrix}
+              motorizedTotal={motorizedTotal}
+              nonMotorizedTotal={nonMotorizedTotal}
+              grandTotal={grandTotal}
+              onOpen={(items, context) => openDrilldown(items, context)}
+            />
+          </Panel>
+          <Panel
+            title="Top Delay Codes"
+            total={gseDelayReports.length}
+          >
+            <BarList
+              rows={delayCodeRows}
+              emptyLabel="No delay codes"
+              onOpen={(row) =>
+                openDrilldown(
+                  gseDelayReports.filter((r) => val(r.delay_code).toLowerCase() === row.id),
+                  `Delay Code: ${row.label}`
+                )
+              }
+            />
+          </Panel>
+        </div>
       </section>
 
       <section>

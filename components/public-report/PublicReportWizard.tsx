@@ -109,6 +109,7 @@ export function PublicReportWizard() {
   const [showPasswordInput, setShowPasswordInput] = useState(false);
   const [passwordError, setPasswordError] = useState('');
   const [loginPromptUrl, setLoginPromptUrl] = useState<string | null>(null);
+  const [pendingLoginCategory, setPendingLoginCategory] = useState<QuickAccessCategory | null>(null);
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
@@ -187,7 +188,6 @@ export function PublicReportWizard() {
       span: 'col-span-1 row-span-1 sm:col-span-2 sm:row-span-2 lg:col-span-2 lg:row-span-2',
       redirectUrl: '/virtual-assistant',
       requiresLogin: true,
-      comingSoon: true,
     },
     {
       id: 'Irregularity',
@@ -216,6 +216,7 @@ export function PublicReportWizard() {
       icon: ClipboardCheck,
       color: 'oklch(0.45 0.18 240)',
       span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+      loginProtected: true,
       qrLinks: [
         { label: 'SLA Landside Submission', url: getLinkUrl(externalLinks, 'sla-landside') },
         { label: 'SLA Airside Submission', url: getLinkUrl(externalLinks, 'sla-airside') }
@@ -239,7 +240,7 @@ export function PublicReportWizard() {
       icon: Activity,
       color: 'oklch(0.55 0.18 180)',
       span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
-      passwordProtected: true,
+      loginProtected: true,
       qrLinks: [
         { label: 'Weekly Service Notice', url: getLinkUrl(externalLinks, 'wsn-weekly') }
       ]
@@ -251,7 +252,7 @@ export function PublicReportWizard() {
       icon: AlertTriangle,
       color: 'oklch(0.58 0.2 35)',
       span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
-      passwordProtected: true,
+      loginProtected: true,
       qrLinks: [
         { label: 'HSSE Report', url: 'https://linktr.ee/HSSE_GP#538968339' }
       ]
@@ -263,6 +264,7 @@ export function PublicReportWizard() {
       icon: AlertTriangle,
       color: 'oklch(0.62 0.22 28)',
       span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+      loginProtected: true,
       qrLinks: [
         { label: 'HSSE Report Form', url: getLinkUrl(externalLinks, 'hsse-report') }
       ]
@@ -274,7 +276,7 @@ export function PublicReportWizard() {
       icon: BookOpen,
       color: 'oklch(0.45 0.20 160)',
       span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
-      passwordProtected: true,
+      loginProtected: true,
       links: [
         { label: 'Open Handbook SLA', sublabel: 'SIS Apps Dev', url: getLinkUrl(externalLinks, 'handbook-sla') }
       ]
@@ -593,9 +595,28 @@ export function PublicReportWizard() {
   const closeLoginPrompt = () => {
     if (loginLoading) return;
     setLoginPromptUrl(null);
+    setPendingLoginCategory(null);
     setLoginPassword('');
     setShowLoginPassword(false);
     setLoginError('');
+  };
+
+  const openLoginProtectedCategory = async (category: QuickAccessCategory) => {
+    setQuickAccessCheckingId(category.id);
+    try {
+      const res = await fetch('/api/auth/me', { cache: 'no-store' });
+      if (res.ok) {
+        setFormData(prev => ({ ...prev, main_category: category.id }));
+        return;
+      }
+    } catch { /* fall through */ } finally {
+      setQuickAccessCheckingId(null);
+    }
+    setPendingLoginCategory(category);
+    setLoginEmail('');
+    setLoginPassword('');
+    setLoginError('');
+    setShowLoginPassword(false);
   };
 
   const openLoginProtectedRedirect = async (category: QuickAccessCategory) => {
@@ -622,7 +643,7 @@ export function PublicReportWizard() {
 
   const submitLoginPrompt = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!loginPromptUrl || loginLoading) return;
+    if ((!loginPromptUrl && !pendingLoginCategory) || loginLoading) return;
 
     setLoginLoading(true);
     setLoginError('');
@@ -637,7 +658,17 @@ export function PublicReportWizard() {
         throw new Error(data?.error || 'Login gagal');
       }
 
-      window.location.assign(loginPromptUrl);
+      if (pendingLoginCategory) {
+        const cat = pendingLoginCategory;
+        setPendingLoginCategory(null);
+        setLoginEmail('');
+        setLoginPassword('');
+        setShowLoginPassword(false);
+        setLoginError('');
+        setFormData(prev => ({ ...prev, main_category: cat.id }));
+      } else {
+        window.location.assign(loginPromptUrl!);
+      }
     } catch (err) {
       setLoginError(err instanceof Error ? err.message : 'Login gagal');
     } finally {
@@ -669,6 +700,11 @@ export function PublicReportWizard() {
    * @param category - Kategori akses cepat
    */
   const openCategory = (category: QuickAccessCategory) => {
+    if (category.loginProtected) {
+      void openLoginProtectedCategory(category);
+      return;
+    }
+
     if (category.passwordProtected) {
       setPendingProtectedCategory(category);
       setPasswordInput('');
@@ -2340,7 +2376,7 @@ export function PublicReportWizard() {
           </div>
         )}
 
-        {loginPromptUrl && (
+        {(loginPromptUrl || pendingLoginCategory) && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
             <m.div
               initial={{ opacity: 0 }}
@@ -2361,10 +2397,12 @@ export function PublicReportWizard() {
                   <Bot size={22} />
                 </div>
                 <h3 className="text-xl font-display font-black text-[oklch(0.15_0.05_200)]">
-                  Masuk ke Virtual Assistant
+                  Login Diperlukan
                 </h3>
                 <p className="mt-1 text-sm font-medium text-[oklch(0.40_0.02_200)]">
-                  Gunakan akun Gapura untuk membuka I&apos;m in Charge.
+                  {pendingLoginCategory
+                    ? `Gunakan akun Gapura untuk mengakses ${pendingLoginCategory.title}.`
+                    : 'Gunakan akun Gapura untuk membuka I\'m in Charge.'}
                 </p>
               </div>
 

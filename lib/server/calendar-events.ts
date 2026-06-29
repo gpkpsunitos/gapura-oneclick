@@ -37,7 +37,8 @@ function getDefaultCalendarRange(currentDate = new Date()) {
 export async function getInitialCalendarEvents(calendarType: 'event' | 'meeting' = 'event') {
   const user = await getWorkspaceUser();
   const role = String(user?.role || '').trim().toUpperCase();
-  if (!user || (role !== 'ANALYST' && role !== 'DIVISI_OS')) {
+  const division = String(user?.division || '').trim().toUpperCase();
+  if (!user || (role !== 'DIVISI_OCS' && !(role === 'ANALYST' && division === 'OCS'))) {
     return [];
   }
 

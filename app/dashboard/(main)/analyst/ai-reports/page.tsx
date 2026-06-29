@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AIAnalysisFilterPanel, type AnalysisFilters } from '@/components/dashboard/ai-reports/AIAnalysisFilterPanel';
 import { AIAssistantChat } from '@/components/dashboard/ai-reports/AIAssistantChat';
 import { getAvailableHubs } from '@/app/actions/getHubs';
+import { getAvailableBranches } from '@/app/actions/getFilterOptions';
 
 export default function AIReportsPage() {
   const [mounted, setMounted] = useState(false);
@@ -14,7 +15,7 @@ export default function AIReportsPage() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const [availableHubs, setAvailableHubs] = useState<string[]>([]);
-  const availableBranches = ['CGK', 'HLP', 'DPS', 'SUB', 'KNO', 'UPG', 'YIA', 'BPN'];
+  const [availableBranches, setAvailableBranches] = useState<string[]>([]);
   const availableAirlines = ['GA', 'QZ', 'JT', 'ID', 'IU', 'SJ'];
   const availableCategories = ['Baggage Handling', 'Passenger Handling', 'Ramp Handling', 'Cargo Handling', 'GSE', 'Delay'];
 
@@ -22,11 +23,8 @@ export default function AIReportsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
 
-    getAvailableHubs().then(hubs => {
-      setAvailableHubs(hubs);
-    }).catch(err => {
-      console.error("Failed to load hubs", err);
-    });
+    getAvailableHubs().then(setAvailableHubs).catch(() => {});
+    getAvailableBranches().then(setAvailableBranches).catch(() => {});
   }, []);
 
   if (!mounted) {

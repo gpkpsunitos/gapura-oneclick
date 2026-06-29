@@ -6,6 +6,7 @@ import {
     AlertCircle,
     ArrowLeft,
     Bot,
+    ChevronRight,
     Clock3,
     Loader2,
     Send,
@@ -16,16 +17,24 @@ import { AssistantMarkdown } from './AssistantMarkdown';
 
 type ChatRole = 'user' | 'assistant';
 
+type Evidence = {
+    source: string;
+    page: number;
+    snippet: string;
+    score: number;
+};
+
 type ChatMessage = {
     id: string;
     role: ChatRole;
     content: string;
     status?: 'streaming' | 'done' | 'error';
+    evidence?: Evidence[];
 };
 
 type StreamEvent =
     | { type: 'token'; content?: string }
-    | { type: 'done'; answer?: string }
+    | { type: 'done'; answer?: string; citations?: unknown[]; evidence?: Evidence[] }
     | { type: 'error'; content?: string }
     | { type: 'status'; content?: string };
 
@@ -44,6 +53,13 @@ const INITIAL_MESSAGE: ChatMessage = {
 function makeId(prefix: string) {
     return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
+
+function cleanSourceName(filename: string): string {
+    return filename.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim();
+}
+
+const STORAGE_KEY = (email: string) => `va_chat_v1_${email}`;
+const MAX_STORED_MESSAGES = 40;
 
 function parseSseChunk(buffer: string): { events: StreamEvent[]; rest: string } {
     const parts = buffer.split('\n\n');
@@ -91,10 +107,13 @@ function applyStreamEvent(
         }
 
         if (event.type === 'done') {
+            const raw = event.answer || message.content;
+            const clean = raw.replace(/\s*\[E\d+\]/g, '').trim();
             return {
                 ...message,
-                content: event.answer || message.content,
+                content: clean,
                 status: 'done',
+                evidence: event.evidence ?? [],
             };
         }
 
@@ -118,8 +137,38 @@ export function VirtualAssistantChat({
     const [resetAt, setResetAt] = useState<string | null>(null);
     const [waitingSeconds, setWaitingSeconds] = useState(0);
     const abortRef = useRef<AbortController | null>(null);
+    const isSendingRef = useRef(false);
     const endRef = useRef<HTMLDivElement | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY(userEmail));
+            if (raw) {
+                const stored = JSON.parse(raw) as ChatMessage[];
+                const clean = stored.filter((m) => m.status !== 'streaming');
+                if (clean.length > 0) setMessages([INITIAL_MESSAGE, ...clean]);
+            }
+        } catch {
+            // ignore parse/quota errors
+        }
+    }, [userEmail]);
+
+    useEffect(() => {
+        if (messages.some((m) => m.status === 'streaming')) return;
+        const toStore = messages
+            .filter((m) => m.id !== INITIAL_MESSAGE.id)
+            .slice(-MAX_STORED_MESSAGES);
+        try {
+            if (toStore.length === 0) {
+                localStorage.removeItem(STORAGE_KEY(userEmail));
+            } else {
+                localStorage.setItem(STORAGE_KEY(userEmail), JSON.stringify(toStore));
+            }
+        } catch {
+            // ignore quota errors
+        }
+    }, [messages, userEmail]);
 
     useEffect(() => {
         if (!isSending) return;
@@ -147,7 +196,8 @@ export function VirtualAssistantChat({
 
     const submitQuestion = async () => {
         const question = input.trim();
-        if (!question || isSending) return;
+        if (!question || isSendingRef.current) return;
+        isSendingRef.current = true;
 
         const userMessage: ChatMessage = {
             id: makeId('user'),
@@ -236,6 +286,7 @@ export function VirtualAssistantChat({
                 ),
             );
         } finally {
+            isSendingRef.current = false;
             setIsSending(false);
         }
     };
@@ -321,6 +372,7 @@ export function VirtualAssistantChat({
                                 setMessages([INITIAL_MESSAGE]);
                                 setInput('');
                                 setError('');
+                                localStorage.removeItem(STORAGE_KEY(userEmail));
                             }}
                             className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600"
                             aria-label="Bersihkan chat"
@@ -352,7 +404,47 @@ export function VirtualAssistantChat({
                                                 {message.content}
                                             </div>
                                         ) : (
-                                            <AssistantMarkdown content={message.content} />
+                                            <>
+                                                <AssistantMarkdown content={message.content} />
+                                                {message.status === 'done' && message.evidence && message.evidence.length > 0 && (() => {
+                                                    const grouped = new Map<string, { source: string; page: number; snippets: string[] }>();
+                                                    for (const e of message.evidence) {
+                                                        const key = `${e.source}::${e.page}`;
+                                                        if (!grouped.has(key)) grouped.set(key, { source: e.source, page: e.page, snippets: [] });
+                                                        if (e.snippet) grouped.get(key)!.snippets.push(e.snippet);
+                                                    }
+                                                    return (
+                                                        <div className="mt-4 pt-3 border-t border-slate-100">
+                                                            <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Sumber</p>
+                                                            <ul className="space-y-1.5">
+                                                                {[...grouped.values()].map((item, i) => (
+                                                                    <li key={i}>
+                                                                        <details className="group">
+                                                                            <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12px] text-slate-500 hover:text-slate-700">
+                                                                                <span className="shrink-0 text-slate-300">·</span>
+                                                                                <span className="font-medium text-slate-700">{cleanSourceName(item.source)}</span>
+                                                                                <span className="text-slate-400">hal. {item.page}</span>
+                                                                                {item.snippets.length > 0 && (
+                                                                                    <ChevronRight className="ml-0.5 h-3 w-3 shrink-0 text-slate-300 transition-transform group-open:rotate-90" />
+                                                                                )}
+                                                                            </summary>
+                                                                            {item.snippets.length > 0 && (
+                                                                                <div className="ml-4 mt-1.5 space-y-1.5 border-l border-slate-100 pl-3">
+                                                                                    {item.snippets.map((s, si) => (
+                                                                                        <p key={si} className="text-[11px] italic leading-relaxed text-slate-500">
+                                                                                            &ldquo;{s}&rdquo;
+                                                                                        </p>
+                                                                                    ))}
+                                                                                </div>
+                                                                            )}
+                                                                        </details>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </>
                                         )
                                     ) : (
                                         <div className="space-y-1">

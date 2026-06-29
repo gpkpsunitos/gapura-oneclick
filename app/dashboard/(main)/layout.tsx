@@ -34,7 +34,7 @@ export default async function MainDashboardLayout({
     }
 
     return (
-        <DashboardFrame role={payload.role as string}>
+        <DashboardFrame role={payload.role as string} division={(payload.division as string) || null}>
             <ReportsStoreProvider userId={payload.id as string}>
                 <Suspense fallback={<DashboardSkeleton />}>
                     {token && <SessionGuard token={token} />}

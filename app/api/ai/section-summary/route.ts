@@ -7,7 +7,7 @@ import { verifySession } from '@/lib/auth-utils';
 import { collectAllowedNumbers, filterGroundedBullets, stripUngroundedSentences } from '@/lib/ai/grounding';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 type SummaryTableRow = {
   label: string;

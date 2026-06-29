@@ -8,6 +8,9 @@ export interface AuthBundle {
 
 export const DIVISION_ROLE_CANDIDATES: Record<string, string[]> = {
     OP: ['DIVISI_OP', 'PARTNER_OP'],
+    OT: ['DIVISI_OT', 'PARTNER_OT'],
+    UQ: ['DIVISI_UQ', 'PARTNER_UQ'],
+    OCS: ['DIVISI_OCS', 'PARTNER_OCS'],
     OS: ['DIVISI_OS', 'PARTNER_OS'],
     HC: ['DIVISI_HC', 'PARTNER_HC'],
     HT: ['DIVISI_HT', 'PARTNER_HT'],

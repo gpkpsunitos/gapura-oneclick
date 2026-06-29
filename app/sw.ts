@@ -161,6 +161,33 @@ self.addEventListener("sync", (event) => {
   }
 });
 
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  const data = event.data.json() as { title?: string; body?: string; url?: string };
+  event.waitUntil(
+    self.registration.showNotification(data.title ?? "OneClick", {
+      body: data.body,
+      icon: "/icons/pwa-192.png",
+      badge: "/icons/pwa-192-maskable.png",
+      data: { url: data.url ?? "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url: string = (event.notification.data as { url?: string })?.url ?? "/";
+  event.waitUntil(
+    self.clients
+      .matchAll({ type: "window", includeUncontrolled: true })
+      .then((clients) => {
+        const existing = clients.find((c) => c.url.startsWith(self.location.origin));
+        if (existing) return existing.navigate(url).then((c) => c?.focus());
+        return self.clients.openWindow(url);
+      })
+  );
+});
+
 async function syncOfflineQueue() {
   let summary = EMPTY_OFFLINE_QUEUE_SUMMARY;
 

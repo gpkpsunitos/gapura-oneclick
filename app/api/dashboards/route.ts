@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     const token = cookieStore.get('session')?.value || null;
     const payload = token ? await verifySession(token) : null;
     const role = String(payload?.role || '').trim().toUpperCase();
-    const allowCF = role === 'ANALYST' || role === 'SUPER_ADMIN' || role === 'DIVISI_OS';
+    const allowCF = role === 'ANALYST' || role === 'SUPER_ADMIN' || (role === 'DIVISI_OS' || role === 'DIVISI_OCS');
 
     if (slug) {
       if (slug.toLowerCase().includes('customer-feedback') && !allowCF) {

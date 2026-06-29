@@ -183,7 +183,7 @@ export function ReportDetailView({
 
   const resolveEscalationDivisionLabel = () => {
     if (pathname.startsWith('/dashboard/eskalasi/op') || pathname.startsWith('/dashboard/op')) return 'Division OP';
-    if (pathname.startsWith('/dashboard/eskalasi/os') || pathname.startsWith('/dashboard/os')) return 'Unit Service';
+    if (pathname.startsWith('/dashboard/eskalasi/os') || pathname.startsWith('/dashboard/ocs') || pathname.startsWith('/dashboard/os')) return 'Unit Service';
     if (pathname.startsWith('/dashboard/eskalasi/ht') || pathname.startsWith('/dashboard/ht')) return 'Division HT';
     return 'Division Escalation';
   };
@@ -207,6 +207,16 @@ export function ReportDetailView({
     setMounted(true);
     return () => setMounted(false);
   }, []);
+
+  // Opening a report clears this user's unread comment notifications for it.
+  useEffect(() => {
+    if (!report?.id) return;
+    fetch('/api/notifications/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reportId: report.id }),
+    }).catch(() => {});
+  }, [report?.id]);
 
   
   useEffect(() => {

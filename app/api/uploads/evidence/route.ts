@@ -32,7 +32,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 413 });
     }
 
-    console.log(`[UPLOAD] Original file size: ${(file.size / 1024).toFixed(2)}KB`);
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
@@ -51,8 +50,6 @@ export async function POST(request: Request) {
       compressedBuffer = result.buffer;
       contentType = 'image/webp';
 
-      console.log(`[UPLOAD] Compressed from ${result.originalSize}B to ${result.size}B (${result.compressionRatio.toFixed(1)}% reduction)`);
-      console.log(`[UPLOAD] Final dimensions: ${result.width}x${result.height}`);
     } catch (error) {
       console.error('[UPLOAD] Compression failed, using original:', error);
       compressedBuffer = buffer;

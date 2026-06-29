@@ -100,7 +100,7 @@ const WrappedYAxisTick = (props: YTickProps) => {
 };
 
 export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCategory?: boolean; backPath?: string }) {
-  const { initialCategory, readOnlyCategory = false, backPath = '/dashboard/os' } = props || {};
+  const { initialCategory, readOnlyCategory = false, backPath = '/dashboard/ocs' } = props || {};
   const router = useRouter();
   const [records, setRecords] = useState<JoumpaRecord[]>([]);
   const [loading, setLoading] = useState(true);

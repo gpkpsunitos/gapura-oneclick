@@ -140,7 +140,6 @@ async function sendEmail(message: EmailMessage) {
     if (!user || !pass) {
         console.warn('[NOTIFICATIONS] SMTP credentials missing (GMAIL_SMTP_USER/GMAIL_SMTP_APP_PASSWORD), email notification logged but cannot be sent.');
     } else if (!emailTransporter) {
-        console.log('[NOTIFICATIONS] Initializing SMTP transporter for:', host);
         emailTransporter = nodemailer.createTransport({
             host,
             port,
@@ -207,7 +206,6 @@ async function getNotificationRecipients(entity: string): Promise<string[]> {
         .filter(Boolean);
 
     if (fromDb.length > 0) {
-        console.log(`[NOTIFICATIONS] Found ${fromDb.length} recipients in database for entity: ${entity}`);
         return fromDb;
     }
 
@@ -218,7 +216,6 @@ async function getNotificationRecipients(entity: string): Promise<string[]> {
     ).split(',').map(e => e.trim()).filter(Boolean);
 
     if (fallbackEmails.length > 0) {
-        console.log(`[NOTIFICATIONS] No DB recipients found for ${entity}, falling back to env: ${fallbackEmails.join(', ')}`);
         return fallbackEmails;
     }
 
@@ -263,7 +260,6 @@ export async function notifyNewRecordEmail(
 
     const recipients = await getNotificationRecipients('IRRS_NEW_RECORD');
     if (recipients.length === 0) {
-        console.info('[NOTIFICATIONS] IRRS_NEW_RECORD notification skipped because no recipients are configured.');
         return;
     }
 
@@ -273,7 +269,6 @@ export async function notifyNewRecordEmail(
     const reporter = report.reporter_name || report.reporter_email || '-';
     const severityLabel = report.severity ? String(report.severity).toUpperCase() : '-';
 
-    console.log(`[NOTIFICATIONS] Preparing new record notification for: ${report.title || report.report} (Source: ${source}, Severity: ${severityLabel})`);
 
     const text = [
         'A new record has been found on OneClick.',
@@ -314,7 +309,6 @@ export async function notifyNewRecordEmail(
 export async function notifyReportClosedEmail(report: Partial<Report>) {
     const recipient = String(report.reporter_email || '').trim();
     if (!recipient || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) {
-        console.info('[NOTIFICATIONS] Report closed notification skipped: reporter_email missing/invalid.');
         return;
     }
 
@@ -390,7 +384,6 @@ export async function sendTestEmail(options: TestEmailOptions) {
 }
 
 export async function sendNotification(payload: NotificationPayload): Promise<void> {
-    console.info('[NOTIFICATIONS] Generic notification payload:', payload);
 }
 
 export async function notifyNewReport(

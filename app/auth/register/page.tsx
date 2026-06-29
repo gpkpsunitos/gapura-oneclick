@@ -33,8 +33,6 @@ const DEFAULT_POSITIONS: Array<Position & { level?: number }> = [
     { id: '00000000-0000-0000-0000-000000000201', name: 'Super Admin', level: 1 },
     { id: '00000000-0000-0000-0000-000000000202', name: 'Analyst', level: 2 },
     { id: '00000000-0000-0000-0000-000000000203', name: 'DIVISI OP', level: 3 },
-    { id: '00000000-0000-0000-0000-000000000204', name: 'DIVISI OP', level: 3 },
-    { id: '00000000-0000-0000-0000-000000000205', name: 'DIVISI OP', level: 3 },
     { id: '00000000-0000-0000-0000-000000000206', name: 'OS', level: 3 },
     { id: '00000000-0000-0000-0000-000000000207', name: 'OSF', level: 3 },
     { id: '00000000-0000-0000-0000-000000000208', name: 'OSL', level: 3 },
@@ -149,8 +147,9 @@ export default function RegisterPage() {
                 }
                 break;
             case 'password':
-                if (value.length > 0 && value.length < 6) {
-                    return 'Minimal 6 karakter';
+                // Must mirror the server rules in /api/auth/register (8+ chars, mixed case + digit).
+                if (value.length > 0 && (value.length < 8 || !/[A-Z]/.test(value) || !/[a-z]/.test(value) || !/[0-9]/.test(value))) {
+                    return 'Min. 8 karakter, kombinasi huruf besar, kecil & angka';
                 }
                 break;
             case 'confirmPassword':
@@ -527,19 +526,34 @@ export default function RegisterPage() {
                                                 type={showPassword ? 'text' : 'password'}
                                                 required
                                                 className={fieldErrors.password ? inputErrorStyle : inputStyle}
-                                                placeholder="Minimal 6 karakter"
+                                                placeholder="Min. 8 karakter"
                                                 value={formData.password}
                                                 onChange={(e) => handleChange('password', e.target.value)}
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
+                                                aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
                                                 className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                                             >
                                                 {showPassword ? <EyeOff size={16} className="sm:hidden" /> : <Eye size={16} className="sm:hidden" />}
                                                 {showPassword ? <EyeOff size={18} className="hidden sm:block" /> : <Eye size={18} className="hidden sm:block" />}
                                             </button>
                                         </div>
+                                        {formData.password.length > 0 && (
+                                            <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+                                                {[
+                                                    { ok: formData.password.length >= 8, label: '8+ karakter' },
+                                                    { ok: /[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password), label: 'Huruf besar & kecil' },
+                                                    { ok: /[0-9]/.test(formData.password), label: 'Angka' },
+                                                ].map((req) => (
+                                                    <span key={req.label} className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-medium transition-colors ${req.ok ? 'text-emerald-600' : 'text-gray-400'}`}>
+                                                        <CheckCircle size={12} className={req.ok ? 'opacity-100' : 'opacity-40'} />
+                                                        {req.label}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                         {fieldErrors.password && <p className="text-[10px] sm:text-xs text-red-500 mt-1">{fieldErrors.password}</p>}
                                     </div>
                                     <div>

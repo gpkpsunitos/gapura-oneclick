@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 const DL_BASE_URL = process.env.DL_SERVICE_URL
   || process.env.NEXT_PUBLIC_DL_SERVICE_URL

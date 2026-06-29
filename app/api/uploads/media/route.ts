@@ -39,7 +39,6 @@ export async function POST(request: Request) {
     const isVideo = file.type.startsWith('video/');
     const isImage = file.type.startsWith('image/');
 
-    console.log(`[UPLOAD] Processing ${isVideo ? 'video' : 'image'}: ${(file.size / 1024).toFixed(2)}KB`);
 
     const arrayBuffer = await file.arrayBuffer();
     let compressedBuffer: Buffer;
@@ -64,12 +63,9 @@ export async function POST(request: Request) {
         compressionRatio: result.compressionRatio
       };
 
-      console.log(`[UPLOAD] Compressed from ${result.originalSize}B to ${result.size}B (${result.compressionRatio.toFixed(1)}% reduction)`);
       if (result.width) {
-        console.log(`[UPLOAD] Dimensions: ${result.width}x${result.height}`);
       }
       if (result.duration) {
-        console.log(`[UPLOAD] Duration: ${result.duration}s`);
       }
     } catch (error) {
       console.error('[UPLOAD] Compression failed:', error);
@@ -104,7 +100,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to get public URL' }, { status: 500 });
     }
 
-    console.log(`[UPLOAD] Successfully uploaded to ${bucket}: ${publicUrl}`);
 
     return NextResponse.json({ 
       success: true, 

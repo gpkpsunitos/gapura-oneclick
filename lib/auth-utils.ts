@@ -103,20 +103,19 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
                 return session;
             }
 
-            const queryResult = await supabaseAdmin
+            // Single query: join users via security_sessions.user_id to avoid a second round-trip
+            const { data, error: dbError } = await supabaseAdmin
                 .from('security_sessions')
-                .select('is_revoked, last_active, expires_at')
+                .select('is_revoked, last_active, expires_at, user:users!user_id(role, status)')
                 .eq('session_id', session.sid)
                 .single();
-
-            const data = queryResult.data;
-            const dbError = queryResult.error;
 
             if (data?.is_revoked) {
                 console.warn(`[AUTH_UTILS] Session ${session.sid} is REVOKED`);
                 evictSessionCache(session.sid);
                 return null;
             }
+
             if (!data) {
                 if (dbError) {
                     console.warn(`[AUTH_UTILS] Session ${session.sid} DB lookup error:`, dbError.message, dbError.code);
@@ -143,7 +142,6 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
                     const remainingSeconds = Math.ceil(remainingMs / 1000);
                     await registerSession(session.id, session.sid, null, null, remainingSeconds);
                     setCachedSession(session.sid, session);
-                    console.info(`[AUTH_UTILS] Session ${session.sid} re-registered (was missing from DB)`);
                 } catch (reregErr) {
                     console.warn(`[AUTH_UTILS] Session re-register failed:`, reregErr instanceof Error ? reregErr.message : reregErr);
                     return null;
@@ -151,30 +149,27 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
 
                 return session;
             }
+
             if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) {
                 console.warn(`[AUTH_UTILS] Session ${session.sid} is EXPIRED`);
                 evictSessionCache(session.sid);
                 return null;
             }
 
-            try {
-                const { data: userData } = await supabaseAdmin
-                    .from('users')
-                    .select('role, status')
-                    .eq('id', session.id)
-                    .single();
-
-                if (userData) {
-                    if ((userData as Record<string, unknown>).status !== 'active') {
-                        evictSessionCache(session.sid);
-                        return null;
-                    }
-                    if ((userData as Record<string, unknown>).role && (userData as Record<string, unknown>).role !== session.role) {
-                        session = { ...session, role: (userData as Record<string, unknown>).role as string };
-                    }
-                }
-            } catch {
-
+            // User data comes from the join — no second DB call on the hot path
+            const joinedUser = Array.isArray(data.user) ? data.user[0] : data.user;
+            if (!joinedUser) {
+                console.warn(`[AUTH_UTILS] Session ${session.sid} user not found — rejecting`);
+                evictSessionCache(session.sid);
+                return null;
+            }
+            const u = joinedUser as Record<string, unknown>;
+            if (u.status !== 'active') {
+                evictSessionCache(session.sid);
+                return null;
+            }
+            if (u.role && u.role !== session.role) {
+                session = { ...session, role: u.role as string };
             }
 
             setCachedSession(session.sid, session);

@@ -4,6 +4,11 @@ import 'server-only';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { buildReportFingerprint, resolveReportCategory } from '@/lib/report-fingerprint';
 import type { Report } from '@/types';
+import { v5 as uuidv5 } from 'uuid';
+
+// Must match ReportsService.getReportUuid so a row's stored id equals
+// uuidv5(sheet_id) — the id the app derives from the live Google Sheet.
+const IRRS_NAMESPACE_UUID = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
 function toIsoOrNow(value: unknown): string {
     if (typeof value === 'string' && value.trim()) {
@@ -51,6 +56,9 @@ export function buildReportsSyncRow(report: Partial<Report>): Record<string, unk
     const normalizedCategory = resolveReportCategory(report);
 
     return {
+        // ponytail: pin the deterministic id; without it Postgres assigns a random
+        // v4 default that never matches the uuidv5(sheet_id) the app looks up by.
+        id: uuidv5(sheetId, IRRS_NAMESPACE_UUID),
         sheet_id: sheetId,
         user_id: report.user_id || null,
         title: report.title || report.report || '(Tanpa Judul)',

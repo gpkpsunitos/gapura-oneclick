@@ -1,4 +1,4 @@
-/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { type ComponentProps, useState } from 'react';
 import {
@@ -232,7 +232,7 @@ export function DetailReportTable({ data }: { data: Report[] }) {
                             const date = r.date_of_event
                                 ? new Date(r.date_of_event).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' })
                                 : '-';
-                            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                             
                             const tag = (r as any).primary_tag || '-';
                             const tagColor = tag === 'Landside' ? 'bg-blue-100 text-blue-700' : tag === 'Airside' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600';
                             const branch = r.stations?.code || r.branch || '-';
@@ -244,31 +244,15 @@ export function DetailReportTable({ data }: { data: Report[] }) {
                                     </td>
                                     <td>{r.category || r.main_category || '-'}</td>
                                     <td className="font-bold">{branch}</td>
-                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <td>{r.airlines || '-'}</td>
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     <td className="font-mono tabular-nums">{(r as any).flight_number || '-'}</td>
-                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', verticalAlign: 'top' }}>
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         <p className="overflow-hidden whitespace-normal break-words leading-snug [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{(r as any).description || (r as any).report || '-'}</p>
                                     </td>
-                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', verticalAlign: 'top' }}>
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         <p className="overflow-hidden whitespace-normal break-words leading-snug [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{(r as any).root_caused || '-'}</p>
                                     </td>
-                                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                                     <td style={{ whiteSpace: 'normal', wordBreak: 'break-word', verticalAlign: 'top' }}>
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         <p className="overflow-hidden whitespace-normal break-words leading-snug [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">{(r as any).action_taken || '-'}</p>
                                     </td>
                                 </tr>

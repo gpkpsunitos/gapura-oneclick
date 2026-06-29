@@ -132,7 +132,6 @@ export async function GET(request: Request) {
         });
 
         const duration = Date.now() - startTime;
-        console.log(`[API] GET /admin/reports - Found ${filteredData.length}/${allReports.length} reports in ${duration}ms`);
 
         return NextResponse.json(filteredData, {
             headers: { 'Cache-Control': 'private, no-cache' },

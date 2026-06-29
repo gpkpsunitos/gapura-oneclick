@@ -11,6 +11,7 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: "/",
     scope: "/",
     display: "standalone",
+    display_override: ["window-controls-overlay", "standalone", "minimal-ui"],
     orientation: "any",
     background_color: "#f6fbf8",
     theme_color: "#0f766e",
@@ -73,6 +74,15 @@ export default function manifest(): MetadataRoute.Manifest {
         form_factor: "narrow",
       },
     ],
+    share_target: {
+      action: "/auth/public-report",
+      method: "GET",
+      params: {
+        title: "title",
+        text: "text",
+        url: "url",
+      },
+    },
     shortcuts: [
       {
         name: "Laporkan Insiden",

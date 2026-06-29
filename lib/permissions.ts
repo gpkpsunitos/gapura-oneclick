@@ -4,8 +4,11 @@ import { UserRole, DivisionType } from '@/types';
 const ROLE_HIERARCHY: Record<UserRole, number> = {
     STAFF_CABANG: 1,
     MANAGER_CABANG: 2,
+    DIVISI_OCS: 2,
     DIVISI_OS: 2,
     DIVISI_OP: 2,
+    DIVISI_OT: 2,
+    DIVISI_UQ: 2,
     DIVISI_HC: 2,
     DIVISI_HT: 2,
     DIVISI_ESKALASI: 3,
@@ -14,7 +17,7 @@ const ROLE_HIERARCHY: Record<UserRole, number> = {
 };
 
 export const canExportData = (role: UserRole): boolean =>
-    role === 'DIVISI_OS' || role === 'DIVISI_ESKALASI' || role === 'ANALYST' || role === 'SUPER_ADMIN';
+    role === 'DIVISI_OCS' || role === 'DIVISI_OS' || role === 'DIVISI_ESKALASI' || role === 'ANALYST' || role === 'SUPER_ADMIN';
 
 export const canAccessAdminDashboard = (role: UserRole): boolean =>
     ROLE_HIERARCHY[role] >= 2;
@@ -42,6 +45,7 @@ export const canCreateReport = (role: UserRole): boolean =>
     role === 'STAFF_CABANG' ||
     role === 'ANALYST' ||
     role === 'SUPER_ADMIN' ||
+    role === 'DIVISI_OCS' ||
     role === 'DIVISI_OS';
 
 export const hasGlobalAccess = (role: UserRole): boolean =>
@@ -54,7 +58,15 @@ export const getLoginRedirectPath = (role: UserRole): string => {
     if (role === 'STAFF_CABANG') {
         return '/dashboard/employee';
     }
-    if (role === 'DIVISI_ESKALASI') {
+    if (
+        role === 'DIVISI_ESKALASI' ||
+        role === 'DIVISI_OCS' ||
+        role === 'DIVISI_OS' ||
+        role === 'DIVISI_OP' ||
+        role === 'DIVISI_OT' ||
+        role === 'DIVISI_UQ' ||
+        role === 'DIVISI_HT'
+    ) {
         return '/dashboard/eskalasi/select';
     }
     return '/dashboard/admin';
@@ -100,8 +112,11 @@ export const isRestrictedToOwnReports = (role: UserRole): boolean =>
 
 export const DIVISION_LABELS: Record<DivisionType, string> = {
     GENERAL: 'Umum',
-    OS: 'Operational Services',
+    OCS: 'Operational Customer Service',
+    OS: 'Customer Service',
     OP: 'Operasi',
+    OT: 'Operasi (OT)',
+    UQ: 'Operasi (UQ)',
     HC: 'Human Capital',
     HT: 'Human Training',
 };
@@ -109,8 +124,11 @@ export const DIVISION_LABELS: Record<DivisionType, string> = {
 export const ROLE_LABELS: Record<UserRole, string> = {
     MANAGER_CABANG: 'Manager Cabang',
     STAFF_CABANG: 'Staff Cabang',
+    DIVISI_OCS: 'Divisi OCS',
     DIVISI_OS: 'Divisi OS',
     DIVISI_OP: 'Divisi OP',
+    DIVISI_OT: 'Divisi OT',
+    DIVISI_UQ: 'Divisi UQ',
     DIVISI_HC: 'Divisi HC',
     DIVISI_HT: 'Divisi HT',
     DIVISI_ESKALASI: 'Divisi Eskalasi',
@@ -121,8 +139,11 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 export const ROLE_DESCRIPTIONS: Record<UserRole, string> = {
     MANAGER_CABANG: 'Manager/Supervisor cabang (@gapura.id). Akses penuh station, approve staff, export data.',
     STAFF_CABANG: 'Staff cabang (non-@gapura.id). Hanya lihat laporan sendiri, perlu approval manager.',
-    DIVISI_OS: 'Divisi Operational Services. Full superview, export data, monitoring global.',
+    DIVISI_OCS: 'Divisi Operational Customer Service. Customer service monitoring, export data, monitoring global.',
+    DIVISI_OS: 'Divisi OS. Salinan independen dari workspace OCS.',
     DIVISI_OP: 'Divisi Operasi. Eksekutor laporan terkait operasional, GSE, safety, dan quality.',
+    DIVISI_OT: 'Divisi OT. Eksekutor laporan operasional (UI sama dengan OP).',
+    DIVISI_UQ: 'Divisi UQ. Eksekutor laporan operasional (UI sama dengan OP).',
     DIVISI_HC: 'Divisi Human Capital (legacy role tanpa workspace khusus).',
     DIVISI_HT: 'Divisi Human Training. Eksekutor laporan terkait pelatihan.',
     DIVISI_ESKALASI: 'Pusat Eskalasi. Akses view semua laporan divisi, export data.',

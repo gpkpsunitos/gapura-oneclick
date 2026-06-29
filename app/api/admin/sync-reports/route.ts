@@ -18,7 +18,6 @@ export async function POST(request: NextRequest) {
     const isDevelopment = nodeEnv === 'development';
 
     if (isDevelopment) {
-      console.log('[SYNC API] Development mode active');
     }
 
     const cookieStore = await cookies();

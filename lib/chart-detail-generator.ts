@@ -799,7 +799,6 @@ export async function fetchAnalyticalChartData(
 
       const chartTitle = charts[task.idx]?.visualization?.title || '';
       if (chartTitle.includes('Area') || chartTitle.includes('Sub-Kategori')) {
-        console.log(`🔍 Query for "${chartTitle}":`, JSON.stringify(normalizedQuery, null, 2));
       }
 
       const res = await fetch('/api/dashboards/query', {
@@ -810,14 +809,6 @@ export async function fetchAnalyticalChartData(
 
       if (!res.ok) throw new Error(`Query failed: ${res.status}`);
       const result: QueryResult = await res.json();
-
-      if (chartTitle.includes('Area') || chartTitle.includes('Sub-Kategori')) {
-        console.log(`📊 Result for "${chartTitle}":`, {
-          columns: result.columns,
-          rowCount: result.rows?.length,
-          firstRow: result.rows?.[0],
-        });
-      }
 
       return { idx: task.idx, result };
     }),

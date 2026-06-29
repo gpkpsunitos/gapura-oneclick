@@ -19,7 +19,8 @@ type OpenRouterChatCompletion = {
 
 export async function callOpenRouterAI(
   messages: OpenRouterMessage[],
-  model: string = OPENROUTER_MODEL
+  model: string = OPENROUTER_MODEL,
+  maxTokens = 4096
 ): Promise<string> {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
@@ -28,7 +29,6 @@ export async function callOpenRouterAI(
   }
 
   try {
-    console.log(`[OpenRouter] Calling model: ${model}`);
 
     const response = await fetch(OPENROUTER_API_URL, {
       method: "POST",
@@ -46,7 +46,7 @@ export async function callOpenRouterAI(
         model,
         messages,
         temperature: 0.1,
-        max_completion_tokens: 4096,
+        max_completion_tokens: maxTokens,
       }),
     });
 

@@ -323,7 +323,7 @@ export function ChartSection({
     availableOptions,
   };
 
-  if (division.code === 'OS' || division.code === 'ANALYST') {
+  if (division.code === 'OS' || division.code === 'OCS' || division.code === 'ANALYST') {
     return <OSAnalystCharts {...chartProps} />;
   }
   if (division.code === 'OP') {

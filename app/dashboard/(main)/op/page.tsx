@@ -1,16 +1,34 @@
+import { cookies } from 'next/headers';
+import { readSessionPayload } from '@/lib/auth-utils';
 import { OPDashboardClient } from '@/components/dashboard/OPDashboardClient';
 import { reportsService } from '@/lib/services/reports-service';
+import { getStationLock } from '@/lib/get-station-lock';
 
 export const revalidate = 60;
 
 export default async function OPDashboard() {
+  const token = (await cookies()).get('session')?.value;
+  const payload = token ? await readSessionPayload(token) : null;
 
   let initialReports;
+  let lockedBranches: string[] | undefined;
+
+  const stationCode = payload?.id ? await getStationLock(payload.id, payload.role ?? '') : null;
+
   try {
-    initialReports = await reportsService.getReports({ source: 'sync' });
+    const all = await reportsService.getReports({ source: 'sync' });
+    if (stationCode) {
+      initialReports = all.filter((r) => {
+        const code = (r.stations?.code || r.branch || r.station_code || '').toString().toUpperCase();
+        return code === stationCode;
+      });
+      lockedBranches = [stationCode];
+    } else {
+      initialReports = all;
+    }
   } catch {
     initialReports = undefined;
   }
 
-  return <OPDashboardClient initialReports={initialReports} />;
+  return <OPDashboardClient initialReports={initialReports} lockedBranches={lockedBranches} />;
 }

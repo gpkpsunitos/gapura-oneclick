@@ -31,7 +31,6 @@ export async function GET(request: Request) {
     try {
       const reports = await reportsService.getReports();
       reportsCount = reports.length;
-      console.log(`[AI Model Info] Fetched ${reportsCount} reports from Google Sheets`);
     } catch (err) {
       console.error('[AI Model Info] Failed to fetch reports:', err);
     }

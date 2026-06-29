@@ -38,7 +38,6 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
     const [expanded, setExpanded] = useState(false);
 
     const [modal, setModal] = useState<{ label: string; href: string; external: boolean } | null>(null);
-    const [comingSoon, setComingSoon] = useState(false);
 
     const externalLinks = useExternalLinks();
 
@@ -46,7 +45,7 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
         {
             label: 'AI Chatbot',
             icon: Bot,
-            href: '/auth/ai-chat',
+            href: '/virtual-assistant',
         },
         {
             label: 'Chat Bot I\'m In Charge',
@@ -86,7 +85,7 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
         {
             label: 'WSN Dashboard',
             icon: Monitor,
-            href: '/dashboard/os/wsn',
+            href: '/dashboard/ocs/wsn',
             protected: true,
         },
         {
@@ -99,11 +98,6 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
     ];
 
     const handleItemClick = (item: GuestItem, e: React.MouseEvent) => {
-        if (item.label === "Chat Bot I'm In Charge") {
-            e.preventDefault();
-            setComingSoon(true);
-            return;
-        }
         if ('protected' in item && item.protected && item.href) {
             e.preventDefault();
             setModal({ label: item.label, href: item.href, external: item.external ?? false });
@@ -206,23 +200,6 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
     return (
         <>
             {}
-            {comingSoon && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setComingSoon(false)}>
-                    <div className="bg-white rounded-2xl shadow-xl p-6 mx-4 max-w-sm w-full text-center" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-center w-12 h-12 rounded-full bg-amber-100 mx-auto mb-4">
-                            <Bot size={24} className="text-amber-600" />
-                        </div>
-                        <h2 className="text-base font-bold text-gray-900 mb-1">Feature Not Available</h2>
-                        <p className="text-sm text-gray-500 mb-5">Chat Bot I&apos;m In Charge is currently under development. Please check back later.</p>
-                        <button
-                            onClick={() => setComingSoon(false)}
-                            className="w-full py-2 px-4 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors"
-                        >
-                            Got it
-                        </button>
-                    </div>
-                </div>
-            )}
 
             {}
             {modal && (

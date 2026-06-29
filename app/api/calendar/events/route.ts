@@ -14,8 +14,10 @@ async function authenticate() {
   const payload = await verifySession(token);
   if (!payload) return null;
 
+  // OCS division users keep calendar; analysts only if their division is OCS.
   const role = String(payload.role).trim().toUpperCase();
-  if (role !== 'ANALYST' && role !== 'DIVISI_OS') return null;
+  const division = String(payload.division || '').trim().toUpperCase();
+  if (role !== 'DIVISI_OCS' && !(role === 'ANALYST' && division === 'OCS')) return null;
 
   return payload;
 }

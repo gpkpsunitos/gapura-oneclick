@@ -3,35 +3,43 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { verifySession } from '@/lib/auth-utils';
 
+// Division roles land on the escalation select screen first; from there they
+// navigate to their own dashboard (or the green Customer Service card for OS/OCS).
+const ESKALASI_SELECT = '/dashboard/eskalasi/select';
+
 const ROLE_DASHBOARDS: Record<string, string> = {
 
     SUPER_ADMIN: '/dashboard/admin',
 
-    DIVISI_ESKALASI: '/dashboard/eskalasi/select',
+    DIVISI_ESKALASI: ESKALASI_SELECT,
 
-    DIVISI_OS: '/dashboard/os',
+    DIVISI_OCS: ESKALASI_SELECT,
 
-    PARTNER_OS: '/dashboard/os',
+    PARTNER_OCS: ESKALASI_SELECT,
 
-    DIVISI_OT: '/dashboard/ot',
+    DIVISI_OS: ESKALASI_SELECT,
 
-    PARTNER_OT: '/dashboard/ot',
+    PARTNER_OS: ESKALASI_SELECT,
 
-    DIVISI_OP: '/dashboard/op',
+    DIVISI_OT: ESKALASI_SELECT,
 
-    PARTNER_OP: '/dashboard/op',
+    PARTNER_OT: ESKALASI_SELECT,
 
-    DIVISI_UQ: '/dashboard/uq',
+    DIVISI_OP: ESKALASI_SELECT,
 
-    PARTNER_UQ: '/dashboard/uq',
+    PARTNER_OP: ESKALASI_SELECT,
+
+    DIVISI_UQ: ESKALASI_SELECT,
+
+    PARTNER_UQ: ESKALASI_SELECT,
 
     DIVISI_HC: '/dashboard/hc',
 
     PARTNER_HC: '/dashboard/hc',
 
-    DIVISI_HT: '/dashboard/ht',
+    DIVISI_HT: ESKALASI_SELECT,
 
-    PARTNER_HT: '/dashboard/ht',
+    PARTNER_HT: ESKALASI_SELECT,
 
     ANALYST: '/dashboard/analyst',
 
@@ -41,6 +49,23 @@ const ROLE_DASHBOARDS: Record<string, string> = {
 
     CABANG: '/dashboard/employee',
 };
+
+// Roles that may view a division dashboard / the shared escalation screens.
+const DIVISION_VIEWER_ROLES = [
+    'DIVISI_OCS', 'PARTNER_OCS',
+    'DIVISI_OS', 'PARTNER_OS',
+    'DIVISI_OP', 'PARTNER_OP',
+    'DIVISI_OT', 'PARTNER_OT',
+    'DIVISI_UQ', 'PARTNER_UQ',
+    'DIVISI_HT', 'PARTNER_HT',
+];
+
+// Escalation sub-pages a division user is allowed to open (the rest are eskalasi-only).
+const ESKALASI_SHARED_PATHS = [
+    '/dashboard/eskalasi/select',
+    '/dashboard/eskalasi/performance-links',
+    '/dashboard/eskalasi/documents',
+];
 
 export default async function proxy(request: NextRequest) {
     const path = request.nextUrl.pathname;
@@ -105,7 +130,7 @@ export default async function proxy(request: NextRequest) {
     if (payload) {
 
         const role = String(payload.role).trim().toUpperCase();
-        const isSharedGseDashboardPath = path.startsWith('/dashboard/ot/gse');
+        const division = String(payload.division || '').trim().toUpperCase();
 
         if (isAuthPagePath && path !== '/api/auth/logout' && !isLogoutTransition) {
             const dashboardUrl = ROLE_DASHBOARDS[role] || '/dashboard/employee';
@@ -132,50 +157,42 @@ export default async function proxy(request: NextRequest) {
              return NextResponse.redirect(new URL('/dashboard/employee', request.url));
         }
 
-        if (path.startsWith('/dashboard/os') && !path.startsWith('/dashboard/analyst')) {
-             if (!['DIVISI_OS', 'PARTNER_OS', 'DIVISI_OT', 'PARTNER_OT', 'DIVISI_OP', 'PARTNER_OP', 'DIVISI_UQ', 'PARTNER_UQ'].includes(role)) {
-                  if (role === 'DIVISI_ESKALASI') {
-                      return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
-                  }
-                  return NextResponse.redirect(new URL('/dashboard/employee', request.url));
-             }
+        // Only OCS-division analysts may open performance, circulars/documents,
+        // import, calendars, meetings and notifications; other analysts are bounced.
+        const OCS_ONLY_ANALYST_SEGMENTS = ['ocs', 'calendar', 'meetings', 'notifications', 'performance-links', 'documents', 'import'];
+        if (
+            role === 'ANALYST' && division !== 'OCS' &&
+            OCS_ONLY_ANALYST_SEGMENTS.some((seg) => path.startsWith(`/dashboard/analyst/${seg}`))
+        ) {
+            return NextResponse.redirect(new URL('/dashboard/analyst', request.url));
         }
-        const otAllowedRoles = isSharedGseDashboardPath
-            ? ['DIVISI_OT', 'PARTNER_OT', 'DIVISI_OP', 'PARTNER_OP']
-            : ['DIVISI_OT', 'PARTNER_OT'];
 
-        if (path.startsWith('/dashboard/ot') && !otAllowedRoles.includes(role)) {
-             if (role === 'DIVISI_ESKALASI') {
-                 return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
-             }
-             return NextResponse.redirect(new URL('/dashboard/employee', request.url));
+        const homeFor = (r: string) => ROLE_DASHBOARDS[r] || '/dashboard/employee';
+
+        // OCS dashboard (renamed from the old shared /dashboard/os).
+        if (path.startsWith('/dashboard/ocs') && !['DIVISI_OCS', 'PARTNER_OCS'].includes(role)) {
+             return NextResponse.redirect(new URL(homeFor(role), request.url));
         }
-        if (path.startsWith('/dashboard/op') && !['DIVISI_OP', 'PARTNER_OP'].includes(role)) {
-             if (role === 'DIVISI_ESKALASI') {
-                 return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
-             }
-             return NextResponse.redirect(new URL('/dashboard/employee', request.url));
+        // New OS division: an independent copy of OCS.
+        if (path.startsWith('/dashboard/os') && !['DIVISI_OS', 'PARTNER_OS'].includes(role)) {
+             return NextResponse.redirect(new URL(homeFor(role), request.url));
         }
-        if (path.startsWith('/dashboard/uq') && !['DIVISI_UQ', 'PARTNER_UQ'].includes(role)) {
-             if (role === 'DIVISI_ESKALASI') {
-                 return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
-             }
-             return NextResponse.redirect(new URL('/dashboard/employee', request.url));
+        // Shared operational monitoring dashboard (the "blue" card) for every division.
+        if (path.startsWith('/dashboard/op') && !DIVISION_VIEWER_ROLES.includes(role)) {
+             return NextResponse.redirect(new URL(homeFor(role), request.url));
         }
         if (path.startsWith('/dashboard/hc') && !['DIVISI_HC', 'PARTNER_HC', 'ANALYST', 'SUPER_ADMIN'].includes(role)) {
-             if (role === 'DIVISI_ESKALASI') {
-                 return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
-             }
-             return NextResponse.redirect(new URL('/dashboard/employee', request.url));
+             return NextResponse.redirect(new URL(homeFor(role), request.url));
         }
-        if (path.startsWith('/dashboard/ht') && !['DIVISI_HT', 'PARTNER_HT'].includes(role)) {
-             if (role === 'DIVISI_ESKALASI') {
-                 return NextResponse.redirect(new URL('/dashboard/eskalasi/select', request.url));
-             }
-             return NextResponse.redirect(new URL('/dashboard/employee', request.url));
+        if (path.startsWith('/dashboard/ht') && !['DIVISI_HT', 'PARTNER_HT', ...DIVISION_VIEWER_ROLES].includes(role)) {
+             return NextResponse.redirect(new URL(homeFor(role), request.url));
         }
-        if (path.startsWith('/dashboard/eskalasi') && role !== 'DIVISI_ESKALASI') {
-             return NextResponse.redirect(new URL(ROLE_DASHBOARDS[role] || '/dashboard/employee', request.url));
+        if (path.startsWith('/dashboard/eskalasi')) {
+             const isSharedEskalasiPath = ESKALASI_SHARED_PATHS.some((p) => path.startsWith(p));
+             const allowed = role === 'DIVISI_ESKALASI' || (isSharedEskalasiPath && DIVISION_VIEWER_ROLES.includes(role));
+             if (!allowed) {
+                 return NextResponse.redirect(new URL(homeFor(role), request.url));
+             }
         }
     }
 

@@ -7,8 +7,8 @@ import type { SessionPayload } from '@/types';
 const PROTECTED_DIVISIONS = ['OS', 'OP', 'Eskalasi', 'Manager', 'Analyst', 'Employee', 'SuperAdmin'] as const;
 
 const PROTECTED_ROLE_PREFIXES = [
-    'DIVISI_OS', 'DIVISI_OP', 'DIVISI_ESKALASI',
-    'PARTNER_OS', 'PARTNER_OP',
+    'DIVISI_OS', 'DIVISI_OCS', 'DIVISI_OT', 'DIVISI_UQ', 'DIVISI_OP', 'DIVISI_ESKALASI',
+    'PARTNER_OS', 'PARTNER_OCS', 'PARTNER_OP', 'PARTNER_OT', 'PARTNER_UQ',
     'MANAGER_CABANG',
     'ANALYST',
     'STAFF_CABANG',
@@ -78,6 +78,7 @@ export async function authGuard(
 
     const isProtectedPath =
         pathname.includes('/dashboard/(main)/os/') ||
+        pathname.includes('/dashboard/(main)/ocs/') ||
         pathname.includes('/dashboard/(main)/op/') ||
         pathname.includes('/dashboard/(main)/eskalasi/') ||
         pathname.includes('/dashboard/(main)/manager/') ||

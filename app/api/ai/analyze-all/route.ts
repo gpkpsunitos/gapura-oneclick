@@ -5,7 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getHfClient } from '@/lib/hf-client';
 import { resolveCachedAI } from '@/lib/ai-route-cache';
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
@@ -45,7 +45,6 @@ export async function GET(request: NextRequest) {
     if (role === 'MANAGER_CABANG') {
       if (payload.station_id) {
         branchCode = String(payload.station_id);
-        console.log(`[AI API] Applying branch code for MANAGER_CABANG: ${branchCode}`);
       }
     }
 
@@ -61,7 +60,6 @@ export async function GET(request: NextRequest) {
     };
     type AnalysisItem = { originalData?: OriginalData };
 
-    console.log(`[AI API] Calling analyze-all with max_rows=${maxRows}, division=${divisionParam}, branch=${branchParam || branchCode || '-'}`);
 
     const baseQuery = `max_rows_per_sheet=${maxRows}&bypass_cache=${bypassCache}&include_regression=${includeRegression}&include_nlp=${includeNlp}&include_trends=${includeTrends}&esklasi_regex=${encodeURIComponent(esklasiRegex)}`;
     const primaryPath = `/api/ai/analyze-all?${baseQuery}`;
@@ -83,7 +81,6 @@ export async function GET(request: NextRequest) {
           ).catch(() => null);
           if (alt && alt.ok) {
             aiResponse = alt;
-            console.log('[AI API] Fallback to /fast succeeded');
           }
         }
       } catch {
@@ -95,7 +92,6 @@ export async function GET(request: NextRequest) {
           ).catch(() => null);
           if (alt && alt.ok) {
             aiResponse = alt;
-            console.log('[AI API] Primary failed, /fast succeeded');
           }
         } catch {
 
@@ -145,7 +141,6 @@ export async function GET(request: NextRequest) {
                 : true);
           return branchOk;
         });
-        console.log(`[AI API] Filtered results from ${originalCount} to ${data.results.length} for branch code ${branchCode || '-'} name ${branchFilter || '-'}`);
 
         if (!data.summary) {
           data.summary = {};

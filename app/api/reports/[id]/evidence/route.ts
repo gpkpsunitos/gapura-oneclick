@@ -40,7 +40,6 @@ export async function POST(
       return NextResponse.json({ error: 'File too large (max 20MB)' }, { status: 413 });
     }
 
-    console.log(`[EVIDENCE UPLOAD] Original file: ${file.name}, type: ${file.type}, size: ${(file.size / 1024).toFixed(2)}KB`);
 
     const arrayBuffer = await file.arrayBuffer();
     let uploadBuffer: Buffer;
@@ -52,7 +51,6 @@ export async function POST(
         const result = await compressToExactSize(arrayBuffer, 5);
         uploadBuffer = result.buffer;
         contentType = 'image/webp';
-        console.log(`[EVIDENCE UPLOAD] Image compressed from ${result.originalSize}B to ${result.size}B`);
       } catch (error) {
         console.error('[EVIDENCE UPLOAD] Compression failed, using original:', error);
         uploadBuffer = Buffer.from(arrayBuffer);
@@ -69,7 +67,6 @@ export async function POST(
     fileName = fileName.replace(/[^a-zA-Z0-9.\-_]/g, '_');
 
     const path = `reports/${id}/${fileName}`;
-    console.log(`[EVIDENCE UPLOAD] Uploading to path: ${path}, contentType: ${contentType}`);
 
     const { error: uploadErr } = await supabaseAdmin.storage
       .from('evidence')
@@ -80,7 +77,6 @@ export async function POST(
       return NextResponse.json({ error: uploadErr.message, details: uploadErr }, { status: 500 });
     }
 
-    console.log('[EVIDENCE UPLOAD] Upload successful, getting public URL...');
     const { data: pub } = supabaseAdmin.storage.from('evidence').getPublicUrl(path);
     const publicUrl = pub?.publicUrl;
     if (!publicUrl) {

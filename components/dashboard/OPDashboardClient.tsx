@@ -7,14 +7,16 @@ import type { Report, AnalyticsData } from '@/types';
 interface OPDashboardClientProps {
   initialReports?: Report[];
   initialAnalytics?: AnalyticsData | null;
+  lockedBranches?: string[];
 }
 
-export function OPDashboardClient({ initialReports, initialAnalytics }: OPDashboardClientProps) {
+export function OPDashboardClient({ initialReports, initialAnalytics, lockedBranches }: OPDashboardClientProps) {
   return (
     <DivisionAnalystDashboard
       division={DIVISIONS.OP}
       initialReports={initialReports}
       initialAnalytics={initialAnalytics}
+      lockedBranches={lockedBranches}
     />
   );
 }

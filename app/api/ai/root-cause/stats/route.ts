@@ -5,7 +5,7 @@ import { getHfClient } from '@/lib/hf-client';
 import { resolveCachedAI } from '@/lib/ai-route-cache';
 
 export const dynamic = 'force-dynamic';
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   try {
@@ -28,7 +28,6 @@ export async function GET(req: NextRequest) {
       feature: 'root-cause-stats',
       scope: { esklasiRegex },
       resolver: async () => {
-        console.log(`[Proxy] Fetching root cause stats from: ${targetPath}`);
 
         const hfClient = getHfClient();
         const response = await hfClient.fetch(

@@ -20,6 +20,7 @@ export type QuickAccessCategory = {
   qrLinks?: QRLink[];
   links?: QuickAccessLink[];
   passwordProtected?: boolean;
+  loginProtected?: boolean;
   redirectUrl?: string;
   externalRedirect?: boolean;
   requiresLogin?: boolean;

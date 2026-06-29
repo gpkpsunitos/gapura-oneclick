@@ -80,25 +80,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log('[GOOGLE_SHEETS_WEBHOOK] Incoming trigger', {
-      triggerType,
-      sheetName: sheetName || null,
-      rowNumber: Number.isFinite(rowNumber) && rowNumber > 0 ? rowNumber : null,
-      rowSignature: rowSignature ? `${rowSignature.slice(0, 12)}...` : null,
-    });
-
     after(async () => {
       try {
-        const result = await SyncService.syncReportsFromSheets('google-sheets-webhook');
-        console.log('[GOOGLE_SHEETS_WEBHOOK] Background sync finished', {
-          success: result.success,
-          joined: !!result.joined,
-          inserted: result.inserted,
-          updated: result.updated,
-          deleted: result.deleted,
-          errors: result.errors,
-          duration: result.duration,
-        });
+        await SyncService.syncReportsFromSheets('google-sheets-webhook');
       } catch (error) {
         console.error('[GOOGLE_SHEETS_WEBHOOK] Background sync failed:', error);
       }

@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, X, Smartphone, Share, ExternalLink, Bug } from 'lucide-react';
+import { Download, X, Smartphone, Share, ExternalLink } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
 
@@ -113,7 +113,7 @@ export default function PWAInstallPrompt() {
   const [debugState, setDebugState] = useState<PwaDebugState>(getInitialDebugState);
 
   useEffect(() => {
-    if (getInitialInstalledState() || getInitialPlatform() === 'desktop') {
+    if (getInitialInstalledState()) {
       return;
     }
 
@@ -311,27 +311,6 @@ export default function PWAInstallPrompt() {
                   ) : null}
                 </div>
               )}
-
-              <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
-                <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500">
-                  <Bug className="h-3.5 w-3.5" />
-                  PWA Debug
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${debugState.beforeInstallPrompt ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                    BIP: {debugState.beforeInstallPrompt ? 'ready' : 'missing'}
-                  </span>
-                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${debugState.serviceWorkerReady ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>
-                    SW: {debugState.serviceWorkerSupported ? (debugState.serviceWorkerReady ? 'ready' : 'loading') : 'unsupported'}
-                  </span>
-                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${debugState.manifestReachable ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-200 text-slate-700'}`}>
-                    Manifest: {debugState.manifestLinked ? (debugState.manifestReachable ? 'ok' : 'linked') : 'missing'}
-                  </span>
-                  <span className="rounded-full bg-slate-200 px-2.5 py-1 text-[11px] font-semibold text-slate-700">
-                    Env: {debugState.environment}
-                  </span>
-                </div>
-              </div>
 
               <button
                 onClick={handleDismiss}

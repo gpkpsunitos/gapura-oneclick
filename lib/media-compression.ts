@@ -164,7 +164,6 @@ async function compressVideo(
     const width = videoStream?.width;
     const height = videoStream?.height;
 
-    console.log(`[VIDEO] Original: ${width}x${height}, ${duration}s, ${(originalSize / 1024 / 1024).toFixed(2)}MB`);
 
     await new Promise<void>((resolve, reject) => {
       ffmpeg(inputPath)
@@ -186,7 +185,6 @@ async function compressVideo(
     const compressedBuffer = await fs.readFile(outputPath);
     const compressionRatio = (1 - compressedBuffer.length / originalSize) * 100;
 
-    console.log(`[VIDEO] Compressed: ${(compressedBuffer.length / 1024 / 1024).toFixed(2)}MB (${compressionRatio.toFixed(1)}% reduction)`);
 
     if (compressedBuffer.length > maxSizeBytes) {
       console.warn(`[VIDEO] Still larger than ${videoMaxSizeMB}MB after compression`);

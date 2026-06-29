@@ -1,6 +1,6 @@
 
 'use client';
-/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities */
+/* eslint-disable react/no-unescaped-entities */
 
 import React from 'react';
 import {
@@ -226,10 +226,7 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm mb-3">
           <span className="text-xl">📊</span>
         </div>
-        // eslint-disable-next-line react/jsx-no-comment-textnodes
         <p className="text-[11px] font-bold text-slate-600 uppercase tracking-tight mb-1">Tidak Ada Data</p>
-        // eslint-disable-next-line react/no-unescaped-entities
-        // eslint-disable-next-line react/no-unescaped-entities
         <p className="text-[10px] text-slate-400 max-w-[160px] mb-2">Belum ada data tersedia untuk visualisasi "{visualization.title || chartType}" ini.</p>
 
         {result.columns.length > 0 && (

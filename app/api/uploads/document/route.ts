@@ -40,7 +40,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File too large (max 20MB)' }, { status: 413 });
     }
 
-    console.log(`[UPLOAD_DOC] Original file size: ${(file.size / 1024).toFixed(2)}KB`);
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);

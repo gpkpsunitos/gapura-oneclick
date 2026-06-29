@@ -1,4 +1,4 @@
-import { withBotId } from 'botid/next/config';
+import withSerwist from '@serwist/next';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -166,4 +166,10 @@ const nextConfig = {
     ],
 };
 
-export default withBotId(nextConfig);
+const withSerwistConfig = withSerwist({
+    swSrc: 'app/sw.ts',
+    swDest: 'public/sw.js',
+    cacheOnNavigation: true,
+});
+
+export default withSerwistConfig(nextConfig);

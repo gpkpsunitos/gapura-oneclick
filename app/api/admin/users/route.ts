@@ -7,7 +7,7 @@ import { hashPassword } from '@/lib/auth-utils';
 
 const VALID_ROLES = [
     'SUPER_ADMIN',
-    'DIVISI_OS',
+    'DIVISI_OS', 'DIVISI_OCS', 'DIVISI_OT', 'DIVISI_UQ',
     'DIVISI_OP',
     'DIVISI_HC',
     'DIVISI_HT',
@@ -262,7 +262,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Gagal membuat user' }, { status: 500 });
         }
 
-        console.log(`[ADMIN] User created: ${email}. Temporary credentials have been generated.`);
         return NextResponse.json({
             success: true,
             message: activate ? 'User dibuat dan diaktifkan' : 'User dibuat, status pending',

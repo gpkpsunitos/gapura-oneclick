@@ -8,20 +8,26 @@ export interface ReportExportFilters {
   endDate: string;
   branch: string;
   airline: string;
+  area: string;
   caseClassification: string;
   status: string;
   severity: string;
   source: string;
+  customerType: string;
+  joumpaCategory: string;
   search: string;
 }
 
 export interface ReportFilterOptions {
   branches: string[];
   airlines: string[];
+  areas: string[];
   caseClassifications: string[];
   statuses: string[];
   severities: string[];
   sources: string[];
+  customerTypes: string[];
+  joumpaCategories: string[];
 }
 
 export const DEFAULT_REPORT_EXPORT_FILTERS: ReportExportFilters = {
@@ -29,10 +35,13 @@ export const DEFAULT_REPORT_EXPORT_FILTERS: ReportExportFilters = {
   endDate: "",
   branch: "",
   airline: "",
+  area: "",
   caseClassification: "",
   status: "",
   severity: "",
   source: "",
+  customerType: "",
+  joumpaCategory: "",
   search: "",
 };
 
@@ -93,6 +102,18 @@ export function resolveReportSource(report: Report): string {
     || "Manual";
 }
 
+export function resolveReportArea(report: Report): string {
+  return cleanReportValue(report.area);
+}
+
+export function resolveCustomerType(report: Report): string {
+  return cleanReportValue(report.customer_joumpa);
+}
+
+export function resolveJoumpaCategory(report: Report): string {
+  return cleanReportValue(report.category_case_joumpa);
+}
+
 function uniqueSorted(values: string[]): string[] {
   return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
 }
@@ -101,10 +122,13 @@ export function buildReportFilterOptions(reports: Report[]): ReportFilterOptions
   return {
     branches: uniqueSorted(reports.map(resolveReportBranch)),
     airlines: uniqueSorted(reports.map(resolveReportAirline)),
+    areas: uniqueSorted(reports.map(resolveReportArea)),
     caseClassifications: uniqueSorted(reports.map(resolveReportCaseClassification)),
     statuses: uniqueSorted(reports.map((report) => cleanReportValue(report.status))),
     severities: uniqueSorted(reports.map(resolveReportSeverity)),
     sources: uniqueSorted(reports.map(resolveReportSource)),
+    customerTypes: uniqueSorted(reports.map(resolveCustomerType)),
+    joumpaCategories: uniqueSorted(reports.map(resolveJoumpaCategory)),
   };
 }
 
@@ -119,10 +143,13 @@ export function filterReportsForExport(reports: Report[], filters: ReportExportF
     if (end && date && date > end) return false;
     if (filters.branch && resolveReportBranch(report) !== filters.branch) return false;
     if (filters.airline && resolveReportAirline(report) !== filters.airline) return false;
+    if (filters.area && resolveReportArea(report) !== filters.area) return false;
     if (filters.caseClassification && resolveReportCaseClassification(report) !== filters.caseClassification) return false;
     if (filters.status && cleanReportValue(report.status).toUpperCase() !== filters.status.toUpperCase()) return false;
     if (!reportMatchesSeverity(report, filters.severity)) return false;
     if (filters.source && resolveReportSource(report) !== filters.source) return false;
+    if (filters.customerType && resolveCustomerType(report) !== filters.customerType) return false;
+    if (filters.joumpaCategory && resolveJoumpaCategory(report) !== filters.joumpaCategory) return false;
     if (!query) return true;
 
     const haystack = [
@@ -135,8 +162,11 @@ export function filterReportsForExport(reports: Report[], filters: ReportExportF
       report.route,
       resolveReportBranch(report),
       resolveReportAirline(report),
+      resolveReportArea(report),
       resolveReportCaseClassification(report),
       resolveReportSource(report),
+      resolveCustomerType(report),
+      resolveJoumpaCategory(report),
     ].map(cleanReportValue).join(" ").toLowerCase();
 
     return haystack.includes(query);
@@ -145,17 +175,21 @@ export function filterReportsForExport(reports: Report[], filters: ReportExportF
 
 export function reportFilterSummary(filters: ReportExportFilters): string {
   const date = filters.startDate || filters.endDate
-    ? `${filters.startDate || "awal"} - ${filters.endDate || "akhir"}`
-    : "Periode semua waktu";
-  return [
+    ? `${filters.startDate || "start"} – ${filters.endDate || "now"}`
+    : "All time";
+  const parts = [
     date,
-    filters.branch || "Semua branch",
-    filters.airline || "Semua airlines",
-    filters.caseClassification || "Semua case classification",
-    filters.status || "Semua status",
-    filters.severity || "Semua severity",
-    filters.source || "Semua source",
-  ].join(" | ");
+    filters.branch || "All branches",
+    filters.airline || "All airlines",
+    filters.area || "All areas",
+    filters.caseClassification || "All classifications",
+    filters.status || "All statuses",
+    filters.severity || "All severities",
+    filters.source || "All sources",
+  ];
+  if (filters.customerType) parts.push(filters.customerType);
+  if (filters.joumpaCategory) parts.push(filters.joumpaCategory);
+  return parts.join(" | ");
 }
 
 function formatDate(value: unknown): string {

@@ -1,5 +1,5 @@
 'use client';
-/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -47,7 +47,7 @@ type AnalysisItem = {
         attachments?: string[];
         is_system_message?: boolean;
     }[];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     [key: string]: any;
   };
   prediction?: {
@@ -1518,11 +1518,7 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
             {current ? (
               <div className="p-4 md:p-6 space-y-5">
                 <div>
-                  // eslint-disable-next-line react/jsx-no-comment-textnodes
                   <p className={cn('text-sm font-semibold text-gray-800', showFullDesc ? '' : 'line-clamp-4')}>
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     {(current.originalData as any)?.report || (current.originalData as any)?.Report || 'Deskripsi tidak tersedia'}
                   </p>
                   <div className="mt-2 flex items-center justify-between">
@@ -1530,11 +1526,7 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                       {current.classification?.issueType
                         ? `Kategori: ${String(current.classification.issueType).toLowerCase() === 'unknown' ? 'Tidak terklasifikasi' : current.classification.issueType}`
                         : null}
-                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                     </p>
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     {((current.originalData as any)?.report || (current.originalData as any)?.Report) && (
                       <button onClick={() => setShowFullDesc((s) => !s)} className="text-xs text-emerald-700 hover:underline">
                         {showFullDesc ? 'Tampilkan ringkas' : 'Lihat selengkapnya'}
@@ -1549,21 +1541,21 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-1">Informasi Penerbangan & Lokasi</h4>
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Tanggal', value: formatExcelDate(current.originalData?.date || (current.originalData as any)?.Date_of_Event || (current.originalData as any)?.Date), icon: Calendar },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Maskapai', value: normalizeLabel(current.originalData?.airline || (current.originalData as any)?.Airlines || (current.originalData as any)?.Maskapai, '-'), icon: Plane },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'No. Penerbangan', value: current.originalData?.flightNumber || (current.originalData as any)?.Flight_Number || (current.originalData as any)?.['No Penerbangan'], icon: Hash },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Rute', value: normalizeLabel(current.originalData?.route || (current.originalData as any)?.Route || (current.originalData as any)?.Rute, '-'), icon: MapPin },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Hub', value: normalizeLabel(current.originalData?.hub || (current.originalData as any)?.HUB || (current.originalData as any)?.Hub, '-'), icon: Building2 },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Branch', value: normalizeLabel(current.originalData?.branch || (current.originalData as any)?.Branch || (current.originalData as any)?.Cabang, '-'), icon: Building2 },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Area', value: normalizeLabel((current.originalData as any)?.area || (current.originalData as any)?.Area || (current.originalData as any)?.Wilayah, '-'), icon: MapPin },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Lokasi Spesifik', value: normalizeLabel((current.originalData as any)?.specific_location || (current.originalData as any)?.['Location of Incident'] || (current.originalData as any)?.Location, '-'), icon: MapPin },
                       ].map((it, i) => it.value && it.value !== '-' ? (
                         <div key={i} className="p-2.5 rounded-xl border border-gray-100 bg-gray-50/50">
@@ -1582,17 +1574,17 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                     <div className="grid grid-cols-2 gap-3">
                       {[
                         { label: 'Kategori', value: normalizeLabel(effectiveIssueType(current), 'Tidak terklasifikasi'), icon: Tag },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Klasifikasi Case', value: normalizeLabel((current.originalData as any)?.case_classification || (current.originalData as any)?.['Case Classification'], '-'), icon: Shield },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Delay Code', value: normalizeLabel((current.originalData as any)?.delay_code || (current.originalData as any)?.['Delay Code'], '-'), icon: Clock },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Durasi Delay', value: normalizeLabel((current.originalData as any)?.delay_duration || (current.originalData as any)?.['Delay Duration'], '-'), icon: Clock },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Accident/Incident', value: normalizeLabel((current.originalData as any)?.accident_incident || (current.originalData as any)?.['Accident / Incident'], '-'), icon: AlertTriangle },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Status', value: normalizeLabel((current.originalData as any)?.status || (current.originalData as any)?.Status, '-'), icon: CheckCircle2 },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Report By', value: normalizeLabel((current.originalData as any)?.reporter_name || (current.originalData as any)?.['Report By'], '-'), icon: UserIcon },
                       ].map((it, i) => it.value && it.value !== '-' ? (
                         <div key={i} className="p-2.5 rounded-xl border border-gray-100 bg-gray-50/50">
@@ -1610,15 +1602,15 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                     <h4 className="text-[10px] font-black uppercase tracking-widest text-gray-400 px-1">Analisis & Resolusi</h4>
                     <div className="grid grid-cols-1 gap-3">
                       {[
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Akar Masalah (Root Cause)', value: normalizeLabel((current.originalData as any)?.root_caused || (current.originalData as any)?.['Root Caused'] || (current.originalData as any)?.['Akar Masalah'], '-'), icon: Search },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Tindakan (Action Taken)', value: normalizeLabel((current.originalData as any)?.action_taken || (current.originalData as any)?.['Action Taken'] || (current.originalData as any)?.Tindakan, '-'), icon: Wrench },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'Tindakan Pencegahan (Preventive Action)', value: normalizeLabel((current.originalData as any)?.preventive_action || (current.originalData as any)?.['Preventive Action'], '-'), icon: Shield },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'KPS Action Taken', value: normalizeLabel((current.originalData as any)?.gapura_kps_action_taken || (current.originalData as any)?.['Gapura KPS Action Taken'], '-'), icon: Activity },
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                         
                         { label: 'KPS Remarks', value: normalizeLabel((current.originalData as any)?.kps_remarks || (current.originalData as any)?.['Gapura KPS Remarks'], '-'), icon: MessageSquare },
                       ].map((it, i) => it.value && it.value !== '-' ? (
                         <div key={i} className="p-3 rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -1717,39 +1709,19 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                       ))}
                     </div>
                   </div>
-                // eslint-disable-next-line react/jsx-no-comment-textnodes
                 )}
 
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 {((current.originalData as any)?.Root_Caused || (current.originalData as any)?.Action_Taken) && (
-                  // eslint-disable-next-line react/jsx-no-comment-textnodes
                   <div className="grid grid-cols-1 gap-3">
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     {(current.originalData as any)?.Root_Caused && (
                       <div className="p-3 rounded-xl border border-gray-200 bg-white">
-                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                         <div className="text-xs font-semibold text-gray-700 mb-1">Root Cause</div>
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         <div className="text-xs text-gray-600 whitespace-pre-wrap">{(current.originalData as any).Root_Caused}</div>
                       </div>
-                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                     )}
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     {(current.originalData as any)?.Action_Taken && (
                       <div className="p-3 rounded-xl border border-gray-200 bg-white">
-                        // eslint-disable-next-line react/jsx-no-comment-textnodes
                         <div className="text-xs font-semibold text-gray-700 mb-1">Tindakan</div>
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
                         <div className="text-xs text-gray-600 whitespace-pre-wrap">{(current.originalData as any).Action_Taken}</div>
                       </div>
                     )}

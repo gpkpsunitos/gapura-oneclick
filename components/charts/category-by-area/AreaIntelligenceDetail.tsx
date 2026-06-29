@@ -1,5 +1,5 @@
 'use client';
-/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useState, useMemo } from 'react';
 import {
@@ -196,9 +196,9 @@ function CategoryBreakdownChart({ data }: { data: AreaCategoryBreakdown[] }) {
   };
 
   const rechartsData = chartData.labels.map((label, i) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const obj: any = { name: label };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
     return obj;
   });
@@ -211,11 +211,7 @@ function CategoryBreakdownChart({ data }: { data: AreaCategoryBreakdown[] }) {
           <XAxis dataKey="name" tick={{ fontSize: 10 }} interval={0} />
           <YAxis tick={{ fontSize: 10 }} />
           <Tooltip />
-          // eslint-disable-next-line react/jsx-no-comment-textnodes
           <Legend />
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {chartData.datasets.map((ds: any, i: number) => (
             <Bar key={i} dataKey={ds.label} fill={ds.backgroundColor} radius={[4,4,0,0]} />
           ))}
@@ -272,9 +268,9 @@ function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
   };
 
   const rechartsData = chartData.labels.map((label, i) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const obj: any = { name: label };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
     return obj;
   });
@@ -287,11 +283,7 @@ function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
           <XAxis dataKey="name" tick={{ fontSize: 10 }} />
           <YAxis tick={{ fontSize: 10 }} />
           <Tooltip />
-          // eslint-disable-next-line react/jsx-no-comment-textnodes
           <Legend />
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {chartData.datasets.map((ds: any, i: number) => (
             <Line key={i} type="monotone" dataKey={ds.label} stroke={ds.borderColor} strokeWidth={2} dot={{ r: 3 }} />
           ))}
@@ -691,13 +683,13 @@ export default function AreaIntelligenceDetail({ filters = {} }: { filters?: Fil
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalReports = areaData.reduce((sum: number, a: any) => sum + a.total, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalIrreg = areaData.reduce((sum: number, a: any) => sum + a.irregularity, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalComplaint = areaData.reduce((sum: number, a: any) => sum + a.complaint, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalCompliment = areaData.reduce((sum: number, a: any) => sum + a.compliment, 0);
 
   const topArea = areaData[0];
@@ -709,7 +701,7 @@ export default function AreaIntelligenceDetail({ filters = {} }: { filters?: Fil
     ? ((totalCompliment - totalComplaint) / (totalCompliment + totalComplaint)) * 100 
     : 0;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const avgRiskIndex = areaData.length > 0 ? areaData.reduce((sum: number, a: any) => sum + a.riskIndex, 0) / areaData.length : 0;
 
   return (

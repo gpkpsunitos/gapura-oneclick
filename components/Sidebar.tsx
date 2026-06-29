@@ -8,7 +8,8 @@ import { LogOut, Menu, Undo2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, memo, useCallback } from 'react';
 
-import { LINKS_CONFIG, GET_LINKS_KEY, type NavGroupConfig as NavGroup } from '@/lib/nav-config';
+import { resolveNavGroups, type NavGroupConfig as NavGroup } from '@/lib/nav-config';
+import { CommentNotificationBell } from '@/components/dashboard/CommentNotificationBell';
 import { performOptimisticLogout } from '@/lib/auth/client-logout';
 import { useStaticData } from '@/lib/swr';
 
@@ -38,11 +39,13 @@ interface NavContentProps {
 
     switchingOrigin: boolean;
 
+    showBell: boolean;
+
     setMobileOpen: (value: boolean) => void;
 }
 
 const ROLE_DISPLAY: Record<string, string> = {
-    DIVISI_OS: 'Unit Service',
+    DIVISI_OS: 'Unit Service', DIVISI_OCS: 'Unit Service', DIVISI_OT: 'Operational Service', DIVISI_UQ: 'Operational Service',
     PARTNER_OS: 'Unit Service',
     DIVISI_OP: 'Operational Service',
     PARTNER_OP: 'Operational Service',
@@ -72,6 +75,7 @@ const NavContent = memo(function NavContent({
     canReturnToOrigin,
     loading,
     switchingOrigin,
+    showBell,
     setMobileOpen
 }: NavContentProps) {
     return (<div className="flex flex-col h-full bg-[var(--surface-1)] text-[var(--text-primary)]">
@@ -88,6 +92,18 @@ const NavContent = memo(function NavContent({
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4 md:px-4 md:py-6 touch-scroll hide-scrollbar">
+            {/* Back to the workspace chooser — divisi roles only. Sits at the top
+                of the nav, clear of the logo (above) and Sign Out (footer). */}
+            {role.startsWith('DIVISI_') && (
+                <Link
+                    href="/dashboard/eskalasi/select"
+                    onClick={() => setMobileOpen(false)}
+                    className="group/back mb-4 md:mb-6 flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs md:text-sm font-bold text-white bg-gradient-to-br from-orange-500 to-amber-600 border border-orange-600/30 shadow-[0_4px_12px_rgba(249,115,22,0.35)] hover:shadow-[0_6px_18px_rgba(249,115,22,0.45)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[0_2px_8px_rgba(249,115,22,0.35)] transition-all duration-200"
+                >
+                    <Undo2 size={16} className="shrink-0 transition-transform duration-200 group-hover/back:-translate-x-0.5" />
+                    Back to Workspace
+                </Link>
+            )}
             <div className="space-y-6 md:space-y-8">
                 {groups.map((group) => (
                     <div key={group.title} className="relative">
@@ -208,15 +224,19 @@ const NavContent = memo(function NavContent({
         <div className="p-3 border-t border-dashed border-gray-200 bg-[var(--surface-1)] md:p-4">
              <div className="bg-[var(--surface-2)] rounded-xl p-2.5 md:p-3 border border-gray-100 shadow-sm relative">
                 <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3 group/user">
-                     <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-emerald-500 flex items-center justify-center text-[10px] md:text-xs font-bold text-white border border-emerald-400">
-                         {resolveRoleDisplayName(role).charAt(0).toUpperCase()}
+                     <div className="relative shrink-0">
+                         <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-[10px] md:text-xs font-bold text-white shadow-sm">
+                             {resolveRoleDisplayName(role).charAt(0).toUpperCase()}
+                         </div>
+                         <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[var(--surface-2)]" />
                      </div>
                      <div className="min-w-0 flex-1">
-                         <p className="text-[10px] md:text-xs font-bold text-[var(--text-primary)] truncate group-hover/user:text-[var(--brand-primary)] italic transition-colors uppercase">
+                         <p className="text-[11px] md:text-xs font-bold text-[var(--text-primary)] truncate group-hover/user:text-[var(--brand-primary)] transition-colors">
                             {resolveRoleDisplayName(role)}
                         </p>
                          <p className="text-[9px] md:text-[10px] text-[var(--text-muted)] truncate">Active Account</p>
                      </div>
+                     {showBell && <CommentNotificationBell role={role} />}
                 </div>
 
                 {canReturnToOrigin && (
@@ -244,7 +264,7 @@ const NavContent = memo(function NavContent({
 );
 });
 
-export default function Sidebar({ role }: { role: string }) {
+export default function Sidebar({ role, division }: { role: string; division?: string | null }) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -263,8 +283,9 @@ export default function Sidebar({ role }: { role: string }) {
         }>;
     } | null>(role ? '/api/auth/bundle' : null);
 
-    const configKey = GET_LINKS_KEY(role || '');
-    const groups = LINKS_CONFIG[configKey];
+    const groups = resolveNavGroups(role || '', division);
+    // Non-OCS analysts lose the comment-notification bell along with their other OCS-only features.
+    const showBell = !(role === 'ANALYST' && (division || '').toUpperCase() !== 'OCS');
 
     const handleLogout = useCallback(() => {
         setLoading(true);
@@ -312,8 +333,9 @@ export default function Sidebar({ role }: { role: string }) {
         canReturnToOrigin,
         loading,
         switchingOrigin,
+        showBell,
         setMobileOpen
-    }), [groups, pathname, searchParams, role, handleLogout, handleReturnToOrigin, canReturnToOrigin, loading, switchingOrigin]);
+    }), [groups, pathname, searchParams, role, handleLogout, handleReturnToOrigin, canReturnToOrigin, loading, switchingOrigin, showBell]);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
@@ -322,7 +344,9 @@ export default function Sidebar({ role }: { role: string }) {
     }, []);
 
     const isEskalasi = role === 'DIVISI_ESKALASI';
-    const collapseBp = isEskalasi ? 'lg' : 'md';
+    // ponytail: collapse to mobile nav below lg (1024) so portrait tablets
+    // (e.g. iPad 820px) get the bottom nav, not the squeezed desktop sidebar.
+    const collapseBp = 'lg';
 
     return (
         <>

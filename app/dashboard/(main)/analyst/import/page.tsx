@@ -1,6 +1,6 @@
 
 'use client';
-/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities */
+/* eslint-disable react/no-unescaped-entities */
 
 import { useState } from 'react';
 import { useDropzone } from 'react-dropzone';
@@ -348,10 +348,7 @@ export default function ImportDataPage() {
                             <Plane size={16} />
                         </div>
                         <span className="font-bold text-gray-900">Landside & Airside</span>
-                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                     </div>
-                    // eslint-disable-next-line react/no-unescaped-entities
-                    // eslint-disable-next-line react/no-unescaped-entities
                     <p className="text-xs text-gray-500">Laporan reguler (Terminal, Apron, General). Sheet: 'NON CARGO'</p>
                 </button>
 
@@ -366,10 +363,7 @@ export default function ImportDataPage() {
                             <Truck size={16} />
                         </div>
                         <span className="font-bold text-gray-900">Cargo</span>
-                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                     </div>
-                    // eslint-disable-next-line react/no-unescaped-entities
-                    // eslint-disable-next-line react/no-unescaped-entities
                     <p className="text-xs text-gray-500">Laporan khusus Cargo. Sheet: 'CGO'</p>
                 </button>
 

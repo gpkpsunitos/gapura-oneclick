@@ -1,5 +1,5 @@
 'use client';
-/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { Bot, Send, Sparkles, Loader2, BarChart3, AlertTriangle, Shield, FileText, Search, Clock, Trash2 } from 'lucide-react';
@@ -73,7 +73,7 @@ interface AIAssistantChatProps {
 
 const CHART_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function CustomXAxisTick({ x, y, payload }: any) {
   const isWebkit = typeof window !== 'undefined' && /AppleWebKit/i.test(navigator.userAgent);
 
@@ -99,7 +99,7 @@ function CustomXAxisTick({ x, y, payload }: any) {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 function AIChart({ config }: { config: any }) {
   if (!config || !config.type || !config.data || !Array.isArray(config.data)) {
     return <div className="text-red-400 text-xs p-4 bg-red-950/30 border border-red-900/50 rounded-xl">Format data visualisasi tidak sesuai.</div>;
@@ -109,7 +109,7 @@ function AIChart({ config }: { config: any }) {
   let data = config.data;
 
   if (Array.isArray(data) && data.length > 0) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     data = data.map((item: any) => {
       const keys = Object.keys(item);
       let name = item.name;
@@ -153,11 +153,7 @@ function AIChart({ config }: { config: any }) {
                 itemStyle={{ color: '#0f172a', fontSize: '12px', fontWeight: 600 }}
                 cursor={{ fill: '#f1f5f9' }}
               />
-              // eslint-disable-next-line react/jsx-no-comment-textnodes
               <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 {data.map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                 ))}
@@ -176,11 +172,7 @@ function AIChart({ config }: { config: any }) {
                 strokeWidth={2}
                 label={({ name, value }) => `${name} : ${value}`}
                 labelLine={true}
-              // eslint-disable-next-line react/jsx-no-comment-textnodes
               >
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 {data.map((entry: any, index: number) => (
                   <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
                 ))}
@@ -398,9 +390,11 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
+  const [rateLimit, setRateLimit] = useState<{ remaining: number; resetAt: number } | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
 
-  const canSend = input.trim().length > 0 && !sending && filtersApplied;
+  const rateLimitExhausted = rateLimit !== null && rateLimit.remaining < 0;
+  const canSend = input.trim().length > 0 && !sending && filtersApplied && !rateLimitExhausted;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -426,12 +420,30 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
         body: JSON.stringify({ question, filters }),
       });
 
+      if (res.status === 429) {
+        const errData = await res.json().catch(() => ({}));
+        setRateLimit({ remaining: -1, resetAt: errData.resetAt || 0 });
+        const resetMsg = errData.resetAt
+          ? ` Coba lagi setelah ${new Date(errData.resetAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}.`
+          : '';
+        const limitMsg: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: `⚠️ **Batas harian tercapai.** Anda telah menggunakan 5/5 pertanyaan hari ini.${resetMsg}`,
+          ts: Date.now(),
+        };
+        setMessages((prev) => [...prev, limitMsg]);
+        return;
+      }
+
       if (!res.ok) {
         const errData = await res.json().catch(() => ({ error: 'Unknown error' }));
         throw new Error(errData.error || `API error: ${res.status}`);
       }
 
       const result = await res.json();
+
+      if (result.rateLimit) setRateLimit(result.rateLimit);
 
       const assistantMsg: ChatMessage = {
         id: crypto.randomUUID(),
@@ -647,8 +659,8 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
             <input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={filtersApplied ? 'Query AI Analytics...' : 'Awaiting data matrix parameters...'}
-              disabled={!filtersApplied || sending}
+              placeholder={rateLimitExhausted ? 'Batas harian tercapai. Coba lagi besok.' : filtersApplied ? 'Query AI Analytics...' : 'Awaiting data matrix parameters...'}
+              disabled={!filtersApplied || sending || rateLimitExhausted}
               className="peer w-full bg-transparent px-6 py-5 text-sm font-medium tracking-tight text-slate-900 placeholder:text-slate-400 outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && canSend) {
@@ -671,8 +683,16 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
         <div className="flex items-center justify-between max-w-5xl mx-auto mt-4 px-2">
           <p className="text-[9px] font-mono tracking-widest text-slate-400 uppercase flex items-center gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            Llama 70B Quantum Inference Engine
+            Gemini 2.5 Flash · AI Analytics
           </p>
+          {rateLimit !== null && (
+            <p className={cn(
+              'text-[9px] font-mono tracking-widest uppercase',
+              rateLimitExhausted ? 'text-red-400' : rateLimit.remaining <= 1 ? 'text-amber-500' : 'text-slate-400'
+            )}>
+              {rateLimitExhausted ? 'Batas harian tercapai' : `${rateLimit.remaining + 1}/5 pertanyaan hari ini`}
+            </p>
+          )}
         </div>
       </div>
     </div>

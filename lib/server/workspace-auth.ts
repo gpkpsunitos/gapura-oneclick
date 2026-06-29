@@ -50,7 +50,9 @@ export function canManagePerformanceLinks(role: string | null | undefined): bool
 }
 
 export function canViewPerformanceLinks(role: string | null | undefined): boolean {
-    return canManagePerformanceLinks(role) || normalizeRole(role) === 'DIVISI_ESKALASI';
+    // Any authenticated user can view survey links; only ANALYST/SUPER_ADMIN can manage
+    const normalized = normalizeRole(role);
+    return Boolean(normalized);
 }
 
 export function canViewAudienceScopedItem(

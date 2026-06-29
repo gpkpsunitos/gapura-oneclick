@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, useState, type ReactNode } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import type { Report } from '@/types';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
 import { ChartAiAnalysisButton } from '@/components/dashboard/ai/ChartAiAnalysisButton';
@@ -228,9 +228,9 @@ function StackedHBar({
   };
 
   return (
-    <div style={{ height: Math.max(200, capped.length * 32 + 40) }} className="px-2 py-3">
+    <div style={{ height: Math.max(228, capped.length * 32 + 68) }} className="px-2 py-3">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart layout="vertical" data={capped} margin={{ top: 0, right: 40, bottom: 0, left: 0 }} barCategoryGap="25%">
+        <BarChart layout="vertical" data={capped} margin={{ top: 4, right: 40, bottom: 0, left: 0 }} barCategoryGap="25%">
           <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--sr-text-3)' }} axisLine={false} tickLine={false} allowDecimals={false} />
           <YAxis
             type="category"
@@ -256,6 +256,14 @@ function StackedHBar({
                 </div>
               );
             }}
+          />
+          <Legend
+            verticalAlign="top"
+            height={28}
+            iconType="square"
+            iconSize={10}
+            formatter={(value: string) => value === 'open' ? 'Open' : 'Closed'}
+            wrapperStyle={{ fontSize: 11, fontWeight: 600, paddingBottom: 4 }}
           />
           <Bar dataKey="open" stackId="s" fill={C_OPEN} radius={0} style={{ cursor: 'pointer' }}
             onClick={(d, i) => handleClick(d, i, true)} />

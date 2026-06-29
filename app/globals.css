@@ -19,6 +19,11 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Prevent horizontal scrollbars without clipping fixed-position overlays.
+   overflow-x: hidden on html/body is viewport-owned — fixed children remain
+   viewport-relative in all browsers (unlike overflow on a mid-tree element). */
+html, body { overflow-x: hidden; }
+
 /* ═══════════════════════════════════════════════════════════
    PRISM V3 — Unified Design Tokens
    Single source of truth for all CSS custom properties.

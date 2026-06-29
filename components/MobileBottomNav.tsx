@@ -8,15 +8,17 @@ import {
     LogOut,
     FileText,
     Brain,
+    Undo2,
     type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import { LINKS_CONFIG, GET_LINKS_KEY, type NavItemConfig } from '@/lib/nav-config';
+import { resolveNavGroups, type NavItemConfig } from '@/lib/nav-config';
 import { performOptimisticLogout } from '@/lib/auth/client-logout';
 
 interface MobileBottomNavProps {
     role: string;
+    division?: string | null;
     onMenuClick?: () => void;
 }
 
@@ -30,7 +32,7 @@ interface NavItem {
 
 type MenuSheetItem = NavItemConfig | { href: '#logout'; label: string; icon: LucideIcon; isDanger: true };
 
-export function MobileBottomNav({ role }: MobileBottomNavProps) {
+export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
     const pathname = usePathname();
     const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -71,16 +73,21 @@ export function MobileBottomNav({ role }: MobileBottomNavProps) {
     }, []);
 
     const navData = useMemo(() => {
-        const configKey = GET_LINKS_KEY(role);
-        const groups = LINKS_CONFIG[configKey] || [];
+        const groups = resolveNavGroups(role, division);
         const allItems = groups.flatMap(group => group.items);
         const mainItems = allItems.slice(0, 4);
 
+        // Divisi roles get a "Back to Workspace" entry at the top of the menu
+        // sheet — far from the Logout entry at the bottom.
+        const backItem: MenuSheetItem[] = role.startsWith('DIVISI_')
+            ? [{ href: '/dashboard/eskalasi/select', label: 'Back to Workspace', icon: Undo2 }]
+            : [];
+
         return {
             main: mainItems,
-            all: [...allItems, { href: '#logout', label: 'Logout', icon: LogOut, isDanger: true }]
+            all: [...backItem, ...allItems, { href: '#logout', label: 'Logout', icon: LogOut, isDanger: true }]
         };
-    }, [role]);
+    }, [role, division]);
 
     const navItems: NavItem[] = useMemo(() => {
         const isStaff = role === 'STAFF_CABANG' || role === 'EMPLOYEE' || role.includes('CABANG');
@@ -103,7 +110,7 @@ export function MobileBottomNav({ role }: MobileBottomNavProps) {
             items.push({ href: '/dashboard/employee/new', label: 'Create', icon: PlusCircle, isPrimary: true });
 
             const isOpOrOs = role === 'DIVISI_OP' || role === 'PARTNER_OP'
-                || role === 'DIVISI_OS' || role === 'PARTNER_OS';
+                || (role === 'DIVISI_OS' || role === 'DIVISI_OCS') || role === 'PARTNER_OS';
             if (!isOpOrOs) {
                 items.push({ href: '/dashboard/ai-reports', label: 'AI', icon: Brain });
             }
@@ -126,7 +133,7 @@ export function MobileBottomNav({ role }: MobileBottomNavProps) {
 
             <div
                 data-hide-mobile-nav
-                className="md:hidden fixed bottom-0 left-0 right-0 z-[100] px-2 sm:px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] pointer-events-none"
+                className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] px-2 sm:px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] pointer-events-none"
             >
                     {isVisible && (
                         <nav className="mx-auto max-w-md pointer-events-auto relative">

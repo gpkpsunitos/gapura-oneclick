@@ -1,5 +1,5 @@
 'use client';
-/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useMemo } from 'react';
 import {
@@ -43,10 +43,10 @@ export function GroupedBarChart({ visualization, result, title, explanation, cla
     const catKey = 'category'; 
     const valKey = 'jumlah';
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const grouped: Record<string, any> = {};
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     result.rows.forEach((row: any) => {
       const xVal = row[xKey];
       const catVal = row[catKey];
@@ -67,7 +67,7 @@ export function GroupedBarChart({ visualization, result, title, explanation, cla
     });
 
     return Object.values(grouped)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       .sort((a: any, b: any) => b.total - a.total)
       .slice(0, 8);
   }, [result, visualization]);
@@ -154,11 +154,7 @@ export function GroupedBarChart({ visualization, result, title, explanation, cla
                     <div className="text-xs font-bold text-gray-800 mb-2 pb-2 border-b border-dashed border-gray-100 flex justify-between">
                        <span>{label}</span>
                        <span className="text-gray-400">Total: {total}</span>
-                    // eslint-disable-next-line react/jsx-no-comment-textnodes
                     </div>
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     {payload.map((entry: any) => (
                       <div key={entry.name} className="flex items-center justify-between text-[10px] mb-1 last:mb-0">
                         <div className="flex items-center gap-1.5">
@@ -192,7 +188,7 @@ export function GroupedBarChart({ visualization, result, title, explanation, cla
                   <LabelList 
                     dataKey={cat} 
                     position="top" 
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                     
                     formatter={(val: any) => (typeof val === 'number' && val > 0) ? val : ''}
                     style={{ fontSize: 9, fill: '#64748b', fontWeight: 600 }} 
                   />

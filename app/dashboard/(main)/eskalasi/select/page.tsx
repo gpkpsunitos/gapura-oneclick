@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { logoutWithPwaCleanup } from '@/lib/pwa/logout';
 import {
     Plane, BookOpen, GraduationCap, Shield,
-    ArrowRight, Layers
+    ArrowRight
 } from 'lucide-react';
 
 const divisionCards = [
@@ -20,7 +20,8 @@ const divisionCards = [
         divisionLabel: 'UQ, HT, OP, OT & OS Division',
     },
     {
-        code: 'OS',
+        // green Customer Service card — only shown to OS / OCS divisions (and eskalasi).
+        code: 'OCS',
         name: 'Customer Service Center',
         description: 'Services Reports',
         icon: Shield,
@@ -50,32 +51,61 @@ const divisionCards = [
     },
 ];
 
-const COMING_SOON_DIVISIONS = new Set(['OS']);
+const ROLE_DIVISION: Record<string, string> = {
+    DIVISI_OCS: 'OCS',
+    DIVISI_OS: 'OS',
+    DIVISI_OP: 'OP',
+    DIVISI_OT: 'OT',
+    DIVISI_UQ: 'UQ',
+    DIVISI_HT: 'HT',
+};
 
 export default function DivisionSelectPage() {
     const [error, setError] = useState<string | null>(null);
     const [switchingCode, setSwitchingCode] = useState<string | null>(null);
-    const [comingSoonCode, setComingSoonCode] = useState<string | null>(null);
+    const [me, setMe] = useState<{ role: string; division: string | null } | null>(null);
     const router = useRouter();
 
     useEffect(() => {
-        divisionCards.forEach((card) => {
-            if (!COMING_SOON_DIVISIONS.has(card.code)) {
-                router.prefetch(card.href ?? `/dashboard/${card.code.toLowerCase()}`);
-            }
-        });
-    }, [router]);
+        let active = true;
+        fetch('/api/auth/me')
+            .then((r) => (r.ok ? r.json() : null))
+            .then((d) => {
+                if (active && d) {
+                    setMe({
+                        role: String(d.role || '').toUpperCase(),
+                        division: d.division ? String(d.division).toUpperCase() : null,
+                    });
+                }
+            })
+            .catch(() => {});
+        return () => { active = false; };
+    }, []);
 
-    const handleSelectDivision = async (code: string) => {
+    const isEskalasi = me?.role === 'DIVISI_ESKALASI';
+    const myDivision = me ? (ROLE_DIVISION[me.role] ?? me.division ?? null) : null;
+    // Green Customer Service card is visible to eskalasi and to OS/OCS divisions only.
+    const showGreen = !me || isEskalasi || myDivision === 'OS' || myDivision === 'OCS';
+
+    const visibleCards = useMemo(
+        () => divisionCards.filter((card) => card.code !== 'OCS' || showGreen),
+        [showGreen]
+    );
+
+    useEffect(() => {
+        visibleCards.forEach((card) => {
+            router.prefetch(card.href ?? `/dashboard/${card.code.toLowerCase()}`);
+        });
+    }, [router, visibleCards]);
+
+    const switchDivision = async (code: string) => {
         try {
             setError(null);
             setSwitchingCode(code);
 
             const res = await fetch('/api/auth/switch-division', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ divisionCode: code }),
             });
 
@@ -95,11 +125,7 @@ export default function DivisionSelectPage() {
     };
 
     const handleCardClick = (code: string) => {
-        if (COMING_SOON_DIVISIONS.has(code)) {
-            setError(null);
-            setComingSoonCode(code);
-            return;
-        }
+        setError(null);
 
         const card = divisionCards.find((item) => item.code === code);
         if (card?.href) {
@@ -107,7 +133,21 @@ export default function DivisionSelectPage() {
             return;
         }
 
-        void handleSelectDivision(code);
+        // Eskalasi switches into the underlying division account; division users
+        // already are that division and just navigate to the dashboard.
+        if (isEskalasi) {
+            void switchDivision(code === 'OCS' ? 'OCS' : 'OP');
+            return;
+        }
+
+        if (code === 'OP') {
+            router.push('/dashboard/op');
+            return;
+        }
+
+        if (code === 'OCS') {
+            router.push(myDivision === 'OS' ? '/dashboard/os' : '/dashboard/ocs');
+        }
     };
 
     return (
@@ -118,15 +158,11 @@ export default function DivisionSelectPage() {
                     animate={{ opacity: 1, y: 0 }}
                     className="text-center mb-10 md:mb-14"
                 >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-50 text-indigo-600 text-sm font-medium mb-4">
-                        <Layers className="w-4 h-4" />
-                        Division Escalation Center
-                    </div>
                     <h1 className="text-3xl md:text-5xl font-display font-extrabold text-gray-900 tracking-tight mb-3">
-                        Select Division
+                        Choose Workspace
                     </h1>
                     <p className="text-gray-500 text-base md:text-lg max-w-md mx-auto">
-                        Select the division you want to access to view reports and dashboards
+                        Select the module you want to open
                     </p>
                 </motion.div>
 
@@ -138,7 +174,7 @@ export default function DivisionSelectPage() {
                     )}
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-                        {divisionCards.map((card, index) => {
+                        {visibleCards.map((card, index) => {
                             const Icon = card.icon;
                             const isSwitching = switchingCode === card.code;
                             return (
@@ -148,7 +184,7 @@ export default function DivisionSelectPage() {
                                     animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: index * 0.1 }}
                                     onClick={() => handleCardClick(card.code)}
-                                    disabled={Boolean(switchingCode) || Boolean(comingSoonCode)}
+                                    disabled={Boolean(switchingCode)}
                                     className={`
                                         relative group overflow-hidden
                                         bg-white rounded-2xl md:rounded-3xl
@@ -203,7 +239,7 @@ export default function DivisionSelectPage() {
                             key="signout"
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: divisionCards.length * 0.1 }}
+                            transition={{ delay: visibleCards.length * 0.1 }}
                             onClick={logoutWithPwaCleanup}
                             className={`
                                 relative group overflow-hidden
@@ -249,27 +285,6 @@ export default function DivisionSelectPage() {
                     Click a division card to continue
                 </motion.p>
             </div>
-
-            {comingSoonCode ? (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/35 px-4 backdrop-blur-sm">
-                    <div className="w-full max-w-sm rounded-[28px] border border-slate-200 bg-white p-6 shadow-2xl">
-                        <h2 className="text-xl font-bold text-slate-900">Coming Soon</h2>
-                        <p className="mt-2 text-sm text-slate-500">
-                            {divisionCards.find((card) => card.code === comingSoonCode)?.name ?? 'This feature'} is not yet available.
-                        </p>
-
-                        <div className="mt-6 flex justify-end">
-                            <button
-                                type="button"
-                                onClick={() => setComingSoonCode(null)}
-                                className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            ) : null}
         </div>
     );
 }

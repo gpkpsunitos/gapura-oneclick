@@ -1,5 +1,5 @@
 'use client';
-/* eslint-disable react/jsx-no-comment-textnodes, react/no-unescaped-entities, @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useState, useMemo } from 'react';
 import { 
@@ -188,9 +188,9 @@ function CategoryCompositionChart({ data }: { data: CategoryCompositionData[] })
   };
 
   const rechartsData = chartData.labels.map((label, i) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const obj: Record<string, any> = { name: Array.isArray(label) ? (label as string[]).join(' ') : label };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
     return obj;
   });
@@ -202,11 +202,7 @@ function CategoryCompositionChart({ data }: { data: CategoryCompositionData[] })
         <XAxis dataKey="name" tick={{ fontSize: 11 }} />
         <YAxis tick={{ fontSize: 11 }} />
         <Tooltip />
-        // eslint-disable-next-line react/jsx-no-comment-textnodes
         <Legend />
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {chartData.datasets.map((ds: any, i: number) => (
           <Bar key={i} dataKey={ds.label} fill={Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : ds.backgroundColor || '#3b82f6'} radius={[4,4,0,0]} />
         ))}
@@ -235,9 +231,9 @@ function BranchDistributionChart({ data }: { data: BranchDistributionData[] }) {
   };
 
   const rechartsData = chartData.labels.map((label, i) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const obj: Record<string, any> = { name: Array.isArray(label) ? (label as string[]).join(' ') : label };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
     return obj;
   });
@@ -249,11 +245,7 @@ function BranchDistributionChart({ data }: { data: BranchDistributionData[] }) {
         <XAxis dataKey="name" tick={{ fontSize: 11 }} />
         <YAxis tick={{ fontSize: 11 }} />
         <Tooltip />
-        // eslint-disable-next-line react/jsx-no-comment-textnodes
         <Legend />
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {chartData.datasets.map((ds: any, i: number) => (
           <Bar key={i} dataKey={ds.label} fill={Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : ds.backgroundColor || '#3b82f6'} radius={[4,4,0,0]} />
         ))}
@@ -293,9 +285,9 @@ function AreaBreakdownChart({ data }: { data: AreaBreakdownData[] }) {
   };
 
   const rechartsData = chartData.labels.map((label, i) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const obj: Record<string, any> = { name: Array.isArray(label) ? (label as string[]).join(' ') : label };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
     return obj;
   });
@@ -307,11 +299,7 @@ function AreaBreakdownChart({ data }: { data: AreaBreakdownData[] }) {
         <XAxis dataKey="name" tick={{ fontSize: 11 }} />
         <YAxis tick={{ fontSize: 11 }} />
         <Tooltip />
-        // eslint-disable-next-line react/jsx-no-comment-textnodes
         <Legend />
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {chartData.datasets.map((ds: any, i: number) => (
           <Bar key={i} dataKey={ds.label} fill={Array.isArray(ds.backgroundColor) ? ds.backgroundColor[0] : ds.backgroundColor || '#3b82f6'} radius={[4,4,0,0]} />
         ))}
@@ -352,9 +340,9 @@ function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
   };
 
   const rechartsData = chartData.labels.map((label, i) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const obj: Record<string, any> = { name: label };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     chartData.datasets.forEach((ds: any) => { obj[ds.label] = ds.data[i]; });
     return obj;
   });
@@ -366,11 +354,7 @@ function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
         <XAxis dataKey="name" tick={{ fontSize: 11 }} />
         <YAxis tick={{ fontSize: 11 }} />
         <Tooltip />
-        // eslint-disable-next-line react/jsx-no-comment-textnodes
         <Legend />
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         {chartData.datasets.map((ds: any, i: number) => (
           <Line key={i} type="monotone" dataKey={ds.label} stroke={ds.borderColor || '#3b82f6'} strokeWidth={2} dot={{ r: 3 }} />
         ))}
@@ -816,13 +800,13 @@ export default function AirlineIntelligenceDetail({ filters = {} }: { filters?: 
     );
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalReports = airlineData.reduce((sum: number, a: any) => sum + a.total, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalIrreg = airlineData.reduce((sum: number, a: any) => sum + a.irregularity, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalComplaint = airlineData.reduce((sum: number, a: any) => sum + a.complaint, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const totalCompliment = airlineData.reduce((sum: number, a: any) => sum + a.compliment, 0);
 
   const topAirline = airlineData[0];
@@ -833,7 +817,7 @@ export default function AirlineIntelligenceDetail({ filters = {} }: { filters?: 
     ? ((totalCompliment - totalComplaint) / (totalCompliment + totalComplaint)) * 100 
     : 0;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   const avgRiskIndex = airlineData.length > 0 ? airlineData.reduce((sum: number, b: any) => sum + b.riskIndex, 0) / airlineData.length : 0;
 
   return (

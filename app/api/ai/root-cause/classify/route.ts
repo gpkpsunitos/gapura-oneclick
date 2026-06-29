@@ -3,7 +3,7 @@ import { verifySession } from '@/lib/auth-utils';
 import { cookies } from 'next/headers';
 import { getHfClient } from '@/lib/hf-client';
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
   try {

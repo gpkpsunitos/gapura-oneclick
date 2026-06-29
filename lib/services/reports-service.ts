@@ -137,7 +137,7 @@ const PROP_TO_HEADER: Partial<Record<keyof Report, string[]>> = {
   target_division: [],
 
   id: ['ID'],
-  user_id: ['User ID'],
+  user_id: ['User ID for One Click', 'User ID', 'User_ID'],
   title: ['Title', 'Judul'],
   location: ['Location', 'Lokasi'],
   severity: ['Severity', 'Severity Level', 'Tingkat Keparahan'],
@@ -823,13 +823,16 @@ export class ReportsService {
     return headers.map((header: string) => {
       const normalizedHeader = header.trim().toLowerCase();
 
-      const propEntry = Object.entries(PROP_TO_HEADER).find(([_, names]) =>
-        (names as string[]).some(name => name.toLowerCase() === normalizedHeader)
-      );
+      // A single header can be the target of several props (e.g. `category`
+      // + `main_category` both map to "Report Category"). Pick the first prop
+      // that actually carries a value so a report never blanks a column just
+      // because the create route populated a synonym field. ponytail: fixes
+      // Report Category / Severity Level / Airlines mapping in one place.
+      const candidateProps = Object.entries(PROP_TO_HEADER)
+        .filter(([_, names]) => (names as string[]).some(name => name.toLowerCase() === normalizedHeader))
+        .map(([prop]) => prop as keyof Report);
 
-      if (propEntry) {
-        const prop = propEntry[0] as keyof Report;
-
+      for (const prop of candidateProps) {
         if (prop === 'evidence_url' || prop === 'evidence_urls') {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const urls = Array.isArray((report as any).evidence_urls)
@@ -845,15 +848,17 @@ export class ReportsService {
             : [];
 
           const allUrls = [...urls, ...videoUrls].filter(Boolean);
-          return allUrls.length ? allUrls.join(' | ') : '';
+          if (allUrls.length) return allUrls.join(' | ');
+          continue;
         }
 
-        if (prop === 'severity') {
-          const normalizedSeverity = String(report.severity || '').trim().toLowerCase();
+        if (prop === 'severity' || prop === 'severity_level') {
+          const normalizedSeverity = String(report.severity || report.severity_level || '').trim().toLowerCase();
+          if (!normalizedSeverity) continue;
           if (normalizedSeverity === 'urgent' || normalizedSeverity === 'high') return 'TOP RISK';
           if (normalizedSeverity === 'medium') return 'MEDIUM';
           if (normalizedSeverity === 'low') return 'LOW';
-          return report.severity || 'LOW';
+          return report.severity || report.severity_level || 'LOW';
         }
 
         if (prop === 'status') {
@@ -864,9 +869,10 @@ export class ReportsService {
         if ((prop === 'esklasi_divisi' || prop === 'target_division') && !val) {
           val = report.esklasi_divisi || report.target_division;
         }
+        if (val === undefined || val === null || val === '') continue;
         if (Array.isArray(val)) return val.join(' | ');
-        if (val && typeof val === 'object') return JSON.stringify(val);
-        return val !== undefined ? val : '';
+        if (typeof val === 'object') return JSON.stringify(val);
+        return val;
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -934,7 +940,6 @@ export class ReportsService {
     keys.forEach((k) => {
       if (k.startsWith(CACHE_KEY_ALL_REPORTS)) ttlCache.delete(k);
     });
-    console.log('[ReportsService] All caches invalidated');
   }
 
   public getLastUpdated(): number {
@@ -955,14 +960,12 @@ export class ReportsService {
     if (source === 'sheets') {
       try {
         selectedReports = await this.fetchGoogleSheetsReports();
-        console.log(`[ReportsService] Using ${selectedReports.length} reports directly from Google Sheets (forced)`);
       } catch (err) {
         console.error('[ReportsService] Google Sheets fetch failed (forced):', err);
         selectedReports = [];
       }
     } else {
       selectedReports = await this.fetchReportsFromSync(filters);
-      console.log(`[ReportsService] Using ${selectedReports.length} reports from reports_sync (${source})`);
     }
 
     const filteredReports = selectedReports.filter(report => {
@@ -1112,11 +1115,9 @@ export class ReportsService {
       }
 
       if (allReports.length === 0) {
-        console.log('[ReportsService] reports_sync table is empty, falling back to Sheets');
         return [];
       }
 
-      console.log(`[ReportsService] Fetched ${allReports.length} reports from reports_sync`);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return allReports.map((row: any) => syncEscalationDivisionAliases({

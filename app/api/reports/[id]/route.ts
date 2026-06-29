@@ -142,7 +142,7 @@ export async function PATCH(
         const body = await request.json();
         const isSafeEditedWordPatch = isEditedWordEvidencePatch(body);
         const existingReport = await reportsService.getReportById(id);
-        const allowedRoles = ['SUPER_ADMIN', 'ANALYST', 'DIVISI_ESKALASI', 'DIVISI_OP', 'DIVISI_OS', 'DIVISI_HC', 'DIVISI_HT', 'MANAGER_CABANG'];
+        const allowedRoles = ['SUPER_ADMIN', 'ANALYST', 'DIVISI_ESKALASI', 'DIVISI_OP', 'DIVISI_OS', 'DIVISI_OCS', 'DIVISI_OT', 'DIVISI_UQ', 'DIVISI_HC', 'DIVISI_HT', 'MANAGER_CABANG'];
         const payloadEmail = normalizeAccessValue(payload.email);
         const payloadName = normalizeAccessValue(payload.full_name);
         const reportEmail = normalizeAccessValue(existingReport?.reporter_email);

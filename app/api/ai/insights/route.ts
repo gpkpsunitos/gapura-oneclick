@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
-import { callOpenRouterAI, OPENROUTER_MODEL, type OpenRouterMessage } from '@/lib/ai/openrouter';
+import { callOpenRouterAI, type OpenRouterMessage } from '@/lib/ai/openrouter';
 import { getGoogleSheets } from '@/lib/google-sheets';
+import { checkDbRateLimit } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 const REPORT_SHEETS = ['NON CARGO', 'CGO'];
+const INSIGHTS_MODEL = process.env.INSIGHTS_AI_MODEL || 'google/gemini-2.5-flash-preview';
 const VLOOKUP_SHEET = 'Data for Vlookup';
 
 interface InsightFilters {
@@ -268,7 +270,7 @@ function buildDataContext(
     parts.push(`Hub Distribution: ${JSON.stringify(hubCount)}`);
     parts.push(`--------------------------------------------------`);
 
-    const sampleLimit = Math.min(rows.length, 200);
+    const sampleLimit = rows.length;
     const relevantFields = [
       'Date of Event', 'Date_of_Event',
       'Airlines', 'Airline', 'Maskapai', 'Jenis Maskapai',
@@ -289,7 +291,7 @@ function buildDataContext(
     const injectedFields = ['MAPPED_HUB'];
     const activeFields = relevantFields.filter((f) => headers.includes(f) || injectedFields.includes(f));
 
-    parts.push(`\nSample Data (${sampleLimit} of ${rows.length}):`);
+    parts.push(`\nFull Data (${rows.length} rows):`);
     for (let i = 0; i < sampleLimit; i++) {
       const row = rows[i];
       const compactRow = activeFields
@@ -309,52 +311,57 @@ function buildDataContext(
   return `# OneClick Report Data\nTotal records matching filters: ${totalRows}\n${parts.join('\n')}`;
 }
 
-const SYSTEM_PROMPT = `Kamu adalah AI Data Analyst untuk sistem OneClick (Irregularity Reporting & Resolution System) Gapura Angkasa.
+const SYSTEM_PROMPT = `Kamu adalah AI Data Analyst senior untuk sistem OneClick (Irregularity Reporting & Resolution System) Gapura Angkasa.
 
 ATURAN UTAMA:
 1. HANYA berikan analisis berdasarkan data yang diberikan. JANGAN mengarang data.
-2. Jawab dalam Bahasa Indonesia.
-3. Gunakan format markdown: heading (##), bold (**), tabel, dan bullet points.
+2. Jawab dalam Bahasa Indonesia yang profesional.
+3. Gunakan format markdown: heading (##/###), bold (**), tabel, dan bullet points.
 4. Sertakan angka spesifik, persentase, dan perbandingan dari data.
 5. Jika diminta rekomendasi, berikan HANYA berdasarkan pola yang terlihat di data.
 6. Jika data tidak cukup untuk menjawab, katakan dengan jelas.
-7. VISUALISASI DATA: Jika diminta chart, atau data sangat cocok divisualisasikan (contoh: Top 5 Kategori), kamu HARUS menghasilkan block kode markdown \`\`\`json standar.
-Bentuk JSON harus valid dan memiliki property \`isChart: true\` seperti ini:
+7. VISUALISASI DATA: Jika diminta chart, atau analisis cocok divisualisasikan, WAJIB hasilkan blok kode \`\`\`json dengan format:
 \`\`\`json
 {
   "isChart": true,
   "type": "bar",
-  "title": "Top Kategori Irregularity",
+  "title": "Judul Chart",
   "data": [
-    {"name": "Kategori A", "value": 45},
-    {"name": "Kategori B", "value": 30}
+    {"name": "Label A", "value": 45},
+    {"name": "Label B", "value": 30}
   ]
 }
 \`\`\`
-PASTIKAN hasil keluaran visualisasi dibungkus dengan tiga backticks \`\`\`json dan tidak ada teks pendahuluan di dalamnya.
+Type yang valid: "bar", "line", "pie". PASTIKAN JSON valid dan dibungkus tiga backtick \`\`\`json.
 
 KONTEKS DOMAIN:
-- Data berisi laporan irregularity dan complaint dari berbagai branch/cabang penerbangan
-- Kolom Penting (live schema, 36 kolom): "Date of Event" (Excel serial integer), "Jenis Maskapai", "Airlines", "Flight Number", "Branch", "HUB", "Route", "Report Category", "Report" (deskripsi insiden), "Root Caused", "Action Taken", "Preventive Action", "Area", "Terminal Area Category", "Apron Area Category", "General Category", "Service Business Type", "Accident / Incident", "Case Classification", "Delay Code", "Severity Level", "Status", "Final Remarks".
-- "Report Category" berisi tipe besar: Irregularity, Complaint, Compliment.
-- Kategori spesifik live tersimpan di salah satu dari "Terminal Area Category", "Apron Area Category", atau "General Category" (tergantung Area). JANGAN cari kolom "Irregularity/Complain Category" — kolom itu sudah tidak ada di sheet live.
-- "Severity Level" (BUKAN "Severity") berisi: Low, Medium, High, Critical.
-- Gunakan data "SUMMARY DISTRIBUTIONS" di bagian paling atas data untuk membikin visualisasi chart. JANGAN MENGHITUNG MANUAL dari sampel row. Data SUMMARY adalah kebenaran mutlak seluruh records.
-- Status: "Open" = belum selesai atau perlu respons, "Closed" = sudah selesai, "On Progress" = sedang ditangani
-- Severity: "TOP RISK" (tertinggi), "HIGH", "MEDIUM", "LOW".
-- Corrective action yang tidak efektif = case yang sudah ada respon "Action Taken" tapi "Status" masih "Open"
-- Preventive action = Usulan tindakan pencegahan agar case (berdasarkan "Root Caused" dan "Report") tidak terulang kembali
+- Data adalah laporan irregularity, complaint, dan compliment dari cabang-cabang Gapura Angkasa di berbagai bandara.
+- **SCHEMA AKTUAL**: Nama kolom yang tepat tersedia di bagian "Kolom:" pada setiap sheet dalam data konteks. Gunakan nama kolom PERSIS seperti di sana — jangan menebak nama kolom.
+- Kolom tanggal (misal "Date of Event") bisa berupa angka serial Excel; sistem sudah mengkonversinya untuk filtering.
+- "Report Category" berisi klasifikasi besar: **Irregularity**, **Complaint**, **Compliment**.
+- Kategori spesifik tersimpan di salah satu kolom area ("Terminal Area Category", "Apron Area Category", atau "General Category") tergantung nilai kolom "Area" (Terminal Area / Apron Area / General).
+- "Severity Level" berisi: **Low**, **Medium**, **High**, **Critical** (alias: TOP RISK).
+- Status laporan: **Open** = belum selesai, **Closed** = selesai, **On Progress** = sedang dikerjakan.
+- **MAPPED_HUB** adalah kolom yang di-inject sistem untuk memetakan branch ke hub berdasarkan sheet "Data for Vlookup".
+- SUMMARY DISTRIBUTIONS di atas data = hitungan keseluruhan records. Gunakan ini untuk chart — JANGAN menghitung manual dari sampel row. SUMMARY adalah kebenaran mutlak.
+- Corrective action tidak efektif = ada "Action Taken" namun Status masih "Open".
+- Preventive action = usulan tindakan agar kasus serupa tidak terulang berdasarkan "Root Caused".
 
-ATURAN PREDIKSI WAKTU RESOLUSI (SLA):
-Jika diminta untuk **MEMPREDIKSI WAKTU RESOLUSI**, gunakan panduan estimasi Service Level Agreement (SLA) industri aviasi berikut karena histori waktu komplit (Date Closed) tidak selalu terterekam:
-- **Severity High**: Target Resolusi 1x24 Jam (Contoh: Insiden keselamatan, operasi terhenti).
-- **Severity Medium**: Target Resolusi 3x24 Jam (Contoh: Kargo terlambat, komplain bagasi).
-- **Severity Low**: Target Resolusi 7x24 Jam (Contoh: Komplain ringan pelayanan).
-Kaitkan estimasi SLA ini dengan data \`Root Cause\` dan \`Action Taken\` untuk memberikan prediksi analisis yang logis apakah sebuah laporan bisa ditutup lebih cepat atau berpotensi delay.
+PANDUAN SLA (gunakan jika diminta prediksi waktu resolusi):
+- **Severity High/Critical**: Target 1×24 jam.
+- **Severity Medium**: Target 3×24 jam.
+- **Severity Low**: Target 7×24 jam.
+Kaitkan estimasi ini dengan Root Cause dan Action Taken untuk analisis yang logis.
 
-PENGGUNAAN REFERENSI LAPORAN:
-- **JANGAN PERNAH** menyebutkan ID internal atau nomor baris seperti "Laporan dengan ID [1]" atau "Laporan [3]".
-- Sebutkan konteks masalahnya secara langsung. Contoh: *"Terdapat laporan mengenai keterlambatan kargo (Medium)..."* atau *"Laporan tentang penyalahgunaan wewenang staf (High)..."*.`;
+REFERENSI LAPORAN:
+- **JANGAN** sebut nomor baris/ID internal seperti "[1]" atau "Laporan #3".
+- Sebutkan konteksnya langsung: *"Terdapat laporan keterlambatan kargo (Medium)..."*.
+
+KUALITAS ANALISIS:
+- Mulai dengan ringkasan eksekutif singkat (2-3 kalimat).
+- Berikan insight yang actionable, bukan hanya deskripsi angka.
+- Identifikasi pola, tren, atau anomali yang perlu perhatian manajemen.
+- Jika ada outlier atau temuan kritis, highlight dengan **⚠️**.`;
 
 export async function POST(request: NextRequest) {
   try {
@@ -368,6 +375,19 @@ export async function POST(request: NextRequest) {
     const payload = await verifySession(token);
     if (!payload) {
       return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+    }
+
+    const rl = await checkDbRateLimit(`ai_insights:${payload.id}`, 5, 24 * 60 * 60 * 1000);
+    if (!rl.success) {
+      const resetAt = new Date(rl.resetAt);
+      return NextResponse.json(
+        {
+          error: 'Rate limit exceeded',
+          message: `Anda telah mencapai batas 5 pertanyaan per hari. Coba lagi setelah ${resetAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}.`,
+          resetAt: rl.resetAt,
+        },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();
@@ -403,7 +423,7 @@ export async function POST(request: NextRequest) {
       },
     ];
 
-    const aiResponse = await callOpenRouterAI(messages);
+    const aiResponse = await callOpenRouterAI(messages, INSIGHTS_MODEL, 8192);
 
     const highlights: string[] = [`${totalRows} data dianalisis`];
     for (const s of sheetResults) {
@@ -416,10 +436,11 @@ export async function POST(request: NextRequest) {
       status: 'success',
       answer: aiResponse || 'AI tidak dapat menghasilkan analisis saat ini.',
       highlights,
+      rateLimit: { remaining: rl.remaining, resetAt: rl.resetAt },
       metadata: {
         dataSize: totalRows,
         question,
-        model: OPENROUTER_MODEL,
+        model: INSIGHTS_MODEL,
         timestamp: new Date().toISOString(),
       },
     });

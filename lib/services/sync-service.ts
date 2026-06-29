@@ -68,7 +68,6 @@ export class SyncService {
 
   static async syncReportsFromSheets(triggerSource = 'direct'): Promise<SyncResult> {
     if (this.activeSyncPromise) {
-      console.log(`[SyncService] Joining in-progress sync (trigger: ${triggerSource})`);
       const result = await this.activeSyncPromise;
       return {
         ...result,
@@ -100,7 +99,6 @@ export class SyncService {
       const lock = await acquireSyncLock('reports', 300);
       lockAcquired = lock.acquired;
       if (!lockAcquired) {
-        console.log(`[SyncService] Sync lock busy, skipping duplicate trigger (${triggerSource})`);
         return {
           success: true,
           totalProcessed: 0,
@@ -113,10 +111,8 @@ export class SyncService {
         };
       }
 
-      console.log(`[SyncService] Starting sync from Google Sheets (trigger: ${triggerSource})...`);
 
       const reports = await reportsService.fetchSheetsReports();
-      console.log(`[SyncService] Fetched ${reports.length} reports from Sheets`);
 
       reports.forEach((report) => {
         if (!report.source_fingerprint) {
@@ -157,7 +153,6 @@ export class SyncService {
       try {
         deleted = await this.deleteMissingFromSync(reports);
         if (deleted > 0) {
-          console.log(`[SyncService] Deleted ${deleted} records removed from Sheets`);
         }
       } catch (delErr) {
         console.warn('[SyncService] Delete-missing step failed:', delErr);
@@ -166,7 +161,6 @@ export class SyncService {
       try {
         const pushed = await this.pushLocalUpdatesToSheets();
         if (pushed > 0) {
-          console.log(`[SyncService] Reconciled ${pushed} local updates to Sheets`);
         }
       } catch (recErr) {
         console.warn('[SyncService] Reconciliation step failed:', recErr);
@@ -185,10 +179,6 @@ export class SyncService {
         rowCount: reports.length,
         bumpVersion: true,
       });
-      console.log(
-        `[SyncService] Sync completed in ${duration}ms (trigger: ${triggerSource}): ${inserted} inserted, ${updated} updated, ${deleted} deleted, ${errors} errors`
-      );
-
       for (const report of syncResult.insertedReports) {
         await notifyNewRecordEmail(report, 'sheets-sync').catch((notificationError) => {
           console.warn('[SyncService] New-record sync notification failed:', notificationError);
@@ -507,7 +497,6 @@ export class SyncService {
 
       if (error || !dirtyReports || dirtyReports.length === 0) return 0;
 
-      console.log(`[SyncService] Found ${dirtyReports.length} dirty records in Supabase, pushing to Sheets...`);
 
       for (const report of dirtyReports) {
         try {
@@ -567,7 +556,6 @@ export class SyncService {
     let deleted = 0;
 
     if (syncToDelete.length > 0) {
-      console.log(`[SyncService] Deleting ${syncToDelete.length} orphaned records from reports_sync`);
 
       for (let i = 0; i < syncToDelete.length; i += this.DELETE_BATCH_SIZE) {
         const batch = syncToDelete.slice(i, i + this.DELETE_BATCH_SIZE);
@@ -594,7 +582,6 @@ export class SyncService {
       .map(({ id }) => id);
 
     if (dbToDelete.length > 0) {
-      console.log(`[SyncService] Deleting ${dbToDelete.length} orphaned records from legacy reports table`);
       for (let i = 0; i < dbToDelete.length; i += this.DELETE_BATCH_SIZE) {
         const batch = dbToDelete.slice(i, i + this.DELETE_BATCH_SIZE);
         const { data, error } = await supabaseAdmin
@@ -659,7 +646,6 @@ export class SyncService {
       } catch (stateError) {
         console.warn('[SyncService] Failed to bump sync state after clear:', stateError);
       }
-      console.log(`[SyncService] Cleared ${deleted} synced reports`);
       return { success: true, deleted };
     } catch (error) {
       console.error('[SyncService] Clear exception:', error);

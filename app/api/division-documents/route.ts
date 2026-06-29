@@ -4,7 +4,6 @@ import {
     canViewAudienceScopedItem,
     canManageDivisionDocuments,
     getWorkspaceUser,
-    isBranchRole,
     normalizeRole,
 } from '@/lib/server/workspace-auth';
 import { deleteDriveFile } from '@/lib/google-drive';
@@ -86,8 +85,7 @@ async function fetchStationMap(stationIds: string[]) {
 function canViewDocument(user: NonNullable<Awaited<ReturnType<typeof getWorkspaceUser>>>, document: DivisionDocument) {
     if (canManageDivisionDocuments(user.role, document.division)) return true;
     if (normalizeRole(user.role) === 'DIVISI_ESKALASI') return true;
-    if (!isBranchRole(user.role)) return false;
-
+    // All other authenticated roles (DIVISI_*, PARTNER_*, branch) pass through to audience check
     const docStation = document.station_code || document.station_id;
     if (docStation) {
         const userStation = user.station_code || user.station_id;

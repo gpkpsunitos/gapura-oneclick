@@ -10,10 +10,15 @@ interface RouteParams {
     params: Promise<{ id: string }>;
 }
 
+// Divisions, analysts, eskalasi and super admin can read/post on any report.
+const GLOBAL_COMMENT_ROLES: UserRole[] = [
+    'SUPER_ADMIN', 'DIVISI_ESKALASI', 'ANALYST',
+    'DIVISI_OCS', 'DIVISI_OS', 'DIVISI_OP', 'DIVISI_OT', 'DIVISI_UQ', 'DIVISI_HT',
+];
+
 async function canAccessReportComments(reportId: string, userId: string, role: UserRole, stationId?: string): Promise<boolean> {
 
-    const GLOBAL_ACCESS_ROLES: UserRole[] = ['SUPER_ADMIN', 'DIVISI_ESKALASI', 'DIVISI_OS', 'ANALYST', 'DIVISI_OP'];
-    if (GLOBAL_ACCESS_ROLES.includes(role)) {
+    if (GLOBAL_COMMENT_ROLES.includes(role)) {
         return true;
     }
 
@@ -131,11 +136,9 @@ export async function POST(request: Request, { params }: RouteParams) {
             return NextResponse.json({ error: 'Content or attachments required' }, { status: 400 });
         }
 
-        const GLOBAL_ACCESS_ROLES: UserRole[] = ['SUPER_ADMIN', 'DIVISI_ESKALASI', 'DIVISI_OS', 'ANALYST', 'DIVISI_OP'];
-
         let hasAccess = false;
 
-        if (GLOBAL_ACCESS_ROLES.includes(payload.role as UserRole)) {
+        if (GLOBAL_COMMENT_ROLES.includes(payload.role as UserRole)) {
             hasAccess = true;
         } else {
 
@@ -188,6 +191,38 @@ export async function POST(request: Request, { params }: RouteParams) {
         if (insertError) {
             console.error('Error creating comment:', insertError);
             return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });
+        }
+
+        // In-app bell: notify the reporter + everyone who previously commented.
+        try {
+            const recipientIds = new Set<string>();
+
+            const { data: priorCommenters } = await supabaseAdmin
+                .from('report_comments')
+                .select('user_id')
+                .in('report_id', [stableUuid, sheetId].filter((v): v is string => !!v));
+            priorCommenters?.forEach((row) => row.user_id && recipientIds.add(row.user_id));
+
+            const { data: reportRow } = await supabaseAdmin
+                .from('reports')
+                .select('user_id')
+                .eq('id', stableUuid)
+                .single();
+            if (reportRow?.user_id) recipientIds.add(reportRow.user_id);
+
+            recipientIds.delete(payload.id as string); // never notify the author
+
+            if (recipientIds.size > 0 && comment?.id) {
+                await supabaseAdmin.from('report_comment_notifications').insert(
+                    [...recipientIds].map((uid) => ({
+                        user_id: uid,
+                        report_id: stableUuid,
+                        comment_id: comment.id,
+                    }))
+                );
+            }
+        } catch (notifyError) {
+            console.error('Failed to create comment notifications:', notifyError);
         }
 
         return NextResponse.json(comment, { status: 201 });

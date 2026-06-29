@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 export default function OSReportsPage() {
     const router = useRouter();
     useEffect(() => {
-        router.replace('/dashboard/os?view=reports');
+        router.replace('/dashboard/ocs?view=reports');
     }, [router]);
     return null;
 }
