@@ -41,6 +41,9 @@ export function isBranchManager(role: string | null | undefined): boolean {
 export function canManageDivisionDocuments(role: string | null | undefined, division: 'HC' | 'HT' | 'ANALYST'): boolean {
     const normalized = normalizeRole(role);
     if (normalized === 'SUPER_ADMIN' || normalized === 'ANALYST') return true;
+    // Circulars & Materials (division='ANALYST') is shared across every non-branch
+    // role that can reach /dashboard/eskalasi/documents, not just analysts.
+    if (division === 'ANALYST') return Boolean(normalized) && !isBranchRole(normalized);
     return normalized === `DIVISI_${division}` || normalized === `PARTNER_${division}`;
 }
 

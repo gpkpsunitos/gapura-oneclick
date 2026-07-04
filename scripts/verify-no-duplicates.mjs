@@ -29,7 +29,7 @@ async function main() {
   try {
     // Get total count
     const { count: total, error: countError } = await supabase
-      .from('reports_sync')
+      .from('ground_handling_irregularity_report')
       .select('*', { count: 'exact', head: true });
 
     if (countError) {
@@ -46,7 +46,7 @@ async function main() {
     
     while (true) {
       const { data: records, error: fetchError } = await supabase
-        .from('reports_sync')
+        .from('ground_handling_irregularity_report')
         .select('id, sheet_id')
         .range(page * pageSize, (page + 1) * pageSize - 1);
 

@@ -19,7 +19,6 @@ import {
 const SEVERITY_STYLE: Record<SeverityT, { bg: string; text: string; ring: string }> = {
   'TOP RISK':  { bg: 'bg-red-700',    text: 'text-white',      ring: 'ring-red-900' },
   'HIGH RISK': { bg: 'bg-red-500',    text: 'text-white',      ring: 'ring-red-600' },
-  HIGH:        { bg: 'bg-orange-500', text: 'text-white',      ring: 'ring-orange-600' },
   MEDIUM:      { bg: 'bg-amber-400',  text: 'text-amber-950',  ring: 'ring-amber-500' },
   LOW:         { bg: 'bg-emerald-500',text: 'text-white',      ring: 'ring-emerald-600' },
 };

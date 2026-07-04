@@ -167,13 +167,12 @@ export default function QuickAccessPage() {
     {
       id: 'JOUMPA',
       title: 'JOUMPA',
-      description: 'Hospitality & VIP Service access.',
+      description: 'Staff JOUMPA report access.',
       icon: QrCode,
       color: 'oklch(0.50 0.15 190)',
       span: 'col-span-1 row-span-1',
       qrLinks: [
-        { label: 'Report Untuk Customer', url: getLinkUrl(externalLinks, 'customer-joumpa') },
-        { label: 'Report Untuk Staff', url: getLinkUrl(externalLinks, 'staff-joumpa') }
+        { label: 'Staff JOUMPA Report', url: getLinkUrl(externalLinks, 'staff-joumpa') }
       ]
     },
     {
@@ -194,9 +193,10 @@ export default function QuickAccessPage() {
       description: 'Bantu kami meningkatkan layanan via survey.',
       icon: QrCode,
       color: 'oklch(0.60 0.20 340)',
-      span: 'col-span-1 row-span-1',
+      span: 'col-span-2 md:col-span-2 row-span-1',
       qrLinks: [
-        { label: 'Survey Penumpang', url: getLinkUrl(externalLinks, 'survey-penumpang') }
+        { label: 'Survey Penumpang', url: getLinkUrl(externalLinks, 'survey-penumpang') },
+        { label: 'JOUMPA Survey Penumpang', url: getLinkUrl(externalLinks, 'customer-joumpa') }
       ]
     },
     {

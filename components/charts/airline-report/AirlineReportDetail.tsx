@@ -773,7 +773,7 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
           <CategoryStackedBar data={chartData.categoryData} />
         </section>
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-1">Branch Distribution</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-1">Station Distribution</h2>
           <p className="text-xs text-gray-500 mb-4">Are issues systemic or specific to one location?</p>
           <BranchDistributionChart data={chartData.branchData} />
         </section>

@@ -139,8 +139,8 @@ export default function AdminReportsPage() {
                     <div className="relative flex-1 min-w-[140px]">
                         <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} className="input-field pl-10 pr-10 cursor-pointer" style={{ background: 'var(--surface-2)' }}>
                             <option value="all">Semua Severity</option>
-                            <option value="CRITICAL">🔴 Critical</option>
-                            <option value="HIGH">🟠 High</option>
+                            <option value="TOP RISK">🔴 Top Risk</option>
+                            <option value="HIGH RISK">🟠 High Risk</option>
                             <option value="MEDIUM">🟡 Medium</option>
                             <option value="LOW">🟢 Low</option>
                         </select>

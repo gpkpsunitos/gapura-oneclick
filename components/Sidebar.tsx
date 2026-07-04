@@ -10,6 +10,7 @@ import { useState, useEffect, useMemo, memo, useCallback } from 'react';
 
 import { resolveNavGroups, type NavGroupConfig as NavGroup } from '@/lib/nav-config';
 import { CommentNotificationBell } from '@/components/dashboard/CommentNotificationBell';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { performOptimisticLogout } from '@/lib/auth/client-logout';
 import { useStaticData } from '@/lib/swr';
 
@@ -54,8 +55,8 @@ const ROLE_DISPLAY: Record<string, string> = {
     DIVISI_HC: 'Employee',
     PARTNER_HC: 'Employee',
     DIVISI_ESKALASI: 'Escalation',
-    MANAGER_CABANG: 'Branch Manager',
-    STAFF_CABANG: 'Branch Staff',
+    MANAGER_CABANG: 'Station Manager',
+    STAFF_CABANG: 'Station Staff',
     SUPER_ADMIN: 'Super Admin',
     ANALYST: 'Analyst',
 };
@@ -92,18 +93,6 @@ const NavContent = memo(function NavContent({
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4 md:px-4 md:py-6 touch-scroll hide-scrollbar">
-            {/* Back to the workspace chooser — divisi roles only. Sits at the top
-                of the nav, clear of the logo (above) and Sign Out (footer). */}
-            {role.startsWith('DIVISI_') && (
-                <Link
-                    href="/dashboard/eskalasi/select"
-                    onClick={() => setMobileOpen(false)}
-                    className="group/back mb-4 md:mb-6 flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs md:text-sm font-bold text-white bg-gradient-to-br from-orange-500 to-amber-600 border border-orange-600/30 shadow-[0_4px_12px_rgba(249,115,22,0.35)] hover:shadow-[0_6px_18px_rgba(249,115,22,0.45)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[0_2px_8px_rgba(249,115,22,0.35)] transition-all duration-200"
-                >
-                    <Undo2 size={16} className="shrink-0 transition-transform duration-200 group-hover/back:-translate-x-0.5" />
-                    Back to Workspace
-                </Link>
-            )}
             <div className="space-y-6 md:space-y-8">
                 {groups.map((group) => (
                     <div key={group.title} className="relative">
@@ -118,10 +107,13 @@ const NavContent = memo(function NavContent({
                             {group.items.map((link, index) => {
                                 const isExternal = link.external || /^https?:\/\//.test(link.href);
                                 let isActive = !isExternal && pathname === link.href;
-                                if (!isActive && !isExternal && pathname === '/dashboard/op' && link.href === '/dashboard/op/reports' && searchParams.get('view') === 'reports') {
+                                const isReportsViewBase = !isExternal
+                                    && (pathname === '/dashboard/op' || pathname === '/dashboard/ocs' || pathname === '/dashboard/os')
+                                    && searchParams.get('view') === 'reports';
+                                if (!isActive && isReportsViewBase && link.href === `${pathname}/reports`) {
                                     isActive = true;
                                 }
-                                if (isActive && !isExternal && pathname === '/dashboard/op' && link.href === '/dashboard/op' && searchParams.get('view') === 'reports') {
+                                if (isActive && isReportsViewBase && link.href === pathname) {
                                     isActive = false;
                                 }
                                 const Icon = link.icon;
@@ -250,6 +242,17 @@ const NavContent = memo(function NavContent({
                     </button>
                 )}
 
+                {role.startsWith('DIVISI_') && (
+                    <Link
+                        href="/dashboard/eskalasi/select"
+                        onClick={() => setMobileOpen(false)}
+                        className="group/back w-full mb-1.5 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs md:text-sm font-bold text-white bg-gradient-to-br from-orange-500 to-amber-600 border border-orange-600/30 shadow-[0_4px_12px_rgba(249,115,22,0.35)] hover:shadow-[0_6px_18px_rgba(249,115,22,0.45)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[0_2px_8px_rgba(249,115,22,0.35)] transition-all duration-200"
+                    >
+                        <Undo2 size={16} className="shrink-0 transition-transform duration-200 group-hover/back:-translate-x-0.5" />
+                        Back to Workspace
+                    </Link>
+                )}
+
                 <button
                     onClick={onLogout}
                     disabled={loading || switchingOrigin}
@@ -283,11 +286,22 @@ export default function Sidebar({ role, division }: { role: string; division?: s
         }>;
     } | null>(role ? '/api/auth/bundle' : null);
 
-    const groups = resolveNavGroups(role || '', division);
+    // ponytail: OCS users keep their Schedule/calendar links only on Customer
+    // Service Center routes; hide them while visiting Operational Monitoring (/dashboard/op).
+    const isOcsOnOperational = (role === 'DIVISI_OCS' || role === 'PARTNER_OCS') && pathname.startsWith('/dashboard/op');
+    const groups = useMemo(() => {
+        const base = resolveNavGroups(role || '', division);
+        return isOcsOnOperational ? base.filter((g) => g.title !== 'Schedule') : base;
+    }, [role, division, isOcsOnOperational]);
     // Non-OCS analysts lose the comment-notification bell along with their other OCS-only features.
     const showBell = !(role === 'ANALYST' && (division || '').toUpperCase() !== 'OCS');
 
+    const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
     const handleLogout = useCallback(() => {
+        setLogoutConfirmOpen(true);
+    }, []);
+    const confirmLogout = useCallback(() => {
+        setLogoutConfirmOpen(false);
         setLoading(true);
         performOptimisticLogout();
     }, []);
@@ -344,9 +358,11 @@ export default function Sidebar({ role, division }: { role: string; division?: s
     }, []);
 
     const isEskalasi = role === 'DIVISI_ESKALASI';
-    // ponytail: collapse to mobile nav below lg (1024) so portrait tablets
-    // (e.g. iPad 820px) get the bottom nav, not the squeezed desktop sidebar.
-    const collapseBp = 'lg';
+    // ponytail: collapse to mobile nav below xl (1280) so portrait tablets
+    // (e.g. iPad 820px, iPad Pro 12.9" @ 1024px) get the bottom nav, not the
+    // squeezed desktop sidebar. lg (1024) used to be the cutoff, but iPad Pro
+    // portrait is exactly 1024px wide so it matched lg: and wrongly got the sidebar.
+    const collapseBp = 'xl';
 
     return (
         <>
@@ -379,6 +395,15 @@ export default function Sidebar({ role, division }: { role: string; division?: s
             <div className={`hidden ${collapseBp}:block fixed top-0 left-0 h-screen w-[240px] lg:w-[260px] z-40 border-r border-dashed border-gray-200 shadow-[2px_0_24px_rgba(0,0,0,0.02)]`}>
                 <NavContent {...navContentProps} />
             </div>
+
+            <ConfirmDialog
+                open={logoutConfirmOpen}
+                title="Sign out of your account?"
+                confirmLabel="Sign Out"
+                danger
+                onConfirm={confirmLogout}
+                onCancel={() => setLogoutConfirmOpen(false)}
+            />
         </>
     );
 }

@@ -27,7 +27,9 @@ import { PresentationSlide } from '@/components/dashboard/PresentationSlide';
 import { type StatusUpdateDetails } from '@/components/dashboard/ReportDetailView';
 
 import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { useJoumpaReports } from '@/lib/hooks/useJoumpaReports';
 import { getLinkUrl } from '@/lib/external-links';
+import { ReportSourceToggle, matchesReportSource, type ReportSourceValue } from '@/components/dashboard/analyst/ReportSourceToggle';
 import {
   buildReportFilterOptions,
   cleanReportValue,
@@ -170,6 +172,7 @@ export function OCSDivisionDashboard({
   const [listCategory, setListCategory] = useState('');
   const [listCaseClassification, setListCaseClassification] = useState('');
   const [listArea, setListArea] = useState('');
+  const [listSource, setListSource] = useState<ReportSourceValue>('all');
   const [listSearch, setListSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showOSDashboardModal, setShowOSDashboardModal] = useState(false);
@@ -362,12 +365,24 @@ export function OCSDivisionDashboard({
     setListCategory('');
     setListCaseClassification('');
     setListArea('');
+    setListSource('all');
   }, []);
+  const joumpaReports = useJoumpaReports();
+  const scopedJoumpaReports = useMemo(() => {
+    if (!lockedBranches || lockedBranches.length === 0) return joumpaReports;
+    const allowed = new Set(lockedBranches.map((b) => b.toUpperCase()));
+    return joumpaReports.filter((r) => allowed.has((r.stations?.code || r.branch || '').toString().toUpperCase()));
+  }, [joumpaReports, lockedBranches]);
+  const listReportsBase = useMemo(
+    () => [...filteredReports, ...scopedJoumpaReports],
+    [filteredReports, scopedJoumpaReports]
+  );
   const listReports = useMemo(() => {
     const s = debouncedSearch.toLowerCase();
     const start = listStartDate ? new Date(`${listStartDate}T00:00:00`) : null;
     const end = listEndDate ? new Date(`${listEndDate}T23:59:59`) : null;
-    return filteredReports.filter(r => {
+    return listReportsBase.filter(r => {
+      if (!matchesReportSource(r, listSource)) return false;
       const reportDate = reportDateValue(r);
       if (start && reportDate && reportDate < start) return false;
       if (end && reportDate && reportDate > end) return false;
@@ -408,7 +423,8 @@ export function OCSDivisionDashboard({
       return haystack.includes(s);
     });
   }, [
-    filteredReports,
+    listReportsBase,
+    listSource,
     listStartDate,
     listEndDate,
     listHub,
@@ -446,7 +462,7 @@ export function OCSDivisionDashboard({
     ).length;
     const highSeverity = filteredReports.filter((r) => {
       const severity = cleanReportValue(r.severity || r.severity_level).toUpperCase();
-      return severity === 'CRITICAL' || severity === 'HIGH' || severity === 'TOP RISK' || severity === 'HIGH RISK';
+      return severity === 'TOP RISK' || severity === 'HIGH RISK';
     }).length;
     const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
     const years = Array.from(
@@ -593,7 +609,7 @@ export function OCSDivisionDashboard({
         open(
           filteredReports.filter((report) => {
             const severity = cleanReportValue(report.severity || report.severity_level).toUpperCase();
-            return severity === 'CRITICAL' || severity === 'HIGH' || severity === 'TOP RISK' || severity === 'HIGH RISK';
+            return severity === 'TOP RISK' || severity === 'HIGH RISK';
           }),
           'Top Risk & High Risk Reports'
         );
@@ -643,12 +659,13 @@ export function OCSDivisionDashboard({
             divisionDashboardActions={undefined}
             onSwitchDivision={() => router.push('/dashboard/eskalasi/select')}
             variant={isOpDivision && !isScopeLocked ? 'op-executive' : 'default'}
-            title={isOpDivision && !isScopeLocked ? 'Analytics Center' : undefined}
-            subtitle={isOpDivision && !isScopeLocked ? 'Operational summary and quick access for Operations Division' : undefined}
+            title={isOpDivision && !isScopeLocked ? 'Analytics Center' : division.code === 'OCS' ? 'Customer Service Division Report' : undefined}
+            subtitle={isOpDivision && !isScopeLocked ? 'Operational summary and quick access for Operations Division' : division.code === 'OCS' ? 'Customer Service Division' : undefined}
             activeView={undefined}
             onViewChange={undefined}
+            hideDateRangeSelector={division.code === 'OCS'}
           />
-          {!isOpDivision && !forceView && (
+          {!isOpDivision && !forceView && division.code !== 'OCS' && (
             <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
               <button
                 onClick={() => setView('reports')}
@@ -674,6 +691,9 @@ export function OCSDivisionDashboard({
               <p className="text-xs font-bold text-[var(--text-muted)] bg-[var(--surface-3)] px-3 py-1 rounded-full uppercase tracking-tighter">
                 {listReports.length} reports
               </p>
+            </div>
+            <div className="mb-4">
+              <ReportSourceToggle value={listSource} onChange={setListSource} />
             </div>
             <ReportsDetailTable
               reports={listReports}
@@ -706,7 +726,7 @@ export function OCSDivisionDashboard({
                   severity={listSeverity}
                   onSeverity={setListSeverity}
                   options={listFilterOptions}
-                  totalCount={filteredReports.length}
+                  totalCount={listReportsBase.length}
                   filteredCount={listReports.length}
                   refreshing={refreshing}
                   onRefresh={refreshData}

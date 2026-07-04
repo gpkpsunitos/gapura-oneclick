@@ -25,7 +25,7 @@ type TabId = 'ground-handling' | 'joumpa';
 
 const TABS: { id: TabId; label: string; icon: typeof Plane; color: string; colorSoft: string }[] = [
     { id: 'ground-handling', label: 'Ground Handling', icon: Plane, color: '#0ea5a6', colorSoft: '#0d9488' },
-    { id: 'joumpa', label: 'JOUMPA', icon: Users, color: '#b8860b', colorSoft: '#a16207' },
+    { id: 'joumpa', label: 'JOUMPA', icon: Users, color: '#65a30d', colorSoft: '#4d7c0f' },
 ];
 
 function categorize(link: PerformanceLink): TabId {

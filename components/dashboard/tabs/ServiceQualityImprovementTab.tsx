@@ -123,7 +123,7 @@ function normalizeSeverity(value: unknown): string {
   if (!t) return '-';
   if (t.includes('TOP RISK') || t === 'CRITICAL' || t === 'URGENT') return 'TOP RISK';
   if (t.includes('HIGH RISK')) return 'HIGH RISK';
-  if (t === 'HIGH') return 'HIGH';
+  if (t === 'HIGH') return 'HIGH RISK';
   if (t === 'MEDIUM') return 'MEDIUM';
   if (t === 'LOW') return 'LOW';
   return t;
@@ -816,7 +816,7 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
           <thead>
             <tr>
               <th style={{ width: '9.5%', whiteSpace: 'normal' }} className="!text-left">Date</th>
-              <th style={{ width: '6.5%', whiteSpace: 'normal' }} className="!text-left">Branch</th>
+              <th style={{ width: '6.5%', whiteSpace: 'normal' }} className="!text-left">Station</th>
               <th style={{ width: '12%', whiteSpace: 'normal' }} className="!text-left">Airlines</th>
               <th style={{ width: '7.5%', whiteSpace: 'normal' }} className="!text-left">Flight</th>
               <th style={{ width: '10.5%', whiteSpace: 'normal' }} className="!text-left">Category</th>
@@ -889,7 +889,7 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
                                   `Route : ${row.route}`,
                                   `Airline : ${row.airline}`,
                                   `Aircraft : ${row.aircraftReg}`,
-                                  `Branch : ${row.branch}`,
+                                  `Station : ${row.branch}`,
                                   `Event : ${row.eventDate}`,
                                 ].join('\n')}
                               />
@@ -958,7 +958,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     async function loadLiveSheetReports() {
       try {
         setLiveSheetError(null);
-        const response = await fetch('/api/admin/reports?source=sheets', { cache: 'no-store', signal: controller.signal });
+        const response = await fetch('/api/admin/reports', { cache: 'no-store', signal: controller.signal });
         if (!response.ok) throw new Error(`Failed to load live Google Sheets reports (${response.status})`);
         const payload = await response.json();
         setLiveSheetReports(Array.isArray(payload) ? payload : []);
@@ -1274,7 +1274,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
       ...monthlyRows.map((r) => ({ label: `Month ${r.label}`, value: r.total })),
       ...caseClassRows.slice(0, 10).map((r) => ({ label: `Case ${r.label}`, value: r.total })),
       ...rootRows.slice(0, 10).map((r) => ({ label: `Root ${r.label}`, value: r.total })),
-      ...branchRows.slice(0, 10).map((r) => ({ label: `Branch ${r.label}`, value: r.total })),
+      ...branchRows.slice(0, 10).map((r) => ({ label: `Station ${r.label}`, value: r.total })),
     ],
     featureHints: ['rootCause', 'riskScoring', 'similaritySearch', 'actionRecommendation', 'summarization'],
   }), [monthlyRows, caseClassRows, rootRows, branchRows]);
@@ -1337,7 +1337,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <KpiTile label="Total Reports" value={scopedReports.length} helper={areaBreakdown} tone="neutral" />
           <KpiTile label="Resolution Rate" value={`${resolutionPct}%`} helper={`${closed} closed / ${open} open · ${closedOpenBreakdown}`} tone="accent" />
           <KpiTile label="High / Top Risk" value={topRisk} helper={`${scopedReports.length > 0 ? ((topRisk / scopedReports.length) * 100).toFixed(0) : 0}% of total · ${riskBreakdown}`} tone="neg" />
-          <KpiTile label="Top Branch" value={topBranch} helper={`${topBranchCount} reports · ${topBranchBreakdown}`} tone="gold" />
+          <KpiTile label="Top Station" value={topBranch} helper={`${topBranchCount} reports · ${topBranchBreakdown}`} tone="gold" />
         </div>
       </section>
 
@@ -1489,7 +1489,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
             <AreaCard reports={yearReports}>{({ filtered, toggle: areaToggle }) => {
               const rows = aggregate(filtered, getBranch);
               return (
-                <Panel headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />} title="Reports by Station / Branch" total={rows.reduce((s, r) => s + r.total, 0)} className="h-[22rem]" aiContext={sqiAiContext('Reports by Station', 'station_bar', rows)}>
+                <Panel headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />} title="Reports by Station" total={rows.reduce((s, r) => s + r.total, 0)} className="h-[22rem]" aiContext={sqiAiContext('Reports by Station', 'station_bar', rows)}>
                   <HBarChart rows={rows} emptyLabel="No station data" scrollable limit={20} onOpen={(row) => openDrilldown(filtered.filter((r) => getBranch(r).toLowerCase() === row.id), `Station: ${row.label}`)} />
                 </Panel>
               );
@@ -1522,7 +1522,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
             const cells = buildMatrix(filtered, getBranch, getCategory);
             return (
               <Panel headerExtra={toggle} title="Station Volume by Report Category" subtitle="Station hotspots across report types" className="h-[26rem]" aiContext={sqiAiContext('Station x Report Category', 'pivot_table', { keys: branchRowsLocal, cols: catRowsLocal })} bodyClassName="overflow-hidden">
-                <HeatMatrix rowKeys={branchRowsLocal.map((r) => ({ id: r.id, label: r.label }))} rowLabel="Branch" colKeys={catRowsLocal.map((r) => ({ id: r.label, label: r.label }))} cells={cells} onOpen={(rs, ctx) => openDrilldown(rs, ctx)} />
+                <HeatMatrix rowKeys={branchRowsLocal.map((r) => ({ id: r.id, label: r.label }))} rowLabel="Station" colKeys={catRowsLocal.map((r) => ({ id: r.label, label: r.label }))} cells={cells} onOpen={(rs, ctx) => openDrilldown(rs, ctx)} />
               </Panel>
             );
           }}</YearCard>
@@ -1544,7 +1544,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
             const cells = buildMatrix(filtered, getBranch, getArea);
             return (
               <Panel headerExtra={toggle} title="Station Volume by Operational Area" subtitle="Station volume across operational areas" className="h-[26rem]" aiContext={sqiAiContext('Station x Operational Area', 'pivot_table', { keys: branchRowsLocal, cols: areaRowsLocal })} bodyClassName="overflow-hidden">
-                <HeatMatrix rowKeys={branchRowsLocal.map((r) => ({ id: r.id, label: r.label }))} rowLabel="Branch" colKeys={areaRowsLocal.map((r) => ({ id: r.label, label: r.label }))} cells={cells} onOpen={(rs, ctx) => openDrilldown(rs, ctx)} />
+                <HeatMatrix rowKeys={branchRowsLocal.map((r) => ({ id: r.id, label: r.label }))} rowLabel="Station" colKeys={areaRowsLocal.map((r) => ({ id: r.label, label: r.label }))} cells={cells} onOpen={(rs, ctx) => openDrilldown(rs, ctx)} />
               </Panel>
             );
           }}</YearCard>
@@ -1644,8 +1644,8 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
             return (
         <Panel
           headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />}
-          title="Recurring Issues by Branch & Sub-Category"
-          subtitle="Branch + sub-category combinations appearing in 3 or more distinct months — sorted by persistence. Click a row to drill into all related reports."
+          title="Recurring Issues by Station & Sub-Category"
+          subtitle="Station + sub-category combinations appearing in 3 or more distinct months — sorted by persistence. Click a row to drill into all related reports."
           total={chronicIssueRows.length}
           className="h-[34rem]"
           aiContext={sqiAiContext('Recurring Issue Patterns', 'chronic_issues_table', chronicIssueRows.slice(0, 20).map((r) => ({
@@ -1672,7 +1672,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
               <table className="sr-table text-[11.5px]" style={{ width: '100%', minWidth: 1080 }}>
                 <thead>
                   <tr>
-                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '10%' }}>Branch</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '10%' }}>Station</th>
                     <th className="!text-left" style={{ whiteSpace: 'normal', width: '7%' }}>Area</th>
                     <th className="!text-left" style={{ whiteSpace: 'normal', width: '17%' }}>Sub-Category</th>
                     <th className="!text-left" style={{ whiteSpace: 'normal', width: '13%' }}>Case Classification</th>

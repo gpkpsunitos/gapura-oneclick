@@ -13,6 +13,7 @@ import type {
     DivisionDocumentDivision,
     DivisionDocumentVisibilityScope,
 } from '@/types';
+import type { MaterialLink } from '@/lib/division-documents-material-links';
 
 const VALID_DIVISIONS = ['HC', 'HT', 'ANALYST'] as const;
 const VALID_CATEGORIES = [
@@ -41,8 +42,10 @@ interface DivisionDocumentRow {
     airline?: string | null;
     participants?: string | null;
     materi_url?: string | null;
+    materi_title?: string | null;
     attendance_url?: string | null;
     recording_url?: string | null;
+    material_links?: MaterialLink[] | null;
     audience_label?: string | null;
     meeting_event_id?: string | null;
     source_type: 'upload' | 'link';
@@ -118,8 +121,10 @@ function mapDocument(row: DivisionDocumentRow, stationMap: Map<string, { code: s
         airline: row.airline,
         participants: row.participants,
         materi_url: row.materi_url,
+        materi_title: row.materi_title,
         attendance_url: row.attendance_url,
         recording_url: row.recording_url,
+        material_links: row.material_links,
         audience_label: row.audience_label,
         source_type: row.source_type,
         file_url: row.file_url,
@@ -232,7 +237,15 @@ export async function POST(request: Request) {
         if (sourceType === 'upload' && (!body.file_url || !uploadedDriveFileId)) {
             return NextResponse.json({ error: 'Google Drive file metadata is required for uploaded documents' }, { status: 400 });
         }
-        if (sourceType === 'link' && !body.external_url) {
+        const materialLinks: MaterialLink[] = Array.isArray(body.material_links)
+            ? body.material_links
+                .map((link: { title?: unknown; url?: unknown }) => ({
+                    title: String(link?.title || '').trim(),
+                    url: String(link?.url || '').trim(),
+                }))
+                .filter((link: MaterialLink) => link.url)
+            : [];
+        if (sourceType === 'link' && !body.external_url && materialLinks.length === 0) {
             return NextResponse.json({ error: 'external_url is required for linked documents' }, { status: 400 });
         }
         if (visibilityScope === 'stations' && audienceStationIds.length === 0) {
@@ -258,15 +271,17 @@ export async function POST(request: Request) {
             airline: body.airline ? String(body.airline).trim() : null,
             participants: body.participants ? String(body.participants).trim() : null,
             materi_url: body.materi_url ? String(body.materi_url).trim() : null,
+            materi_title: body.materi_title ? String(body.materi_title).trim() : null,
             attendance_url: body.attendance_url ? String(body.attendance_url).trim() : null,
             recording_url: body.recording_url ? String(body.recording_url).trim() : null,
+            material_links: materialLinks,
             audience_label: body.audience_label ? String(body.audience_label).trim() : null,
             source_type: sourceType,
             file_url: body.file_url || null,
             file_name: body.file_name || null,
             file_size: body.file_size || null,
             mime_type: body.mime_type || null,
-            external_url: body.external_url || null,
+            external_url: body.external_url || materialLinks[0]?.url || null,
             drive_file_id: uploadedDriveFileId,
             drive_folder_id: body.drive_folder_id || null,
             drive_web_url: body.drive_web_url || null,

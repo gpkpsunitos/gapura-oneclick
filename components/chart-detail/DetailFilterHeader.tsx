@@ -101,7 +101,7 @@ export default function DetailFilterHeader({
                     isLoading={isLoading}
                   />
                   <FilterSelect
-                    label="Branch"
+                    label="Station"
                     value={filters.branch}
                     options={['all', ...branches]}
                     onChange={(val) => setFilters(f => ({ ...f, branch: val }))}

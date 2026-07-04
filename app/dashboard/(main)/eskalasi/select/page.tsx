@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { logoutWithPwaCleanup } from '@/lib/pwa/logout';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
     Plane, BookOpen, GraduationCap, Shield,
     ArrowRight
@@ -36,17 +37,17 @@ const divisionCards = [
         icon: GraduationCap,
         gradient: 'from-sky-500 via-blue-600 to-indigo-600',
         hoverShadow: 'hover:shadow-sky-500/25',
-        divisionLabel: '',
+        divisionLabel: 'All Divisions',
         href: '/dashboard/eskalasi/performance-links',
     },
     {
         code: 'DOCUMENTS',
         name: 'Circulars & Materials',
-        description: 'Manage and distribute HC documents to branches',
+        description: 'Manage and distribute HC documents to stations',
         icon: BookOpen,
         gradient: 'from-violet-500 via-purple-600 to-fuchsia-600',
         hoverShadow: 'hover:shadow-violet-500/25',
-        divisionLabel: 'Head Office & All Branches',
+        divisionLabel: 'Head Office & All Stations',
         href: '/dashboard/eskalasi/documents',
     },
 ];
@@ -63,6 +64,7 @@ const ROLE_DIVISION: Record<string, string> = {
 export default function DivisionSelectPage() {
     const [error, setError] = useState<string | null>(null);
     const [switchingCode, setSwitchingCode] = useState<string | null>(null);
+    const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
     const [me, setMe] = useState<{ role: string; division: string | null } | null>(null);
     const router = useRouter();
 
@@ -240,7 +242,7 @@ export default function DivisionSelectPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: visibleCards.length * 0.1 }}
-                            onClick={logoutWithPwaCleanup}
+                            onClick={() => setLogoutConfirmOpen(true)}
                             className={`
                                 relative group overflow-hidden
                                 bg-white rounded-2xl md:rounded-3xl
@@ -285,6 +287,15 @@ export default function DivisionSelectPage() {
                     Click a division card to continue
                 </motion.p>
             </div>
+
+            <ConfirmDialog
+                open={logoutConfirmOpen}
+                title="Sign out of your account?"
+                confirmLabel="Sign Out"
+                danger
+                onConfirm={() => { setLogoutConfirmOpen(false); logoutWithPwaCleanup(); }}
+                onCancel={() => setLogoutConfirmOpen(false)}
+            />
         </div>
     );
 }

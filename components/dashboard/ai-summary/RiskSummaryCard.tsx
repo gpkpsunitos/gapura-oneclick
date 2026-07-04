@@ -40,7 +40,7 @@ interface RiskSummaryCardProps {
   className?: string;
 }
 
-const SEVERITY_LEVELS = ["Critical", "High", "Medium", "Low"] as const;
+const SEVERITY_LEVELS = ["TOP RISK", "HIGH RISK", "MEDIUM", "LOW"] as const;
 
 const LEVEL_STYLE: Record<
   string,
@@ -55,7 +55,7 @@ const LEVEL_STYLE: Record<
     badgeText: string;
   }
 > = {
-  Critical: {
+  'TOP RISK': {
     card: "from-red-50 to-rose-50",
     border: "border-red-100",
     iconBg: "bg-red-500",
@@ -65,7 +65,7 @@ const LEVEL_STYLE: Record<
     badgeBg: "bg-red-50",
     badgeText: "text-red-700",
   },
-  High: {
+  'HIGH RISK': {
     card: "from-orange-50 to-amber-50",
     border: "border-orange-100",
     iconBg: "bg-orange-500",
@@ -75,7 +75,7 @@ const LEVEL_STYLE: Record<
     badgeBg: "bg-orange-50",
     badgeText: "text-orange-700",
   },
-  Medium: {
+  MEDIUM: {
     card: "from-amber-50 to-yellow-50",
     border: "border-amber-100",
     iconBg: "bg-amber-500",
@@ -292,10 +292,10 @@ function SeverityBar({
   total: number;
 }) {
   const severities = [
-    { key: "Critical", color: "bg-red-500", bg: "bg-red-100" },
-    { key: "High", color: "bg-orange-500", bg: "bg-orange-100" },
-    { key: "Medium", color: "bg-amber-500", bg: "bg-amber-100" },
-    { key: "Low", color: "bg-emerald-500", bg: "bg-emerald-100" },
+    { key: "TOP RISK", color: "bg-red-500", bg: "bg-red-100" },
+    { key: "HIGH RISK", color: "bg-orange-500", bg: "bg-orange-100" },
+    { key: "MEDIUM", color: "bg-amber-500", bg: "bg-amber-100" },
+    { key: "LOW", color: "bg-emerald-500", bg: "bg-emerald-100" },
   ];
 
   return (
@@ -717,7 +717,7 @@ export function RiskSummaryCard({
             borderColor="border-blue-100/50"
           />
           <TopRiskSection
-            title="Top Risk Branches"
+            title="Top Risk Stations"
             icon={Building2}
             entities={topBranches}
             iconColor="text-violet-600"
@@ -744,7 +744,7 @@ export function RiskSummaryCard({
           )}
           {data.top_risky_branches && data.top_risky_branches.length > 0 && (
             <FallbackTopList
-              title="Top Risk Branches"
+              title="Top Risk Stations"
               icon={Building2}
               items={data.top_risky_branches.filter((n) => n !== "Unknown")}
               iconColor="text-violet-600"

@@ -35,8 +35,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
-    CRITICAL: C.accent,
-    HIGH: C.secondary,
+    'TOP RISK': C.accent,
+    'HIGH RISK': C.secondary,
     MEDIUM: '#c9b82d',
     LOW: C.tertiary,
 };

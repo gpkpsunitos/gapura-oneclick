@@ -117,10 +117,10 @@ export function BranchAIVisualization({ branchName, filters = [] }: BranchVisual
             <MapPin className="w-5 h-5 text-emerald-600" />
             <div>
               <h3 className="text-sm font-bold text-emerald-900 uppercase tracking-wide">
-                AI Branch Analytics Summary
+                AI Station Analytics Summary
               </h3>
               <p className="text-xs text-gray-500">
-                Branch risk overview and performance metrics
+                Station risk overview and performance metrics
               </p>
             </div>
           </div>
@@ -155,7 +155,7 @@ export function BranchAIVisualization({ branchName, filters = [] }: BranchVisual
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-gray-50 rounded-xl p-4 text-center">
             <div className="text-3xl font-black text-gray-900">{currentData.total_branches}</div>
-            <div className="text-xs text-gray-500 uppercase font-semibold mt-1">Total Branches</div>
+            <div className="text-xs text-gray-500 uppercase font-semibold mt-1">Total Stations</div>
           </div>
           <div className="bg-gray-50 rounded-xl p-4 text-center">
             <div className="text-3xl font-black text-gray-900">{currentData.total_issues.toLocaleString('id-ID')}</div>
@@ -169,7 +169,7 @@ export function BranchAIVisualization({ branchName, filters = [] }: BranchVisual
             <div className="text-3xl font-black text-emerald-600">
               {currentData.total_branches - (currentData.risk_level_distribution?.High || 0) - (currentData.risk_level_distribution?.Medium || 0)}
             </div>
-            <div className="text-xs text-gray-500 uppercase font-semibold mt-1">Low Risk Branches</div>
+            <div className="text-xs text-gray-500 uppercase font-semibold mt-1">Low Risk Stations</div>
           </div>
         </div>
 

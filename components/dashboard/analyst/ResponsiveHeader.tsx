@@ -49,6 +49,7 @@ interface ResponsiveHeaderProps {
   variant?: HeaderVariant;
   activeView?: HeaderView;
   onViewChange?: (view: HeaderView) => void;
+  hideDateRangeSelector?: boolean;
 }
 
 export function ResponsiveHeader({
@@ -70,6 +71,7 @@ export function ResponsiveHeader({
   variant = 'default',
   activeView,
   onViewChange,
+  hideDateRangeSelector = false,
 }: ResponsiveHeaderProps) {
   const router = useRouter();
   const [isDateOpen, setIsDateOpen] = useState(false);
@@ -404,7 +406,7 @@ export function ResponsiveHeader({
                   </div>
                 )}
 
-                <div className="w-full xl:w-auto">{dateRangeSelector}</div>
+                {!hideDateRangeSelector && <div className="w-full xl:w-auto">{dateRangeSelector}</div>}
               </div>
             </div>
           </div>
@@ -430,9 +432,9 @@ export function ResponsiveHeader({
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 sm:items-center sm:justify-between flex-wrap">
-        {dateRangeSelector}
+        {!hideDateRangeSelector && dateRangeSelector}
 
-        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap sm:ml-auto">
           {onCustomerFeedback && (
             <Button
               onClick={onCustomerFeedback}

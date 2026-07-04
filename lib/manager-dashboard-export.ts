@@ -162,7 +162,7 @@ export async function exportManagerDashboardToExcel(data: DashboardExportData) {
         const rowRef = ws.getRow(r);
         addDataRow(r, [d.name, d.value, pct(d.value, summary.total)], i % 2 !== 0);
         const sev = d.name.toUpperCase();
-        const color = sev === 'CRITICAL' ? ACCENT_RED : sev === 'HIGH' ? 'E67E22' : sev === 'MEDIUM' ? ACCENT_YLW : ACCENT_GRN;
+        const color = sev === 'TOP RISK' ? ACCENT_RED : sev === 'HIGH RISK' ? 'E67E22' : sev === 'MEDIUM' ? ACCENT_YLW : ACCENT_GRN;
         rowRef.getCell(1).font = { name: 'Calibri', bold: true, size: 10, color: { argb: color } };
         r++;
     });

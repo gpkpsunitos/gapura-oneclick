@@ -124,7 +124,7 @@ function transformToBranchCategoryData(result: QueryResult) {
 
   const columns = result.columns || Object.keys(result.rows[0] || {});
 
-  const branchKeys = ['branch', 'reporting_branch', 'BRANCH', 'Reporting_Branch', 'Reporting Branch', 'Branch ', 'lokal_mpa_lookup', 'Lokal / MPA (VLOOKUP)'];
+  const branchKeys = ['branch', 'reporting_branch', 'BRANCH', 'Reporting_Branch', 'Reporting Station', 'Station ', 'lokal_mpa_lookup', 'Lokal / MPA (VLOOKUP)'];
   const categoryKeys = ['category', 'main_category', 'CATEGORY', 'Report_Category', 'Report Category', 'Irregularity_Complain_Category'];
   const countKeys = ['jumlah', 'count', 'JUMLAH', 'COUNT', 'jumlah_kasus', 'jumlah kasus'];
 

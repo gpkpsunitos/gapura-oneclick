@@ -5,7 +5,7 @@ export type ReportStatus = 'OPEN' | 'ON PROGRESS' | 'CLOSED';
 
 export type ReportPriority = 'low' | 'medium' | 'high' | 'urgent';
 
-export type ReportSeverity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL' | 'TOP RISK';
+export type ReportSeverity = 'TOP RISK' | 'HIGH RISK' | 'MEDIUM' | 'LOW';
 
 export type DivisionType = 'OCS' | 'OS' | 'OP' | 'OT' | 'UQ' | 'HC' | 'HT' | 'GENERAL';
 
@@ -338,6 +338,10 @@ export interface Report {
 
     lokal_mpa_lookup?: string;
 
+    dom_inter?: string;
+
+    kode_inter?: string;
+
     delay_code?: string;
 
     delay_duration?: string;
@@ -431,71 +435,6 @@ export interface CreateCalendarEventInput {
     calendar_type?: CalendarType;
 }
 
-export type HCLeaveSubmissionStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
-
-export interface HCLeaveRecord {
-
-    id: string;
-
-    employee_name: string;
-
-    employee_email?: string | null;
-
-    employee_phone?: string | null;
-
-    leave_type: string;
-
-    start_date: string;
-
-    end_date: string;
-
-    submission_status: HCLeaveSubmissionStatus;
-
-    station_id?: string | null;
-
-    division_name?: string | null;
-
-    unit_name?: string | null;
-
-    pic_name?: string | null;
-
-    pic_email?: string | null;
-
-    pic_phone?: string | null;
-
-    notes?: string | null;
-
-    created_by: string;
-
-    updated_by?: string | null;
-
-    reviewed_by?: string | null;
-
-    reviewed_by_name?: string | null;
-
-    reviewed_at?: string | null;
-
-    review_notes?: string | null;
-
-    is_deleted?: boolean;
-
-    deleted_at?: string | null;
-
-    deleted_by?: string | null;
-
-    created_at: string;
-
-    updated_at: string;
-
-    created_by_name?: string | null;
-
-    station?: {
-        id: string;
-        code: string;
-        name: string;
-    } | null;
-}
-
 export type DivisionDocumentDivision = 'HC' | 'HT' | 'ANALYST';
 
 export type DivisionDocumentCategory =
@@ -544,9 +483,13 @@ export interface DivisionDocument {
 
     materi_url?: string | null;
 
+    materi_title?: string | null;
+
     attendance_url?: string | null;
 
     recording_url?: string | null;
+
+    material_links?: { title: string; url: string }[] | null;
 
     audience_label?: string | null;
 

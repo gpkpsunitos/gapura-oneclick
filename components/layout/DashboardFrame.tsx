@@ -27,9 +27,9 @@ export function DashboardFrame({ role, division, children }: { role: string; div
 
   const isEskalasi = role === 'DIVISI_ESKALASI';
 
-  // ponytail: sidebar reserves space only at lg+ (matches Sidebar collapseBp),
-  // so portrait tablets get full width + bottom nav.
-  const collapsePx = 1024;
+  // ponytail: sidebar reserves space only at xl+ (matches Sidebar collapseBp),
+  // so portrait tablets (incl. iPad Pro 12.9" @ 1024px) get full width + bottom nav.
+  const collapsePx = 1280;
 
   return (
     <div className="flex min-h-screen">
@@ -38,11 +38,11 @@ export function DashboardFrame({ role, division, children }: { role: string; div
       <main
         className={cn(
           'flex-1 min-h-screen min-w-0 bg-[var(--surface-0)] flex flex-col',
-          isEskalasi ? 'pb-0' : 'pb-[calc(6.5rem+env(safe-area-inset-bottom))] lg:pb-0'
+          isEskalasi ? 'pb-0' : 'pb-[calc(6.5rem+env(safe-area-inset-bottom))] xl:pb-0'
         )}
         style={{ paddingLeft: `clamp(0px, (100vw - ${collapsePx}px) * 999, 240px)`, maxWidth: '100%' }}
       >
-        <div className="w-full min-w-0 flex-1 flex flex-col lg:pl-5">
+        <div className="w-full min-w-0 flex-1 flex flex-col xl:pl-5">
           {children}
         </div>
       </main>

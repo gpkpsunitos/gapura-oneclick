@@ -48,10 +48,10 @@ function SeverityBar({
   total: number;
 }) {
   const severities = [
-    { key: "Critical", color: "bg-red-500", bg: "bg-red-100" },
-    { key: "High", color: "bg-orange-500", bg: "bg-orange-100" },
-    { key: "Medium", color: "bg-amber-500", bg: "bg-amber-100" },
-    { key: "Low", color: "bg-emerald-500", bg: "bg-emerald-100" },
+    { key: "TOP RISK", color: "bg-red-500", bg: "bg-red-100" },
+    { key: "HIGH RISK", color: "bg-orange-500", bg: "bg-orange-100" },
+    { key: "MEDIUM", color: "bg-amber-500", bg: "bg-amber-100" },
+    { key: "LOW", color: "bg-emerald-500", bg: "bg-emerald-100" },
   ];
 
   return (

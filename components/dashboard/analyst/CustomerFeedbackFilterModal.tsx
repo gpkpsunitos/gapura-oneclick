@@ -139,7 +139,7 @@ export function CustomerFeedbackFilterModal({
                             type="text" 
                             value={customTitle}
                             onChange={(e) => setCustomTitle(e.target.value)}
-                            placeholder="Contoh: Laporan Q1 2024 Branch CGK"
+                            placeholder="Contoh: Laporan Q1 2024 Station CGK"
                             className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
                         />
                     </div>
@@ -156,7 +156,7 @@ export function CustomerFeedbackFilterModal({
                             type="text" 
                             value={folder}
                             onChange={(e) => setFolder(e.target.value)}
-                            placeholder="Contoh: Quarterly Reports, Branch Analytics"
+                            placeholder="Contoh: Quarterly Reports, Station Analytics"
                             list="filter-folder-list"
                             className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
                         />
@@ -180,8 +180,8 @@ export function CustomerFeedbackFilterModal({
                         />
 
                         <PrismMultiSelect
-                            label="Branch"
-                            placeholder="Pilih Branch..."
+                            label="Station"
+                            placeholder="Pilih Station..."
                             options={availableBranches.map(b => ({ label: b, value: b }))}
                             values={selectedBranches}
                             onChange={setSelectedBranches}

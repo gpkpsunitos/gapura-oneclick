@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     const fields = fieldsParam ? fieldsParam.split(',') : undefined;
 
     const sourceParam = searchParams.get('source');
-    const source: 'sheets' | 'sync' = sourceParam === 'sync' ? 'sync' : 'sheets';
+    const source: 'sheets' | 'sync' = sourceParam === 'sheets' ? 'sheets' : 'sync';
 
     const reports = await reportsService.getReports({ 
       refresh, 

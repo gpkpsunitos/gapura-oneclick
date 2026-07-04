@@ -219,7 +219,7 @@ export function DetailReportTable({ data }: { data: Report[] }) {
                             <th style={{ width: '9%', whiteSpace: 'normal' }}>Date</th>
                             <th style={{ width: '9%', whiteSpace: 'normal' }}>Tag</th>
                             <th style={{ width: '10%', whiteSpace: 'normal' }}>Category</th>
-                            <th style={{ width: '8%', whiteSpace: 'normal' }}>Branch</th>
+                            <th style={{ width: '8%', whiteSpace: 'normal' }}>Station</th>
                             <th style={{ width: '12%', whiteSpace: 'normal' }}>Airlines</th>
                             <th style={{ width: '8%', whiteSpace: 'normal' }}>Flight</th>
                             <th style={{ whiteSpace: 'normal' }}>Report</th>

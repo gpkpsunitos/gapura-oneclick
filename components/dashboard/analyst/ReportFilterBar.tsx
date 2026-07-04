@@ -117,7 +117,7 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
             <p className="truncate text-xs font-semibold text-slate-700">
               {activeCount > 0
                 ? `${activeCount} filter aktif • ${filteredCount.toLocaleString('id-ID')} dari ${totalCount.toLocaleString('id-ID')} report`
-                : 'Tanggal, hub, branch, airline, category, classification, area, status, severity'}
+                : 'Tanggal, hub, station, airline, category, classification, area, status, severity'}
             </p>
           </div>
         </div>
@@ -151,7 +151,7 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
               />
             </FilterInput>
             <FilterSelect label="Hub" icon={Building2} value={hub} onChange={onHub} emptyLabel="Semua hub" options={options.hubs} />
-            <FilterSelect label="Branch" icon={Building2} value={branch} onChange={onBranch} emptyLabel="Semua branch" options={options.branches} />
+            <FilterSelect label="Station" icon={Building2} value={branch} onChange={onBranch} emptyLabel="Semua branch" options={options.branches} />
             <FilterSelect label="Airlines" icon={Plane} value={airline} onChange={onAirline} emptyLabel="Semua airlines" options={options.airlines} />
             <FilterSelect label="Category" icon={Tag} value={category} onChange={onCategory} emptyLabel="Semua category" options={options.categories} />
             <FilterSelect label="Case Classification" icon={Tag} value={caseClassification} onChange={onCaseClassification} emptyLabel="Semua case classification" options={options.caseClassifications} />
@@ -165,7 +165,7 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
               <input
                 value={search}
                 onChange={(event) => onSearch(event.target.value)}
-                placeholder="ID, nomor referensi, report, flight, route, branch, airlines..."
+                placeholder="ID, nomor referensi, report, flight, route, station, airlines..."
                 className={fieldClass}
               />
             </FilterInput>

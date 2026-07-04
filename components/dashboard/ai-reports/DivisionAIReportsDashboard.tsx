@@ -115,18 +115,16 @@ type RootCauseStats = {
   by_category?: Record<string, { count: number; percentage: number; description?: string }>;
 };
 
-const severityWeight: Record<string, number> = { 'CRITICAL': 100, 'TOP RISK': 100, 'HIGH': 75, 'MEDIUM': 50, 'LOW': 25 };
+const severityWeight: Record<string, number> = { 'TOP RISK': 100, 'HIGH RISK': 75, 'MEDIUM': 50, 'LOW': 25 };
 const sevStyle: Record<string, string> = {
-  'CRITICAL': 'bg-red-100 text-red-700 border-red-200',
   'TOP RISK': 'bg-red-100 text-red-700 border-red-200',
-  'HIGH': 'bg-orange-100 text-orange-700 border-orange-200',
+  'HIGH RISK': 'bg-orange-100 text-orange-700 border-orange-200',
   'MEDIUM': 'bg-amber-100 text-amber-700 border-amber-200',
   'LOW': 'bg-green-100 text-green-700 border-green-200',
 };
 const sevBarColor: Record<string, string> = {
-  'CRITICAL': 'bg-red-500',
   'TOP RISK': 'bg-red-500',
-  'HIGH': 'bg-orange-500',
+  'HIGH RISK': 'bg-orange-500',
   'MEDIUM': 'bg-amber-500',
   'LOW': 'bg-green-500',
 };
@@ -464,12 +462,12 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
       const metadataIn = data?.metadata || {};
       const summaryIn = data?.summary || {};
       const sdIn = summaryIn.severityDistribution || summaryIn.severity_distribution || {};
-      const normalizedSD: Record<string, number> = { 'CRITICAL': 0, 'TOP RISK': 0, 'HIGH': 0, 'MEDIUM': 0, 'LOW': 0 };
+      const normalizedSD: Record<string, number> = { 'TOP RISK': 0, 'HIGH RISK': 0, 'MEDIUM': 0, 'LOW': 0 };
       Object.entries(sdIn || {}).forEach(([k, v]) => {
         const key = String(k).toUpperCase();
         const val = Number(v) || 0;
-        if (key === 'CRITICAL' || key === 'TOP RISK' || key === '3') normalizedSD['CRITICAL'] += val;
-        else if (key === 'HIGH' || key === '2') normalizedSD['HIGH'] += val;
+        if (key === 'CRITICAL' || key === 'TOP RISK' || key === '3') normalizedSD['TOP RISK'] += val;
+        else if (key === 'HIGH' || key === 'HIGH RISK' || key === '2') normalizedSD['HIGH RISK'] += val;
         else if (key === 'MEDIUM' || key === '1') normalizedSD['MEDIUM'] += val;
         else if (key === 'LOW' || key === '0') normalizedSD['LOW'] += val;
       });
@@ -485,7 +483,7 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
       if (sumFromSD === 0 && resultsArr.length > 0) {
         for (const r of resultsArr) {
           const sev = String(r?.classification?.severity || 'LOW').toUpperCase();
-          const key = (sev === 'TOP RISK' || sev === 'CRITICAL') ? 'TOP RISK' : sev === 'HIGH' ? 'HIGH' : sev === 'MEDIUM' ? 'MEDIUM' : 'LOW';
+          const key = (sev === 'TOP RISK' || sev === 'CRITICAL') ? 'TOP RISK' : (sev === 'HIGH' || sev === 'HIGH RISK') ? 'HIGH RISK' : sev === 'MEDIUM' ? 'MEDIUM' : 'LOW';
           normalizedSD[key] = (normalizedSD[key] || 0) + 1;
         }
       }
@@ -595,7 +593,7 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
       }
       stats[airline].count++;
       stats[airline].totalDays += r.prediction?.predictedDays || 0;
-      if (r.classification?.severity === 'TOP RISK' || r.classification?.severity === 'CRITICAL' || r.classification?.severity === 'HIGH') {
+      if (r.classification?.severity === 'TOP RISK' || r.classification?.severity === 'HIGH RISK') {
         stats[airline].critical++;
       }
     });
@@ -617,8 +615,8 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
       }
       stats[hub].count++;
       stats[hub].totalDays += r.prediction?.predictedDays || 0;
-      if (r.classification?.severity === 'TOP RISK' || r.classification?.severity === 'CRITICAL') stats[hub].critical++;
-      if (r.classification?.severity === 'HIGH') stats[hub].high++;
+      if (r.classification?.severity === 'TOP RISK') stats[hub].critical++;
+      if (r.classification?.severity === 'HIGH RISK') stats[hub].high++;
     });
     Object.keys(stats).forEach(k => {
       stats[k].avgDays = stats[k].totalDays / stats[k].count;
@@ -1552,7 +1550,7 @@ export function DivisionAIReportsDashboard({ division = 'OS', branchFilter }: Di
                          
                         { label: 'Hub', value: normalizeLabel(current.originalData?.hub || (current.originalData as any)?.HUB || (current.originalData as any)?.Hub, '-'), icon: Building2 },
                          
-                        { label: 'Branch', value: normalizeLabel(current.originalData?.branch || (current.originalData as any)?.Branch || (current.originalData as any)?.Cabang, '-'), icon: Building2 },
+                        { label: 'Station', value: normalizeLabel(current.originalData?.branch || (current.originalData as any)?.Station || (current.originalData as any)?.Cabang, '-'), icon: Building2 },
                          
                         { label: 'Area', value: normalizeLabel((current.originalData as any)?.area || (current.originalData as any)?.Area || (current.originalData as any)?.Wilayah, '-'), icon: MapPin },
                          

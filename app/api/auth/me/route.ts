@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 
@@ -17,7 +17,7 @@ export async function GET() {
             return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
         }
 
-        const { data: userData, error } = await supabase
+        const { data: userData, error } = await supabaseAdmin
             .from('users')
             .select(`
                 id,

@@ -117,14 +117,13 @@ export const PRIORITY_CONFIG: Record<ReportPriority, {
 };
 
 export const SEVERITY_CONFIG = {
-    'CRITICAL': { label: 'CRITICAL', color: 'oklch(0.55 0.22 25)', bg: 'oklch(0.55 0.22 25 / 0.12)', icon: AlertTriangle },
-    'HIGH': { label: 'HIGH', color: 'oklch(0.55 0.18 25)', bg: 'oklch(0.55 0.18 25 / 0.12)', icon: AlertTriangle },
+    'TOP RISK': { label: 'TOP RISK', color: 'oklch(0.55 0.22 25)', bg: 'oklch(0.55 0.22 25 / 0.12)', icon: AlertTriangle },
+    'HIGH RISK': { label: 'HIGH RISK', color: 'oklch(0.58 0.2 35)', bg: 'oklch(0.58 0.2 35 / 0.12)', icon: AlertTriangle },
     'MEDIUM': { label: 'MEDIUM', color: 'oklch(0.70 0.14 75)', bg: 'oklch(0.70 0.14 75 / 0.12)', icon: AlertCircle },
     'LOW': { label: 'LOW', color: 'oklch(0.55 0.14 160)', bg: 'oklch(0.55 0.14 160 / 0.12)', icon: Shield },
-
-    'HIGH RISK': { label: 'HIGH RISK', color: 'oklch(0.58 0.2 35)', bg: 'oklch(0.58 0.2 35 / 0.12)', icon: AlertTriangle },
-    'TOP RISK': { label: 'CRITICAL', color: 'oklch(0.55 0.22 25)', bg: 'oklch(0.55 0.22 25 / 0.12)', icon: AlertTriangle },
 };
+
+export const SEVERITY_LEVELS = ['TOP RISK', 'HIGH RISK', 'MEDIUM', 'LOW'] as const;
 
 export type SeverityLevel = keyof typeof SEVERITY_CONFIG;
 
@@ -132,10 +131,9 @@ export function normalizeSeverityLevel(value: unknown): string {
     const raw = String(value ?? '').trim().toUpperCase();
     if (!raw || raw === '-' || raw === '#N/A' || raw === 'N/A' || raw === 'NULL' || raw === 'UNDEFINED') return '';
 
-    if (raw === 'CRITICAL' || raw === 'URGENT' || raw === 'TOP RISK') return 'TOP RISK';
-    if (raw === 'HIGH RISK') return 'HIGH RISK';
-    if (raw === 'HIGH') return 'HIGH';
-    if (raw === 'MEDIUM') return 'MEDIUM';
+    if (raw === 'CRITICAL' || raw === 'URGENT' || raw === 'TOP RISK' || raw === 'TOP') return 'TOP RISK';
+    if (raw === 'HIGH RISK' || raw === 'HIGH') return 'HIGH RISK';
+    if (raw === 'MEDIUM' || raw === 'MED') return 'MEDIUM';
     if (raw === 'LOW') return 'LOW';
 
     return raw;
@@ -143,7 +141,7 @@ export function normalizeSeverityLevel(value: unknown): string {
 
 export function isHighSeverityLevel(value: unknown): boolean {
     const normalized = normalizeSeverityLevel(value);
-    return normalized === 'TOP RISK' || normalized === 'HIGH RISK' || normalized === 'HIGH' || normalized === 'CRITICAL';
+    return normalized === 'TOP RISK' || normalized === 'HIGH RISK';
 }
 
 export function getSeverityConfig(level: unknown) {

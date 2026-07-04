@@ -19,7 +19,7 @@ import {
   resolveRootCause,
 } from '@/lib/report-normalization';
 
-const IRRS_NAMESPACE_UUID = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
+export const IRRS_NAMESPACE_UUID = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
 interface CacheEntry { data: unknown; ts: number }
 const ttlCache = new Map<string, CacheEntry>();
@@ -130,6 +130,18 @@ const PROP_TO_HEADER: Partial<Record<keyof Report, string[]>> = {
   gse_non_motorized: ['GSE NON - MOTORIZED', 'GSE NON MOTORIZED', 'GSE Non-Motorized'],
   category_case_gse: ['Category Case GSE'],
   category_case_cargo: ['Category Case Cargo (CGO)', 'Category Case Cargo'],
+
+  dom_inter: ['DOM/INTER', 'DOM / INTER', 'DOM_INTER'],
+  kode_inter: ['Kode INTER', 'KODE INTER', 'Kode_INTER'],
+  final_remarks: ['Final Remarks', 'Final_Remarks'],
+  customer_joumpa: ['Customer Joumpa'],
+  detail_customer_joumpa: ['Detail Customer Joumpa'],
+  corporate: ['Corporate'],
+  customer_company_profile_corporate: ['Customer Company Profile Corporate'],
+  non_corporate: ['Non - Corporate', 'Non-Corporate', 'Non Corporate'],
+  customer_background_non_corporate: ['Customer Background Non - Corporate', 'Customer Background Non-Corporate'],
+  detail_customer_non_corporate: ['Detail Customer Non - Corporate', 'Detail Customer Non-Corporate'],
+  joumpa_compliment_report_excellent_service: ['Joumpa Compliment Report Excellent Service'],
 
   primary_tag: ['Primary Tag', 'Primary_Tag', 'Area Category', 'Area_Category'],
   sub_category_note: ['Sub Category Note', 'Sub_Category_Note', 'Sub Category', 'Additional Note'],
@@ -251,6 +263,7 @@ export interface ReportQueryFilters {
   esklasiRegex?: string;
   targetDivision?: string;
   gseOnly?: boolean;
+  status?: string;
 }
 
 const MonthMap: Record<string, number> = {
@@ -268,7 +281,7 @@ const MonthMap: Record<string, number> = {
   desember: 11, des: 11
 };
 
-function parseDate(dateStr: string | number | Date): Date | null {
+export function parseDate(dateStr: string | number | Date): Date | null {
   if (!dateStr) return null;
   if (dateStr instanceof Date) return isNaN(dateStr.getTime()) ? null : dateStr;
 
@@ -988,6 +1001,8 @@ export class ReportsService {
             }
           }
 
+          if (filters.status && filters.status !== 'all' && (report.status !== filters.status)) return false;
+
           if (filters.hub && filters.hub !== 'all' && (report.hub !== filters.hub)) return false;
 
           if (filters.branch && filters.branch !== 'all') {
@@ -1078,7 +1093,7 @@ export class ReportsService {
     try {
       const buildQuery = () => {
         let q = supabaseAdmin
-          .from('reports_sync')
+          .from('ground_handling_irregularity_report')
           .select('*')
           .order('date_of_event', { ascending: false });
         if (filters?.hub && filters.hub !== 'all') q = q.eq('hub', filters.hub);
@@ -1088,6 +1103,7 @@ export class ReportsService {
         if (filters?.dateFrom) q = q.gte('date_of_event', filters.dateFrom);
         if (filters?.dateTo) q = q.lte('date_of_event', filters.dateTo);
         if (filters?.sourceSheet) q = q.eq('source_sheet', filters.sourceSheet);
+        if (filters?.status && filters.status !== 'all') q = q.eq('status', filters.status);
         return q;
       };
 
@@ -1327,7 +1343,7 @@ export class ReportsService {
     const safeId = `"${id.replace(/"/g, '""')}"`;
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-    let query = supabaseAdmin.from('reports_sync').select('*').limit(1);
+    let query = supabaseAdmin.from('ground_handling_irregularity_report').select('*').limit(1);
 
     if (isUuid) {
         query = query.or(`id.eq.${safeId},original_id.eq.${safeId},sheet_id.eq.${safeId}`);

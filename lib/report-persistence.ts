@@ -157,6 +157,19 @@ export function buildReportsSyncRow(report: Partial<Report>): Record<string, unk
         case_classification: report.case_classification || null,
         lokal_mpa_lookup: report.lokal_mpa_lookup || null,
 
+        dom_inter: report.dom_inter || null,
+        kode_inter: report.kode_inter || null,
+        identification_of_root: report.identification_of_root || null,
+        final_remarks: report.final_remarks || null,
+        customer_joumpa: report.customer_joumpa || null,
+        detail_customer_joumpa: report.detail_customer_joumpa || null,
+        corporate: report.corporate || null,
+        customer_company_profile_corporate: report.customer_company_profile_corporate || null,
+        non_corporate: report.non_corporate || null,
+        customer_background_non_corporate: report.customer_background_non_corporate || null,
+        detail_customer_non_corporate: report.detail_customer_non_corporate || null,
+        joumpa_compliment_report_excellent_service: report.joumpa_compliment_report_excellent_service || null,
+
         delay_code: report.delay_code || null,
         delay_duration: report.delay_duration || null,
 
@@ -249,7 +262,7 @@ async function upsertLegacyReportRow(payload: Record<string, unknown>) {
 async function upsertReportsSyncRow(payload: Record<string, unknown>) {
     try {
         const { error } = await supabaseAdmin
-            .from('reports_sync')
+            .from('ground_handling_irregularity_report')
             .upsert(payload, {
                 onConflict: 'sheet_id',
                 ignoreDuplicates: false,

@@ -9,6 +9,7 @@ import {
 } from '@/lib/server/workspace-auth';
 import { deleteDriveFile, downloadDriveFile } from '@/lib/google-drive';
 import type { DivisionDocumentCategory, DivisionDocumentVisibilityScope } from '@/types';
+import type { MaterialLink } from '@/lib/division-documents-material-links';
 
 const VALID_CATEGORIES = [
     'SAM_HANDBOOK',
@@ -36,8 +37,10 @@ interface StoredDivisionDocument {
     airline?: string | null;
     participants?: string | null;
     materi_url?: string | null;
+    materi_title?: string | null;
     attendance_url?: string | null;
     recording_url?: string | null;
+    material_links?: MaterialLink[] | null;
     audience_label?: string | null;
     meeting_event_id?: string | null;
     source_type: 'upload' | 'link';
@@ -50,6 +53,7 @@ interface StoredDivisionDocument {
     drive_folder_id?: string | null;
     drive_web_url?: string | null;
     drive_content_url?: string | null;
+    storage_path?: string | null;
     uploaded_at?: string | null;
     visibility_scope: DivisionDocumentVisibilityScope;
     audience_station_ids?: string[] | null;
@@ -143,13 +147,15 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
         if (!canReadDivisionDocument(user, document)) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
-        if (document.source_type !== 'upload' || (!document.drive_file_id && !document.file_url)) {
+        if (document.source_type !== 'upload' || (!document.storage_path && !document.drive_file_id && !document.file_url)) {
             return NextResponse.json({ error: 'Download not available for this document' }, { status: 400 });
         }
 
         let fileBuffer: Buffer;
-        if (document.drive_file_id) {
-            fileBuffer = await downloadDriveFile(document.drive_file_id);
+        // Prefer Supabase Storage; fall back to legacy Drive id, then external url.
+        const storageKey = document.storage_path || document.drive_file_id;
+        if (storageKey) {
+            fileBuffer = await downloadDriveFile(storageKey);
         } else {
             const legacyResponse = await fetch(String(document.file_url));
             if (!legacyResponse.ok) {
@@ -221,14 +227,24 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         }
 
         const fileUrl = sourceType === 'upload' ? (body.file_url ?? existing.file_url) : null;
-        const externalUrl = sourceType === 'link' ? (body.external_url ?? existing.external_url) : null;
+        const materialLinks: MaterialLink[] = body.material_links !== undefined
+            ? (Array.isArray(body.material_links)
+                ? body.material_links
+                    .map((link: { title?: unknown; url?: unknown }) => ({
+                        title: String(link?.title || '').trim(),
+                        url: String(link?.url || '').trim(),
+                    }))
+                    .filter((link: MaterialLink) => link.url)
+                : [])
+            : (existing.material_links || []);
+        const externalUrl = sourceType === 'link' ? (body.external_url ?? existing.external_url ?? materialLinks[0]?.url ?? null) : null;
         const driveFileId = sourceType === 'upload'
             ? (body.drive_file_id ?? existing.drive_file_id ?? null)
             : null;
         if (sourceType === 'upload' && (!fileUrl || !driveFileId)) {
             return NextResponse.json({ error: 'Google Drive file metadata is required for uploaded documents' }, { status: 400 });
         }
-        if (sourceType === 'link' && !externalUrl) {
+        if (sourceType === 'link' && !externalUrl && materialLinks.length === 0) {
             return NextResponse.json({ error: 'external_url is required for linked documents' }, { status: 400 });
         }
         if (visibilityScope === 'stations' && audienceStationIds.length === 0) {
@@ -253,8 +269,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
             airline: body.airline !== undefined ? (body.airline ? String(body.airline).trim() : null) : existing.airline,
             participants: body.participants !== undefined ? (body.participants ? String(body.participants).trim() : null) : existing.participants,
             materi_url: body.materi_url !== undefined ? (body.materi_url ? String(body.materi_url).trim() : null) : existing.materi_url,
+            materi_title: body.materi_title !== undefined ? (body.materi_title ? String(body.materi_title).trim() : null) : existing.materi_title,
             attendance_url: body.attendance_url !== undefined ? (body.attendance_url ? String(body.attendance_url).trim() : null) : existing.attendance_url,
             recording_url: body.recording_url !== undefined ? (body.recording_url ? String(body.recording_url).trim() : null) : existing.recording_url,
+            material_links: materialLinks,
             audience_label: body.audience_label !== undefined ? (body.audience_label ? String(body.audience_label).trim() : null) : existing.audience_label,
             meeting_event_id: body.meeting_event_id !== undefined ? (body.meeting_event_id || null) : existing.meeting_event_id,
             source_type: sourceType,

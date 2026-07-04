@@ -46,9 +46,8 @@ import { AIInsightCard } from "@/components/dashboard/ai-insight";
 import { canExportBranchData, canEditReport } from "@/lib/permissions";
 
 const SEVERITY_BADGES: Record<string, { label: string; classes: string }> = {
-  'CRITICAL': { label: "CRITICAL", classes: "bg-rose-50 text-rose-600 border border-rose-100" },
-  'TOP RISK': { label: "CRITICAL", classes: "bg-rose-50 text-rose-600 border border-rose-100" },
-  'HIGH': { label: "HIGH", classes: "bg-orange-50 text-orange-600 border border-orange-100" },
+  'TOP RISK': { label: "TOP RISK", classes: "bg-rose-50 text-rose-600 border border-rose-100" },
+  'HIGH RISK': { label: "HIGH RISK", classes: "bg-orange-50 text-orange-600 border border-orange-100" },
   'MEDIUM': { label: "MEDIUM", classes: "bg-amber-50 text-amber-600 border border-amber-100" },
   'LOW': { label: "LOW", classes: "bg-emerald-50 text-emerald-600 border border-emerald-100" },
 };

@@ -152,7 +152,7 @@ export function VoiceDrilldownDrawer({ isOpen, onClose, title, data }: VoiceDril
 
                 const dateVal = getText(record, ['date', 'date_of_event', 'Date of Event', 'timestamp']);
                 const dateLabel = formatDate(dateVal);
-                const branch = getText(record, ['branch', 'Branch', 'branch_code'], 'N/A').toUpperCase();
+                const branch = getText(record, ['branch', 'Station', 'branch_code'], 'N/A').toUpperCase();
                 const airline = getText(record, ['airlines', 'airline', 'Airlines'], '-');
                 const flightNumber = getText(record, ['flightNumber', 'flight_number', 'Flight Number', 'No Penerbangan'], '-');
                 const category = getText(record, ['category', 'categoryReport', 'case_category', 'Category'], 'N/A');
@@ -185,7 +185,7 @@ export function VoiceDrilldownDrawer({ isOpen, onClose, title, data }: VoiceDril
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5 text-[0.68rem] font-bold uppercase tracking-[0.15em] text-slate-400 mb-0.5">
                             <MapPin size={10} strokeWidth={3} />
-                            Branch
+                            Station
                           </div>
                           <div className="font-black text-slate-900 text-lg leading-none tracking-tight whitespace-nowrap">{branch}</div>
                         </div>

@@ -60,6 +60,7 @@ export async function POST(request: Request) {
       gse_motorized,
       gse_non_motorized,
       category_case_gse,
+      case_classification,
     } = body;
 
     const submissionId = normalizeEvidenceSubmissionId(evidence_submission_id);
@@ -116,6 +117,7 @@ export async function POST(request: Request) {
       terminal_area_category: terminal_area_category || null,
       apron_area_category: apron_area_category || null,
       general_category: general_category || null,
+      case_classification: case_classification || null,
       week_in_month: week_in_month || null,
       report: description,
       reporting_branch: station_code || station_id || null,

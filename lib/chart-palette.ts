@@ -11,8 +11,8 @@ export const CB_SAFE_PALETTE = [
 ] as const;
 
 export const SEVERITY_PALETTE: Record<string, { bg: string; text: string; fill: string }> = {
-  'CRITICAL': { bg: '#FEE2E2', text: '#991B1B', fill: '#D55E00' },
-  'HIGH':     { bg: '#FEF3C7', text: '#C2410C', fill: '#E69300' },
+  'TOP RISK': { bg: '#FEE2E2', text: '#991B1B', fill: '#D55E00' },
+  'HIGH RISK':{ bg: '#FEF3C7', text: '#C2410C', fill: '#E69300' },
   'MEDIUM':   { bg: '#FEF9CD', text: '#A16207', fill: '#F0E442' },
   'LOW':      { bg: '#ECFDF5', text: '#166534', fill: '#009E9D' },
 } as const;

@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
     if (branch) internalUrl.searchParams.set('branch', branch);
     internalUrl.searchParams.set('esklasi_regex', esklasiRegex);
 
-    type SeverityDistribution = { Low: number; Medium: number; High: number; Critical: number };
+    type SeverityDistribution = { 'TOP RISK': number; 'HIGH RISK': number; MEDIUM: number; LOW: number };
     type ResultItem = {
       classification?: { severity?: string; issueType?: string };
       prediction?: { predictedDays?: number };
@@ -40,12 +40,12 @@ export async function GET(req: NextRequest) {
       results: ResultItem[];
       summary?: { totalRecords: number; severityDistribution?: Partial<SeverityDistribution>; predictionStats?: { min: number; max: number; mean: number } };
     }
-    const normSeverity = (s?: string): 'Low' | 'Medium' | 'High' | 'Critical' => {
+    const normSeverity = (s?: string): 'TOP RISK' | 'HIGH RISK' | 'MEDIUM' | 'LOW' => {
       const v = String(s || 'Low').toLowerCase();
-      if (/crit/.test(v)) return 'Critical';
-      if (/high/.test(v)) return 'High';
-      if (/med/.test(v)) return 'Medium';
-      return 'Low';
+      if (/crit|top.?risk|urgent/.test(v)) return 'TOP RISK';
+      if (/high/.test(v)) return 'HIGH RISK';
+      if (/med/.test(v)) return 'MEDIUM';
+      return 'LOW';
     };
 
     const result = await resolveCachedAI({
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
         }
 
         const results: ResultItem[] = Array.isArray(analyzeData?.results) ? analyzeData.results : [];
-        const overallDist = { Low: 0, Medium: 0, High: 0, Critical: 0 };
+        const overallDist = { 'TOP RISK': 0, 'HIGH RISK': 0, MEDIUM: 0, LOW: 0 };
         let totalDays = 0;
         let daysCount = 0;
         const categoriesMap: Record<string, {
@@ -91,7 +91,7 @@ export async function GET(req: NextRequest) {
           if (!categoriesMap[cat]) {
             categoriesMap[cat] = {
               count: 0,
-              severity: { Low: 0, Medium: 0, High: 0, Critical: 0 },
+              severity: { 'TOP RISK': 0, 'HIGH RISK': 0, MEDIUM: 0, LOW: 0 },
               totalDays: 0,
               daysCount: 0,
               airlines: {},
@@ -127,7 +127,7 @@ export async function GET(req: NextRequest) {
         for (const [cat, info] of Object.entries(categoriesMap)) {
           const topAirlines = Object.entries(info.airlines).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
           const topHubs = Object.entries(info.hubs).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
-          const highPriorityCount = (info.severity.High || 0) + (info.severity.Critical || 0);
+          const highPriorityCount = (info.severity['HIGH RISK'] || 0) + (info.severity['TOP RISK'] || 0);
           categories[cat] = {
             count: info.count,
             severityDistribution: info.severity,
@@ -143,7 +143,7 @@ export async function GET(req: NextRequest) {
         }
 
         const totalRecords = results.length;
-        const highPriorityTotal = overallDist.High + overallDist.Critical;
+        const highPriorityTotal = overallDist['HIGH RISK'] + overallDist['TOP RISK'];
         const avgResolutionDays = daysCount > 0 ? totalDays / daysCount : 0;
         const categoriesCount = Object.keys(categories).length;
 
@@ -158,7 +158,7 @@ export async function GET(req: NextRequest) {
           .slice(0, 5);
 
         const riskScore = (sev: SeverityDistribution) =>
-          sev.Critical * 4 + sev.High * 3 + sev.Medium * 2 + sev.Low * 1;
+          sev['TOP RISK'] * 4 + sev['HIGH RISK'] * 3 + sev.MEDIUM * 2 + sev.LOW * 1;
 
         const topCategoriesByRisk = categoriesEntries
           .map(([category, cd]) => ({
@@ -221,7 +221,7 @@ export async function GET(req: NextRequest) {
         openCount: 0,
         closedCount: 0,
         highPriorityCount: 0,
-        severityDistribution: { Low: 0, Medium: 0, High: 0, Critical: 0 },
+        severityDistribution: { 'TOP RISK': 0, 'HIGH RISK': 0, MEDIUM: 0, LOW: 0 },
         avgResolutionDays: 0,
         categoriesCount: 0
       },

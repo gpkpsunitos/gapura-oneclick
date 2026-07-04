@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { v5 as uuidv5 } from 'uuid';
 import { verifySession } from '@/lib/auth-utils';
 import { getGoogleSheets } from '@/lib/google-sheets';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { IRRS_NAMESPACE_UUID, parseDate } from '@/lib/services/reports-service';
+import { JoumpaSyncService } from '@/lib/services/joumpa-sync-service';
+import type { JoumpaFormInput } from '@/lib/joumpa/mapping';
 import type { Report } from '@/types';
 
 interface JoumpaRecord {
@@ -27,6 +31,7 @@ interface JoumpaRecord {
   airportName?: string;
   airportCode?: string;
   branchCode?: string;
+  route?: string;
 }
 
 type JoumpaSyncRow = Record<string, unknown>;
@@ -41,10 +46,14 @@ const HEADER_MAP: Record<string, keyof JoumpaRecord> = {
   'airlines': 'airlines',
   'flight number': 'flightNumber',
   'branch (cth: cgk, upg, dps)': 'branch',
+  'station (cth: cgk, upg, dps)': 'branch',
   'joumpa service type': 'serviceType',
   'category report': 'category',
+  'report': 'report',
+  'route': 'route',
   'report by': 'reportBy',
   'report type': 'reportType',
+  'case joumpa': 'reportType',
   'rating rata-rata': 'averageRating',
 };
 
@@ -195,6 +204,51 @@ function rowToReport(row: JoumpaSyncRow): Report {
   } as Report;
 }
 
+function recordToReport(record: JoumpaRecord, rowNumber: number): Report {
+  const sourceId = `JOUMPA!row_${rowNumber}`;
+  const branch = (record.branch || '').trim();
+  const category = record.serviceType || record.category;
+  const description = record.report || record.reportType;
+  const eventIso = parseDate(record.date)?.toISOString();
+  const timestampIso = parseDate(record.timestamp)?.toISOString();
+  return {
+    id: uuidv5(sourceId, IRRS_NAMESPACE_UUID),
+    original_id: sourceId,
+    sheet_id: sourceId,
+    source_sheet: 'JOUMPA',
+    row_number: rowNumber,
+    title: description || '(Tanpa Judul)',
+    report: description,
+    description,
+    status: 'OPEN',
+    severity: 'LOW',
+    priority: 'low',
+    location: branch,
+    branch,
+    station_code: branch,
+    stations: branch ? { code: branch, name: branch } : undefined,
+    airline: record.airlines,
+    airlines: record.airlines,
+    flight_number: record.flightNumber,
+    route: record.route,
+    main_category: category,
+    category,
+    date_of_event: eventIso || timestampIso,
+    created_at: timestampIso || eventIso || new Date().toISOString(),
+    updated_at: timestampIso || eventIso || new Date().toISOString(),
+    reporter_name: record.reportBy,
+    reporter_email: record.email,
+    service_business_type: 'Joumpa Service',
+    case_category: record.reportType || record.serviceType,
+    case_classification: record.reportType || record.serviceType,
+    remarks_case: record.serviceType,
+    evidence_url: record.evidence,
+    evidence_urls: record.evidence_urls,
+    kps_remarks: record.finalRemarks,
+    final_remarks: record.finalRemarks,
+  } as Report;
+}
+
 async function fetchFromSync(params: URLSearchParams) {
   let query = supabaseAdmin
     .from('joumpa_reports_sync')
@@ -261,11 +315,15 @@ export async function GET(request: NextRequest) {
     const headers = allValues[0].map((h: string) => String(h).trim());
     const dataRows = allValues.slice(1).filter(row => row.some(cell => cell?.toString().trim()));
     const records = parseRows(headers, dataRows);
+    const reportByRecord = new Map(records.map((record, i) => [record, recordToReport(record, i + 2)]));
 
     const filtered = applyFilters(records, searchParams);
+    const filteredReports = filtered
+      .map((record) => reportByRecord.get(record))
+      .filter((report): report is Report => Boolean(report));
 
     return NextResponse.json(
-      { records: filtered, reports: [], total: filtered.length, source: 'sheets' },
+      { records: filtered, reports: filteredReports, total: filtered.length, source: 'sheets' },
       {
         headers: {
           'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
@@ -275,6 +333,56 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal error';
     console.error('[JOUMPA API] Error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
+
+const REQUIRED_FIELDS: Array<keyof JoumpaFormInput> = [
+  'date_of_event',
+  'airlines',
+  'flight_number',
+  'station',
+  'route',
+  'category_report',
+  'customer_joumpa',
+  'category_case_joumpa',
+  'report',
+  'report_by',
+];
+
+export async function POST(request: NextRequest) {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('session')?.value;
+    if (!token) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const payload = await verifySession(token);
+    if (!payload) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = (await request.json()) as JoumpaFormInput;
+
+    const missing = REQUIRED_FIELDS.filter((field) => !String(body[field] ?? '').trim());
+    if (missing.length > 0) {
+      return NextResponse.json(
+        { error: `Missing required fields: ${missing.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    const input: JoumpaFormInput = {
+      ...body,
+      email_address: body.email_address || payload.email,
+      evidence_urls: Array.isArray(body.evidence_urls) ? body.evidence_urls : [],
+    };
+
+    const row = await JoumpaSyncService.createReport(input);
+    return NextResponse.json({ success: true, id: row.id, sheet_id: row.sheet_id }, { status: 201 });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal error';
+    console.error('[JOUMPA API] Create error:', message);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

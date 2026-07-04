@@ -107,6 +107,7 @@ function getInitialDebugState(): PwaDebugState {
 export default function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showPrompt, setShowPrompt] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [isInstalled, setIsInstalled] = useState(getInitialInstalledState);
   const [platform] = useState<Platform>(getInitialPlatform);
   const [showBrowserHint, setShowBrowserHint] = useState(false);
@@ -196,6 +197,7 @@ export default function PWAInstallPrompt() {
 
   const handleDismiss = () => {
     setShowPrompt(false);
+    setExpanded(false);
     localStorage.setItem('pwa-install-dismissed', Date.now().toString());
   };
 
@@ -206,12 +208,38 @@ export default function PWAInstallPrompt() {
 
   return (
     <AnimatePresence>
-      {showPrompt && (
+      {showPrompt && !expanded && (
+        <motion.div
+          initial={{ opacity: 0, y: 40, scale: 0.9 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 40, scale: 0.9 }}
+          className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 pl-3 pr-2 py-2.5 text-white shadow-xl"
+        >
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="flex items-center gap-2 hover:opacity-90 transition-opacity"
+          >
+            <Smartphone className="w-4 h-4 shrink-0" />
+            <span className="text-sm font-semibold whitespace-nowrap">Install App</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleDismiss}
+            aria-label="Tutup"
+            className="p-1 rounded-full hover:bg-white/20 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </motion.div>
+      )}
+
+      {showPrompt && expanded && (
         <motion.div
           initial={{ opacity: 0, y: 100 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 100 }}
-          className="fixed bottom-4 left-4 right-4 z-50 md:left-auto md:right-4 md:max-w-sm"
+          className="fixed bottom-4 left-4 right-4 z-50 sm:left-auto sm:right-4 sm:max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto"
         >
           <div className="bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden">
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 text-white">

@@ -13,11 +13,10 @@ interface StationStats {
     resolved: number;
     pending: number;
     in_progress: number;
-    'CRITICAL': number;
-    'HIGH': number;
+    'TOP RISK': number;
+    'HIGH RISK': number;
     'MEDIUM': number;
     'LOW': number;
-    'TOP RISK': number;
 }
 
 interface DivisionStats {
@@ -25,9 +24,8 @@ interface DivisionStats {
     total: number;
     resolved: number;
     pending: number;
-    'CRITICAL': number;
-    'HIGH': number;
     'TOP RISK': number;
+    'HIGH RISK': number;
 }
 
 export async function GET(request: Request) {
@@ -47,7 +45,7 @@ export async function GET(request: Request) {
         const to = searchParams.get('to');
         const division = searchParams.get('division');
         const sourceParam = searchParams.get('source');
-        const source: 'sheets' | 'sync' = sourceParam === 'sync' ? 'sync' : 'sheets';
+        const source: 'sheets' | 'sync' = sourceParam === 'sheets' ? 'sheets' : 'sync';
 
         const allReports = await reportsService.getReports({ source });
 
@@ -87,14 +85,14 @@ export async function GET(request: Request) {
 
             if (r.status === REPORT_STATUS.CLOSED) summaryResolved++;
             if (r.status === REPORT_STATUS.OPEN) summaryPending++;
-            if (r.severity === 'HIGH' || r.severity === 'CRITICAL' || r.severity === 'TOP RISK') summaryHighSeverity++;
+            if (r.severity === 'HIGH RISK' || r.severity === 'TOP RISK') summaryHighSeverity++;
 
             const stationName = r.station_code || r.branch || 'Unknown';
             if (!stationMap.has(stationName)) {
                 stationMap.set(stationName, {
                     station: stationName,
                     total: 0, resolved: 0, pending: 0, in_progress: 0,
-                    'CRITICAL': 0, 'HIGH': 0, 'MEDIUM': 0, 'LOW': 0, 'TOP RISK': 0
+                    'TOP RISK': 0, 'HIGH RISK': 0, 'MEDIUM': 0, 'LOW': 0
                 });
             }
             const stats = stationMap.get(stationName)!;
@@ -102,11 +100,10 @@ export async function GET(request: Request) {
             if (r.status === REPORT_STATUS.CLOSED) stats.resolved++;
             if (r.status === REPORT_STATUS.OPEN) stats.pending++;
             if (r.status === REPORT_STATUS['ON PROGRESS']) stats.in_progress++;
-            if (r.severity === 'CRITICAL' || r.severity === 'TOP RISK') {
-                stats['CRITICAL']++;
-                if (r.severity === 'TOP RISK') stats['TOP RISK']++;
-            } else if (r.severity === 'HIGH') {
-                stats['HIGH']++;
+            if (r.severity === 'TOP RISK') {
+                stats['TOP RISK']++;
+            } else if (r.severity === 'HIGH RISK') {
+                stats['HIGH RISK']++;
             } else if (r.severity === 'MEDIUM') {
                 stats['MEDIUM']++;
             } else if (r.severity === 'LOW') {
@@ -124,18 +121,17 @@ export async function GET(request: Request) {
             if (!divisionMap.has(divName)) {
                 divisionMap.set(divName, {
                     division: divName,
-                    total: 0, resolved: 0, pending: 0, 'CRITICAL': 0, 'HIGH': 0, 'TOP RISK': 0
+                    total: 0, resolved: 0, pending: 0, 'TOP RISK': 0, 'HIGH RISK': 0
                 });
             }
             const stats = divisionMap.get(divName)!;
             stats.total++;
             if (r.status === REPORT_STATUS.CLOSED) stats.resolved++;
             if (r.status === REPORT_STATUS.OPEN) stats.pending++;
-            if (r.severity === 'CRITICAL' || r.severity === 'TOP RISK') {
-                stats['CRITICAL']++;
-                if (r.severity === 'TOP RISK') stats['TOP RISK']++;
-            } else if (r.severity === 'HIGH') {
-                stats['HIGH']++;
+            if (r.severity === 'TOP RISK') {
+                stats['TOP RISK']++;
+            } else if (r.severity === 'HIGH RISK') {
+                stats['HIGH RISK']++;
             }
         });
 

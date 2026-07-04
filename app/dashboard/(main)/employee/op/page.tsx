@@ -45,7 +45,7 @@ export default function EmployeeOPDashboard() {
     <DivisionReportsPage
       config={{
         code: 'OP',
-        name: 'Branch Operations Reports',
+        name: 'Station Operations Reports',
         color: '#06b6d4',
         subtitle: `Station report monitoring ${station}`,
         icon: Plane,

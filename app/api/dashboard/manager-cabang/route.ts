@@ -33,7 +33,7 @@ export async function GET() {
         .single();
 
     const { data: rows, error } = await supabaseAdmin
-        .from('reports_sync')
+        .from('ground_handling_irregularity_report')
         .select('*')
         .eq('station_id', stationId);
 
@@ -88,7 +88,7 @@ export async function GET() {
 
     const severityDistribution = Object.entries(severityMap)
         .map(([name, value]) => {
-            const order: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+            const order: Record<string, number> = { 'TOP RISK': 0, 'HIGH RISK': 1, MEDIUM: 2, LOW: 3 };
             return { name, value, _order: order[name] ?? 99 };
         })
         .sort((a, b) => a._order - b._order)

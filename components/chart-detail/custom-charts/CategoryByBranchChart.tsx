@@ -31,7 +31,7 @@ const getCellColor = (value: number, max: number) => {
 
 export function CategoryByBranchChart({ 
   data, 
-  title = 'Case Category by Branch',
+  title = 'Case Category by Station',
   explanation 
 }: CategoryByBranchChartProps) {
 
@@ -46,7 +46,7 @@ export function CategoryByBranchChart({
       return null;
     };
 
-    const branchKeys = ['branch', 'reporting_branch', 'BRANCH', 'Reporting_Branch', 'Reporting Branch', 'lokal_mpa_lookup', 'Lokal / MPA (VLOOKUP)'];
+    const branchKeys = ['branch', 'reporting_branch', 'BRANCH', 'Reporting_Branch', 'Reporting Station', 'lokal_mpa_lookup', 'Lokal / MPA (VLOOKUP)'];
     const categoryKeys = ['category', 'main_category', 'CATEGORY', 'Report_Category', 'Report Category', 'Irregularity_Complain_Category', 'Report_Category'];
 
     const branches = Array.from(new Set(data.map(d => getVal(d, branchKeys) || 'Unknown'))).sort();
@@ -123,7 +123,7 @@ export function CategoryByBranchChart({
         <table className="w-full border-separate border-spacing-0">
           <thead>
             <tr>
-              <th className="p-3 text-left text-sm font-semibold text-slate-500 bg-white sticky left-0 z-10">Branch</th>
+              <th className="p-3 text-left text-sm font-semibold text-slate-500 bg-white sticky left-0 z-10">Station</th>
               {categories.map(cat => (
                 <th key={cat} className="p-3 text-center text-sm font-semibold text-slate-500 bg-white">
                   {cat.charAt(0) + cat.slice(1).toLowerCase()}

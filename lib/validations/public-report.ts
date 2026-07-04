@@ -19,7 +19,7 @@ const AIRLINE_NAMES = new Set(AIRLINES.map((airline) => airline.name.toLowerCase
 const AIRLINE_CODES = new Set(AIRLINES.map((airline) => airline.code.toLowerCase()));
 
 export function normalizeFlightNumber(value: string): string {
-  return value.trim().toUpperCase().replace(/\s+/g, '').replace(/^([A-Z0-9]{2,3})-?(\d{1,4}[A-Z]?)$/, '$1-$2');
+  return value.trim().toUpperCase().replace(/[\s-]+/g, '');
 }
 
 export function validateFlightNumber(value: string): string | null {

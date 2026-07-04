@@ -1,4 +1,5 @@
 import type { DivisionDocument } from '@/types';
+import { resolveMaterialLinks } from '@/lib/division-documents-material-links';
 
 function fmtDate(value?: string | null) {
     if (!value) return '';
@@ -14,13 +15,13 @@ export async function exportDivisionDocumentsToExcel(documents: DivisionDocument
     const sheet = workbook.addWorksheet('Circulars & Materials');
 
     const headers = [
-        'Tanggal', 'Tempat', 'Agenda', 'PIC / Divisi', 'Cabang', 'Airlines', 'Peserta',
-        'Link Risalah Rapat', 'Link Materi', 'Link Daftar Kehadiran', 'Link Record',
+        'Tanggal', 'Tempat', 'Agenda', 'PIC / Divisi', 'Cabang', 'Airlines', 'Peserta', 'Material Links',
     ];
     sheet.addRow(headers).font = { bold: true };
 
     for (const doc of documents) {
-        sheet.addRow([
+        const links = resolveMaterialLinks(doc).map((link) => `${link.title || 'Link'}: ${link.url}`).join('\n');
+        const row = sheet.addRow([
             fmtDate(doc.meeting_date || doc.created_at),
             doc.activity_location || '',
             doc.title || '',
@@ -28,16 +29,14 @@ export async function exportDivisionDocumentsToExcel(documents: DivisionDocument
             doc.station_code || doc.station_name || '',
             doc.airline || '',
             doc.participants || '',
-            doc.external_url || '',
-            doc.materi_url || '',
-            doc.attendance_url || '',
-            doc.recording_url || '',
+            links,
         ]);
+        row.getCell(8).alignment = { wrapText: true, vertical: 'top' };
     }
 
     sheet.columns = [
         { width: 14 }, { width: 20 }, { width: 28 }, { width: 18 }, { width: 12 },
-        { width: 16 }, { width: 24 }, { width: 28 }, { width: 28 }, { width: 28 }, { width: 28 },
+        { width: 16 }, { width: 24 }, { width: 40 },
     ];
 
     const buffer = await workbook.xlsx.writeBuffer();

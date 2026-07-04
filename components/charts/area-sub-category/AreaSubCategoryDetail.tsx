@@ -538,7 +538,7 @@ export default function AreaSubCategoryDetail({
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title="Total Reports" value={filteredReports.length.toLocaleString('id-ID')} color="green" />
-        <KPICard title="Distinct Branches" value={new Set(filteredReports.map((r) => cleanLabel(r.branch || r.reporting_branch || r.station_code)).filter(isValidLabel)).size.toLocaleString('id-ID')} color="blue" />
+        <KPICard title="Distinct Stations" value={new Set(filteredReports.map((r) => cleanLabel(r.branch || r.reporting_branch || r.station_code)).filter(isValidLabel)).size.toLocaleString('id-ID')} color="blue" />
         <KPICard title="Distinct Airlines" value={new Set(filteredReports.map((r) => cleanLabel(r.airlines || r.airline)).filter(isValidLabel)).size.toLocaleString('id-ID')} color="amber" />
         <KPICard
           title="Irregularity Rate"
@@ -596,12 +596,12 @@ export default function AreaSubCategoryDetail({
         transition={{ delay: 0.3 }}
         className="bg-[var(--surface-1)] border border-[var(--surface-2)] rounded-3xl p-6 shadow-spatial-sm"
       >
-        <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Branch x {contextMeta.singular} hotspot</h3>
+        <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Station x {contextMeta.singular} hotspot</h3>
         <div className="overflow-auto custom-scrollbar">
           <table className="w-full border-separate border-spacing-1">
             <thead>
               <tr>
-                <th className="sticky left-0 bg-[var(--surface-1)] text-left text-[10px] uppercase tracking-wide text-[var(--text-secondary)] min-w-[140px]">Branch</th>
+                <th className="sticky left-0 bg-[var(--surface-1)] text-left text-[10px] uppercase tracking-wide text-[var(--text-secondary)] min-w-[140px]">Station</th>
                 {branchHeatmap.categories.map((cat) => (
                   <th key={cat} className="text-[10px] font-bold text-[var(--text-secondary)] min-w-[90px] max-w-[140px] whitespace-normal break-words">
                     {cat}

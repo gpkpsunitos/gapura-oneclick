@@ -65,7 +65,7 @@ const SOURCE_CONFIG = getShortcutSourceConfig('topIrregularityComplaint');
 
 const DIMENSION_LABELS: Record<TopDimension, string> = {
   category: 'Case Category',
-  branch: 'Branch',
+  branch: 'Station',
   airline: 'Airline',
 };
 
@@ -345,7 +345,7 @@ export default function OPTopIrregularityComplaintCases() {
       {}
       <AnalyticsSection
         title="Top Cases from Real Data"
-        description="The real charts below are sourced from actual reports and display category, branch, and airline rankings without AI model intervention."
+        description="The real charts below are sourced from actual reports and display category, station, and airline rankings without AI model intervention."
         variant="real"
       >
         {error && (
@@ -376,7 +376,7 @@ export default function OPTopIrregularityComplaintCases() {
           />
           <OpMetricCard
             icon={Building2}
-            label="Top Branch"
+            label="Top Station"
             value={topBranches[0]?.name || '-'}
             caption={`${topBranches[0]?.count || 0} cases`}
             tone="real"

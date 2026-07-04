@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - rangeDays);
     const sheetsReports = await reportsService.getReports({
-      source: 'sheets',
+      source: 'sync',
       filters: {
         dateFrom: startDate.toISOString(),
         airlines: filters.airline,

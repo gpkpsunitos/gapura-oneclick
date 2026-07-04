@@ -797,7 +797,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
                 { label: 'Area Rank', val: `#${cellIntel?.rank || '?'}`, color: 'text-indigo-300 font-bold' },
                 // eslint-disable-next-line @typescript-eslint/no-non-null-asserted-optional-chain
                 { label: 'Growth MoM', val: `${cellIntel?.momGrowth.toFixed(1)}%`, color: cellIntel?.momGrowth! > 0 ? 'text-red-400' : 'text-emerald-400' },
-                { label: 'Risk Intensity', val: cellIntel?.riskLevel || 'Low', color: (cellIntel?.riskLevel?.toUpperCase() === 'CRITICAL' || cellIntel?.riskLevel?.toUpperCase() === 'HIGH') ? 'text-red-500' : 'text-white' },
+                { label: 'Risk Intensity', val: cellIntel?.riskLevel || 'Low', color: (cellIntel?.riskLevel?.toUpperCase() === 'TOP RISK' || cellIntel?.riskLevel?.toUpperCase() === 'HIGH RISK') ? 'text-red-500' : 'text-white' },
                 { label: 'Contribution', val: `${cellIntel?.contribution.toFixed(1)}%`, color: 'text-white' },
                 { label: 'Avg Severity', val: (cellIntel?.severityScore || 0).toFixed(1), color: 'text-white' }
               ].map((m, i) => (
@@ -862,7 +862,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
         <KPICard
           title={isFocused ? "Area Risk Index" : "Overall Irreg. Rate"}
           value={isFocused ? (cellIntel?.riskScore.toFixed(0) || '0') : `${overallIrregRate.toFixed(1)}%`}
-          color={isFocused ? (cellIntel?.riskLevel?.toUpperCase() === 'CRITICAL' || cellIntel?.riskLevel?.toUpperCase() === 'HIGH' ? 'red' : 'blue') : (overallIrregRate >= 5 ? 'red' : 'green')}
+          color={isFocused ? (cellIntel?.riskLevel?.toUpperCase() === 'TOP RISK' || cellIntel?.riskLevel?.toUpperCase() === 'HIGH RISK' ? 'red' : 'blue') : (overallIrregRate >= 5 ? 'red' : 'green')}
           explanation={isFocused ? 'Nilai risiko area pada fokus ini (skor 0-100).' : 'Rasio laporan irregularitas terhadap total laporan.'}
         />
         <KPICard
@@ -900,8 +900,8 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
           )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="p-2 border rounded">Top Airlines: {riskSummary.top_risky_airlines?.slice(0,5).join(', ') || 'N/A'}</div>
-            <div className="p-2 border rounded">Top Branches: {riskSummary.top_risky_branches?.slice(0,5).join(', ') || 'N/A'}</div>
-            <div className="p-2 border rounded">Totals: Airlines {riskSummary.total_airlines} • Branches {riskSummary.total_branches} • Hubs {riskSummary.total_hubs}</div>
+            <div className="p-2 border rounded">Top Stations: {riskSummary.top_risky_branches?.slice(0,5).join(', ') || 'N/A'}</div>
+            <div className="p-2 border rounded">Totals: Airlines {riskSummary.total_airlines} • Stations {riskSummary.total_branches} • Hubs {riskSummary.total_hubs}</div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <SeverityDistributionChart data={[{
@@ -912,7 +912,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
               low: riskSummary.airline_risks?.Low ?? 0,
             }]} />
             <SeverityDistributionChart data={[{
-              name: 'Branches',
+              name: 'Stations',
               critical: riskSummary.branch_risks?.Critical ?? 0,
               high: riskSummary.branch_risks?.High ?? 0,
               medium: riskSummary.branch_risks?.Medium ?? 0,
@@ -945,7 +945,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
       )}
       {chartData.aiSeverityBranch.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-1">AI Severity Distribution by Branch</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-1">AI Severity Distribution by Station</h2>
           <SeverityDistributionChart data={chartData.aiSeverityBranch} />
         </section>
       )}
@@ -984,7 +984,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
       {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">{isFocused ? "Branch Comparisons" : "Branch Distribution by Area"}</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-4">{isFocused ? "Station Comparisons" : "Station Distribution by Area"}</h2>
           <BranchBreakdownChart data={chartData.branchData} />
         </section>
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">

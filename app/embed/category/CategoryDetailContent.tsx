@@ -359,14 +359,14 @@ export function CategoryDetailContent() {
         <div className="kpi-card"><div className="kpi-value">{total.toLocaleString('id-ID')}</div><div className="kpi-label">Record Count</div></div>
         <div className="kpi-card"><div className="kpi-value">{distinctReportCount(reports).toLocaleString('id-ID')}</div><div className="kpi-label">Distinct Reports</div></div>
         <div className="kpi-card"><div className="kpi-value">{analytics.categories.length}</div><div className="kpi-label">Report Categories</div></div>
-        <div className="kpi-card"><div className="kpi-value">{analytics.branches.length}</div><div className="kpi-label">Branches</div></div>
+        <div className="kpi-card"><div className="kpi-value">{analytics.branches.length}</div><div className="kpi-label">Stations</div></div>
       </div>
 
       <div className="report-category-grid">
         <EmbedCard title="Report by Case Category" subtitle="Dimension: Report Category · Metric: Record Count" className="compact-card">
           <CompactPieChart data={analytics.categories} />
         </EmbedCard>
-        <EmbedCard title="Branch Report" subtitle="Dimension: Branch · Metric: Record Count" className="compact-card">
+        <EmbedCard title="Station Report" subtitle="Dimension: Station · Metric: Record Count" className="compact-card">
           <CompactBarChart data={analytics.branches} />
         </EmbedCard>
         <EmbedCard title="Airlines Report" subtitle="Dimension: Airlines · Metric: Record Count" className="compact-card">
@@ -384,7 +384,7 @@ export function CategoryDetailContent() {
       </div>
 
       <div className="embed-grid embed-grid-1">
-        <EmbedCard title="Report Category by Branch" subtitle="Rows sorted by total record count; columns sorted by category count." className="compact-card">
+        <EmbedCard title="Report Category by Station" subtitle="Rows sorted by total record count; columns sorted by category count." className="compact-card">
           <PivotHeatmapTable pivot={analytics.categoryByBranch} />
         </EmbedCard>
         <EmbedCard title="Report Category by Airlines" subtitle="Rows sorted by total record count; columns sorted by category count." className="compact-card">
@@ -411,7 +411,7 @@ export function CategoryDetailContent() {
         <div className="embed-table-container">
           <table className="embed-table">
             <thead>
-              <tr><th>Tanggal</th><th>Judul</th><th>Kategori</th><th>Branch</th><th>Airlines</th><th>Area</th><th>Status</th><th>Severity</th></tr>
+              <tr><th>Tanggal</th><th>Judul</th><th>Kategori</th><th>Station</th><th>Airlines</th><th>Area</th><th>Status</th><th>Severity</th></tr>
             </thead>
             <tbody>
               {reports.slice(0, 50).map((report) => (

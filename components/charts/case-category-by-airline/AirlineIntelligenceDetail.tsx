@@ -365,7 +365,7 @@ function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
 
 function AirlineRankTable({ data }: { data: AirlineOverview[] }) {
   const getRiskLevel = (riskIndex: number) => {
-    if (riskIndex >= 50) return { label: 'CRITICAL', color: 'bg-red-500', shadow: 'shadow-red-500/40 text-red-500' };
+    if (riskIndex >= 50) return { label: 'TOP RISK', color: 'bg-red-500', shadow: 'shadow-red-500/40 text-red-500' };
     if (riskIndex >= 20) return { label: 'ELEVATED', color: 'bg-orange-500', shadow: 'shadow-orange-500/40 text-orange-500' };
     return { label: 'STABLE', color: 'bg-emerald-500', shadow: 'shadow-emerald-500/40 text-emerald-500' };
   };
@@ -903,8 +903,8 @@ export default function AirlineIntelligenceDetail({ filters = {} }: { filters?: 
       {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-1">Branch Distribution (Airline)</h2>
-          <p className="text-xs text-gray-500 mb-4">Shows local issue vs national issue -- are reports concentrated in one branch?</p>
+          <h2 className="text-lg font-bold text-gray-800 mb-1">Station Distribution (Airline)</h2>
+          <p className="text-xs text-gray-500 mb-4">Shows local issue vs national issue -- are reports concentrated in one station?</p>
           <BranchDistributionChart data={branchData} />
         </section>
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">

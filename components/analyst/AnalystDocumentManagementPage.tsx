@@ -26,6 +26,7 @@ import { useAuth } from '@/lib/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { exportDivisionDocumentsToExcel } from '@/lib/division-documents-export';
 import { getFileKind } from '@/lib/material-file-kind';
+import { resolveMaterialLinks, type MaterialLink } from '@/lib/division-documents-material-links';
 import { AIRLINES } from '@/data/airlines';
 import type { DivisionDocument } from '@/types';
 
@@ -64,10 +65,7 @@ interface DocumentFormState {
     station_id: string;
     airline: string;
     participants: string;
-    external_url: string;
-    materi_url: string;
-    attendance_url: string;
-    recording_url: string;
+    material_links: MaterialLink[];
 }
 
 function initialForm(): DocumentFormState {
@@ -79,10 +77,7 @@ function initialForm(): DocumentFormState {
         station_id: '',
         airline: '',
         participants: '',
-        external_url: '',
-        materi_url: '',
-        attendance_url: '',
-        recording_url: '',
+        material_links: [{ title: '', url: '' }],
     };
 }
 
@@ -232,6 +227,7 @@ export function AnalystDocumentManagementPage() {
 
     const openEdit = useCallback((doc: DivisionDocument) => {
         setEditing(doc);
+        const links = resolveMaterialLinks(doc);
         setForm({
             title: doc.title,
             meeting_date: doc.meeting_date?.slice(0, 10) || '',
@@ -240,10 +236,7 @@ export function AnalystDocumentManagementPage() {
             station_id: doc.station_id || '',
             airline: doc.airline || '',
             participants: doc.participants || '',
-            external_url: doc.external_url || '',
-            materi_url: doc.materi_url || '',
-            attendance_url: doc.attendance_url || '',
-            recording_url: doc.recording_url || '',
+            material_links: links.length > 0 ? links : [{ title: '', url: '' }],
         });
         setComposerOpen(true);
     }, []);
@@ -270,10 +263,9 @@ export function AnalystDocumentManagementPage() {
                 airline: form.airline.trim() || null,
                 participants: form.participants.trim() || null,
                 source_type: 'link',
-                external_url: form.external_url.trim() || null,
-                materi_url: form.materi_url.trim() || null,
-                attendance_url: form.attendance_url.trim() || null,
-                recording_url: form.recording_url.trim() || null,
+                material_links: form.material_links
+                    .map((link) => ({ title: link.title.trim(), url: link.url.trim() }))
+                    .filter((link) => link.url),
                 visibility_scope: 'all',
                 audience_station_ids: [],
                 audience_roles: ['MANAGER_CABANG', 'STAFF_CABANG'],
@@ -348,9 +340,9 @@ export function AnalystDocumentManagementPage() {
     const SORT_LABELS: Record<SortKey, string> = {
         meeting_date: 'Date',
         title: 'Agenda',
-        activity_location: 'Venue',
+        activity_location: 'Location',
         activity_pic: 'PIC / Division',
-        station: 'Branch',
+        station: 'Station',
         airline: 'Airlines',
         participants: 'Participants',
     };
@@ -445,7 +437,7 @@ export function AnalystDocumentManagementPage() {
                             <input
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                placeholder="Search agenda, branch, airline, PIC, or participants"
+                                placeholder="Search agenda, station, airline, PIC, or participants"
                                 className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-blue-500 focus:bg-white"
                             />
                         </div>
@@ -482,7 +474,7 @@ export function AnalystDocumentManagementPage() {
                                 <input value={filters.title} onChange={(e) => setFilters((f) => ({ ...f, title: e.target.value }))} className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500" />
                             </label>
                             <label className="space-y-1 text-xs font-semibold text-slate-500">
-                                Venue
+                                Location
                                 <input value={filters.activity_location} onChange={(e) => setFilters((f) => ({ ...f, activity_location: e.target.value }))} className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500" />
                             </label>
                             <label className="space-y-1 text-xs font-semibold text-slate-500">
@@ -490,7 +482,7 @@ export function AnalystDocumentManagementPage() {
                                 <input value={filters.activity_pic} onChange={(e) => setFilters((f) => ({ ...f, activity_pic: e.target.value }))} className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500" />
                             </label>
                             <label className="space-y-1 text-xs font-semibold text-slate-500">
-                                Branch
+                                Station
                                 <input value={filters.station} onChange={(e) => setFilters((f) => ({ ...f, station: e.target.value }))} className="h-9 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm outline-none focus:border-blue-500" />
                             </label>
                             <label className="space-y-1 text-xs font-semibold text-slate-500">
@@ -573,9 +565,9 @@ export function AnalystDocumentManagementPage() {
                                     <tr className="border-b border-slate-200 bg-slate-50">
                                         <th className="px-4 py-3 text-left"><SortHeader label="Date" sortKeyValue="meeting_date" /></th>
                                         <th className="px-4 py-3 text-left"><SortHeader label="Agenda" sortKeyValue="title" /></th>
-                                        <th className="px-4 py-3 text-left"><SortHeader label="Venue" sortKeyValue="activity_location" /></th>
+                                        <th className="px-4 py-3 text-left"><SortHeader label="Location" sortKeyValue="activity_location" /></th>
                                         <th className="px-4 py-3 text-left"><SortHeader label="PIC / Division" sortKeyValue="activity_pic" /></th>
-                                        <th className="px-4 py-3 text-left"><SortHeader label="Branch" sortKeyValue="station" /></th>
+                                        <th className="px-4 py-3 text-left"><SortHeader label="Station" sortKeyValue="station" /></th>
                                         <th className="px-4 py-3 text-left"><SortHeader label="Airlines" sortKeyValue="airline" /></th>
                                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">Materials</th>
                                         <th className="px-4 py-3" />
@@ -592,10 +584,9 @@ export function AnalystDocumentManagementPage() {
                                             <td className="px-4 py-3 text-slate-600">{doc.airline || '—'}</td>
                                             <td className="px-4 py-3">
                                                 <div className="flex flex-wrap gap-2">
-                                                    <MaterialButton href={doc.external_url} label="Minutes" />
-                                                    <MaterialButton href={doc.materi_url} label="Materials" />
-                                                    <MaterialButton href={doc.attendance_url} label="Attendance" />
-                                                    <MaterialButton href={doc.recording_url} label="Recording" />
+                                                    {resolveMaterialLinks(doc).map((link, idx) => (
+                                                        <MaterialButton key={`${doc.id}-${idx}`} href={link.url} label={link.title || 'Link'} />
+                                                    ))}
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 text-right">
@@ -660,7 +651,7 @@ export function AnalystDocumentManagementPage() {
                                         />
                                     </label>
                                     <label className="space-y-2 text-sm font-semibold text-slate-700">
-                                        Venue / Location
+                                        Location
                                         <input
                                             value={form.activity_location}
                                             onChange={(e) => setForm((c) => ({ ...c, activity_location: e.target.value }))}
@@ -688,7 +679,7 @@ export function AnalystDocumentManagementPage() {
                                         />
                                     </label>
                                     <label className="space-y-2 text-sm font-semibold text-slate-700">
-                                        Branch
+                                        Station
                                         <select
                                             value={form.station_id}
                                             onChange={(e) => setForm((c) => ({ ...c, station_id: e.target.value }))}
@@ -728,47 +719,60 @@ export function AnalystDocumentManagementPage() {
 
                                 <fieldset className="rounded-xl border border-slate-200 p-4">
                                     <legend className="px-2 text-sm font-semibold text-slate-700">Material links</legend>
-                                    <div className="grid gap-4 sm:grid-cols-2">
-                                        <label className="space-y-2 text-sm font-semibold text-slate-700">
-                                            Meeting Minutes Link
-                                            <input
-                                                type="url"
-                                                value={form.external_url}
-                                                onChange={(e) => setForm((c) => ({ ...c, external_url: e.target.value }))}
-                                                placeholder="https://..."
-                                                className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
-                                            />
-                                        </label>
-                                        <label className="space-y-2 text-sm font-semibold text-slate-700">
-                                            Materials Link
-                                            <input
-                                                type="url"
-                                                value={form.materi_url}
-                                                onChange={(e) => setForm((c) => ({ ...c, materi_url: e.target.value }))}
-                                                placeholder="https://..."
-                                                className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
-                                            />
-                                        </label>
-                                        <label className="space-y-2 text-sm font-semibold text-slate-700">
-                                            Attendance List Link
-                                            <input
-                                                type="url"
-                                                value={form.attendance_url}
-                                                onChange={(e) => setForm((c) => ({ ...c, attendance_url: e.target.value }))}
-                                                placeholder="https://..."
-                                                className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
-                                            />
-                                        </label>
-                                        <label className="space-y-2 text-sm font-semibold text-slate-700">
-                                            Recording Link
-                                            <input
-                                                type="url"
-                                                value={form.recording_url}
-                                                onChange={(e) => setForm((c) => ({ ...c, recording_url: e.target.value }))}
-                                                placeholder="https://..."
-                                                className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
-                                            />
-                                        </label>
+                                    <div className="space-y-4">
+                                        {form.material_links.map((link, idx) => (
+                                            <div key={idx} className="flex gap-2">
+                                                <div className="grid flex-1 gap-3 sm:grid-cols-2">
+                                                    <label className="space-y-2 text-sm font-semibold text-slate-700">
+                                                        Judul
+                                                        <input
+                                                            value={link.title}
+                                                            onChange={(e) => setForm((c) => ({
+                                                                ...c,
+                                                                material_links: c.material_links.map((l, i) => i === idx ? { ...l, title: e.target.value } : l),
+                                                            }))}
+                                                            placeholder="e.g. SOP Ground Handling"
+                                                            className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
+                                                        />
+                                                    </label>
+                                                    <label className="space-y-2 text-sm font-semibold text-slate-700">
+                                                        Link
+                                                        <input
+                                                            type="url"
+                                                            value={link.url}
+                                                            onChange={(e) => setForm((c) => ({
+                                                                ...c,
+                                                                material_links: c.material_links.map((l, i) => i === idx ? { ...l, url: e.target.value } : l),
+                                                            }))}
+                                                            placeholder="https://..."
+                                                            className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
+                                                        />
+                                                    </label>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setForm((c) => ({
+                                                        ...c,
+                                                        material_links: c.material_links.filter((_, i) => i !== idx),
+                                                    }))}
+                                                    aria-label="Remove link"
+                                                    className="mt-8 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                        <button
+                                            type="button"
+                                            onClick={() => setForm((c) => ({
+                                                ...c,
+                                                material_links: [...c.material_links, { title: '', url: '' }],
+                                            }))}
+                                            className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-semibold text-blue-600 transition hover:border-blue-400 hover:bg-blue-50"
+                                        >
+                                            <Plus className="h-4 w-4" />
+                                            Add more link
+                                        </button>
                                     </div>
                                 </fieldset>
                             </div>

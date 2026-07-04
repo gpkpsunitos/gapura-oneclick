@@ -824,7 +824,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
             <StatBadge label="Total Cases" value={grand2025} onClick={() => openDrilldown(gse2025Reports, '2025 GSE — All Cases')} />
             <StatBadge label="Incident Categories" value={apron2025Rows.length} onClick={() => openDrilldown(gse2025Reports, '2025 GSE — All Categories')} />
             <StatBadge label="Airlines Involved" value={airline2025Rows.length} onClick={() => openDrilldown(gse2025Reports.filter((r) => !!(val(r.airlines) || val(r.airline))), '2025 GSE — Airline Cases')} />
-            <StatBadge label="Stations / Branches" value={branch2025Rows.length} onClick={() => openDrilldown(gse2025Reports.filter((r) => !!(val(r.branch) || val(r.station_code) || val(r.branch_code))), '2025 GSE — Station Cases')} />
+            <StatBadge label="Stations" value={branch2025Rows.length} onClick={() => openDrilldown(gse2025Reports.filter((r) => !!(val(r.branch) || val(r.station_code) || val(r.branch_code))), '2025 GSE — Station Cases')} />
           </div>
 
           {}
@@ -910,7 +910,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
               </Panel>
 
               <Panel
-                title="Station / Branch Exposure"
+                title="Station Exposure"
                 total={branch2025Rows.reduce((s, r) => s + r.total, 0)}
                 aiContext={{ section: 'GSE Performance 2025', chartTitle: 'Station Exposure 2025', chartType: 'gse_2025_station', chartData: branch2025Rows.map((r) => ({ name: r.label, total: r.total })), featureHints: ['riskScoring', 'summarization', 'actionRecommendation'] }}
               >

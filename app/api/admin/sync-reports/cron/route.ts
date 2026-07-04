@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SyncService } from '@/lib/services/sync-service';
+import { JoumpaSyncService } from '@/lib/services/joumpa-sync-service';
 import { logSecurityAudit } from '@/lib/security/audit-logger';
 
 // Vercel Hobby caps functions at 60s. Pin the budget and give the sync most of it
@@ -50,6 +51,16 @@ async function handleCronSync(request: NextRequest) {
 
         const syncResult = result as Awaited<typeof syncPromise>;
 
+        // JOUMPA is tiny (dozens of rows) so it piggybacks on this cron rather
+        // than a 3rd Vercel cron (Hobby caps at 2). Non-blocking on failure.
+        let joumpa: Awaited<ReturnType<typeof JoumpaSyncService.sync>> | { error: string } | null = null;
+        try {
+            joumpa = await JoumpaSyncService.sync();
+        } catch (joumpaError) {
+            joumpa = { error: joumpaError instanceof Error ? joumpaError.message : 'Joumpa sync failed' };
+            console.error('[CRON-SYNC] JOUMPA sync error:', joumpaError);
+        }
+
         await logSecurityAudit({
             actorId: 'vercel-cron',
             action: 'SYNC_REPORTS',
@@ -65,7 +76,7 @@ async function handleCronSync(request: NextRequest) {
             userAgent: request.headers.get('user-agent'),
         }).catch(() => {});
 
-        return NextResponse.json(syncResult, {
+        return NextResponse.json({ ...syncResult, joumpa }, {
             status: syncResult.success ? 200 : 500,
         });
     } catch (error) {

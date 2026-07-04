@@ -14,7 +14,7 @@ export function EnlargedChart({ tile, result, viewMode, normalization }: Enlarge
   const chartRef = useRef<HTMLDivElement>(null);
   const { title, chartType: rawChartType } = tile.visualization;
 
-  let chartType = title === 'Case Report by Area' || title === 'Case Category by Branch' || title === 'Case Category by Airlines' 
+  let chartType = title === 'Case Report by Area' || title === 'Case Category by Station' || title === 'Case Category by Airlines' 
     ? 'heatmap' 
     : rawChartType;
 

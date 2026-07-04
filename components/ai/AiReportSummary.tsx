@@ -175,7 +175,7 @@ export function AiReportSummary({
                 </div>
                 <div className="text-right">
                   <div className="text-xl font-black text-[var(--text-primary)]">
-                    {summary.severity_distribution.Critical || 0}
+                    {summary.severity_distribution['TOP RISK'] || 0}
                   </div>
                   <div className="text-[10px] font-bold text-[var(--text-muted)] uppercase">Critical Events</div>
                 </div>
@@ -196,16 +196,16 @@ export function AiReportSummary({
               Severity Distribution
             </div>
             <div className="space-y-3">
-              {['Critical', 'High', 'Medium', 'Low'].map(level => {
+              {['TOP RISK', 'HIGH RISK', 'MEDIUM', 'LOW'].map(level => {
                 const count = summary.severity_distribution[level] || 0;
                 const pct = (count / summary.total_records) * 100;
                 return (
                   <div key={level} className="flex items-center gap-3">
                     <div className={cn(
                       "w-2 h-2 rounded-full",
-                      level === 'Critical' ? 'bg-red-600' :
-                      level === 'High' ? 'bg-red-500' :
-                      level === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500'
+                      level === 'TOP RISK' ? 'bg-red-600' :
+                      level === 'HIGH RISK' ? 'bg-red-500' :
+                      level === 'MEDIUM' ? 'bg-amber-500' : 'bg-emerald-500'
                     )} />
                     <span className="text-xs font-bold text-[var(--text-secondary)] min-w-[60px]">{level}</span>
                     <div className="flex-1 h-1.5 bg-[var(--surface-4)] rounded-full overflow-hidden">

@@ -2,13 +2,13 @@
 
 import React, { useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import useSWR from 'swr';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks/use-auth';
-import { Search, Plus, Trash2, Pencil, ExternalLink, X, Loader2, ArrowUpDown, FileSpreadsheet, Download } from 'lucide-react';
+import { Search, Plus, Trash2, Pencil, ExternalLink, X, Loader2, ArrowUpDown, FileSpreadsheet, Download, Filter, ChevronDown } from 'lucide-react';
 
-type Tab = 'reminder' | 'joumpa' | 'joumpa_uplifting' | 'rca';
+type Tab = 'weekly_report' | 'monthly_report' | 'survey_report' | 'reminder' | 'joumpa' | 'joumpa_uplifting' | 'rca';
 type FieldType = 'date' | 'text' | 'multiline' | 'url' | 'select';
 
 interface Col {
@@ -25,6 +25,39 @@ interface OcsRecord {
 
 const TABS: { id: Tab; label: string; display?: React.ReactNode; cols: Col[] }[] = [
   {
+    id: 'weekly_report',
+    label: 'Weekly Report',
+    cols: [
+      { key: 'event_date', label: 'Date', type: 'date' },
+      { key: 'series', label: 'Weekly Period', type: 'text' },
+      { key: 'remarks', label: 'Remarks', type: 'multiline' },
+      { key: 'report_url', label: 'Upload Link (PPT/PDF)', type: 'url' },
+      { key: 'materi_url', label: 'Upload Link (Dashboard Analytics)', type: 'url' },
+    ],
+  },
+  {
+    id: 'monthly_report',
+    label: 'Monthly Report',
+    cols: [
+      { key: 'event_date', label: 'Date', type: 'date' },
+      { key: 'series', label: 'Monthly Period', type: 'text' },
+      { key: 'remarks', label: 'Remarks', type: 'multiline' },
+      { key: 'report_url', label: 'Upload Link (PPT/PDF)', type: 'url' },
+      { key: 'materi_url', label: 'Upload Link (Dashboard Analytics)', type: 'url' },
+    ],
+  },
+  {
+    id: 'survey_report',
+    label: 'Survey Report',
+    cols: [
+      { key: 'event_date', label: 'Date', type: 'date' },
+      { key: 'agenda', label: 'Quarter', type: 'text' },
+      { key: 'series', label: 'Survey Period', type: 'text' },
+      { key: 'remarks', label: 'Remarks', type: 'multiline' },
+      { key: 'report_url', label: 'Upload Link (PPT/PDF)', type: 'url' },
+    ],
+  },
+  {
     id: 'reminder',
     label: 'Reminder Series',
     cols: [
@@ -33,13 +66,13 @@ const TABS: { id: Tab; label: string; display?: React.ReactNode; cols: Col[] }[]
       { key: 'series', label: 'Series', type: 'text' },
       { key: 'location', label: 'Location', type: 'text' },
       { key: 'pic', label: 'PIC / Division', type: 'text' },
-      { key: 'branch', label: 'Branch', type: 'select' },
+      { key: 'branch', label: 'Station', type: 'select' },
       { key: 'participants', label: 'Participants', type: 'multiline' },
       { key: 'case_report', label: 'Case Report', type: 'multiline' },
-      { key: 'report_url', label: 'Report', type: 'url' },
-      { key: 'materi_url', label: 'Materials', type: 'url' },
-      { key: 'attendance_url', label: 'Attendance', type: 'url' },
-      { key: 'record_url', label: 'Recording', type: 'url' },
+      { key: 'report_url', label: 'Report (Word/PDF)', type: 'url' },
+      { key: 'materi_url', label: 'Materials (PPT/PDF)', type: 'url' },
+      { key: 'attendance_url', label: 'Attendance (Excel)', type: 'url' },
+      { key: 'record_url', label: 'Recording (Audio/Video/Other Document)', type: 'url' },
     ],
   },
   {
@@ -47,17 +80,17 @@ const TABS: { id: Tab; label: string; display?: React.ReactNode; cols: Col[] }[]
     label: 'Joumpa Evaluation',
     display: (<><span className="block">Joumpa Evaluation</span><span className="block">Performance Assessment Monitoring</span></>),
     cols: [
-      { key: 'event_date', label: 'Assessment Date', type: 'date' },
+      { key: 'event_date', label: 'Assessment Evaluation Date', type: 'date' },
       { key: 'agenda', label: 'Agenda', type: 'multiline' },
-      { key: 'series', label: 'Session', type: 'text' },
+      { key: 'series', label: 'Joumpa Assessment Session', type: 'text' },
       { key: 'location', label: 'Location', type: 'text' },
       { key: 'pic', label: 'PIC / Division', type: 'text' },
-      { key: 'branch', label: 'Branch', type: 'select' },
+      { key: 'branch', label: 'Station', type: 'select' },
       { key: 'participants', label: 'Participants', type: 'multiline' },
-      { key: 'report_url', label: 'Report', type: 'url' },
-      { key: 'materi_url', label: 'Materials', type: 'url' },
-      { key: 'attendance_url', label: 'Attendance', type: 'url' },
-      { key: 'record_url', label: 'Recording', type: 'url' },
+      { key: 'report_url', label: 'Report (Word/PDF)', type: 'url' },
+      { key: 'materi_url', label: 'Materials (PPT/PDF)', type: 'url' },
+      { key: 'attendance_url', label: 'Attendance (Excel)', type: 'url' },
+      { key: 'record_url', label: 'Recording (Audio/Video/Other Document)', type: 'url' },
     ],
   },
   {
@@ -69,12 +102,12 @@ const TABS: { id: Tab; label: string; display?: React.ReactNode; cols: Col[] }[]
       { key: 'series', label: 'Session', type: 'text' },
       { key: 'location', label: 'Location', type: 'text' },
       { key: 'pic', label: 'PIC / Division', type: 'text' },
-      { key: 'branch', label: 'Branch', type: 'select' },
+      { key: 'branch', label: 'Station', type: 'select' },
       { key: 'participants', label: 'Participants', type: 'multiline' },
-      { key: 'report_url', label: 'Report', type: 'url' },
-      { key: 'materi_url', label: 'Materials', type: 'url' },
-      { key: 'attendance_url', label: 'Attendance', type: 'url' },
-      { key: 'record_url', label: 'Recording', type: 'url' },
+      { key: 'report_url', label: 'Report (Word/PDF)', type: 'url' },
+      { key: 'materi_url', label: 'Materials (PPT/PDF)', type: 'url' },
+      { key: 'attendance_url', label: 'Attendance (Excel)', type: 'url' },
+      { key: 'record_url', label: 'Recording (Audio/Video/Other Document)', type: 'url' },
     ],
   },
   {
@@ -84,11 +117,11 @@ const TABS: { id: Tab; label: string; display?: React.ReactNode; cols: Col[] }[]
       { key: 'event_date', label: 'Date', type: 'date' },
       { key: 'case_report', label: 'RCA Case Report', type: 'multiline' },
       { key: 'pic', label: 'PIC / Division', type: 'text' },
-      { key: 'branch', label: 'Branch', type: 'select' },
+      { key: 'branch', label: 'Station', type: 'select' },
       { key: 'airline', label: 'Airlines', type: 'text' },
       { key: 'remarks', label: 'Remarks', type: 'multiline' },
-      { key: 'report_url', label: 'Report', type: 'url' },
-      { key: 'record_url', label: 'Detail Doc', type: 'url' },
+      { key: 'report_url', label: 'Report (Word/PDF/PPT)', type: 'url' },
+      { key: 'record_url', label: 'Detail Document (Other)', type: 'url' },
     ],
   },
 ];
@@ -135,6 +168,10 @@ export default function OCSRecordsTabs() {
 
   const [active, setActive] = useState<Tab>('reminder');
   const tab = TABS.find((t) => t.id === active)!;
+  // ponytail: weekly/monthly/survey reports split by Ground Handling vs Joumpa.
+  // Reuses the unused 'pic' column as the discriminator instead of a migration.
+  const isCategorized = active === 'weekly_report' || active === 'monthly_report' || active === 'survey_report';
+  const [category, setCategory] = useState<'ground_handling' | 'joumpa'>('ground_handling');
 
   const { data, mutate, isLoading } = useSWR<OcsRecord[]>(`/api/ocs-records?tab=${active}`, fetcher, {
     revalidateOnFocus: false,
@@ -148,16 +185,42 @@ export default function OCSRecordsTabs() {
   const [editing, setEditing] = useState<OcsRecord | null>(null);
   const [exporting, setExporting] = useState(false);
 
+  // Collapsible filter — date range + one "contains" filter per text/select column, generic across all tabs.
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const [colFilters, setColFilters] = useState<Record<string, string>>({});
+  const filterCols = useMemo(() => tab.cols.filter((c) => c.type === 'text' || c.type === 'select'), [tab.cols]);
+  // select-type filters (e.g. Branch) get a dropdown of values actually present, not free text
+  const filterOptions = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    for (const c of filterCols) {
+      if (c.type === 'select') {
+        map[c.key] = Array.from(new Set(records.map((r) => r[c.key]).filter(Boolean) as string[])).sort();
+      }
+    }
+    return map;
+  }, [filterCols, records]);
+  const activeFilterCount = (dateFrom ? 1 : 0) + (dateTo ? 1 : 0) + Object.values(colFilters).filter((v) => v.trim()).length;
+  const clearFilters = () => { setDateFrom(''); setDateTo(''); setColFilters({}); };
+
   const rows = useMemo(() => {
+    let base = isCategorized ? records.filter((r) => (r.pic || 'ground_handling') === category) : records;
+    if (dateFrom) base = base.filter((r) => !r.event_date || r.event_date >= dateFrom);
+    if (dateTo) base = base.filter((r) => !r.event_date || r.event_date <= dateTo);
+    for (const [key, val] of Object.entries(colFilters)) {
+      const v = val.trim().toLowerCase();
+      if (v) base = base.filter((r) => String(r[key] ?? '').toLowerCase().includes(v));
+    }
     const s = search.trim().toLowerCase();
     const filtered = s
-      ? records.filter((r) => tab.cols.some((c) => String(r[c.key] ?? '').toLowerCase().includes(s)))
-      : records;
+      ? base.filter((r) => tab.cols.some((c) => String(r[c.key] ?? '').toLowerCase().includes(s)))
+      : base;
     return [...filtered].sort((a, b) => {
       const cmp = String(a[sortKey] ?? '').localeCompare(String(b[sortKey] ?? ''));
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [records, search, sortKey, sortDir, tab.cols]);
+  }, [records, search, sortKey, sortDir, tab.cols, isCategorized, category, dateFrom, dateTo, colFilters]);
 
   const toggleSort = (key: string) => {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -184,7 +247,7 @@ export default function OCSRecordsTabs() {
           {TABS.map((t) => (
             <button
               key={t.id}
-              onClick={() => { setActive(t.id); setSearch(''); setSortKey('event_date'); setSortDir('desc'); }}
+              onClick={() => { setActive(t.id); setSearch(''); setSortKey('event_date'); setSortDir('desc'); setCategory('ground_handling'); setDateFrom(''); setDateTo(''); setColFilters({}); setFiltersOpen(false); }}
               className={cn(
                 'px-3 sm:px-6 py-2 sm:py-2.5 rounded-xl text-[9px] sm:text-[11px] font-black uppercase tracking-wider sm:tracking-widest transition-all duration-300 whitespace-nowrap relative flex items-center gap-1 sm:gap-2',
                 active === t.id
@@ -208,6 +271,29 @@ export default function OCSRecordsTabs() {
           ))}
         </div>
       </div>
+
+      {/* Options — Ground Handling vs Joumpa, weekly/monthly/survey tabs only */}
+      {isCategorized && (
+        <div className="flex items-center gap-2 px-1">
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)]">Options</span>
+          <div className="flex gap-1.5">
+            {(['ground_handling', 'joumpa'] as const).map((c) => (
+              <button
+                key={c}
+                onClick={() => setCategory(c)}
+                className={cn(
+                  'px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all',
+                  category === c
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'bg-white border border-[var(--surface-3)] text-[var(--text-secondary)] hover:border-emerald-300'
+                )}
+              >
+                {c === 'ground_handling' ? 'Ground Handling Report' : 'Joumpa Report'}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Unified table card — toolbar + table in one container */}
       <div className="rounded-2xl border border-[var(--surface-3)] bg-white shadow-sm overflow-hidden">
@@ -238,6 +324,24 @@ export default function OCSRecordsTabs() {
             />
           </div>
 
+          {/* Filter toggle */}
+          <button
+            onClick={() => setFiltersOpen((o) => !o)}
+            className={cn(
+              'inline-flex items-center gap-1.5 h-8 px-3 rounded-lg border text-xs font-semibold shadow-sm active:scale-[0.97] transition-all',
+              activeFilterCount > 0
+                ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                : 'border-[var(--surface-3)] bg-white text-[var(--text-secondary)] hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50'
+            )}
+          >
+            <Filter size={12} />
+            <span className="hidden sm:inline">Filter</span>
+            {activeFilterCount > 0 && (
+              <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-emerald-600 text-white text-[9px] font-bold">{activeFilterCount}</span>
+            )}
+            <ChevronDown size={12} className={cn('transition-transform', filtersOpen && 'rotate-180')} />
+          </button>
+
           {/* Spacer */}
           <div className="flex-1" />
 
@@ -259,6 +363,88 @@ export default function OCSRecordsTabs() {
             </>
           )}
         </div>
+
+        {/* Collapsible filter panel */}
+        <AnimatePresence initial={false}>
+          {filtersOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.22, ease: 'easeInOut' }}
+              className="overflow-hidden border-b border-emerald-100/80 shadow-[inset_0_1px_3px_rgba(16,185,129,0.06)]"
+              style={{ background: 'linear-gradient(180deg, #f0fdf4 0%, #f7fef9 100%)' }}
+            >
+              <div className="flex flex-wrap items-end gap-x-6 gap-y-3 px-4 py-3.5">
+                <div>
+                  <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-emerald-700/70">Date</label>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="date"
+                      value={dateFrom}
+                      onChange={(e) => setDateFrom(e.target.value)}
+                      className={cn(
+                        'h-8 rounded-lg border bg-white px-2 text-xs shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-400',
+                        dateFrom ? 'border-emerald-300' : 'border-[var(--surface-3)]'
+                      )}
+                    />
+                    <span className="text-emerald-700/40 text-xs">–</span>
+                    <input
+                      type="date"
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      className={cn(
+                        'h-8 rounded-lg border bg-white px-2 text-xs shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-400',
+                        dateTo ? 'border-emerald-300' : 'border-[var(--surface-3)]'
+                      )}
+                    />
+                  </div>
+                </div>
+                {filterCols.length > 0 && <div className="h-8 w-px bg-emerald-200/60" />}
+                {filterCols.map((c) => {
+                  const active = !!colFilters[c.key]?.trim();
+                  return (
+                    <div key={c.key}>
+                      <label className="mb-1 block text-[10px] font-bold uppercase tracking-widest text-emerald-700/70">{c.label}</label>
+                      {c.type === 'select' ? (
+                        <select
+                          value={colFilters[c.key] ?? ''}
+                          onChange={(e) => setColFilters((f) => ({ ...f, [c.key]: e.target.value }))}
+                          className={cn(
+                            'h-8 w-36 rounded-lg border bg-white px-2 text-xs shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-400',
+                            active ? 'border-emerald-300 text-emerald-800' : 'border-[var(--surface-3)]'
+                          )}
+                        >
+                          <option value="">All {c.label}</option>
+                          {filterOptions[c.key]?.map((v) => <option key={v} value={v}>{v}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={colFilters[c.key] ?? ''}
+                          onChange={(e) => setColFilters((f) => ({ ...f, [c.key]: e.target.value }))}
+                          placeholder={`Filter ${c.label}...`}
+                          className={cn(
+                            'h-8 w-36 rounded-lg border bg-white px-2.5 text-xs placeholder:text-[var(--text-muted)] shadow-sm transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-400',
+                            active ? 'border-emerald-300' : 'border-[var(--surface-3)]'
+                          )}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+                {activeFilterCount > 0 && (
+                  <button
+                    onClick={clearFilters}
+                    className="h-8 inline-flex items-center gap-1 px-2.5 rounded-lg border border-transparent text-xs font-semibold text-[var(--text-muted)] hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-colors"
+                  >
+                    <X size={11} /> Clear
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Table */}
         <div className="overflow-x-auto">
@@ -354,6 +540,7 @@ export default function OCSRecordsTabs() {
           onClose={() => { setShowForm(false); setEditing(null); }}
           onSaved={() => { setShowForm(false); setEditing(null); mutate(); }}
           tab={active}
+          categoryField={isCategorized && !editing ? { key: 'pic', value: category } : undefined}
         />
       )}
     </div>
@@ -361,13 +548,14 @@ export default function OCSRecordsTabs() {
 }
 
 function RecordForm({
-  cols, tab, record, onClose, onSaved,
+  cols, tab, record, onClose, onSaved, categoryField,
 }: {
   cols: Col[];
   tab: Tab;
   record?: OcsRecord | null;
   onClose: () => void;
   onSaved: () => void;
+  categoryField?: { key: string; value: string };
 }) {
   const isEdit = !!record;
   const [form, setForm] = useState<Record<string, string>>(() =>
@@ -384,7 +572,7 @@ function RecordForm({
       const res = await fetch('/api/ocs-records', {
         method: isEdit ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(isEdit ? { id: record!.id, ...form } : { tab, ...form }),
+        body: JSON.stringify(isEdit ? { id: record!.id, ...form } : { tab, ...form, ...(categoryField ? { [categoryField.key]: categoryField.value } : {}) }),
       });
       if (!res.ok) throw new Error('save failed');
       onSaved();
@@ -410,7 +598,10 @@ function RecordForm({
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">{isEdit ? 'Edit Entry' : 'New Entry'}</h3>
-            <p className="text-xs text-gray-400 mt-0.5">{cols.filter(c => c.type !== 'url').length} fields · {urlCols.length} links</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {cols.filter(c => c.type !== 'url').length} fields · {urlCols.length} links
+              {categoryField && ` · ${categoryField.value === 'ground_handling' ? 'Ground Handling Report' : 'Joumpa Report'}`}
+            </p>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
             <X size={15} />
@@ -431,7 +622,7 @@ function RecordForm({
                     onChange={(e) => setForm((f) => ({ ...f, [c.key]: e.target.value }))}
                     className={inputCls}
                   >
-                    <option value="">— Pilih Branch —</option>
+                    <option value="">— Select Station —</option>
                     {stations?.map((s) => (
                       <option key={s.code} value={s.code}>{s.code} — {s.name}</option>
                     ))}
@@ -458,7 +649,7 @@ function RecordForm({
                 {urlCols.map((c) => (
                   <div key={c.key}>
                     <label className="mb-1 block text-[11px] font-medium text-gray-500">
-                      {c.label} <span className="text-gray-400 font-normal">(opsional)</span>
+                      {c.label} <span className="text-gray-400 font-normal">(optional)</span>
                     </label>
                     <input
                       type="text"

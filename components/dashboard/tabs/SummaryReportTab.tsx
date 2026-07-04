@@ -143,11 +143,9 @@ function normalizeText(value: unknown, fallback = '-') {
 
 type SourceBreakdown = { landside: number; airside: number; general: number; gse: number };
 
-function computeSourceBreakdown(reports: Report[], year: number): SourceBreakdown {
+function computeBreakdownFromReports(reports: Report[]): SourceBreakdown {
   const acc: SourceBreakdown = { landside: 0, airside: 0, general: 0, gse: 0 };
   for (const r of reports) {
-    const m = extractMonthColumn(r);
-    if (!m || m.year !== year) continue;
     const src = classifySourceArea(r);
     if (src === 'landside' || src === 'airside' || src === 'general' || src === 'gse') acc[src] += 1;
   }
@@ -309,7 +307,7 @@ function resolveCategory(report: Report) {
   return normalizeText(resolveReportCategory(report), 'Uncategorized');
 }
 
-function extractMonthColumn(report: Report): MonthColumn | null {
+function parseReportDate(report: Report): Date | null {
   const source = report.date_of_event || report.created_at;
   if (!source) return null;
 
@@ -321,7 +319,17 @@ function extractMonthColumn(report: Report): MonthColumn | null {
     parsed = new Date(source);
   }
 
-  if (Number.isNaN(parsed.getTime())) return null;
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function dateToISO(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function extractMonthColumn(report: Report): MonthColumn | null {
+  const parsed = parseReportDate(report);
+  if (!parsed) return null;
 
   const year = parsed.getFullYear();
   const monthIndex = parsed.getMonth();
@@ -1181,10 +1189,9 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
               <AnnualReportSummary
                 previousYear={previousYear}
                 currentYear={comparisonCurrentYear}
+                allReports={filtered}
                 previousRows={previous.rows}
                 currentRows={current.rows}
-                previousBreakdown={computeSourceBreakdown(filtered, previousYear)}
-                currentBreakdown={computeSourceBreakdown(filtered, comparisonCurrentYear)}
                 comparisonRows={comparison}
                 branchOptions={summaryBranchOptions}
                 airlineOptions={summaryAirlineOptions}
@@ -1194,6 +1201,7 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
                 onAirlineChange={setSelectedSummaryAirline}
                 onMonthCategoryClick={onMonthClick}
                 onYearComparisonClick={onComparisonClick}
+                openDrilldown={openDrilldown}
                 headerExtra={sourceToggle}
               />
             );
@@ -1563,63 +1571,181 @@ function ExpandableReportBlock({
   );
 }
 
+type DateRange = { from: string; to: string };
+
+const EMPTY_RANGE: DateRange = { from: '', to: '' };
+
+function filterReportsForHeroCard(reports: Report[], year: number, range: DateRange): Report[] {
+  return reports.filter((report) => {
+    const date = parseReportDate(report);
+    if (!date) return false;
+    if (range.from || range.to) {
+      const iso = dateToISO(date);
+      if (range.from && iso < range.from) return false;
+      if (range.to && iso > range.to) return false;
+      return true;
+    }
+    return date.getFullYear() === year;
+  });
+}
+
+function heroCardLabel(year: number, range: DateRange): string {
+  return range.from || range.to ? `${range.from || '…'} to ${range.to || '…'}` : String(year);
+}
+
+function HeroDateRangePicker({ range, onChange }: { range: DateRange; onChange: (range: DateRange) => void }) {
+  return (
+    <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}>
+      <input
+        type="date"
+        value={range.from}
+        onChange={(event) => onChange({ ...range, from: event.target.value })}
+        className="sr-date-input"
+        aria-label="From date"
+      />
+      <span className="text-[10px] text-[color:var(--sr-text-3)]">–</span>
+      <input
+        type="date"
+        value={range.to}
+        onChange={(event) => onChange({ ...range, to: event.target.value })}
+        className="sr-date-input"
+        aria-label="To date"
+      />
+      {range.from || range.to ? (
+        <button
+          type="button"
+          onClick={() => onChange(EMPTY_RANGE)}
+          className="text-[10px] font-black uppercase text-[color:var(--sr-text-3)] hover:text-[color:var(--sr-neg)]"
+          title="Clear date range"
+        >
+          Reset
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+const SOURCE_BADGES = [
+  ['landside', 'Landside'],
+  ['airside', 'Airside'],
+  ['general', 'General'],
+  ['gse', 'GSE'],
+] as const;
+
+function HeroCard({
+  label,
+  reports,
+  range,
+  onRangeChange,
+  onTotalClick,
+  onSourceClick,
+  primary,
+}: {
+  label: string;
+  reports: Report[];
+  range: DateRange;
+  onRangeChange: (range: DateRange) => void;
+  onTotalClick: () => void;
+  onSourceClick: (source: 'landside' | 'airside' | 'general' | 'gse') => void;
+  primary?: boolean;
+}) {
+  const breakdown = computeBreakdownFromReports(reports);
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      className={`sr-card-hero relative flex min-w-0 flex-col justify-between gap-6 p-8 sm:p-10 text-left cursor-pointer hover:brightness-[0.97] transition-all ${primary ? 'sr-card-hero-primary' : ''}`}
+      onClick={onTotalClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') onTotalClick();
+      }}
+      title={`View ${label} reports`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-[color:var(--sr-accent-dark)]">Total Reports {label}</span>
+        <HeroDateRangePicker range={range} onChange={onRangeChange} />
+      </div>
+      <div>
+        <div className="sr-hero-value">{reports.length.toLocaleString()}</div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[color:var(--sr-text-2)]">
+          {SOURCE_BADGES.map(([source, sourceLabel]) => (
+            <button
+              key={source}
+              type="button"
+              disabled={breakdown[source] === 0}
+              onClick={(event) => {
+                event.stopPropagation();
+                onSourceClick(source);
+              }}
+              className="hover:text-[color:var(--sr-accent-dark)] disabled:cursor-default disabled:opacity-50 disabled:hover:text-[color:var(--sr-text-2)]"
+            >
+              <span className="text-[color:var(--sr-text-3)]">{sourceLabel}</span> · <span className="font-mono text-[color:var(--sr-text)]">{breakdown[source].toLocaleString()}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function AnnualMetricStrip({
   previousYear,
   currentYear,
-  previousRows,
-  currentRows,
-  previousBreakdown,
-  currentBreakdown,
-  comparisonRows,
-  onYearComparisonClick,
+  allReports,
+  openDrilldown,
 }: {
   previousYear: number;
   currentYear: number;
-  previousRows: YearlyCategoryMonthRow[];
-  currentRows: YearlyCategoryMonthRow[];
-  previousBreakdown: SourceBreakdown;
-  currentBreakdown: SourceBreakdown;
-  comparisonRows: YearComparisonRow[];
-  onYearComparisonClick?: (metricId: SummaryMetricId) => void;
+  allReports: Report[];
+  openDrilldown: (reports: Report[], title: string) => void;
 }) {
-  const previousTotal = previousRows.reduce((sum, row) => sum + row.total, 0);
-  const currentTotal = currentRows.reduce((sum, row) => sum + row.total, 0);
+  const [previousRange, setPreviousRange] = useState<DateRange>(EMPTY_RANGE);
+  const [currentRange, setCurrentRange] = useState<DateRange>(EMPTY_RANGE);
 
-  const renderBreakdown = (b: SourceBreakdown) => (
-    <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[color:var(--sr-text-2)]">
-      <span><span className="text-[color:var(--sr-text-3)]">Landside</span> · <span className="font-mono text-[color:var(--sr-text)]">{b.landside.toLocaleString()}</span></span>
-      <span><span className="text-[color:var(--sr-text-3)]">Airside</span> · <span className="font-mono text-[color:var(--sr-text)]">{b.airside.toLocaleString()}</span></span>
-      <span><span className="text-[color:var(--sr-text-3)]">General</span> · <span className="font-mono text-[color:var(--sr-text)]">{b.general.toLocaleString()}</span></span>
-      <span><span className="text-[color:var(--sr-text-3)]">GSE</span> · <span className="font-mono text-[color:var(--sr-text)]">{b.gse.toLocaleString()}</span></span>
-    </div>
+  const previousReports = useMemo(
+    () => filterReportsForHeroCard(allReports, previousYear, previousRange),
+    [allReports, previousYear, previousRange]
   );
+  const currentReports = useMemo(
+    () => filterReportsForHeroCard(allReports, currentYear, currentRange),
+    [allReports, currentYear, currentRange]
+  );
+
+  const sourceLabelByValue: Record<string, string> = { landside: 'Landside', airside: 'Airside', general: 'General', gse: 'GSE' };
+
+  const handleSourceClick = (
+    reports: Report[],
+    label: string,
+    source: 'landside' | 'airside' | 'general' | 'gse'
+  ) => {
+    const matched = reports.filter((report) => classifySourceArea(report) === source);
+    if (matched.length) openDrilldown(matched, `${label} - ${sourceLabelByValue[source]}`);
+  };
 
   return (
     <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-      <button
-        type="button"
-        className="sr-card-hero relative flex min-w-0 flex-col justify-between gap-6 p-8 sm:p-10 text-left cursor-pointer hover:brightness-[0.97] transition-all"
-        onClick={() => onYearComparisonClick?.('total')}
-        title={`View ${previousYear} reports`}
-      >
-        <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-[color:var(--sr-accent-dark)]">Total Reports {previousYear}</span>
-        <div>
-          <div className="sr-hero-value">{previousTotal.toLocaleString()}</div>
-          {renderBreakdown(previousBreakdown)}
-        </div>
-      </button>
-      <button
-        type="button"
-        className="sr-card-hero sr-card-hero-primary relative flex min-w-0 flex-col justify-between gap-6 p-8 sm:p-10 text-left cursor-pointer hover:brightness-[0.97] transition-all"
-        onClick={() => onYearComparisonClick?.('total')}
-        title={`View all ${currentYear} reports`}
-      >
-        <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-[color:var(--sr-accent-dark)]">Total Reports {currentYear}</span>
-        <div>
-          <div className="sr-hero-value">{currentTotal.toLocaleString()}</div>
-          {renderBreakdown(currentBreakdown)}
-        </div>
-      </button>
+      <HeroCard
+        label={heroCardLabel(previousYear, previousRange)}
+        reports={previousReports}
+        range={previousRange}
+        onRangeChange={setPreviousRange}
+        onTotalClick={() => {
+          if (previousReports.length) openDrilldown(previousReports, `${heroCardLabel(previousYear, previousRange)} - Total Reports`);
+        }}
+        onSourceClick={(source) => handleSourceClick(previousReports, heroCardLabel(previousYear, previousRange), source)}
+      />
+      <HeroCard
+        primary
+        label={heroCardLabel(currentYear, currentRange)}
+        reports={currentReports}
+        range={currentRange}
+        onRangeChange={setCurrentRange}
+        onTotalClick={() => {
+          if (currentReports.length) openDrilldown(currentReports, `${heroCardLabel(currentYear, currentRange)} - Total Reports`);
+        }}
+        onSourceClick={(source) => handleSourceClick(currentReports, heroCardLabel(currentYear, currentRange), source)}
+      />
     </div>
   );
 }
@@ -1856,10 +1982,9 @@ function YearTrendChartPanel({
 function AnnualReportSummary({
   previousYear,
   currentYear,
+  allReports,
   previousRows,
   currentRows,
-  previousBreakdown,
-  currentBreakdown,
   comparisonRows,
   branchOptions,
   airlineOptions,
@@ -1869,14 +1994,14 @@ function AnnualReportSummary({
   onAirlineChange,
   onMonthCategoryClick,
   onYearComparisonClick,
+  openDrilldown,
   headerExtra,
 }: {
   previousYear: number;
   currentYear: number;
+  allReports: Report[];
   previousRows: YearlyCategoryMonthRow[];
   currentRows: YearlyCategoryMonthRow[];
-  previousBreakdown: SourceBreakdown;
-  currentBreakdown: SourceBreakdown;
   comparisonRows: YearComparisonRow[];
   branchOptions: string[];
   airlineOptions: string[];
@@ -1886,6 +2011,7 @@ function AnnualReportSummary({
   onAirlineChange: (value: string) => void;
   onMonthCategoryClick?: (year: number, monthIndex: number, metricId: SummaryMetricId) => void;
   onYearComparisonClick?: (metricId: SummaryMetricId) => void;
+  openDrilldown: (reports: Report[], title: string) => void;
   headerExtra?: ReactNode;
 }) {
   return (
@@ -1908,13 +2034,13 @@ function AnnualReportSummary({
         <div className="flex flex-wrap items-end gap-3">
           {headerExtra}
           <label className="flex min-w-[180px] flex-col gap-1.5">
-            <span className="sr-eyebrow">Branch</span>
+            <span className="sr-eyebrow">Station</span>
             <select
               value={selectedBranch}
               onChange={(event) => onBranchChange(event.target.value)}
               className="sr-select"
             >
-              <option value="all">All Branch</option>
+              <option value="all">All Station</option>
               {branchOptions.map((branch) => (
                 <option key={branch} value={branch}>
                   {branch}
@@ -1956,12 +2082,8 @@ function AnnualReportSummary({
       <AnnualMetricStrip
         previousYear={previousYear}
         currentYear={currentYear}
-        previousRows={previousRows}
-        currentRows={currentRows}
-        previousBreakdown={previousBreakdown}
-        currentBreakdown={currentBreakdown}
-        comparisonRows={comparisonRows}
-        onYearComparisonClick={onYearComparisonClick}
+        allReports={allReports}
+        openDrilldown={openDrilldown}
       />
 
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">

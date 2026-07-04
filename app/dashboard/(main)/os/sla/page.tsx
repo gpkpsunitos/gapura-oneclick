@@ -170,7 +170,7 @@ export default function SLAFullServicePage() {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <Select label="Category" value={category} onChange={setCategory} options={data?.filters.categories || []} />
             <Select label="Area" value={area} onChange={setArea} options={data?.filters.areas || []} />
-            <Select label="Branch" value={branch} onChange={setBranch} options={data?.filters.branches || []} />
+            <Select label="Station" value={branch} onChange={setBranch} options={data?.filters.branches || []} />
             <Select label="Airline" value={airline} onChange={setAirline} options={data?.filters.airlines || []} />
             <div className="flex items-end">
               <button
@@ -212,7 +212,7 @@ export default function SLAFullServicePage() {
                     onClick={() =>
                       exportCSV(
                         'debrief.csv',
-                        ['Airline', 'Branch', 'Finishing', 'Reasons'],
+                        ['Airline', 'Station', 'Finishing', 'Reasons'],
                         dbRows.map((r) => [r.Airline, r.Cab, r.Finishing ?? '', r.Reasons])
                       )
                     }
@@ -226,7 +226,7 @@ export default function SLAFullServicePage() {
                     <thead>
                       <tr className="text-left bg-emerald-600 text-white">
                         <th className="px-3 py-2">Airline</th>
-                        <th className="px-3 py-2">Branch</th>
+                        <th className="px-3 py-2">Station</th>
                         <th className="px-3 py-2">Finishing</th>
                         <th className="px-3 py-2">Reasons</th>
                       </tr>
@@ -282,7 +282,7 @@ export default function SLAFullServicePage() {
                     onClick={() =>
                       exportCSV(
                         'avsec.csv',
-                        ['Airline', 'Branch', 'Security Service Performance', 'Reasons'],
+                        ['Airline', 'Station', 'Security Service Performance', 'Reasons'],
                         avRows.map((r) => [r.Airline, r.Cab, r.SecurityServicePerformance, r.Reasons])
                       )
                     }
@@ -296,7 +296,7 @@ export default function SLAFullServicePage() {
                     <thead>
                       <tr className="text-left bg-emerald-600 text-white">
                         <th className="px-3 py-2">Airline</th>
-                        <th className="px-3 py-2">Branch</th>
+                        <th className="px-3 py-2">Station</th>
                         <th className="px-3 py-2">Security Service Performance</th>
                         <th className="px-3 py-2">Reasons</th>
                       </tr>
@@ -353,7 +353,7 @@ export default function SLAFullServicePage() {
                   onClick={() =>
                     exportCSV(
                       'non_compliance.csv',
-                      ['Category', 'Airline', 'Branch', 'Area', 'Performance', 'Reasons'],
+                      ['Category', 'Airline', 'Station', 'Area', 'Performance', 'Reasons'],
                       ncRows.map((r) => [r.Kategori, r.Airline, r.Cab, r.Area, r.Perfomance, r.Reasons])
                     )
                   }
@@ -368,7 +368,7 @@ export default function SLAFullServicePage() {
                     <tr className="text-left bg-emerald-600 text-white">
                       <th className="px-3 py-2">Category</th>
                       <th className="px-3 py-2">Airline</th>
-                      <th className="px-3 py-2">Branch</th>
+                      <th className="px-3 py-2">Station</th>
                       <th className="px-3 py-2">Area</th>
                       <th className="px-3 py-2">Performance</th>
                       <th className="px-3 py-2">Reasons</th>

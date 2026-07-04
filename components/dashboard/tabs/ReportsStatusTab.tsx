@@ -315,7 +315,7 @@ function RecordsTable({ rows, title }: { rows: RecordRow[]; title: string }) {
           <thead>
             <tr>
               <th style={{ width: '10%' }} className="!text-left">Date</th>
-              <th style={{ width: '7%' }} className="!text-left">Branch</th>
+              <th style={{ width: '7%' }} className="!text-left">Station</th>
               <th style={{ width: '13%' }} className="!text-left">Airlines</th>
               <th style={{ width: '7%' }} className="!text-left">Flight</th>
               <th style={{ width: '11%' }} className="!text-left">Category</th>
@@ -493,7 +493,7 @@ export function ReportsStatusTab({ reports }: ReportsStatusTabProps) {
             <section>
               <div className="sr-section-h">
                 <span className="sr-section-rule" aria-hidden="true" />
-                <h2>Operational Area &amp; Branch Distribution</h2>
+                <h2>Operational Area &amp; Station Distribution</h2>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <Panel
@@ -510,16 +510,16 @@ export function ReportsStatusTab({ reports }: ReportsStatusTabProps) {
                   />
                 </Panel>
                 <Panel
-                  title="By Branch / Station"
+                  title="By Station"
                   subtitle="Open (gold) · Closed (green) — click bar segment to drill in"
                   className="h-[22rem]"
                   bodyClassName="overflow-y-auto"
-                  aiContext={{ section: 'Reports Status', chartTitle: 'By Branch', chartType: 'branch_status_breakdown', chartData: branchRows }}
+                  aiContext={{ section: 'Reports Status', chartTitle: 'By Station', chartType: 'branch_status_breakdown', chartData: branchRows }}
                 >
                   <StackedHBar
                     rows={branchRows}
-                    onOpenClick={(label) => openDrilldown(open.filter((r) => getBranch(r) === label), `Open · Branch: ${label}`)}
-                    onClosedClick={(label) => openDrilldown(closed.filter((r) => getBranch(r) === label), `Closed · Branch: ${label}`)}
+                    onOpenClick={(label) => openDrilldown(open.filter((r) => getBranch(r) === label), `Open · Station: ${label}`)}
+                    onClosedClick={(label) => openDrilldown(closed.filter((r) => getBranch(r) === label), `Closed · Station: ${label}`)}
                   />
                 </Panel>
               </div>

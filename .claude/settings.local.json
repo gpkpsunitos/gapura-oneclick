@@ -3,7 +3,8 @@
     "allow": [
       "Bash(ls -la \"app/dashboard/(main)/\")",
       "Bash(ls:*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "mcp__132956c4-f788-4c72-a4f9-f093d2fb5d40__list_projects"
     ],
     "deny": [],
     "ask": []

@@ -176,8 +176,8 @@ export default function AnalystCharts({
                                     onChange={(vals) => setGlobalFilters(prev => ({ ...prev, hubs: vals }))}
                                 />
                                 <PrismMultiSelect
-                                    label="Branch"
-                                    placeholder="Semua Branch..."
+                                    label="Station"
+                                    placeholder="Semua Station..."
                                     options={availableOptions.branches.map(b => ({ label: b, value: b }))}
                                     values={globalFilters.branches}
                                     onChange={(vals) => setGlobalFilters(prev => ({ ...prev, branches: vals }))}

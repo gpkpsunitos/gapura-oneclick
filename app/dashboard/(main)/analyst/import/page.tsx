@@ -115,7 +115,7 @@ const normalizeSeverity = (raw: string | undefined | null): string => {
   if (!raw) return 'LOW';
   const upper = raw.toString().trim().toUpperCase();
   if (['TOP RISK', 'URGENT', 'CRITICAL'].includes(upper)) return 'TOP RISK';
-  if (['HIGH'].includes(upper)) return 'HIGH';
+  if (['HIGH', 'HIGH RISK'].includes(upper)) return 'HIGH RISK';
   if (['MEDIUM'].includes(upper)) return 'MEDIUM';
   return 'LOW';
 };

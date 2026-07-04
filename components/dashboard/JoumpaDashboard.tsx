@@ -348,7 +348,7 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
             />
           )}
           <FilterDropdown
-            label="Branch"
+            label="Station"
             value={filters.branch}
             options={filterOptions.branches}
             onChange={v => { setFilters(f => ({ ...f, branch: v })); setDetailPage(0); }}
@@ -360,7 +360,7 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
         {}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <KPICard label="Report" value={kpiStats.totalReports} color="#4caf50" />
-          <KPICard label="Branch" value={kpiStats.branchCount} color="#2196f3" />
+          <KPICard label="Station" value={kpiStats.branchCount} color="#2196f3" />
           <KPICard label="Airlines" value={kpiStats.airlinesCount} color="#ff9800" />
           <KPICard label="Compliment Report" value={kpiStats.complimentCount} color="#4caf50" />
         </div>
@@ -401,7 +401,7 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
               <table className="w-full text-xs">
                 <thead>
                   <tr style={{ backgroundColor: HEADER_BG }}>
-                    {['', 'Date', 'Category', 'Branch', 'Airlines', 'Flight Number', 'Report', 'Supporting Evidence'].map(h => (
+                    {['', 'Date', 'Category', 'Station', 'Airlines', 'Flight Number', 'Report', 'Supporting Evidence'].map(h => (
                       <th key={h} className="px-2 py-2 text-left font-semibold" style={{ color: HEADER_TEXT }}>{h}</th>
                     ))}
                   </tr>
@@ -528,7 +528,7 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
 
           {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5 flex flex-col">
-            <h3 className="text-base font-bold text-gray-800 mb-4">Branch Report</h3>
+            <h3 className="text-base font-bold text-gray-800 mb-4">Station Report</h3>
             <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
               <div style={{ height: Math.max(220, branchReportData.length * 60) }}>
                 <ResponsiveContainer width="100%" height="100%">

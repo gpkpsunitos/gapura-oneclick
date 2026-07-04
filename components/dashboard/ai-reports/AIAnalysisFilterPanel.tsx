@@ -202,8 +202,8 @@ export function AIAnalysisFilterPanel({
           </div>
           <div className="space-y-1.5 [&_label]:text-[10px] [&_label]:font-bold [&_label]:text-slate-500 [&_label]:uppercase [&_label]:tracking-widest">
             <PrismMultiSelect
-              label="Operating Branch"
-              placeholder="All Branches..."
+              label="Operating Station"
+              placeholder="All Stations..."
               options={availableBranches.map((b) => ({ label: b, value: b }))}
               values={selectedBranches}
               onChange={setSelectedBranches}

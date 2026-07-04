@@ -62,8 +62,8 @@ function EmbedCaseCategoryByBranchContent() {
                 <ArrowLeft size={20} />
               </button>
               <div>
-                <h1 className="text-xl font-black text-gray-900 tracking-tight">Case Category by Branch</h1>
-                <p className="text-xs text-gray-500">Cross-dimensional analysis (Branch × Category)</p>
+                <h1 className="text-xl font-black text-gray-900 tracking-tight">Case Category by Station</h1>
+                <p className="text-xs text-gray-500">Cross-dimensional analysis (Station × Category)</p>
               </div>
             </div>
           </div>

@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
           },
           summary: {
             totalRecords: 0,
-            severityDistribution: { Critical: 0, High: 0, Medium: 0, Low: 0 },
+            severityDistribution: { 'TOP RISK': 0, 'HIGH RISK': 0, MEDIUM: 0, LOW: 0 },
             predictionStats: { min: 0, max: 0, mean: 0 }
           },
           results: [],
@@ -150,10 +150,10 @@ export async function GET(request: NextRequest) {
         const sd = data.summary.severityDistribution || data.summary.severity_distribution || {};
         const hasAnySD = sd && Object.keys(sd).length > 0;
         if (!hasAnySD && Array.isArray(data.results)) {
-          const dist: Record<string, number> = { Critical: 0, High: 0, Medium: 0, Low: 0 };
+          const dist: Record<string, number> = { 'TOP RISK': 0, 'HIGH RISK': 0, MEDIUM: 0, LOW: 0 };
           for (const r of data.results) {
             const sev = String(r?.classification?.severity || 'Low');
-            const key = /crit/i.test(sev) ? 'Critical' : /high/i.test(sev) ? 'High' : /med/i.test(sev) ? 'Medium' : 'Low';
+            const key = /crit|top.?risk|urgent/i.test(sev) ? 'TOP RISK' : /high/i.test(sev) ? 'HIGH RISK' : /med/i.test(sev) ? 'MEDIUM' : 'LOW';
             dist[key] = (dist[key] || 0) + 1;
           }
           data.summary.severityDistribution = dist;

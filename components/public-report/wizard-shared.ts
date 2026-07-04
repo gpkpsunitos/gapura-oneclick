@@ -1,14 +1,14 @@
 import type { CSSProperties, ComponentType } from 'react';
 import { AIRLINES } from '@/lib/constants/airlines';
-import { AREA_CATEGORIES as AREA_CATEGORIES_SHARED, AREA_LABELS, type GseType } from '@/lib/constants/incident-areas';
+import { AREA_CATEGORIES as AREA_CATEGORIES_SHARED, AREA_LABELS, ROOT_CAUSE_CLASSIFICATIONS as ROOT_CAUSE_CLASSIFICATIONS_SHARED, type GseType } from '@/lib/constants/incident-areas';
 import { Plane, Ship, Package, MapPin, Wrench } from 'lucide-react';
-import type { ReportPriority } from '@/lib/constants/report-status';
+import type { ReportPriority, SeverityLevel } from '@/lib/constants/report-status';
 
 export type QuickAccessLink = { label: string; url: string; sublabel?: string };
 
 export type QRLink = { label: string; url: string };
 
-export const PUBLIC_SEVERITY_OPTIONS: ReportPriority[] = ['urgent', 'medium', 'low'];
+export const PUBLIC_SEVERITY_OPTIONS = ['TOP RISK', 'HIGH RISK', 'MEDIUM', 'LOW'] as const;
 
 export type QuickAccessCategory = {
   id: string;
@@ -30,12 +30,15 @@ export type QuickAccessCategory = {
 export const AREA_OPTIONS = [
   { id: 'TERMINAL', label: AREA_LABELS.TERMINAL, icon: Plane },
   { id: 'APRON', label: AREA_LABELS.APRON, icon: Ship },
+  { id: 'GSE', label: AREA_LABELS.GSE, icon: Wrench },
   { id: 'CARGO', label: AREA_LABELS.CARGO, icon: Package },
   { id: 'GENERAL', label: AREA_LABELS.GENERAL, icon: MapPin },
-  { id: 'GSE', label: AREA_LABELS.GSE, icon: Wrench },
 ];
 
+export const REPORT_CATEGORY_OPTIONS = ['Occurrence', 'Accident / Incident', 'Irregularity', 'Complaint', 'Compliment'];
+
 export const AREA_CATEGORIES = AREA_CATEGORIES_SHARED as Record<string, string[]>;
+export const ROOT_CAUSE_CLASSIFICATIONS = ROOT_CAUSE_CLASSIFICATIONS_SHARED as Partial<Record<string, string[]>>;
 
 const LOKAL_AIRLINE_CODES = ['GA', 'QG', 'JT', 'ID', 'IW', 'IU', 'QZ', 'SJ', 'IN', 'IP', '8B', 'SI', 'IL'];
 
@@ -65,17 +68,20 @@ export type FormData = {
   route: string;
   main_category: string;
   delay_code: string;
-  delay_duration: string;
   area: string;
   area_category: string;
+  area_category_other: string;
   description: string;
   root_cause: string;
+  root_cause_classification: string;
+  root_cause_classification_other: string;
   action_taken: string;
   preventive_action: string;
   airline_other: string;
   gse_type: GseType | '';
   gse_equipment: string;
-  severity: ReportPriority;
+  gse_equipment_other: string;
+  severity: SeverityLevel;
   reporter_name: string;
   reporter_email: string;
   evidence_urls: string[];

@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     const reports = await reportsService.getReports({ 
       refresh, 
       filters,
-      source: 'sheets',
+      source: 'sync',
     });
 
     let aggregatedData: unknown = {};

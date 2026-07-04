@@ -203,7 +203,7 @@ export function PerformanceLinksManagementPage() {
                 <header className="rounded-2xl border border-slate-200 bg-white px-5 py-5 shadow-sm sm:px-7">
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">
+                            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
                                 <QrCode className="h-4 w-4" />
                                 Performance Evaluation Monitoring
                             </div>
@@ -225,7 +225,7 @@ export function PerformanceLinksManagementPage() {
                             <button
                                 type="button"
                                 onClick={openCreate}
-                                className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700"
+                                className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition hover:bg-emerald-700"
                             >
                                 <Plus className="h-4 w-4" />
                                 Add link
@@ -249,14 +249,14 @@ export function PerformanceLinksManagementPage() {
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search title or URL"
-                                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-blue-500 focus:bg-white"
+                                className="h-10 w-full rounded-lg border border-slate-200 bg-slate-50 pl-9 pr-3 text-sm outline-none transition focus:border-emerald-500 focus:bg-white"
                             />
                         </div>
                     </div>
 
                     {loading ? (
                         <div className="flex min-h-80 items-center justify-center">
-                            <Loader2 className="h-7 w-7 animate-spin text-blue-600" />
+                            <Loader2 className="h-7 w-7 animate-spin text-emerald-600" />
                         </div>
                     ) : filteredLinks.length === 0 ? (
                         <div className="flex min-h-80 flex-col items-center justify-center px-6 text-center">
@@ -320,7 +320,7 @@ export function PerformanceLinksManagementPage() {
                                                     className={cn(
                                                         'mb-2 inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide',
                                                         link.category === 'joumpa'
-                                                            ? 'bg-amber-100 text-amber-700'
+                                                            ? 'bg-lime-100 text-lime-700'
                                                             : 'bg-teal-100 text-teal-700'
                                                     )}
                                                 >
@@ -404,7 +404,7 @@ export function PerformanceLinksManagementPage() {
                                 href={qrLink.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-blue-600 text-sm font-semibold text-white hover:bg-blue-700"
+                                className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-600 text-sm font-semibold text-white hover:bg-emerald-700"
                             >
                                 <ExternalLink className="h-4 w-4" />
                                 Open
@@ -430,7 +430,7 @@ export function PerformanceLinksManagementPage() {
                                     <input
                                         value={form.title}
                                         onChange={(e) => setForm((c) => ({ ...c, title: e.target.value }))}
-                                        className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
+                                        className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-emerald-500"
                                         required
                                     />
                                 </label>
@@ -445,7 +445,7 @@ export function PerformanceLinksManagementPage() {
                                                 className={cn(
                                                     'h-10 rounded-lg border px-3 text-sm font-semibold transition',
                                                     form.category === cat.id
-                                                        ? 'border-blue-600 bg-blue-50 text-blue-700'
+                                                        ? 'border-emerald-600 bg-emerald-50 text-emerald-700'
                                                         : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                                                 )}
                                             >
@@ -461,7 +461,7 @@ export function PerformanceLinksManagementPage() {
                                         value={form.url}
                                         onChange={(e) => setForm((c) => ({ ...c, url: e.target.value }))}
                                         placeholder="https://..."
-                                        className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-blue-500"
+                                        className="h-10 w-full rounded-lg border border-slate-200 px-3 font-normal outline-none focus:border-emerald-500"
                                         required
                                     />
                                 </label>
@@ -471,7 +471,7 @@ export function PerformanceLinksManagementPage() {
                                         value={form.description}
                                         onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))}
                                         rows={3}
-                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 font-normal outline-none focus:border-blue-500"
+                                        className="w-full rounded-lg border border-slate-200 px-3 py-2 font-normal outline-none focus:border-emerald-500"
                                     />
                                 </label>
                                 <div className="block space-y-2 text-sm font-semibold text-slate-700">
@@ -527,7 +527,7 @@ export function PerformanceLinksManagementPage() {
                                 <button
                                     type="submit"
                                     disabled={saving || uploadingThumbnail}
-                                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+                                    className="inline-flex h-10 items-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
                                 >
                                     {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                                     {saving ? 'Saving...' : 'Save link'}

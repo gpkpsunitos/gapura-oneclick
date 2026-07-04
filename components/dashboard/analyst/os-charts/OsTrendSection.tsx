@@ -538,13 +538,13 @@ export function OsTrendSection({
                                             </select>
                                         </div>
                                         <div className="flex flex-col gap-2 lg:col-span-3">
-                                            <label className="text-[10px] font-black uppercase tracking-widest text-[#64748b]">Branch</label>
+                                            <label className="text-[10px] font-black uppercase tracking-widest text-[#64748b]">Station</label>
                                             <select
                                                 value={branchFilter[0] ?? 'all'}
                                                 onChange={(e)=>setBranchFilter(e.target.value === 'all' ? [] : [e.target.value])}
                                                 className="px-3 py-2.5 h-[42px] text-xs font-bold rounded-lg border border-[#0ea5e9] bg-white text-slate-700 outline-none focus:border-[#0284c7] transition-colors ring-1 ring-sky-100"
                                             >
-                                                <option value="all">All Branches</option>
+                                                <option value="all">All Stations</option>
                                                 {branchOptions.map(b=>(
                                                     <option key={b} value={b}>{b}</option>
                                                 ))}
@@ -754,14 +754,14 @@ export function OsTrendSection({
 
                         {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden")}>
-                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Case Category by Branch</h3>
+                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Case Category by Station</h3>
                             <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Report Category / Record Count</p>
 
                             <div className="overflow-x-auto">
                                 <table className="w-full text-xs border-collapse">
                                     <thead>
                                         <tr className={OS_TABLE_HEADER_CLASS}>
-                                            <th className={cn("text-left py-2 px-2 font-black border", OS_BORDER_CLASS)}>Branch</th>
+                                            <th className={cn("text-left py-2 px-2 font-black border", OS_BORDER_CLASS)}>Station</th>
                                             <th className={cn("text-center py-2 px-2 font-black border", OS_BORDER_CLASS)}>Irregularity</th>
                                             <th className={cn("text-center py-2 px-2 font-black border", OS_BORDER_CLASS)}>Complaint</th>
                                             <th className={cn("text-center py-2 px-2 font-black border", OS_BORDER_CLASS)}>Compliment</th>
@@ -892,7 +892,7 @@ export function OsTrendSection({
                         {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Case Report by Area</h3>
-                            <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Area Report / Branch by Airlines</p>
+                            <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Area Report / Station by Airlines</p>
                             {caseReportByAreaData.length === 0 ? (
                                 <p className="text-xs text-gray-400 text-center py-6">Tidak ada data</p>
                             ) : (
@@ -901,7 +901,7 @@ export function OsTrendSection({
                                         <table className="w-full text-xs min-w-[320px]">
                                             <thead className="sticky top-0 z-10">
                                                 <tr className={OS_TABLE_HEADER_CLASS}>
-                                                    <th className={cn("text-left py-2 px-3 font-black uppercase tracking-widest text-[9px] w-32 border", OS_BORDER_CLASS)}>Branch</th>
+                                                    <th className={cn("text-left py-2 px-3 font-black uppercase tracking-widest text-[9px] w-32 border", OS_BORDER_CLASS)}>Station</th>
                                                     <th className={cn("text-left py-2 px-3 font-black uppercase tracking-widest text-[9px] border", OS_BORDER_CLASS)}>Airlines</th>
                                                     <th className={cn("text-center py-2 px-1 font-black uppercase tracking-widest text-[9px] border", OS_BORDER_CLASS)}>Terminal<br/>Area</th>
                                                     <th className={cn("text-center py-2 px-1 font-black uppercase tracking-widest text-[9px] border", OS_BORDER_CLASS)}>Apron<br/>Area</th>

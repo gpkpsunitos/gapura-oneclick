@@ -104,7 +104,7 @@ function normalizeSeverityLevel(value: string): string {
   if (!normalized) return '-';
   if (normalized.includes('TOP RISK') || normalized === 'CRITICAL' || normalized === 'URGENT') return 'TOP RISK';
   if (normalized.includes('HIGH RISK')) return 'HIGH RISK';
-  if (normalized === 'HIGH') return 'HIGH';
+  if (normalized === 'HIGH') return 'HIGH RISK';
   if (normalized === 'MEDIUM') return 'MEDIUM';
   if (normalized === 'LOW') return 'LOW';
   return normalized;
@@ -147,7 +147,7 @@ const PANEL_FRAME = 'sr-table-card flex min-h-0 min-w-0 flex-col';
 const DONUT_COLORS = ['var(--sr-accent)', 'var(--sr-gold)', 'var(--sr-chart-3)', 'var(--sr-chart-4)', 'var(--sr-chart-5)', 'var(--sr-neg)'];
 
 const REPORT_CATEGORIES = ['Irregularity', 'Complaint', 'Compliment', 'Occurrence', 'Accident / Incident'] as const;
-const SEVERITY_ORDER = ['TOP RISK', 'HIGH RISK', 'HIGH', 'MEDIUM', 'LOW', '-'] as const;
+const SEVERITY_ORDER = ['TOP RISK', 'HIGH RISK', 'MEDIUM', 'LOW', '-'] as const;
 const STATUSES = ['CLOSED', 'OPEN'] as const;
 
 function delayAiContext(chartTitle: string, chartType: string, chartData: unknown): ChartAiContext {
@@ -627,7 +627,7 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
           <thead>
             <tr>
               <th style={{ width: '10%', whiteSpace: 'normal' }} className="!text-left">Date</th>
-              <th style={{ width: '6%', whiteSpace: 'normal' }} className="!text-left">Branch</th>
+              <th style={{ width: '6%', whiteSpace: 'normal' }} className="!text-left">Station</th>
               <th style={{ width: '13%', whiteSpace: 'normal' }} className="!text-left">Airlines</th>
               <th style={{ width: '15%', whiteSpace: 'normal' }} className="!text-left">Delay Code</th>
               <th style={{ width: '10%', whiteSpace: 'normal' }} className="!text-left">Category</th>
@@ -902,7 +902,7 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
     chartData: [
       ...monthlyRows.map((r) => ({ label: `Month ${r.label}`, value: r.total })),
       ...topDelayCodes.slice(0, 10).map((r) => ({ label: `Code ${r.label}`, value: r.total })),
-      ...branchRows.slice(0, 10).map((r) => ({ label: `Branch ${r.label}`, value: r.total })),
+      ...branchRows.slice(0, 10).map((r) => ({ label: `Station ${r.label}`, value: r.total })),
       ...severityRows.map((r) => ({ label: `Severity ${r.label}`, value: r.total })),
     ],
     featureHints: ['forecasting', 'seasonality', 'riskScoring', 'summarization', 'actionRecommendation'],
@@ -977,7 +977,7 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
           <KpiTile label="Total Reports" value={scopedReports.length} helper="in scope" tone="neutral" onClick={() => openDrilldown(scopedReports as Report[], 'Total Reports')} />
           <KpiTile label="With Delay Code" value={delayCodeReports.length} helper={`${coverage}% coverage`} tone="accent" onClick={() => openDrilldown(delayCodeReports as Report[], 'With Delay Code')} />
           <KpiTile label="Avg Duration" value={durationStats.avg} helper={`min · max ${durationStats.max || 0}`} tone="gold" onClick={() => openDrilldown(delayCodeReports as Report[], 'Avg Duration')} />
-          <KpiTile label="Top Branch" value={topBranch} helper={`${topBranchCount} delays`} tone="accent" onClick={() => openDrilldown(delayCodeReports.filter((r) => resolveBranch(r) === topBranch) as Report[], `Top Branch · ${topBranch}`)} />
+          <KpiTile label="Top Station" value={topBranch} helper={`${topBranchCount} delays`} tone="accent" onClick={() => openDrilldown(delayCodeReports.filter((r) => resolveBranch(r) === topBranch) as Report[], `Top Station · ${topBranch}`)} />
         </div>
       </section>
 
@@ -1073,20 +1073,20 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
         </div>
         <div className="grid gap-3 md:grid-cols-2">
           <Panel
-            title="Delay by Branch"
+            title="Delay by Station"
             total={branchRows.reduce((s, r) => s + r.total, 0)}
             className="h-[22rem]"
-            aiContext={delayAiContext('Delay by Branch', 'branch_bar', branchRows)}
+            aiContext={delayAiContext('Delay by Station', 'branch_bar', branchRows)}
           >
             <HBarChart
               rows={branchRows}
-              emptyLabel="No branch data"
+              emptyLabel="No station data"
               scrollable
               limit={15}
               onOpen={(row) =>
                 openDrilldown(
                   delayCodeReports.filter((r) => resolveBranch(r).toLowerCase() === row.id),
-                  `Branch: ${row.label}`
+                  `Station: ${row.label}`
                 )
               }
             />
@@ -1138,14 +1138,14 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
           </Panel>
 
           <Panel
-            title="Branch × Status"
+            title="Station × Status"
             className="h-[26rem]"
-            aiContext={delayAiContext('Branch x Status', 'pivot_table', { keys: branchKeys, cols: statusCols })}
+            aiContext={delayAiContext('Station x Status', 'pivot_table', { keys: branchKeys, cols: statusCols })}
             bodyClassName="overflow-hidden"
           >
             <HeatMatrix
               rowKeys={branchKeys}
-              rowLabel="Branch"
+              rowLabel="Station"
               colKeys={statusCols.map((s) => ({ id: s.id, label: s.label }))}
               cells={branchByStatus}
               onOpen={(rs, ctx) => openDrilldown(rs, ctx)}

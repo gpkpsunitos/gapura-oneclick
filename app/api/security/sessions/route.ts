@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { verifySession, evictSessionCache } from '@/lib/auth-utils';
 import { logSecurityEvent } from '@/lib/security/event-service';
 import { getClientIp } from '@/lib/security/utils';
@@ -14,7 +14,7 @@ export async function GET() {
         const payload = await verifySession(sessionToken);
         if (!payload) return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
 
-        const { data: sessions, error } = await supabase
+        const { data: sessions, error } = await supabaseAdmin
             .from('security_sessions')
             .select('*')
             .eq('user_id', payload.id)
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
         const { sessionId } = await request.json();
         if (!sessionId) return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
 
-        const { data: revokedRow, error } = await supabase
+        const { data: revokedRow, error } = await supabaseAdmin
             .from('security_sessions')
             .update({ is_revoked: true })
             .eq('id', sessionId)

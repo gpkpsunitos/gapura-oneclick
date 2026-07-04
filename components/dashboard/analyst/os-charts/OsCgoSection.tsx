@@ -340,7 +340,7 @@ export function OsCgoSection({
                         </div>
 
                          <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col")}>
-                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-6 opacity-70">Branch Reporting</h3>
+                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-6 opacity-70">Station Reporting</h3>
                             <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
                                 <div style={{ height: Math.max(200, cgoBranchData.length * 50) }}>
                                     <ResponsiveContainer width="100%" height="100%">
@@ -473,7 +473,7 @@ export function OsCgoSection({
 
                         {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden")}>
-                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Case Category by Branch</h3>
+                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Case Category by Station</h3>
                             <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Report Category / Record Count</p>
                             {(() => {
                                 const maxC = Math.max(...cgoPivotByBranch.map(r => r.complaint), 1);
@@ -600,7 +600,7 @@ export function OsCgoSection({
                         {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl overflow-hidden")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Case Report by Area</h3>
-                            <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Area Report / Branch by Airlines</p>
+                            <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Area Report / Station by Airlines</p>
                             {cgoCaseReportByArea.length === 0 ? (
                                 <p className="text-xs text-gray-400 text-center py-6">Tidak ada data</p>
                             ) : (
@@ -609,7 +609,7 @@ export function OsCgoSection({
                                         <table className="w-full text-xs min-w-[320px] border-collapse">
                                             <thead className="sticky top-0 z-10">
                                                 <tr className={OS_TABLE_HEADER_CLASS}>
-                                                    <th className={cn("text-left py-2 px-2 font-black uppercase tracking-widest text-[8px] border", OS_BORDER_CLASS)}>Branch</th>
+                                                    <th className={cn("text-left py-2 px-2 font-black uppercase tracking-widest text-[8px] border", OS_BORDER_CLASS)}>Station</th>
                                                     <th className={cn("text-left py-2 px-2 font-black uppercase tracking-widest text-[8px] border", OS_BORDER_CLASS)}>Airlines</th>
                                                     <th className={cn("text-center py-2 px-1 font-black uppercase tracking-widest text-[8px] border", OS_BORDER_CLASS)}>Terminal<br/>Area</th>
                                                     <th className={cn("text-center py-2 px-1 font-black uppercase tracking-widest text-[8px] border", OS_BORDER_CLASS)}>Apron<br/>Area</th>

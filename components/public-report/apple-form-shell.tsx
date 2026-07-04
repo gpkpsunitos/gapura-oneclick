@@ -1,0 +1,576 @@
+'use client';
+
+import { useEffect } from 'react';
+import { Check, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+export const OTHER = '__other__';
+export const resolveOther = (v: string, other: string) => (v === OTHER ? other.trim() : v);
+
+export function compressImage(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const img = document.createElement('img');
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      let { width, height } = img;
+      const ratio = Math.min(1600 / width, 1600 / height, 1);
+      width = Math.round(width * ratio); height = Math.round(height * ratio);
+      canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) { URL.revokeObjectURL(url); return reject(new Error('Canvas not supported')); }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url);
+        if (!blob) return reject(new Error('Compression failed'));
+        resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: blob.type }));
+      }, 'image/webp', 0.8);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load error')); };
+    img.src = url;
+  });
+}
+
+export function Field({ label, required, hint, children }: { label: string; required?: boolean; hint?: string; children: React.ReactNode }) {
+  return (
+    <div className="jm-field">
+      <div className="jm-field__head">
+        <span className="jm-label">{label}{required && <span className="jm-req" aria-hidden>*</span>}</span>
+        {hint && <span className="jm-hint">{hint}</span>}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+export function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+  return (
+    <section className="jm-section">
+      <div className="jm-section__head">
+        <h3 className="jm-section__title">{title}</h3>
+        {subtitle && <p className="jm-section__sub">{subtitle}</p>}
+      </div>
+      <div className="jm-section__body">{children}</div>
+    </section>
+  );
+}
+
+export function Options({
+  options, value, onChange, allowOther, otherValue, onOtherChange, variant = 'pills', getLabel,
+}: {
+  options: string[]; value: string; onChange: (v: string) => void;
+  allowOther?: boolean; otherValue?: string; onOtherChange?: (v: string) => void;
+  variant?: 'pills' | 'list';
+  getLabel?: (v: string) => string;
+}) {
+  const isOther = value === OTHER;
+  const label = (v: string) => (getLabel ? getLabel(v) : v);
+  if (variant === 'list') {
+    return (
+      <div className="jm-list">
+        {options.map((opt) => {
+          const active = value === opt;
+          return (
+            <button key={opt} type="button" onClick={() => onChange(opt)} className={cn('jm-row', active && 'jm-row--active')}>
+              <span className="jm-row__mark">{active && <Check size={13} strokeWidth={2.5} />}</span>
+              <span className="jm-row__text">{label(opt)}</span>
+            </button>
+          );
+        })}
+        {allowOther && (
+          <button type="button" onClick={() => onChange(OTHER)} className={cn('jm-row', isOther && 'jm-row--active')}>
+            <span className="jm-row__mark">{isOther && <Check size={13} strokeWidth={2.5} />}</span>
+            <span className="jm-row__text">Other</span>
+          </button>
+        )}
+        {allowOther && isOther && (
+          <input type="text" className="jm-input jm-input--nested" placeholder="Please specify"
+            value={otherValue || ''} onChange={(e) => onOtherChange?.(e.target.value)} autoFocus />
+        )}
+      </div>
+    );
+  }
+  return (
+    <div className="jm-pills">
+      {options.map((opt) => (
+        <button key={opt} type="button" onClick={() => onChange(opt)} className={cn('jm-pill', value === opt && 'jm-pill--active')}>
+          {label(opt)}
+        </button>
+      ))}
+      {allowOther && (
+        <button type="button" onClick={() => onChange(OTHER)} className={cn('jm-pill', isOther && 'jm-pill--active')}>Other</button>
+      )}
+      {allowOther && isOther && (
+        <input type="text" className="jm-input jm-input--nested" placeholder="Please specify"
+          value={otherValue || ''} onChange={(e) => onOtherChange?.(e.target.value)} autoFocus />
+      )}
+    </div>
+  );
+}
+
+export function InlineShell({ ariaLabel, children }: { ariaLabel: string; children: React.ReactNode }) {
+  useEffect(() => {
+    const el = document.createElement('link');
+    el.rel = 'stylesheet';
+    el.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';
+    document.head.appendChild(el);
+    return () => { el.remove(); };
+  }, []);
+  return (
+    <div className="jm-inline" role="region" aria-label={ariaLabel}>
+      <style dangerouslySetInnerHTML={{ __html: FORM_CSS }} />
+      {children}
+    </div>
+  );
+}
+
+export function FormShell({ onClose, ariaLabel, children }: { onClose: () => void; ariaLabel: string; children: React.ReactNode }) {
+  useEffect(() => {
+    const el = document.createElement('link');
+    el.rel = 'stylesheet';
+    el.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';
+    document.head.appendChild(el);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { el.remove(); document.body.style.overflow = prev; };
+  }, []);
+
+  return (
+    <div className="jm-root" role="dialog" aria-modal="true" aria-label={ariaLabel}>
+      <style dangerouslySetInnerHTML={{ __html: FORM_CSS }} />
+      <div className="jm-backdrop" onClick={onClose} />
+      <div className="jm-frame">
+        <button type="button" onClick={onClose} className="jm-close" aria-label="Close">
+          <X size={16} strokeWidth={2.2} />
+        </button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export const FORM_CSS = `
+.jm-root, .jm-inline {
+  --ink: #101013;
+  --ink-2: #3a3a42;
+  --mute: #7c7c85;
+  --line: rgba(0,0,0,0.08);
+  --fill: rgba(0,0,0,0.045);
+  --fill-2: rgba(0,0,0,0.075);
+  --paper: #fafafc;
+  --card: rgba(255,255,255,0.72);
+  --teal: #0f7c7c;
+  --teal-soft: rgba(15,124,124,0.10);
+  --red: #d0342c;
+  --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: var(--font);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'ss01', 'cv11';
+}
+.jm-root {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px;
+}
+.jm-inline {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 0;
+  z-index: 0;
+}
+.jm-inline .jm-form { overflow: visible; }
+.jm-inline .jm-scroll { overflow: visible; padding: 0; gap: 14px; }
+.jm-inline .jm-footer {
+  position: sticky; bottom: 12px;
+  margin-top: 16px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 32px -12px rgba(0,0,0,0.15);
+}
+.jm-inline .jm-head { margin-bottom: 4px; }
+.jm-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(15, 17, 22, 0.55);
+  backdrop-filter: blur(24px) saturate(1.2);
+  -webkit-backdrop-filter: blur(24px) saturate(1.2);
+  animation: jm-fade .35s ease-out;
+}
+.jm-frame {
+  position: relative;
+  width: 100%; max-width: 720px;
+  max-height: 92vh;
+  display: flex; flex-direction: column;
+  background: var(--paper);
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow:
+    0 30px 90px -20px rgba(0,0,0,0.45),
+    0 0 0 1px rgba(255,255,255,0.6) inset,
+    0 1px 0 0 rgba(255,255,255,0.9) inset;
+  animation: jm-rise .45s cubic-bezier(.2,.85,.2,1);
+}
+.jm-close {
+  position: absolute; top: 20px; right: 20px; z-index: 10;
+  width: 32px; height: 32px; border-radius: 999px;
+  background: rgba(0,0,0,0.06);
+  border: none; cursor: pointer;
+  color: var(--ink);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .18s ease, transform .18s ease;
+  backdrop-filter: blur(8px);
+}
+.jm-close:hover { background: rgba(0,0,0,0.10); }
+.jm-close:active { transform: scale(0.92); }
+
+.jm-form { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.jm-scroll {
+  overflow-y: auto;
+  padding: 48px 32px 24px;
+  display: flex; flex-direction: column; gap: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.15) transparent;
+}
+.jm-scroll::-webkit-scrollbar { width: 6px; }
+.jm-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 999px; }
+.jm-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.jm-head { margin-bottom: 12px; }
+.jm-title { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: -0.03em; color: var(--ink); }
+.jm-sub { margin: 6px 0 0; font-size: 15px; color: var(--mute); font-weight: 400; }
+
+.jm-error {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px;
+  background: rgba(208, 52, 44, 0.08);
+  border-radius: 12px;
+  color: var(--red);
+  font-size: 13.5px; font-weight: 500;
+}
+.jm-error svg { flex-shrink: 0; }
+
+.jm-section {
+  padding: 22px 22px;
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 0 0 1px rgba(0,0,0,0.03);
+  backdrop-filter: blur(20px);
+}
+.jm-section__head { margin-bottom: 18px; }
+.jm-section__title { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; color: var(--ink); }
+.jm-section__sub { margin: 4px 0 0; font-size: 13px; color: var(--mute); font-weight: 400; }
+.jm-section__body { display: flex; flex-direction: column; gap: 20px; }
+
+.jm-field { display: flex; flex-direction: column; gap: 8px; }
+.jm-field__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.jm-label { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; color: var(--ink); }
+.jm-req { color: var(--red); margin-left: 3px; font-weight: 600; }
+.jm-hint { font-size: 12px; color: var(--mute); font-weight: 400; }
+
+.jm-input {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--fill);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 15px; font-weight: 500;
+  color: var(--ink);
+  outline: none;
+  transition: background .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.jm-input::placeholder { color: var(--mute); font-weight: 400; }
+.jm-input:hover:not(:focus) { background: var(--fill-2); }
+.jm-input:focus {
+  background: #fff;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px var(--teal-soft);
+}
+.jm-textarea { min-height: 84px; resize: vertical; line-height: 1.5; }
+.jm-select {
+  appearance: none;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2.5 4.5l3.5 3.5 3.5-3.5' stroke='%23101013' fill='none' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  cursor: pointer;
+}
+.jm-input--nested { margin-top: 4px; flex-basis: 100%; }
+
+.jm-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.jm-pill {
+  padding: 9px 14px;
+  border-radius: 999px;
+  background: var(--fill);
+  border: none;
+  font-family: inherit;
+  font-size: 13.5px; font-weight: 500;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease, transform .12s ease;
+}
+.jm-pill:hover { background: var(--fill-2); }
+.jm-pill:active { transform: scale(0.97); }
+.jm-pill--active { background: var(--ink); color: #fff; }
+.jm-pill--active:hover { background: var(--ink); }
+
+.jm-list {
+  display: flex; flex-direction: column;
+  background: var(--fill);
+  border-radius: 14px;
+  padding: 4px;
+  gap: 2px;
+}
+.jm-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 12px;
+  background: transparent;
+  border: none; cursor: pointer;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px; font-weight: 500;
+  color: var(--ink-2);
+  text-align: left;
+  transition: background .15s ease, color .15s ease;
+}
+.jm-row:hover { background: rgba(0,0,0,0.03); }
+.jm-row__mark {
+  width: 18px; height: 18px; border-radius: 999px;
+  border: 1.5px solid rgba(0,0,0,0.15);
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: background .18s ease, border-color .18s ease, color .18s ease;
+  color: transparent;
+}
+.jm-row__text { flex: 1; }
+.jm-row--active { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+.jm-row--active .jm-row__mark { background: var(--teal); border-color: var(--teal); color: #fff; }
+
+.jm-nested {
+  margin-top: 4px;
+  padding: 18px;
+  background: rgba(0,0,0,0.025);
+  border-radius: 14px;
+  display: flex; flex-direction: column; gap: 18px;
+  animation: jm-slide .25s ease-out;
+}
+
+.jm-drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px;
+  padding: 28px 16px;
+  border: 1px dashed rgba(0,0,0,0.15);
+  border-radius: 14px;
+  background: rgba(0,0,0,0.015);
+  cursor: pointer;
+  transition: background .18s ease, border-color .18s ease;
+  text-align: center;
+}
+.jm-drop:hover { border-color: var(--teal); background: var(--teal-soft); }
+.jm-drop svg { color: var(--mute); }
+.jm-drop:hover svg { color: var(--teal); }
+.jm-drop__title { font-size: 14px; font-weight: 600; color: var(--ink); }
+.jm-drop__hint { font-size: 12.5px; color: var(--mute); }
+.jm-drop--full { opacity: 0.4; pointer-events: none; }
+
+.jm-files { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.jm-file {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px;
+  background: var(--fill);
+  border-radius: 10px;
+  font-size: 13px;
+}
+.jm-file__name { flex: 1; color: var(--ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.jm-file__size { color: var(--mute); font-size: 12px; font-variant-numeric: tabular-nums; }
+.jm-file__remove {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 999px;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--mute);
+  transition: background .18s ease, color .18s ease;
+}
+.jm-file__remove:hover { background: rgba(208,52,44,0.10); color: var(--red); }
+
+.jm-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.jm-footer {
+  padding: 16px 32px 24px;
+  border-top: 1px solid var(--line);
+  background: rgba(250,250,252,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.jm-submit {
+  width: 100%;
+  padding: 14px 24px;
+  background: var(--ink);
+  color: #fff;
+  border: none; border-radius: 14px;
+  font-family: inherit;
+  font-size: 15px; font-weight: 600; letter-spacing: -0.005em;
+  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background .2s ease, transform .12s ease, box-shadow .2s ease;
+}
+.jm-submit:hover:not(:disabled) {
+  background: var(--teal);
+  box-shadow: 0 8px 24px -8px rgba(15,124,124,0.5);
+}
+.jm-submit:active:not(:disabled) { transform: scale(0.985); }
+.jm-submit--disabled { opacity: 0.35; cursor: not-allowed; }
+
+.jm-submit--close {
+  background: linear-gradient(180deg, oklch(0.62 0.16 150) 0%, oklch(0.50 0.15 152) 55%, oklch(0.42 0.13 154) 100%);
+  box-shadow:
+    inset 0 1px 0 0 oklch(0.85 0.12 145 / 0.6),
+    inset 0 -2px 3px 0 oklch(0.30 0.10 155 / 0.5),
+    0 10px 24px -8px oklch(0.45 0.16 152 / 0.55),
+    0 1px 2px 0 oklch(0.30 0.10 155 / 0.3);
+}
+.jm-submit--close:hover:not(:disabled) {
+  background: linear-gradient(180deg, oklch(0.66 0.17 150) 0%, oklch(0.53 0.155 152) 55%, oklch(0.45 0.14 154) 100%);
+  box-shadow:
+    inset 0 1px 0 0 oklch(0.88 0.12 145 / 0.65),
+    inset 0 -2px 3px 0 oklch(0.30 0.10 155 / 0.5),
+    0 14px 30px -8px oklch(0.45 0.18 152 / 0.6),
+    0 1px 2px 0 oklch(0.30 0.10 155 / 0.3);
+}
+.jm-submit--close:active:not(:disabled) {
+  box-shadow:
+    inset 0 1px 3px 0 oklch(0.30 0.10 155 / 0.5),
+    0 4px 10px -6px oklch(0.45 0.16 152 / 0.5);
+}
+
+.jm-success {
+  padding: 72px 32px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  gap: 14px;
+  animation: jm-fade .4s ease-out;
+}
+.jm-check {
+  width: 60px; height: 60px; border-radius: 999px;
+  background: var(--teal); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center;
+  animation: jm-pop .45s cubic-bezier(.2,1.4,.4,1);
+  box-shadow: 0 12px 32px -8px rgba(15,124,124,0.5);
+  margin-bottom: 8px;
+}
+.jm-success__title { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.02em; }
+.jm-success__body { margin: 0; font-size: 14.5px; color: var(--mute); max-width: 320px; }
+.jm-submit--success { margin-top: 16px; max-width: 200px; }
+
+/* Detail view additions */
+.jm-detail__hero {
+  padding: 8px 4px 8px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 16px;
+}
+.jm-detail__eyebrow {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--mute);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+  margin-bottom: 12px;
+}
+.jm-detail__eyebrow--joumpa { background: rgba(15,124,124,0.10); color: var(--teal); }
+.jm-detail__title {
+  margin: 0;
+  font-size: 26px; font-weight: 700; letter-spacing: -0.025em;
+  color: var(--ink);
+}
+.jm-detail__meta {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  margin-top: 14px;
+}
+.jm-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px; font-weight: 600; letter-spacing: -0.005em;
+  background: var(--fill);
+  color: var(--ink);
+}
+.jm-badge__dot { width: 6px; height: 6px; border-radius: 999px; background: currentColor; opacity: 0.85; }
+.jm-badge--open { background: rgba(15,124,124,0.10); color: var(--teal); }
+.jm-badge--progress { background: rgba(217, 119, 6, 0.10); color: #b4530a; }
+.jm-badge--closed { background: rgba(60, 60, 67, 0.08); color: #3c3c47; }
+.jm-badge--urgent, .jm-badge--top { background: rgba(208, 52, 44, 0.10); color: var(--red); }
+.jm-badge--high { background: rgba(217, 119, 6, 0.10); color: #b4530a; }
+.jm-badge--medium { background: rgba(15,124,124,0.10); color: var(--teal); }
+.jm-badge--low { background: rgba(60, 60, 67, 0.06); color: var(--mute); }
+
+.jm-kv { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; }
+.jm-kv__cell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.jm-kv__cell--wide { grid-column: 1 / -1; }
+.jm-kv__k {
+  font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--mute); font-weight: 600;
+}
+.jm-kv__v {
+  font-size: 14.5px; font-weight: 500; color: var(--ink);
+  line-height: 1.5; word-break: break-word;
+}
+.jm-kv__v--muted { color: var(--mute); font-weight: 400; font-style: italic; }
+.jm-body-para {
+  margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--ink); white-space: pre-wrap;
+}
+
+.jm-evidence {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+}
+.jm-evidence__item {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--fill);
+  border: 1px solid var(--line);
+  display: block;
+  position: relative;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.jm-evidence__item:hover { transform: translateY(-2px); box-shadow: 0 8px 24px -8px rgba(0,0,0,0.2); }
+.jm-evidence__item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.jm-evidence__fallback {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--mute);
+  background: var(--fill);
+}
+.jm-evidence__badge {
+  position: absolute; bottom: 6px; left: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(0,0,0,0.55); color: #fff;
+  font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em;
+}
+
+@media (max-width: 640px) {
+  .jm-detail__title { font-size: 22px; }
+  .jm-kv { grid-template-columns: 1fr; gap: 12px; }
+  .jm-evidence { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+}
+
+@keyframes jm-fade { from { opacity: 0 } to { opacity: 1 } }
+@keyframes jm-rise { from { opacity: 0; transform: translateY(20px) scale(0.98) } to { opacity: 1; transform: none } }
+@keyframes jm-pop { from { transform: scale(0.4); opacity: 0 } to { transform: scale(1); opacity: 1 } }
+@keyframes jm-slide { from { opacity: 0; transform: translateY(-4px) } to { opacity: 1; transform: none } }
+
+@media (max-width: 640px) {
+  .jm-root { padding: 0; }
+  .jm-frame { border-radius: 20px 20px 0 0; max-height: 96vh; align-self: flex-end; }
+  .jm-scroll { padding: 40px 20px 20px; }
+  .jm-footer { padding: 14px 20px 20px; }
+  .jm-section { padding: 20px 18px; border-radius: 18px; }
+  .jm-grid-2 { grid-template-columns: 1fr; gap: 16px; }
+  .jm-title { font-size: 26px; }
+}
+`;

@@ -43,8 +43,8 @@ function EmbedBranchReportContent() {
 
   return (
     <EmbedDetailLayout
-      title="Branch Report"
-      subtitle="Detailed analysis by branch performance & risk profile"
+      title="Station Report"
+      subtitle="Detailed analysis by station performance & risk profile"
       onBack={() => router.push(getBackUrl())}
       isStatic={isStatic}
       filters={filters}

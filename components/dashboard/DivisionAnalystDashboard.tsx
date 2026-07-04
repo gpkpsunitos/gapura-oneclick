@@ -28,7 +28,9 @@ import { PresentationSlide } from '@/components/dashboard/PresentationSlide';
 import { type StatusUpdateDetails } from '@/components/dashboard/ReportDetailView';
 
 import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
+import { useJoumpaReports } from '@/lib/hooks/useJoumpaReports';
 import { getLinkUrl } from '@/lib/external-links';
+import { ReportSourceToggle, matchesReportSource, type ReportSourceValue } from '@/components/dashboard/analyst/ReportSourceToggle';
 import {
   buildReportFilterOptions,
   cleanReportValue,
@@ -233,6 +235,7 @@ export function DivisionAnalystDashboard({
   const [listCategory, setListCategory] = useState('');
   const [listCaseClassification, setListCaseClassification] = useState('');
   const [listArea, setListArea] = useState('');
+  const [listSource, setListSource] = useState<ReportSourceValue>('all');
   const [listSearch, setListSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showOSDashboardModal, setShowOSDashboardModal] = useState(false);
@@ -425,12 +428,24 @@ export function DivisionAnalystDashboard({
     setListCategory('');
     setListCaseClassification('');
     setListArea('');
+    setListSource('all');
   }, []);
+  const joumpaReports = useJoumpaReports();
+  const scopedJoumpaReports = useMemo(() => {
+    if (!lockedBranches || lockedBranches.length === 0) return joumpaReports;
+    const allowed = new Set(lockedBranches.map((b) => b.toUpperCase()));
+    return joumpaReports.filter((r) => allowed.has((r.stations?.code || r.branch || '').toString().toUpperCase()));
+  }, [joumpaReports, lockedBranches]);
+  const listReportsBase = useMemo(
+    () => [...filteredReports, ...scopedJoumpaReports],
+    [filteredReports, scopedJoumpaReports]
+  );
   const listReports = useMemo(() => {
     const s = debouncedSearch.toLowerCase();
     const start = listStartDate ? new Date(`${listStartDate}T00:00:00`) : null;
     const end = listEndDate ? new Date(`${listEndDate}T23:59:59`) : null;
-    return filteredReports.filter(r => {
+    return listReportsBase.filter(r => {
+      if (!matchesReportSource(r, listSource)) return false;
       const reportDate = reportDateValue(r);
       if (start && reportDate && reportDate < start) return false;
       if (end && reportDate && reportDate > end) return false;
@@ -471,7 +486,8 @@ export function DivisionAnalystDashboard({
       return haystack.includes(s);
     });
   }, [
-    filteredReports,
+    listReportsBase,
+    listSource,
     listStartDate,
     listEndDate,
     listHub,
@@ -509,7 +525,7 @@ export function DivisionAnalystDashboard({
     ).length;
     const highSeverity = filteredReports.filter((r) => {
       const severity = cleanReportValue(r.severity || r.severity_level).toUpperCase();
-      return severity === 'CRITICAL' || severity === 'HIGH' || severity === 'TOP RISK' || severity === 'HIGH RISK';
+      return severity === 'TOP RISK' || severity === 'HIGH RISK';
     }).length;
     const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
     const years = Array.from(
@@ -656,7 +672,7 @@ export function DivisionAnalystDashboard({
         open(
           filteredReports.filter((report) => {
             const severity = cleanReportValue(report.severity || report.severity_level).toUpperCase();
-            return severity === 'CRITICAL' || severity === 'HIGH' || severity === 'TOP RISK' || severity === 'HIGH RISK';
+            return severity === 'TOP RISK' || severity === 'HIGH RISK';
           }),
           'Top Risk & High Risk Reports'
         );
@@ -808,6 +824,9 @@ export function DivisionAnalystDashboard({
                 {listReports.length} reports
               </p>
             </div>
+            <div className="mb-4">
+              <ReportSourceToggle value={listSource} onChange={setListSource} />
+            </div>
             <ReportsDetailTable
               reports={listReports}
               onReportClick={setSelectedReport}
@@ -839,7 +858,7 @@ export function DivisionAnalystDashboard({
                   severity={listSeverity}
                   onSeverity={setListSeverity}
                   options={listFilterOptions}
-                  totalCount={filteredReports.length}
+                  totalCount={listReportsBase.length}
                   filteredCount={listReports.length}
                   refreshing={refreshing}
                   onRefresh={refreshData}

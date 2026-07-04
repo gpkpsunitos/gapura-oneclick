@@ -83,7 +83,7 @@ export function ReportsTableSection({
         <span
           className={cn(
             'px-2 py-1 rounded-full text-[10px] font-bold uppercase',
-            report.severity === 'CRITICAL' || report.severity === 'HIGH' || report.severity === 'TOP RISK'
+            report.severity === 'TOP RISK' || report.severity === 'HIGH RISK'
               ? 'bg-red-100 text-red-700'
               : report.severity === 'MEDIUM'
               ? 'bg-amber-100 text-amber-700'

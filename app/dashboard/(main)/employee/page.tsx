@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 
 import {
     Plus, MapPin, FileText,
@@ -11,7 +12,6 @@ import {
 
 import { cn } from '@/lib/utils';
 import { STATUS_CONFIG, type ReportStatus } from '@/lib/constants/report-status';
-import { CreateReportModal } from '@/components/dashboard/CreateReportModal';
 import { ReportDetailModal } from '@/components/dashboard/ReportDetailModal';
 import { Report } from '@/types';
 import { useData } from '@/lib/swr';
@@ -33,11 +33,11 @@ async function getWordExporter() {
 }
 
 export default function EmployeeDashboard() {
-    const [showCreateModal, setShowCreateModal] = useState(false);
+    const router = useRouter();
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [exportingId, setExportingId] = useState<string | null>(null);
 
-    const { data: rawData, mutate: refreshReports } = useData<Report[] | { reports: Report[] }>('/api/reports');
+    const { data: rawData } = useData<Report[] | { reports: Report[] }>('/api/reports');
     const reports = useMemo(() => {
         if (Array.isArray(rawData)) return rawData;
         if (rawData && !Array.isArray(rawData) && Array.isArray(rawData.reports)) return rawData.reports;
@@ -104,7 +104,7 @@ export default function EmployeeDashboard() {
 
                 <div className="flex items-center gap-4">
                     <button
-                        onClick={() => setShowCreateModal(true)}
+                        onClick={() => router.push('/dashboard/employee/new')}
                         className="group relative px-8 py-4 bg-slate-900 text-white rounded-full font-bold text-[12px] tracking-widest uppercase shadow-xl shadow-slate-200 hover:shadow-indigo-100 hover:-translate-y-1 transition-all duration-300 flex items-center gap-3"
                     >
                         <Plus size={18} strokeWidth={2.5} />
@@ -321,7 +321,7 @@ export default function EmployeeDashboard() {
 
             {}
             <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => router.push('/dashboard/employee/new')}
                 className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-[var(--brand-primary)] text-white rounded-full shadow-lg shadow-emerald-500/25 flex items-center justify-center z-40 hover:scale-110 active:scale-95 transition-all"
             >
                 <Plus size={24} />
@@ -332,15 +332,6 @@ export default function EmployeeDashboard() {
                 isOpen={!!selectedReport}
                 onClose={() => setSelectedReport(null)}
                 report={selectedReport}
-            />
-
-            <CreateReportModal
-                isOpen={showCreateModal}
-                onClose={() => setShowCreateModal(false)}
-                onSuccess={() => {
-                    refreshReports();
-                    setShowCreateModal(false);
-                }}
             />
         </div>
     );

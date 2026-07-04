@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { reportsService } from '@/lib/services/reports-service';
 import { REPORT_STATUS } from '@/lib/constants/report-status';
 
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
         const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        const reports = await reportsService.getReports({ source: 'sheets' });
+        const reports = await reportsService.getReports({ source: 'sync' });
 
         let filteredReports = reports;
         if (dateFrom || dateTo) {
@@ -77,8 +77,8 @@ export async function GET(request: Request) {
             else if (r.status === REPORT_STATUS['ON PROGRESS']) sudahDiverifikasi++;
             else if (r.status === REPORT_STATUS.CLOSED) selesai++;
 
-            if (r.severity === 'CRITICAL' || r.severity === 'TOP RISK') criticalSeverity++;
-            else if (r.severity === 'HIGH') highSeverity++;
+            if (r.severity === 'TOP RISK') criticalSeverity++;
+            else if (r.severity === 'HIGH RISK') highSeverity++;
             else if (r.severity === 'MEDIUM') mediumSeverity++;
             else lowSeverity++;
 
@@ -127,8 +127,8 @@ export async function GET(request: Request) {
                 stations: r.stations ? { code: r.stations.code } : (r.station_code ? { code: r.station_code } : null)
             }));
 
-        const { count: pendingUsers } = await supabase.from('users').select('id', { count: 'exact', head: true }).eq('status', 'pending');
-        const { count: activeUsers } = await supabase.from('users').select('id', { count: 'exact', head: true }).eq('status', 'active');
+        const { count: pendingUsers } = await supabaseAdmin.from('users').select('id', { count: 'exact', head: true }).eq('status', 'pending');
+        const { count: activeUsers } = await supabaseAdmin.from('users').select('id', { count: 'exact', head: true }).eq('status', 'active');
 
         const resolutionRate = totalReports ? Math.round((selesai / totalReports) * 100) : 0;
 
@@ -145,7 +145,7 @@ export async function GET(request: Request) {
             },
             severity: {
                 'TOP RISK': criticalSeverity,
-                HIGH: highSeverity,
+                'HIGH RISK': highSeverity,
                 MEDIUM: mediumSeverity,
                 LOW: lowSeverity,
             },

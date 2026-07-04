@@ -124,7 +124,7 @@ export async function GET(request: Request) {
         if (bypassFiltering) {
             const reports = await reportsService.getReports({
                 fields: requestedFields as unknown as string[],
-                source: 'sheets',
+                source: 'sync',
             });
             return NextResponse.json(reports, {
                 headers: {
@@ -134,7 +134,7 @@ export async function GET(request: Request) {
             });
         } else {
             let query = supabaseAdmin
-                .from('reports_sync')
+                .from('ground_handling_irregularity_report')
                 .select(requestedFields.join(','))
                 .order('created_at', { ascending: false })
                 .order('id', { ascending: false });
@@ -265,6 +265,7 @@ export async function POST(request: Request) {
             terminal_area_category,
             apron_area_category,
             general_category,
+            case_classification,
             preventive_action,
             gse_available_requirement,
             gse_motorized,
@@ -355,6 +356,7 @@ export async function POST(request: Request) {
             terminal_area_category: terminal_area_category || (areaKey === 'TERMINAL' ? area_category || null : null),
             apron_area_category: apron_area_category || (areaKey === 'APRON' ? area_category || null : null),
             general_category: general_category || (areaKey === 'GENERAL' || areaKey === 'CARGO' ? area_category || null : null),
+            case_classification: case_classification || null,
             preventive_action: preventive_action || null,
 
             gse_available_requirement: gse_available_requirement || null,

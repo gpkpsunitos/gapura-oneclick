@@ -81,8 +81,8 @@ export function resolveReportSeverity(report: Partial<Report>): string {
   if (!normalized) return 'LOW';
   if (normalized.includes('TOP RISK')) return 'TOP RISK';
   if (normalized.includes('HIGH RISK')) return 'HIGH RISK';
-  if (normalized.includes('CRITICAL') || normalized.includes('URGENT')) return 'CRITICAL';
-  if (normalized.includes('HIGH')) return 'HIGH';
+  if (normalized.includes('CRITICAL') || normalized.includes('URGENT')) return 'TOP RISK';
+  if (normalized.includes('HIGH')) return 'HIGH RISK';
   if (normalized.includes('MEDIUM')) return 'MEDIUM';
   if (normalized.includes('LOW')) return 'LOW';
   return raw.toUpperCase();

@@ -37,7 +37,7 @@ export default function CaseCategoryByBranchPage() {
       </div>
 
       <DetailFilterHeader 
-        title="Branch Intelligence"
+        title="Station Intelligence"
         subtitle="Location Performance & Operational Risks"
         filters={filters}
         setFilters={setFilters}

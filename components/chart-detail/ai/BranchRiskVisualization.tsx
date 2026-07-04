@@ -195,7 +195,7 @@ export function BranchRiskAnalysisVisualization({ data, selectedBranch }: Branch
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
           <Shield className="w-5 h-5 text-blue-600" />
-          Branch Risk Overview
+          Station Risk Overview
         </h3>
         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">Top 12 by Risk Score</span>
       </div>
@@ -231,11 +231,11 @@ export function BranchRiskAnalysisVisualization({ data, selectedBranch }: Branch
                 <span className="font-medium">{branchData.total_issues}</span>
               </div>
               <div className="flex gap-1 h-2 rounded-full overflow-hidden bg-gray-100">
-                {branchData.severity_distribution.CRITICAL && (
-                  <div style={{ width: `${(branchData.severity_distribution.CRITICAL / branchData.total_issues) * 100}%` }} className="bg-red-500" title={`Critical: ${branchData.severity_distribution.CRITICAL}`} />
+                {branchData.severity_distribution['TOP RISK'] && (
+                  <div style={{ width: `${(branchData.severity_distribution['TOP RISK'] / branchData.total_issues) * 100}%` }} className="bg-red-500" title={`Top Risk: ${branchData.severity_distribution['TOP RISK']}`} />
                 )}
-                {branchData.severity_distribution.HIGH && (
-                  <div style={{ width: `${(branchData.severity_distribution.HIGH / branchData.total_issues) * 100}%` }} className="bg-orange-500" title={`High: ${branchData.severity_distribution.HIGH}`} />
+                {branchData.severity_distribution['HIGH RISK'] && (
+                  <div style={{ width: `${(branchData.severity_distribution['HIGH RISK'] / branchData.total_issues) * 100}%` }} className="bg-orange-500" title={`High Risk: ${branchData.severity_distribution['HIGH RISK']}`} />
                 )}
                 {branchData.severity_distribution.MEDIUM && (
                   <div style={{ width: `${(branchData.severity_distribution.MEDIUM / branchData.total_issues) * 100}%` }} className="bg-yellow-500" title={`Medium: ${branchData.severity_distribution.MEDIUM}`} />

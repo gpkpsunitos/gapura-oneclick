@@ -83,18 +83,18 @@ export async function POST(request: Request) {
     const selectFields = 'id,title,report,description,status,date_of_event,incident_date,station_id,station_code,branch,airline,airlines,flight_number,area,category,main_category,irregularity_complain_category,terminal_area_category,apron_area_category,general_category,created_at';
     const [dateOfEventResult, incidentDateResult, createdAtResult] = await Promise.all([
       supabaseAdmin
-        .from('reports_sync')
+        .from('ground_handling_irregularity_report')
         .select(selectFields)
         .gte('date_of_event', dateFrom)
         .lte('date_of_event', dateTo)
         .limit(50),
       supabaseAdmin
-        .from('reports_sync')
+        .from('ground_handling_irregularity_report')
         .select(selectFields)
         .eq('incident_date', incidentDate)
         .limit(50),
       supabaseAdmin
-        .from('reports_sync')
+        .from('ground_handling_irregularity_report')
         .select(selectFields)
         .gte('created_at', dateFrom)
         .lte('created_at', dateTo)

@@ -461,7 +461,7 @@ async function fetchSupabaseRecords() {
 
   while (hasMore) {
     const { data, error } = await supabase
-      .from('reports_sync')
+      .from('ground_handling_irregularity_report')
       .select('id, sheet_id, source_sheet, source_fingerprint, synced_at')
       .order('sheet_id', { ascending: true })
       .range(offset, offset + PAGE_SIZE - 1);
@@ -540,7 +540,7 @@ async function executeUpsert(toUpsert, relinks) {
         log('INFO', `Upserting batch ${bn}/${tb} (${batch.length} rows)...`);
 
         const { error } = await supabase
-          .from('reports_sync')
+          .from('ground_handling_irregularity_report')
           .upsert(batch, { onConflict: 'sheet_id', ignoreDuplicates: false });
 
         if (error) {
@@ -561,7 +561,7 @@ async function executeUpsert(toUpsert, relinks) {
     }
 
     const { error } = await supabase
-      .from('reports_sync')
+      .from('ground_handling_irregularity_report')
       .update(item.row)
       .eq('id', item.existingId);
 
@@ -592,7 +592,7 @@ async function deleteOrphans(orphans) {
     log('INFO', `Deleting batch ${bn}/${tb} (${ids.length} records)...`);
 
     const { data, error } = await supabase
-      .from('reports_sync')
+      .from('ground_handling_irregularity_report')
       .delete()
       .in('id', ids)
       .select('id');
@@ -605,7 +605,7 @@ async function deleteOrphans(orphans) {
 
 async function verifyConsistency(sheetRows) {
   const { count, error } = await supabase
-    .from('reports_sync')
+    .from('ground_handling_irregularity_report')
     .select('*', { count: 'exact', head: true });
   if (error) { log('WARN', `Could not verify final count: ${error.message}`); return; }
 
@@ -621,7 +621,7 @@ async function verifyConsistency(sheetRows) {
   for (const r of sheetRows) sheetCounts[r.source_sheet] = (sheetCounts[r.source_sheet] || 0) + 1;
 
   const { data: dbRows, error: srcErr } = await supabase
-    .from('reports_sync')
+    .from('ground_handling_irregularity_report')
     .select('source_sheet');
   if (!srcErr && dbRows) {
     const dbCounts = {};

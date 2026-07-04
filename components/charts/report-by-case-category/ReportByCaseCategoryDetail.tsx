@@ -509,8 +509,8 @@ export default function ReportByCaseCategoryDetail({
         fetchSeverityDistributionsAi().then(aiSeverityRes => {
           if (aiSeverityRes && aiSeverityRes.category) {
             const heatmapData = aiSeverityRes.category.flatMap(c => [
-              { category: c.name, severity: 'Critical', count: c.CRITICAL },
-              { category: c.name, severity: 'High', count: c.HIGH },
+              { category: c.name, severity: 'TOP RISK', count: c['TOP RISK'] || 0 },
+              { category: c.name, severity: 'HIGH RISK', count: c['HIGH RISK'] || 0 },
               { category: c.name, severity: 'Medium', count: c.MEDIUM },
               { category: c.name, severity: 'Low', count: c.LOW },
             ]);
@@ -566,7 +566,7 @@ export default function ReportByCaseCategoryDetail({
       (String(d.Branch) === branchName || String(d.Bandara) === branchName)
     );
     setDrilldownData(filtered);
-    setDrilldownTitle(`Branch: ${branchName} - ${categoryName}`);
+    setDrilldownTitle(`Station: ${branchName} - ${categoryName}`);
     setIsDrilldownOpen(true);
   };
 
@@ -634,7 +634,7 @@ export default function ReportByCaseCategoryDetail({
             explanation="Total laporan untuk kategori ini pada periode ini."
           />
           <KPICard
-            title="Most Affected Branch"
+            title="Most Affected Station"
             value={kpis.mostAffectedBranch.name}
             subtitle={`${kpis.mostAffectedBranch.count} reports`}
             color="red"
@@ -692,7 +692,7 @@ export default function ReportByCaseCategoryDetail({
       {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Category by Branch</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Category by Station</h2>
           <BranchStackedBar data={branchData} onBarClick={handleBranchDrilldown} />
         </section>
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">

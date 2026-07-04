@@ -49,13 +49,13 @@ const SUGGESTION_BUBBLES: SuggestionBubble[] = [
   {
     icon: FileText,
     label: 'Executive Summary',
-    query: 'Buatkan ringkasan laporan bulanan lengkap: distribusi severity, top kategori, top branch, dan rekomendasi',
+    query: 'Buatkan ringkasan laporan bulanan lengkap: distribusi severity, top kategori, top station, dan rekomendasi',
     color: 'from-purple-500/20 to-violet-500/20 border-purple-500/30 text-purple-400',
   },
   {
     icon: Search,
     label: 'Top Irregularities',
-    query: 'Tampilkan top 10 kategori irregularity dengan jumlah case, persentase, dan branch mana yang paling banyak',
+    query: 'Tampilkan top 10 kategori irregularity dengan jumlah case, persentase, dan station mana yang paling banyak',
     color: 'from-rose-500/20 to-pink-500/20 border-rose-500/30 text-rose-400',
   },
   {

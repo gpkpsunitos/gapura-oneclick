@@ -709,7 +709,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
             <Brain className="w-5 h-5 text-emerald-600" />
             <h2 className="text-lg font-bold text-gray-800">AI Risk Heatmap</h2>
           </div>
-          <p className="text-xs text-gray-500 mb-4">Proactive risk analysis by severity across branches (AI Service Data)</p>
+          <p className="text-xs text-gray-500 mb-4">Proactive risk analysis by severity across stations (AI Service Data)</p>
           <div className="h-[400px]">
             <HeatmapChart 
               data={chartData.aiRiskHeatmap}
@@ -805,7 +805,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
           />
         )}
         <KPICard
-          title="Dominant Branch"
+          title="Dominant Station"
           value={chartData.dominantBranch.name}
           subtitle={`${chartData.dominantBranch.count} reports (${chartData.dominantBranch.percent.toFixed(0)}%)`}
           color="blue"
@@ -900,7 +900,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
           <div className="flex items-start justify-between mb-4">
             <div>
-              <h2 className="text-lg font-bold text-gray-800">Top Contributing Branches</h2>
+              <h2 className="text-lg font-bold text-gray-800">Top Contributing Stations</h2>
               <p className="text-xs text-gray-500 mt-1">Cabang dengan kontribusi laporan tertinggi</p>
             </div>
             <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg max-w-xs">

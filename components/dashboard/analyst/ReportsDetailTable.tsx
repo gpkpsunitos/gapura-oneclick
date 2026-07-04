@@ -17,9 +17,9 @@ import {
 import { Report } from '@/types';
 import { cn } from '@/lib/utils';
 import { exportSingleReportToDocx } from '@/lib/reports-export';
-import { hasReportValue, isGseServiceReport, normalizeReportKey } from '@/lib/report-normalization';
+import { resolveAreaType } from '@/lib/report-normalization';
 
-type AreaTag = 'CGO' | 'LANDSIDE' | 'AIRSIDE' | 'GENERAL' | 'GSE' | 'LANDSIDE & AIRSIDE';
+type AreaTag = 'CGO' | 'LANDSIDE' | 'AIRSIDE' | 'GENERAL' | 'GSE' | 'JOUMPA' | 'LANDSIDE & AIRSIDE';
 
 const AREA_TAG_CLASS: Record<AreaTag, string> = {
   CGO: 'bg-[var(--brand-emerald-50,#ecfdf5)] text-[var(--brand-emerald-700,#047857)]',
@@ -27,17 +27,23 @@ const AREA_TAG_CLASS: Record<AreaTag, string> = {
   AIRSIDE: 'bg-sky-50 text-sky-700',
   GENERAL: 'bg-slate-100 text-slate-700',
   GSE: 'bg-amber-50 text-amber-700',
+  JOUMPA: 'bg-violet-50 text-violet-700',
   'LANDSIDE & AIRSIDE': 'bg-[var(--brand-blue-50,#eff6ff)] text-[var(--brand-blue-700,#1d4ed8)]',
 };
 
+// ponytail: delegates to the same classifier the All Reports source toggle
+// uses (lib/report-normalization.ts) so a card's badge always agrees with
+// which toggle pill surfaces it.
 function resolveAreaTag(report: Report): AreaTag {
-  if (report.primary_tag === 'CGO') return 'CGO';
-  const area = normalizeReportKey(report.area);
-  if (hasReportValue(report.terminal_area_category) || area.includes('terminal') || area.includes('landside')) return 'LANDSIDE';
-  if (hasReportValue(report.apron_area_category) || area.includes('apron') || area.includes('airside')) return 'AIRSIDE';
-  if (hasReportValue(report.general_category) || area.includes('general')) return 'GENERAL';
-  if (isGseServiceReport(report) || hasReportValue(report.category_case_gse)) return 'GSE';
-  return 'LANDSIDE & AIRSIDE';
+  switch (resolveAreaType(report)) {
+    case 'Terminal Area': return 'LANDSIDE';
+    case 'Apron Area': return 'AIRSIDE';
+    case 'General': return 'GENERAL';
+    case 'GSE Availability': return 'GSE';
+    case 'Cargo (CGO)': return 'CGO';
+    case 'Joumpa': return 'JOUMPA';
+    default: return 'LANDSIDE & AIRSIDE';
+  }
 }
 
 type SortField = 'created_at' | 'status' | 'severity' | 'report' | 'location' | 'station';
@@ -70,9 +76,7 @@ function resolveSeverity(report: Report): string {
 
 const severityOrder: Record<string, number> = {
   'TOP RISK': 0,
-  'CRITICAL': 0,
   'HIGH RISK': 1,
-  'HIGH': 1,
   'MEDIUM': 2,
   'LOW': 3,
 };

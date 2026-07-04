@@ -202,7 +202,7 @@ function BranchRankTable({ data }: { data: BranchOverview[] }) {
           <thead>
             <tr className="bg-[var(--surface-0)]/50">
               <th className="px-4 py-4 text-left text-[10px] font-black text-[var(--surface-500)] uppercase tracking-widest border-b border-[var(--surface-border)]">Rank</th>
-              <th className="px-4 py-4 text-left text-[10px] font-black text-[var(--surface-500)] uppercase tracking-widest border-b border-[var(--surface-border)]">Branch</th>
+              <th className="px-4 py-4 text-left text-[10px] font-black text-[var(--surface-500)] uppercase tracking-widest border-b border-[var(--surface-border)]">Station</th>
               <th className="px-4 py-4 text-right text-[10px] font-black text-[var(--surface-500)] uppercase tracking-widest border-b border-[var(--surface-border)]">Volume</th>
               <th className="px-4 py-4 text-center text-[10px] font-black text-[var(--surface-500)] uppercase tracking-widest border-b border-[var(--surface-border)]">Performance</th>
               <th className="px-4 py-4 text-right text-[10px] font-black text-[var(--surface-500)] uppercase tracking-widest border-b border-[var(--surface-border)]">Sentiment</th>
@@ -766,7 +766,7 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
           color="blue"
         />
         <KPICard
-          title="Rank #1 Branch"
+          title="Rank #1 Station"
           value={topBranch?.branch || '-'}
           subtitle={`Risk Index: ${topBranch?.riskIndex || 0}`}
           color={topBranch && topBranch.riskIndex >= 50 ? 'red' : 'orange'}
@@ -801,7 +801,7 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
 
       {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <h2 className="text-lg font-bold text-gray-800 mb-4">Branch Risk Ranking</h2>
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Station Risk Ranking</h2>
         <BranchRankTable data={branchData} />
       </section>
 
@@ -821,12 +821,12 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
       {}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-1">Area Breakdown (Branch x Area)</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-1">Area Breakdown (Station x Area)</h2>
           <p className="text-xs text-gray-500 mb-4">Volume breakdown reveals where inside the branch the problem lies</p>
           <AreaBreakdownChart data={areaData} />
         </section>
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-1">Airline Contribution inside Branch</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-1">Airline Contribution inside Station</h2>
           <p className="text-xs text-gray-500 mb-4">Top airlines contributing to reports in this branch</p>
           <AirlineContributionChart data={airlineData} />
         </section>
@@ -850,7 +850,7 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
       <section className="bg-[var(--surface-glass)] backdrop-blur-md rounded-[2rem] border border-[var(--surface-border)] overflow-hidden shadow-2xl">
         <InvestigativeTable
           data={investigativeData}
-          title="Investigative Table - Branch Intelligence"
+          title="Investigative Table - Station Intelligence"
           rowsPerPage={5}
           maxRows={40}
         />
@@ -874,7 +874,7 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
         <div className="p-8">
           <DataTableWithPagination 
             data={fullTableData} 
-            title="Branch Intelligence (Main Chart Source)"
+            title="Station Intelligence (Main Chart Source)"
             rowsPerPage={3}
           />
         </div>

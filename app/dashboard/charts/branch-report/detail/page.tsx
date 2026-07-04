@@ -38,7 +38,7 @@ export default function BranchReportPage() {
       </div>
 
       <DetailFilterHeader 
-        title="Branch Report"
+        title="Station Report"
         subtitle="Performance Analysis"
         filters={filters}
         setFilters={setFilters}

@@ -394,7 +394,7 @@ export function OsStationAirlineSection({
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-6">
                     {}
                     <div className={cn(OS_CARD_CLASS, "p-6 transition-all duration-500 hover:shadow-2xl flex flex-col")} style={{ height: '400px' }}>
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-4 opacity-70">Detail Terminal Area by Branch</h3>
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-4 opacity-70">Detail Terminal Area by Station</h3>
                         <div className="flex-1 mt-2 overflow-hidden flex flex-col min-h-0">
                             <div className={cn("overflow-auto border flex-1", OS_BORDER_CLASS)}>
                                 <table className="w-full text-xs" style={{ minWidth: '300px' }}>
@@ -456,7 +456,7 @@ export function OsStationAirlineSection({
 
                     {}
                     <div className={cn(OS_CARD_CLASS, "p-6 transition-all duration-500 hover:shadow-2xl flex flex-col")} style={{ height: '400px' }}>
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-4 opacity-70">Detail Apron Area by Branch</h3>
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-4 opacity-70">Detail Apron Area by Station</h3>
                         <div className="flex-1 mt-2 overflow-hidden flex flex-col min-h-0">
                             <div className={cn("overflow-auto border flex-1", OS_BORDER_CLASS)}>
                                 <table className="w-full text-xs" style={{ minWidth: '300px' }}>
@@ -517,7 +517,7 @@ export function OsStationAirlineSection({
 
                     {}
                     <div className={cn(OS_CARD_CLASS, "p-6 transition-all duration-500 hover:shadow-2xl flex flex-col")} style={{ height: '400px' }}>
-                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-4 opacity-70">Detail General Category by Branch</h3>
+                        <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-4 opacity-70">Detail General Category by Station</h3>
                         <div className="flex-1 mt-2 overflow-hidden flex flex-col min-h-0">
                             <div className={cn("overflow-auto border flex-1", OS_BORDER_CLASS)}>
                                 <table className="w-full text-xs" style={{ minWidth: '300px' }}>

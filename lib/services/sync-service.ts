@@ -264,7 +264,7 @@ export class SyncService {
 
     while (hasMore) {
       const baseQuery = supabaseAdmin
-        .from('reports_sync')
+        .from('ground_handling_irregularity_report')
         .select('id, sheet_id, source_fingerprint, source_sheet')
         .order('sheet_id', { ascending: true })
         .range(offset, offset + this.PAGE_SIZE - 1);
@@ -393,7 +393,7 @@ export class SyncService {
     for (const item of relinkItems) {
       try {
         const { error } = await supabaseAdmin
-          .from('reports_sync')
+          .from('ground_handling_irregularity_report')
           .update(item.row)
           .eq('id', item.existingId);
 
@@ -421,7 +421,7 @@ export class SyncService {
       const batch = upsertItems.slice(i, i + this.BATCH_SIZE);
       try {
         const { error } = await supabaseAdmin
-          .from('reports_sync')
+          .from('ground_handling_irregularity_report')
           .upsert(
             batch.map((item) => item.row),
             {
@@ -489,7 +489,7 @@ export class SyncService {
     try {
 
       const { data: dirtyReports, error } = await supabaseAdmin
-        .from('reports_sync')
+        .from('ground_handling_irregularity_report')
         .select('*')
         .filter('updated_at', 'gt', 'synced_at')
         .order('updated_at', { ascending: false })
@@ -505,7 +505,7 @@ export class SyncService {
             if (success) {
 
                 await supabaseAdmin
-                    .from('reports_sync')
+                    .from('ground_handling_irregularity_report')
                     .update({ synced_at: new Date().toISOString() })
                     .eq('id', report.id);
                 pushed++;
@@ -560,7 +560,7 @@ export class SyncService {
       for (let i = 0; i < syncToDelete.length; i += this.DELETE_BATCH_SIZE) {
         const batch = syncToDelete.slice(i, i + this.DELETE_BATCH_SIZE);
         const { data, error } = await supabaseAdmin
-          .from('reports_sync')
+          .from('ground_handling_irregularity_report')
           .delete()
           .in('id', batch.map((row) => row.id))
           .select('id');
@@ -604,7 +604,7 @@ export class SyncService {
     try {
       const syncState = await getSyncState('reports');
       const { count } = await supabaseAdmin
-        .from('reports_sync')
+        .from('ground_handling_irregularity_report')
         .select('*', { count: 'exact', head: true });
 
       return {
@@ -625,7 +625,7 @@ export class SyncService {
   static async clearSyncedData(): Promise<{ success: boolean; deleted: number }> {
     try {
       const { data, error } = await supabaseAdmin
-        .from('reports_sync')
+        .from('ground_handling_irregularity_report')
         .delete()
         .neq('id', '00000000-0000-0000-0000-000000000000')
         .select('id');

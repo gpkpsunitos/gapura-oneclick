@@ -457,7 +457,7 @@ export function AIAnalysisSection({
 
       const reportText = report.report || report.description || report.title || "";
       const issueType = report.main_category || report.irregularity_complain_category || report.category || "Unknown";
-      const severity = report.severity_level || report.severity || "Medium";
+      const severity = report.severity_level || report.severity || "MEDIUM";
       const area = report.area || report.specific_location || report.location || "";
       const airline = report.airlines || report.airline || "";
       const rootCause = report.root_cause || report.root_caused || report.identification_of_root || report.issue_caused || "";

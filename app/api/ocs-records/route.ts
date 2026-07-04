@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getWorkspaceUser, normalizeRole } from '@/lib/server/workspace-auth';
 
-const TABS = ['reminder', 'joumpa', 'joumpa_uplifting', 'rca'] as const;
+const TABS = ['reminder', 'joumpa', 'joumpa_uplifting', 'rca', 'weekly_report', 'monthly_report', 'survey_report'] as const;
 type OcsTab = (typeof TABS)[number];
 
 // "analyst OCS" == ANALYST role scoped to the OCS division (plus SUPER_ADMIN),

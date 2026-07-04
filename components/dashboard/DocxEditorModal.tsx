@@ -323,7 +323,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
                     name="location"
                     value={formData.location}
                     onChange={handleInputChange}
-                    label="Location (City/Branch shown on signature)"
+                    label="Location (City/Station shown on signature)"
                     placeholder="e.g. Cengkareng / CGK"
                     className="bg-white"
                   />

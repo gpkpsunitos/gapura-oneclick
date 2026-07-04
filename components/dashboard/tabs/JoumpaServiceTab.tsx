@@ -1363,7 +1363,7 @@ function OpCauseDetailTable({ data }: { data: Report[] }) {
                           <DetailBlock label="Root Caused" value={normalizeText(resolveRootCause(r), '-')} />
                           <DetailBlock label="Action Taken" value={normalizeText(r.action_taken, '-')} />
                           <DetailBlock label="Date of Event" value={formatDateLabel(r.date_of_event || r.created_at)} />
-                          <DetailBlock label="Branch" value={normalizeText(resolveReportBranch(r), '-').toUpperCase()} />
+                          <DetailBlock label="Station" value={normalizeText(resolveReportBranch(r), '-').toUpperCase()} />
                           <DetailBlock label="Remarks Case" value={normalizeText(resolveJoumpaCategory(r), '-')} />
                           <DetailBlock label="Case Joumpa" value={normalizeText(resolveJoumpaDetailCategory(r), '-')} />
                           <DetailBlock label="Final Remarks" value={normalizeText(r.final_remarks || r.kps_remarks, '-')} />
@@ -1411,7 +1411,7 @@ function CompLandsideDetailTable({ data }: { data: Report[] }) {
         <ReportTable density="compact" containerClassName="overflow-visible rounded-none border-0 shadow-none" className="min-w-full border-separate border-spacing-0 text-[11px]">
           <ReportTHead className="sticky top-0 z-20 bg-white">
             <ReportTR>
-              {['Branch', 'Airlines', 'Identification of Root', 'Supporting Evidence', 'See Details'].map((label, i) => (
+              {['Station', 'Airlines', 'Identification of Root', 'Supporting Evidence', 'See Details'].map((label, i) => (
                 <ReportTH key={label} className={`border-b border-[oklch(0.88_0.02_145_/_0.75)] px-2 py-2 text-left text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)] ${i >= 4 ? 'text-right' : ''}`}>{label}</ReportTH>
               ))}
             </ReportTR>
@@ -1487,7 +1487,7 @@ function VoiceDetailTable({ data }: { data: JoumpaRecord[] }) {
         <ReportTable density="compact" containerClassName="overflow-visible rounded-none border-0 shadow-none" className="min-w-full border-separate border-spacing-0 text-[11px]">
           <ReportTHead className="sticky top-0 z-20 bg-white">
             <ReportTR>
-              {['Report Type', 'Joumpa Service Type', 'Category Report', 'Branch', 'Airlines', 'Report', 'See Details'].map((label, i) => (
+              {['Report Type', 'Joumpa Service Type', 'Category Report', 'Station', 'Airlines', 'Report', 'See Details'].map((label, i) => (
                 <ReportTH key={label} className={`border-b border-[oklch(0.88_0.02_145_/_0.75)] px-2 py-2 text-left text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)] ${i >= 6 ? 'text-right' : ''}`}>{label}</ReportTH>
               ))}
             </ReportTR>

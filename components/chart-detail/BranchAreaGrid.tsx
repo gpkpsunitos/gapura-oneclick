@@ -48,7 +48,7 @@ export function BranchAreaGrid({ data, config, viewMode = 'values', normalizatio
   const processedData = useMemo(() => {
     if (!data || !data.rows) return { branches: [], grandTotal: 0 };
 
-    const branchField = config.yAxis[0] || 'Branch';
+    const branchField = config.yAxis[0] || 'Station';
     const areaField = config.xAxis || 'Area';
 
     const branchMap = new Map<string, { total: number; areas: Map<string, number> }>();
@@ -159,7 +159,7 @@ export function BranchAreaGrid({ data, config, viewMode = 'values', normalizatio
                    className="flex justify-between items-center text-sm cursor-pointer hover:bg-emerald-50/50 rounded px-1 py-0.5 -mx-1 transition-colors"
                    onClick={(e) => {
                      e.stopPropagation();
-                     const branchField = config.yAxis[0] || 'Branch';
+                     const branchField = config.yAxis[0] || 'Station';
                      const areaField = config.xAxis || 'Area';
                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                      const filtered = data.rows.filter((row: any) => 

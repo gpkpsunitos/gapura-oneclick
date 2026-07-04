@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 import { parseAuthBundle } from '@/lib/auth-bundle';
 import { verifySession } from '@/lib/auth-utils';
 
@@ -23,7 +23,7 @@ export async function GET() {
 
         if (uids.length === 0) return NextResponse.json({ active: null, origin: bundle.origin_uid, accounts: [] });
 
-        const { data: users, error } = await supabase
+        const { data: users, error } = await supabaseAdmin
             .from('users')
             .select('id, email, full_name, role, division')
             .in('id', uids);

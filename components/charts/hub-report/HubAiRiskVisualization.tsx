@@ -142,8 +142,8 @@ export function HubAiRiskVisualization({ data, isLoading, error }: {
                             </TooltipTrigger>
                             <TooltipContent className="p-2 text-xs">
                                 <div className="space-y-1">
-                                    <div className="flex justify-between gap-4"><span className="text-red-500">Critical:</span> <span>{details.severity_distribution.CRITICAL || 0}</span></div>
-                                    <div className="flex justify-between gap-4"><span className="text-orange-500">High:</span> <span>{details.severity_distribution.HIGH || 0}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-red-500">Top Risk:</span> <span>{details.severity_distribution['TOP RISK'] || 0}</span></div>
+                                    <div className="flex justify-between gap-4"><span className="text-orange-500">High Risk:</span> <span>{details.severity_distribution['HIGH RISK'] || 0}</span></div>
                                     <div className="flex justify-between gap-4"><span className="text-yellow-500">Medium:</span> <span>{details.severity_distribution.MEDIUM || 0}</span></div>
                                     <div className="flex justify-between gap-4"><span className="text-green-500">Low:</span> <span>{details.severity_distribution.LOW || 0}</span></div>
                                 </div>

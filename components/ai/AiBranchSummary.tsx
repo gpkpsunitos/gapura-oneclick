@@ -93,10 +93,10 @@ export function AiBranchSummary({ source }: { source?: string }) {
           </div>
           <div>
             <h2 className="text-xl font-black tracking-tight text-[var(--text-primary)]">
-              AI Branch Risk Intelligence
+              AI Station Risk Intelligence
             </h2>
             <p className="text-sm text-[var(--text-muted)] font-medium">
-              Automated branch-level risk profiling and trend distribution
+              Automated station-level risk profiling and trend distribution
             </p>
           </div>
         </div>
@@ -154,7 +154,7 @@ export function AiBranchSummary({ source }: { source?: string }) {
               highlight
             />
             <MetricTile 
-              label="Active Branches" 
+              label="Active Stations" 
               value={data.landside_airside.total_branches + data.cgo.total_branches} 
               subValue="Cross-Network Coverage"
             />

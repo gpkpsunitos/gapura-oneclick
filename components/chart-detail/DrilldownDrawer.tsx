@@ -51,8 +51,8 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
     return data.reduce(
       (counts, record) => {
         const severity = getSeverity(record);
-        if (severity === 'TOP RISK' || severity === 'CRITICAL') counts.topRisk += 1;
-        if (severity === 'HIGH RISK' || severity === 'HIGH') counts.highRisk += 1;
+        if (severity === 'TOP RISK') counts.topRisk += 1;
+        if (severity === 'HIGH RISK') counts.highRisk += 1;
         return counts;
       },
       { topRisk: 0, highRisk: 0 }
@@ -65,8 +65,8 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
     if (!isRiskSelectorDrawer) return data;
     return data.filter((record) => {
       const severity = getSeverity(record);
-      if (activeRiskFilter === 'TOP RISK') return severity === 'TOP RISK' || severity === 'CRITICAL';
-      return severity === 'HIGH RISK' || severity === 'HIGH';
+      if (activeRiskFilter === 'TOP RISK') return severity === 'TOP RISK';
+      return severity === 'HIGH RISK';
     });
   }, [activeRiskFilter, data, isRiskSelectorDrawer]);
 
@@ -103,7 +103,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
       const code = String((nestedStation as { code?: unknown }).code || '').trim();
       if (code) return code.toUpperCase();
     }
-    return getText(record, ['station_code', 'Branch', 'Bandara', 'branch', 'reporting_branch', 'kode_cabang'], 'N/A').toUpperCase();
+    return getText(record, ['station_code', 'Station', 'Bandara', 'branch', 'reporting_branch', 'kode_cabang'], 'N/A').toUpperCase();
   };
 
   const formatDate = (rawDate: string): string => {

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
@@ -21,7 +20,7 @@ async function getCachedStations() {
   if (stationsCache && Date.now() - stationsCache.ts < REF_CACHE_TTL) {
     return stationsCache.data;
   }
-  const { data } = await supabase.from('stations').select('id, code, name');
+  const { data } = await supabaseAdmin.from('stations').select('id, code, name');
   const result = data ?? [];
   stationsCache = { data: result, ts: Date.now() };
   return result;
@@ -31,7 +30,7 @@ async function getCachedUsers() {
   if (usersCache && Date.now() - usersCache.ts < REF_CACHE_TTL) {
     return usersCache.data;
   }
-  const { data } = await supabase.from('users').select('id, full_name, email');
+  const { data } = await supabaseAdmin.from('users').select('id, full_name, email');
   const result = data ?? [];
   usersCache = { data: result, ts: Date.now() };
   return result;
@@ -70,8 +69,11 @@ export async function GET(request: Request) {
         const to = searchParams.get('to');
         const sourceParam = searchParams.get('source');
 
-        const source: 'sheets' | 'sync' = sourceParam === 'sync' ? 'sync' : 'sheets';
-        const allReports = await reportsService.getReports({ source });
+        const source: 'sheets' | 'sync' = sourceParam === 'sheets' ? 'sheets' : 'sync';
+        const allReports = await reportsService.getReports({
+            source,
+            filters: status && status !== 'all' ? { status } : undefined,
+        });
         const role = String(payload.role || '').trim().toUpperCase();
         const managerStationValues = new Set<string>();
 

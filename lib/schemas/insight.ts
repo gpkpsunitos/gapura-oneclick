@@ -1,15 +1,14 @@
 
 import { z } from 'zod';
 
-export const Severity = z.enum(['TOP RISK', 'HIGH RISK', 'HIGH', 'MEDIUM', 'LOW']);
+export const Severity = z.enum(['TOP RISK', 'HIGH RISK', 'MEDIUM', 'LOW']);
 export type Severity = z.infer<typeof Severity>;
 
 export const SEVERITY_RANK: Record<Severity, number> = {
   LOW: 0,
   MEDIUM: 1,
-  HIGH: 2,
-  'HIGH RISK': 3,
-  'TOP RISK': 4,
+  'HIGH RISK': 2,
+  'TOP RISK': 3,
 };
 
 export const ExecHeadline = z.object({

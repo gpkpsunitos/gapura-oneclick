@@ -1043,6 +1043,22 @@ html {
   outline: none;
 }
 
+/* Per-card date range filter */
+.sr-scope .sr-date-input {
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 8px;
+  background: var(--sr-raised);
+  border: 1px solid var(--sr-border);
+  color: var(--sr-text-2);
+  font-size: 11px;
+  font-weight: 700;
+}
+.sr-scope .sr-date-input:focus-visible {
+  border-color: var(--sr-accent);
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .sr-scope *, .sr-scope *::before, .sr-scope *::after {
     transition-duration: 0.01ms !important;

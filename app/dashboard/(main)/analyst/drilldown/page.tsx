@@ -80,7 +80,8 @@ export default function AnalystDrilldownPage() {
                 if (value === 'all') return filtered;
                 return filtered.filter(r => 
                     String(r.severity).toUpperCase() === String(value).toUpperCase() ||
-                    (String(value).toUpperCase() === 'CRITICAL' && String(r.severity).toUpperCase() === 'TOP RISK')
+                    (String(value).toUpperCase() === 'TOP RISK' && (String(r.severity).toUpperCase() === 'CRITICAL' || String(r.severity).toUpperCase() === 'TOP RISK')) ||
+                    (String(value).toUpperCase() === 'HIGH RISK' && (String(r.severity).toUpperCase() === 'HIGH' || String(r.severity).toUpperCase() === 'HIGH RISK'))
                 );
             default:
                 return filtered;

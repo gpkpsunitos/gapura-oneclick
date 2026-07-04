@@ -42,8 +42,8 @@ export async function POST(request: Request) {
         });
 
         return NextResponse.json({
-            url: `/api/performance-links/thumbnail/${uploaded.fileId}`,
-            drive_file_id: uploaded.fileId,
+            url: uploaded.webViewLink,
+            storage_path: uploaded.fileId,
         }, { status: 201 });
     } catch (error) {
         console.error('[Performance Link Thumbnail Upload] Failed:', error);

@@ -7,13 +7,15 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { WizardStep } from '@/components/ui/WizardStep';
 import GuestNav from '@/components/GuestNav';
-import { PRIORITY_CONFIG } from '@/lib/constants/report-status';
+import { PRIORITY_CONFIG, SEVERITY_CONFIG } from '@/lib/constants/report-status';
 import { AIRLINES } from '@/lib/constants/airlines';
 import { GSE_TYPES, GSE_EQUIPMENT, type AreaId, type GseType } from '@/lib/constants/incident-areas';
 import {
   PUBLIC_SEVERITY_OPTIONS,
   AREA_OPTIONS,
   AREA_CATEGORIES,
+  ROOT_CAUSE_CLASSIFICATIONS,
+  REPORT_CATEGORY_OPTIONS,
   getAirlineType,
   getHubForStation,
   getWeekInMonth,
@@ -37,6 +39,8 @@ import { queueOfflineReport } from '@/lib/pwa/offline-queue';
 import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
 import { getLinkUrl } from '@/lib/external-links';
 import { SignaturePad } from '@/components/public-report/SignaturePad';
+import PublicJoumpaForm from '@/components/public-report/PublicJoumpaForm';
+import PublicIrregularityForm from '@/components/public-report/PublicIrregularityForm';
 import { generatePDF, generateWord } from '@/lib/utils/document-generator';
 import {
   normalizeFlightNumber,
@@ -72,17 +76,20 @@ export function PublicReportWizard() {
     route: '',
     main_category: '',
     delay_code: '',
-    delay_duration: '',
     area: '',
     area_category: '',
+    area_category_other: '',
     description: '',
     root_cause: '',
+    root_cause_classification: '',
+    root_cause_classification_other: '',
     action_taken: '',
     preventive_action: '',
     airline_other: '',
     gse_type: '',
     gse_equipment: '',
-    severity: 'medium',
+    gse_equipment_other: '',
+    severity: 'MEDIUM',
     reporter_name: '',
     reporter_email: '',
     evidence_urls: [],
@@ -116,6 +123,8 @@ export function PublicReportWizard() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [showComingSoon, setShowComingSoon] = useState(false);
+  const [showJoumpaForm, setShowJoumpaForm] = useState(false);
+  const [showIrregularityForm, setShowIrregularityForm] = useState(false);
   const [quickAccessCheckingId, setQuickAccessCheckingId] = useState<string | null>(null);
   const [quickAccessSessionId, setQuickAccessSessionId] = useState<string | null>(null);
   const externalLinks = useExternalLinks();
@@ -200,14 +209,10 @@ export function PublicReportWizard() {
     {
       id: 'JOUMPA',
       title: 'JOUMPA',
-      description: 'Hospitality & VIP Service access.',
-      icon: QrCode,
+      description: 'Report operational issues, damage, or irregularities related to JOUMPA service.',
+      icon: AlertTriangle,
       color: 'oklch(0.50 0.15 190)',
       span: 'col-span-1 row-span-1 sm:col-span-2 sm:row-span-2 lg:col-span-2 lg:row-span-2',
-      qrLinks: [
-        { label: 'JOUMPA Incompatibility Service', url: getLinkUrl(externalLinks, 'staff-joumpa') },
-        { label: 'JOUMPA Customer Survey', url: getLinkUrl(externalLinks, 'customer-joumpa') }
-      ]
     },
     {
       id: 'SLA',
@@ -230,7 +235,8 @@ export function PublicReportWizard() {
       color: 'oklch(0.60 0.20 340)',
       span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
       qrLinks: [
-        { label: 'Passenger Survey', url: getLinkUrl(externalLinks, 'survey-penumpang') }
+        { label: 'Passenger Survey', url: getLinkUrl(externalLinks, 'survey-penumpang') },
+        { label: 'JOUMPA Customer Survey', url: getLinkUrl(externalLinks, 'customer-joumpa') }
       ]
     },
     {
@@ -284,6 +290,7 @@ export function PublicReportWizard() {
   ], [externalLinks]);
 
   const [formData, setFormData] = useState<FormData>(initialFormData);
+  const [delayChoice, setDelayChoice] = useState<'no' | 'other'>('no');
 
   const formValidationErrors = useMemo<PublicReportValidationErrors>(() => (
     validatePublicReportFlightStation({
@@ -700,6 +707,16 @@ export function PublicReportWizard() {
    * @param category - Kategori akses cepat
    */
   const openCategory = (category: QuickAccessCategory) => {
+    if (category.id === 'JOUMPA') {
+      setQuickAccessSessionId(crypto.randomUUID());
+      setShowJoumpaForm(true);
+      return;
+    }
+    if (category.id === 'Irregularity') {
+      setQuickAccessSessionId(crypto.randomUUID());
+      setShowIrregularityForm(true);
+      return;
+    }
     if (category.loginProtected) {
       void openLoginProtectedCategory(category);
       return;
@@ -793,9 +810,15 @@ export function PublicReportWizard() {
       case 2:
         return !!formData.area;
       case 3:
-        return !!formData.area_category;
+        return formData.area === 'GSE' ? !!formData.gse_equipment : !!formData.area_category;
       case 4:
-        return !!(formData.description && formData.root_cause && formData.action_taken);
+        return !!(
+          formData.description &&
+          formData.root_cause &&
+          formData.action_taken &&
+          (formData.area !== 'GSE' || formData.area_category) &&
+          (!ROOT_CAUSE_CLASSIFICATIONS[formData.area] || formData.root_cause_classification)
+        );
       case 5:
         return !!(
           formData.reporter_name &&
@@ -848,9 +871,21 @@ export function PublicReportWizard() {
       const airlineValue = formData.airline === 'Other / Lainnya'
         ? (formData.airline_other.trim() || 'Other')
         : formData.airline;
+      const areaCategoryValue = formData.area_category === 'Other'
+        ? (formData.area_category_other.trim() || 'Other')
+        : formData.area_category;
+      const gseEquipmentValue = formData.gse_equipment === 'Other'
+        ? (formData.gse_equipment_other.trim() || 'Other')
+        : formData.gse_equipment;
+      const rootCauseClassificationValue = formData.root_cause_classification === 'Other'
+        ? (formData.root_cause_classification_other.trim() || 'Other')
+        : formData.root_cause_classification;
       const payload = {
         ...formData,
         airline: airlineValue,
+        area_category: areaCategoryValue,
+        gse_equipment: gseEquipmentValue,
+        case_classification: rootCauseClassificationValue || undefined,
         reporter_name: reporterName,
         reporter_email: reporterEmail,
         evidence_urls: evidenceUrls,
@@ -860,9 +895,9 @@ export function PublicReportWizard() {
         quick_access_session_id: quickAccessSessionId,
         preventive_action: formData.preventive_action,
         gse_available_requirement: formData.area === 'GSE' ? formData.gse_type : undefined,
-        gse_motorized: formData.gse_type === 'GSE MOTORIZED' ? formData.gse_equipment : undefined,
-        gse_non_motorized: formData.gse_type === 'GSE NON - MOTORIZED' ? formData.gse_equipment : undefined,
-        category_case_gse: formData.area === 'GSE' ? formData.area_category : undefined,
+        gse_motorized: formData.gse_type === 'GSE MOTORIZED' ? gseEquipmentValue : undefined,
+        gse_non_motorized: formData.gse_type === 'GSE NON - MOTORIZED' ? gseEquipmentValue : undefined,
+        category_case_gse: formData.area === 'GSE' ? areaCategoryValue : undefined,
         title: `${airlineValue} ${formData.flight_number} - ${formData.main_category}`,
         station_id: formData.station_id,
         category: formData.main_category,
@@ -875,12 +910,12 @@ export function PublicReportWizard() {
         form_submitted_at: new Date().toISOString(),
         form_completed_at: new Date().toISOString(),
         area: formData.area,
-        incident_type_id: formData.area_category,
+        incident_type_id: areaCategoryValue,
         delay_code: formData.delay_code,
-        delay_duration: formData.delay_duration,
-        terminal_area_category: formData.area === 'TERMINAL' ? formData.area_category : undefined,
-        apron_area_category: formData.area === 'APRON' ? formData.area_category : undefined,
-        general_category: formData.area === 'GENERAL' || formData.area === 'CARGO' ? formData.area_category : undefined,
+        terminal_area_category: formData.area === 'TERMINAL' ? areaCategoryValue : undefined,
+        apron_area_category: formData.area === 'APRON' ? areaCategoryValue : undefined,
+        general_category: formData.area === 'GENERAL' ? areaCategoryValue : undefined,
+        category_case_cargo: formData.area === 'CARGO' ? areaCategoryValue : undefined,
       };
 
       if (!navigator.onLine) {
@@ -937,7 +972,7 @@ export function PublicReportWizard() {
         pax: '',
         bge: '',
         gate_stand: '-',
-        delay: `${formData.delay_code || '-'} / ${formData.delay_duration || '-'}`,
+        delay: formData.delay_code || '-',
         officers: [
           { name: formData.reporter_name, company: 'Gapura Angkasa', function: 'Reporter' }
         ],
@@ -1038,6 +1073,7 @@ export function PublicReportWizard() {
     setCreatedReport(null);
     setSubmissionMode('submitted');
     setFormData(initialFormData);
+    setDelayChoice('no');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -1363,7 +1399,7 @@ export function PublicReportWizard() {
                         <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest">Flight Number</label>
                         <input
                           type="text"
-                          placeholder="e.g. GA-101"
+                          placeholder="e.g. GA101"
 	                          className="w-full px-5 py-4 rounded-2xl bg-white border border-[oklch(0.15_0.02_200_/_0.1)] focus:border-emerald-500/50 outline-none transition-all uppercase text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm placeholder-[oklch(0.15_0.02_200_/_0.3)]"
 	                          value={formData.flight_number}
 	                          onChange={(e) => setFormData({ ...formData, flight_number: e.target.value })}
@@ -1376,13 +1412,13 @@ export function PublicReportWizard() {
 
                     <div className="space-y-6">
                       <div className="space-y-2">
-                        <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest">Branch Location</label>
+                        <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest">Station Location</label>
                         <select
                           className="w-full px-5 py-4 rounded-2xl bg-white border border-[oklch(0.15_0.02_200_/_0.1)] focus:border-emerald-500/50 appearance-none outline-none transition-all text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm"
                           value={formData.station_id}
                           onChange={(e) => setFormData({ ...formData, station_id: e.target.value })}
                         >
-                          <option value="">Select Branch...</option>
+                          <option value="">Select Station...</option>
 	                          {stations.map((s) => (
                             <option key={s.id} value={s.id}>
                               {s.code} - {s.name}
@@ -1408,26 +1444,48 @@ export function PublicReportWizard() {
 	                        )}
 	                      </div>
 
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest text-[10px]">Delay Code</label>
+                      <div className="space-y-3">
+                        <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest">Delay Code</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => { setDelayChoice('no'); setFormData({ ...formData, delay_code: '' }); }}
+                            className={`px-5 py-4 rounded-2xl border font-bold transition-all ${delayChoice === 'no' ? 'bg-emerald-600 text-white border-emerald-600 shadow-spatial-md' : 'bg-white border-[oklch(0.15_0.02_200_/_0.1)] text-[oklch(0.15_0.05_200)]'}`}
+                          >
+                            No Delay
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDelayChoice('other')}
+                            className={`px-5 py-4 rounded-2xl border font-bold transition-all ${delayChoice === 'other' ? 'bg-emerald-600 text-white border-emerald-600 shadow-spatial-md' : 'bg-white border-[oklch(0.15_0.02_200_/_0.1)] text-[oklch(0.15_0.05_200)]'}`}
+                          >
+                            Lainnya
+                          </button>
+                        </div>
+                        {delayChoice === 'other' && (
                           <input
                             type="text"
-                            placeholder="Code"
+                            placeholder="Input if Delayed (Code/Duration)"
                             className="w-full px-5 py-4 rounded-2xl bg-white border border-[oklch(0.15_0.02_200_/_0.1)] outline-none transition-all text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm placeholder-[oklch(0.15_0.02_200_/_0.3)]"
                             value={formData.delay_code}
                             onChange={(e) => setFormData({ ...formData, delay_code: e.target.value })}
                           />
-                        </div>
-                        <div className="space-y-2">
-                          <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest text-[10px]">Duration (min)</label>
-                          <input
-                            type="text"
-                            placeholder="Mins"
-                            className="w-full px-5 py-4 rounded-2xl bg-white border border-[oklch(0.15_0.02_200_/_0.1)] outline-none transition-all text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm placeholder-[oklch(0.15_0.02_200_/_0.3)]"
-                            value={formData.delay_duration}
-                            onChange={(e) => setFormData({ ...formData, delay_duration: e.target.value })}
-                          />
+                        )}
+                      </div>
+
+                      <div className="space-y-3">
+                        <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest">Report Category</label>
+                        <div className="grid grid-cols-2 gap-3">
+                          {REPORT_CATEGORY_OPTIONS.map((cat) => (
+                            <button
+                              key={cat}
+                              type="button"
+                              onClick={() => setFormData({ ...formData, main_category: cat })}
+                              className={`px-5 py-4 rounded-2xl border font-bold text-sm transition-all ${formData.main_category === cat ? 'bg-emerald-600 text-white border-emerald-600 shadow-spatial-md' : 'bg-white border-[oklch(0.15_0.02_200_/_0.1)] text-[oklch(0.15_0.05_200)]'}`}
+                            >
+                              {cat}
+                            </button>
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -1445,7 +1503,7 @@ export function PublicReportWizard() {
                       {AREA_OPTIONS.map((area) => (
                         <button
                           key={area.id}
-                          onClick={() => setFormData({ ...formData, area: area.id, area_category: '' })}
+                          onClick={() => setFormData({ ...formData, area: area.id, area_category: '', area_category_other: '', gse_type: '', gse_equipment: '', gse_equipment_other: '', root_cause_classification: '', root_cause_classification_other: '' })}
                           className={`group p-8 rounded-[24px] border transition-all duration-300 flex items-center justify-between text-left
                             ${formData.area === area.id 
                               ? 'bg-emerald-600 text-white border-emerald-600 shadow-spatial-md' 
@@ -1474,22 +1532,80 @@ export function PublicReportWizard() {
                       <h3 className="text-3xl font-display font-black text-[oklch(0.15_0.05_200)]">Refine Category</h3>
                       <p className="text-[oklch(0.40_0.02_200)] font-bold">Select specific type for {formData.area}</p>
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {AREA_CATEGORIES[formData.area]?.map((cat, idx) => (
-                        <button
-                          key={idx}
-                          onClick={() => setFormData({ ...formData, area_category: cat })}
-                          className={`flex items-center gap-4 p-5 rounded-2xl border transition-all
-                            ${formData.area_category === cat 
-                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-spatial-sm' 
-                              : 'bg-white border-[oklch(0.15_0.02_200_/_0.05)] hover:border-emerald-500/30 text-[oklch(0.15_0.05_200)]/60 hover:text-[oklch(0.15_0.05_200)]'}`}
-                        >
-                          <div className={`w-3 h-3 rounded-full border-2 transition-all ${formData.area_category === cat ? 'bg-white border-white' : 'border-[oklch(0.15_0.02_200_/_0.1)]'}`} />
-                          <span className="text-sm font-bold">{cat}</span>
-                        </button>
-                      ))}
-                    </div>
+
+                    {formData.area === 'GSE' ? (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {GSE_TYPES.map((t) => (
+                            <button
+                              key={t}
+                              onClick={() => setFormData({ ...formData, gse_type: t, gse_equipment: '', gse_equipment_other: '' })}
+                              className={`flex items-center gap-4 p-5 rounded-2xl border transition-all
+                                ${formData.gse_type === t
+                                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-spatial-sm'
+                                  : 'bg-white border-[oklch(0.15_0.02_200_/_0.05)] hover:border-emerald-500/30 text-[oklch(0.15_0.05_200)]/60 hover:text-[oklch(0.15_0.05_200)]'}`}
+                            >
+                              <div className={`w-3 h-3 rounded-full border-2 transition-all ${formData.gse_type === t ? 'bg-white border-white' : 'border-[oklch(0.15_0.02_200_/_0.1)]'}`} />
+                              <span className="text-sm font-bold">{t}</span>
+                            </button>
+                          ))}
+                        </div>
+
+                        {formData.gse_type && (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {GSE_EQUIPMENT[formData.gse_type].map((eq) => (
+                              <button
+                                key={eq}
+                                onClick={() => setFormData({ ...formData, gse_equipment: eq })}
+                                className={`flex items-center gap-4 p-5 rounded-2xl border transition-all
+                                  ${formData.gse_equipment === eq
+                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-spatial-sm'
+                                    : 'bg-white border-[oklch(0.15_0.02_200_/_0.05)] hover:border-emerald-500/30 text-[oklch(0.15_0.05_200)]/60 hover:text-[oklch(0.15_0.05_200)]'}`}
+                              >
+                                <div className={`w-3 h-3 rounded-full border-2 transition-all ${formData.gse_equipment === eq ? 'bg-white border-white' : 'border-[oklch(0.15_0.02_200_/_0.1)]'}`} />
+                                <span className="text-sm font-bold">{eq}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {formData.gse_equipment === 'Other' && (
+                          <input
+                            type="text"
+                            placeholder="Describe the equipment"
+                            className="w-full px-5 py-4 rounded-2xl bg-white border border-[oklch(0.15_0.02_200_/_0.1)] focus:border-emerald-500/50 outline-none transition-all text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm placeholder-[oklch(0.15_0.02_200_/_0.3)]"
+                            value={formData.gse_equipment_other}
+                            onChange={(e) => setFormData({ ...formData, gse_equipment_other: e.target.value })}
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {AREA_CATEGORIES[formData.area]?.map((cat, idx) => (
+                            <button
+                              key={idx}
+                              onClick={() => setFormData({ ...formData, area_category: cat })}
+                              className={`flex items-center gap-4 p-5 rounded-2xl border transition-all
+                                ${formData.area_category === cat
+                                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-spatial-sm'
+                                  : 'bg-white border-[oklch(0.15_0.02_200_/_0.05)] hover:border-emerald-500/30 text-[oklch(0.15_0.05_200)]/60 hover:text-[oklch(0.15_0.05_200)]'}`}
+                            >
+                              <div className={`w-3 h-3 rounded-full border-2 transition-all ${formData.area_category === cat ? 'bg-white border-white' : 'border-[oklch(0.15_0.02_200_/_0.1)]'}`} />
+                              <span className="text-sm font-bold">{cat}</span>
+                            </button>
+                          ))}
+                        </div>
+                        {formData.area_category === 'Other' && (
+                          <input
+                            type="text"
+                            placeholder="Describe the category"
+                            className="w-full px-5 py-4 rounded-2xl bg-white border border-[oklch(0.15_0.02_200_/_0.1)] focus:border-emerald-500/50 outline-none transition-all text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm placeholder-[oklch(0.15_0.02_200_/_0.3)]"
+                            value={formData.area_category_other}
+                            onChange={(e) => setFormData({ ...formData, area_category_other: e.target.value })}
+                          />
+                        )}
+                      </>
+                    )}
                   </div>
                 </WizardStep>
 
@@ -1529,6 +1645,37 @@ export function PublicReportWizard() {
                         </div>
                       </div>
 
+                      {ROOT_CAUSE_CLASSIFICATIONS[formData.area] && (
+                        <div className="space-y-4">
+                          <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest text-emerald-800">Root Cause Classification</label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {ROOT_CAUSE_CLASSIFICATIONS[formData.area]!.map((cause) => (
+                              <button
+                                key={cause}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, root_cause_classification: cause })}
+                                className={`flex items-center gap-4 p-4 rounded-2xl border transition-all text-left
+                                  ${formData.root_cause_classification === cause
+                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-spatial-sm'
+                                    : 'bg-white border-[oklch(0.15_0.02_200_/_0.05)] hover:border-emerald-500/30 text-[oklch(0.15_0.05_200)]/60 hover:text-[oklch(0.15_0.05_200)]'}`}
+                              >
+                                <div className={`w-3 h-3 rounded-full border-2 transition-all shrink-0 ${formData.root_cause_classification === cause ? 'bg-white border-white' : 'border-[oklch(0.15_0.02_200_/_0.1)]'}`} />
+                                <span className="text-sm font-bold">{cause}</span>
+                              </button>
+                            ))}
+                          </div>
+                          {formData.root_cause_classification === 'Other' && (
+                            <input
+                              type="text"
+                              placeholder="Describe the root cause classification"
+                              className="w-full px-5 py-4 rounded-2xl bg-white border border-[oklch(0.15_0.02_200_/_0.1)] focus:border-emerald-500/50 outline-none text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm placeholder-[oklch(0.15_0.02_200_/_0.3)]"
+                              value={formData.root_cause_classification_other}
+                              onChange={(e) => setFormData({ ...formData, root_cause_classification_other: e.target.value })}
+                            />
+                          )}
+                        </div>
+                      )}
+
                       <div className="space-y-4">
                         <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest text-emerald-800">Preventive Action (Optional)</label>
                         <textarea
@@ -1540,34 +1687,33 @@ export function PublicReportWizard() {
                       </div>
 
                       {formData.area === 'GSE' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6 rounded-3xl bg-emerald-50/40 border border-emerald-200">
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">GSE Available &amp; Requirement</label>
-                            <select
-                              className="w-full px-5 py-4 rounded-2xl bg-white border border-[oklch(0.15_0.02_200_/_0.1)] focus:border-emerald-500/50 outline-none text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm"
-                              value={formData.gse_type}
-                              onChange={(e) => setFormData({ ...formData, gse_type: e.target.value as GseType | '', gse_equipment: '' })}
-                            >
-                              <option value="">Select GSE Type...</option>
-                              {GSE_TYPES.map((t) => (
-                                <option key={t} value={t}>{t}</option>
-                              ))}
-                            </select>
+                        <div className="space-y-4 p-6 rounded-3xl bg-emerald-50/40 border border-emerald-200">
+                          <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">Category Case GSE</label>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {AREA_CATEGORIES.GSE.map((cat) => (
+                              <button
+                                key={cat}
+                                type="button"
+                                onClick={() => setFormData({ ...formData, area_category: cat })}
+                                className={`flex items-center gap-4 p-4 rounded-2xl border transition-all
+                                  ${formData.area_category === cat
+                                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-spatial-sm'
+                                    : 'bg-white border-[oklch(0.15_0.02_200_/_0.1)] hover:border-emerald-500/30 text-[oklch(0.15_0.05_200)]/60 hover:text-[oklch(0.15_0.05_200)]'}`}
+                              >
+                                <div className={`w-3 h-3 rounded-full border-2 transition-all shrink-0 ${formData.area_category === cat ? 'bg-white border-white' : 'border-[oklch(0.15_0.02_200_/_0.1)]'}`} />
+                                <span className="text-sm font-bold">{cat}</span>
+                              </button>
+                            ))}
                           </div>
-                          <div className="space-y-2">
-                            <label className="text-xs font-bold text-emerald-800 uppercase tracking-widest">GSE Equipment</label>
-                            <select
-                              className="w-full px-5 py-4 rounded-2xl bg-white border border-[oklch(0.15_0.02_200_/_0.1)] focus:border-emerald-500/50 outline-none text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm"
-                              value={formData.gse_equipment}
-                              onChange={(e) => setFormData({ ...formData, gse_equipment: e.target.value })}
-                              disabled={!formData.gse_type}
-                            >
-                              <option value="">Select Equipment...</option>
-                              {(formData.gse_type ? GSE_EQUIPMENT[formData.gse_type] : []).map((eq) => (
-                                <option key={eq} value={eq}>{eq}</option>
-                              ))}
-                            </select>
-                          </div>
+                          {formData.area_category === 'Other' && (
+                            <input
+                              type="text"
+                              placeholder="Describe the category"
+                              className="w-full px-5 py-4 rounded-2xl bg-white border border-[oklch(0.15_0.02_200_/_0.1)] focus:border-emerald-500/50 outline-none text-[oklch(0.15_0.05_200)] font-bold shadow-spatial-sm placeholder-[oklch(0.15_0.02_200_/_0.3)]"
+                              value={formData.area_category_other}
+                              onChange={(e) => setFormData({ ...formData, area_category_other: e.target.value })}
+                            />
+                          )}
                         </div>
                       )}
 
@@ -1575,8 +1721,8 @@ export function PublicReportWizard() {
                         <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest block mb-4">Severity Assessment</label>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           {PUBLIC_SEVERITY_OPTIONS.map((key) => {
-                            const config = PRIORITY_CONFIG[key];
-                            const label = key === 'urgent' ? 'TOP RISK' : key.toUpperCase();
+                            const config = SEVERITY_CONFIG[key];
+                            const label = key.toUpperCase();
                             return (
                             <button
                               key={key}
@@ -1811,7 +1957,7 @@ export function PublicReportWizard() {
 	                    <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
 	                      {[
 	                        ['Date of Incident', formData.incident_date],
-	                        ['Station/Branch', selectedStation ? `${selectedStation.code} - ${selectedStation.name}` : formData.station_id],
+	                        ['Station', selectedStation ? `${selectedStation.code} - ${selectedStation.name}` : formData.station_id],
 	                        ['Airline', formData.airline],
 	                        ['Flight Number', formData.flight_number],
 	                        ['Route', formData.route],
@@ -1912,7 +2058,7 @@ export function PublicReportWizard() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 bg-slate-50/50 p-6 rounded-xl border border-slate-100">
                             {[
                               { label: 'Date Of Occurrence', key: 'incident_date' as const },
-                              { label: 'Branch', key: 'branch' as const },
+                              { label: 'Station', key: 'branch' as const },
                               { label: 'Flight Number', key: 'flight_number' as const },
                               { label: 'Aircraft Registration', key: 'aircraft_reg' as const },
                               { label: 'Route', key: 'route' as const },
@@ -2355,6 +2501,20 @@ export function PublicReportWizard() {
           </div>
         )}
       </AnimatePresence>
+
+      {showJoumpaForm && (
+        <PublicJoumpaForm
+          onClose={() => setShowJoumpaForm(false)}
+          quickAccessSessionId={quickAccessSessionId}
+        />
+      )}
+
+      {showIrregularityForm && (
+        <PublicIrregularityForm
+          onClose={() => setShowIrregularityForm(false)}
+          quickAccessSessionId={quickAccessSessionId}
+        />
+      )}
 
       <AnimatePresence>
         {showComingSoon && (

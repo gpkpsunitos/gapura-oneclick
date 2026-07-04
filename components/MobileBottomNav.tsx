@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { resolveNavGroups, type NavItemConfig } from '@/lib/nav-config';
 import { performOptimisticLogout } from '@/lib/auth/client-logout';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 interface MobileBottomNavProps {
     role: string;
@@ -68,7 +69,12 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [isMenuOpen]);
 
+    const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
     const handleLogout = useCallback(() => {
+        setLogoutConfirmOpen(true);
+    }, []);
+    const confirmLogout = useCallback(() => {
+        setLogoutConfirmOpen(false);
         performOptimisticLogout();
     }, []);
 
@@ -133,7 +139,7 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
 
             <div
                 data-hide-mobile-nav
-                className="lg:hidden fixed bottom-0 left-0 right-0 z-[100] px-2 sm:px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] pointer-events-none"
+                className="xl:hidden fixed bottom-0 left-0 right-0 z-[100] px-2 sm:px-4 pb-[max(0.5rem,env(safe-area-inset-bottom))] pointer-events-none"
             >
                     {isVisible && (
                         <nav className="mx-auto max-w-md pointer-events-auto relative">
@@ -198,6 +204,15 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
                         </nav>
                     )}
             </div>
+
+            <ConfirmDialog
+                open={logoutConfirmOpen}
+                title="Sign out of your account?"
+                confirmLabel="Sign Out"
+                danger
+                onConfirm={confirmLogout}
+                onCancel={() => setLogoutConfirmOpen(false)}
+            />
         </>
     );
 }

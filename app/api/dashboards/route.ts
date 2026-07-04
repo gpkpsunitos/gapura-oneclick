@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
-import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getPublicDashboardPageData } from '@/lib/public-dashboard-data';
 import type { DashboardScopeFilters } from '@/lib/dashboard-query-scope';
@@ -102,7 +101,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      const { data: dashboard, error } = await supabase
+      const { data: dashboard, error } = await supabaseAdmin
         .from('custom_dashboards')
         .select(`
           id,
@@ -194,7 +193,7 @@ export async function GET(request: NextRequest) {
         });
     }
 
-    const { data: dashboards, error } = await supabase
+    const { data: dashboards, error } = await supabaseAdmin
       .from('custom_dashboards')
       .select('id, name, description, slug, folder, created_at')
       .eq('is_public', true)
@@ -246,7 +245,7 @@ export async function POST(request: NextRequest) {
       .substring(0, 50);
     const slug = `${baseSlug}-${Date.now().toString(36)}`;
 
-    const { data: dashboard, error: dashError } = await supabase
+    const { data: dashboard, error: dashError } = await supabaseAdmin
       .from('custom_dashboards')
       .insert({
         name,
@@ -277,13 +276,13 @@ export async function POST(request: NextRequest) {
       page_name: c.page_name || 'Ringkasan Umum',
     }));
 
-    const { error: chartsError } = await supabase
+    const { error: chartsError } = await supabaseAdmin
       .from('dashboard_charts')
       .insert(chartInserts);
 
     if (chartsError) {
 
-      await supabase.from('custom_dashboards').delete().eq('id', dashboard.id);
+      await supabaseAdmin.from('custom_dashboards').delete().eq('id', dashboard.id);
       return NextResponse.json({ error: chartsError.message }, { status: 500 });
     }
 
@@ -322,7 +321,7 @@ export async function DELETE(request: NextRequest) {
     const isAdmin = ['SUPER_ADMIN', 'ANALYST'].includes(session.role as string);
 
     if (isAdmin) {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('custom_dashboards')
         .delete()
         .eq('id', id);
@@ -331,7 +330,7 @@ export async function DELETE(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
     } else {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('custom_dashboards')
         .delete()
         .eq('id', id)
@@ -369,7 +368,7 @@ export async function PATCH(request: NextRequest) {
       if (oldFolder === newFolder) {
         return NextResponse.json({ success: true });
       }
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('custom_dashboards')
         .update({ folder: newFolder || null })
         .eq('folder', oldFolder);
@@ -383,7 +382,7 @@ export async function PATCH(request: NextRequest) {
       if (!folder) {
         return NextResponse.json({ error: 'folder required' }, { status: 400 });
       }
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('custom_dashboards')
         .update({ folder: null })
         .eq('folder', folder);
@@ -399,7 +398,7 @@ export async function PATCH(request: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: 'Dashboard ID required' }, { status: 400 });
     }
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('custom_dashboards')
       .update({ folder })
       .eq('id', id);

@@ -1,6 +1,5 @@
 
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
@@ -83,7 +82,7 @@ export async function GET(
 
         const [userResult, commentsResult] = await Promise.all([
             report.user_id && !report.user_id.includes('!')
-                ? supabase.from('users').select('id, full_name, email').eq('id', report.user_id).single()
+                ? supabaseAdmin.from('users').select('id, full_name, email').eq('id', report.user_id).single()
                 : Promise.resolve({ data: null }),
             supabaseAdmin
                 .from('report_comments')
@@ -298,7 +297,7 @@ export async function PATCH(
                 for (const reportIdCandidate of [...new Set(reportIdCandidates)]) {
                     const safeCandidate = `"${reportIdCandidate.replace(/"/g, '""')}"`;
                     const { data: rows, error: syncUpdateError } = await supabaseAdmin
-                        .from('reports_sync')
+                        .from('ground_handling_irregularity_report')
                         .update({
                             evidence_url: mergedUrls[0] || null,
                             evidence_urls: mergedUrls,
@@ -433,7 +432,7 @@ export async function DELETE(
         for (const reportIdCandidate of [...new Set(reportIdCandidates)]) {
             const safeCandidate = `"${reportIdCandidate.replace(/"/g, '""')}"`;
             await supabaseAdmin
-                .from('reports_sync')
+                .from('ground_handling_irregularity_report')
                 .delete()
                 .or(`id.eq.${safeCandidate},original_id.eq.${safeCandidate},sheet_id.eq.${safeCandidate}`);
         }

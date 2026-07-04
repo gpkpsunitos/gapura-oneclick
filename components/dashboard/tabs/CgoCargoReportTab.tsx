@@ -57,6 +57,130 @@ interface CgoCargoReportTabProps {
 type CountRow = { id: string; label: string; total: number };
 type MatrixCell = { total: number; reports: Report[] };
 
+type HeroDateRange = { from: string; to: string };
+const EMPTY_HERO_RANGE: HeroDateRange = { from: '', to: '' };
+
+function heroDateToISO(date: Date) {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function filterReportsForHeroCard(reports: Report[], year: number, range: HeroDateRange): Report[] {
+  return reports.filter((report) => {
+    const date = getReportDate(report);
+    if (!date) return false;
+    if (range.from || range.to) {
+      const iso = heroDateToISO(date);
+      if (range.from && iso < range.from) return false;
+      if (range.to && iso > range.to) return false;
+      return true;
+    }
+    return date.getFullYear() === year;
+  });
+}
+
+function heroCardLabel(year: number, range: HeroDateRange): string {
+  return range.from || range.to ? `${range.from || '…'} to ${range.to || '…'}` : String(year);
+}
+
+function HeroDateRangePicker({ range, onChange }: { range: HeroDateRange; onChange: (range: HeroDateRange) => void }) {
+  return (
+    <div className="flex items-center gap-1" onClick={(event) => event.stopPropagation()}>
+      <input
+        type="date"
+        value={range.from}
+        onChange={(event) => onChange({ ...range, from: event.target.value })}
+        className="sr-date-input"
+        aria-label="From date"
+      />
+      <span className="text-[10px] text-[color:var(--sr-text-3)]">–</span>
+      <input
+        type="date"
+        value={range.to}
+        onChange={(event) => onChange({ ...range, to: event.target.value })}
+        className="sr-date-input"
+        aria-label="To date"
+      />
+      {range.from || range.to ? (
+        <button
+          type="button"
+          onClick={() => onChange(EMPTY_HERO_RANGE)}
+          className="text-[10px] font-black uppercase text-[color:var(--sr-text-3)] hover:text-[color:var(--sr-neg)]"
+          title="Clear date range"
+        >
+          Reset
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function cgoCategoryBreakdown(reports: Report[]): Record<CategoryKey, number> {
+  const acc = { Irregularity: 0, Complaint: 0, Compliment: 0, Occurrence: 0, 'Accident / Incident': 0 } as Record<CategoryKey, number>;
+  reports.forEach((r) => {
+    const cat = getCategory(r);
+    if (cat) acc[cat] += 1;
+  });
+  return acc;
+}
+
+function CgoHeroCard({
+  label,
+  reports,
+  range,
+  onRangeChange,
+  onTotalClick,
+  onCategoryClick,
+  primary,
+}: {
+  label: string;
+  reports: Report[];
+  range: HeroDateRange;
+  onRangeChange: (range: HeroDateRange) => void;
+  onTotalClick: () => void;
+  onCategoryClick: (category: CategoryKey) => void;
+  primary?: boolean;
+}) {
+  const breakdown = cgoCategoryBreakdown(reports);
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      className={`sr-card-hero relative flex min-w-0 flex-col justify-between gap-6 p-8 sm:p-10 text-left cursor-pointer hover:brightness-[0.97] transition-all ${primary ? 'sr-card-hero-primary' : ''}`}
+      onClick={onTotalClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') onTotalClick();
+      }}
+      title={`View ${label} cargo reports`}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <span className="text-[12px] font-bold uppercase tracking-[0.14em] text-[color:var(--sr-accent-dark)]">Total Reports {label}</span>
+        <HeroDateRangePicker range={range} onChange={onRangeChange} />
+      </div>
+      <div>
+        <div className="sr-hero-value">{reports.length.toLocaleString()}</div>
+        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[color:var(--sr-text-2)]">
+          {CATEGORIES.map((category) => (
+            <button
+              key={category}
+              type="button"
+              disabled={breakdown[category] === 0}
+              onClick={(event) => {
+                event.stopPropagation();
+                onCategoryClick(category);
+              }}
+              className="hover:text-[color:var(--sr-accent-dark)] disabled:cursor-default disabled:opacity-50 disabled:hover:text-[color:var(--sr-text-2)]"
+            >
+              <span className="text-[color:var(--sr-text-3)]">{category}</span> · <span className="font-mono text-[color:var(--sr-text)]">{breakdown[category].toLocaleString()}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const PANEL_FRAME = 'sr-table-card flex min-h-0 min-w-0 flex-col';
 const DONUT_COLORS = ['var(--sr-accent)', 'var(--sr-gold)', 'var(--sr-chart-3)', 'var(--sr-chart-4)', 'var(--sr-chart-5)', 'var(--sr-neg)'];
 
@@ -736,6 +860,18 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
   const previousYear = currentYear - 1;
   const [monthlyYear, setMonthlyYear] = useState<number>(currentYear);
 
+  const [previousHeroRange, setPreviousHeroRange] = useState<HeroDateRange>(EMPTY_HERO_RANGE);
+  const [currentHeroRange, setCurrentHeroRange] = useState<HeroDateRange>(EMPTY_HERO_RANGE);
+
+  const previousHeroReports = useMemo(
+    () => filterReportsForHeroCard(cgoReports, previousYear, previousHeroRange),
+    [cgoReports, previousYear, previousHeroRange]
+  );
+  const currentHeroReports = useMemo(
+    () => filterReportsForHeroCard(cgoReports, currentYear, currentHeroRange),
+    [cgoReports, currentYear, currentHeroRange]
+  );
+
   const monthlyRows = useMemo<CountRow[]>(() => {
     const counts = new Array(12).fill(0);
     cgoReports.forEach((r) => {
@@ -963,6 +1099,36 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
           ) : null}
           <SectionAiSummaryInsightButton context={sectionAiContext} />
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+        <CgoHeroCard
+          label={heroCardLabel(previousYear, previousHeroRange)}
+          reports={previousHeroReports}
+          range={previousHeroRange}
+          onRangeChange={setPreviousHeroRange}
+          onTotalClick={() => openDrilldown(previousHeroReports, `${heroCardLabel(previousYear, previousHeroRange)} - Total Cargo Reports`)}
+          onCategoryClick={(category) =>
+            openDrilldown(
+              previousHeroReports.filter((r) => getCategory(r) === category),
+              `${heroCardLabel(previousYear, previousHeroRange)} - ${category}`
+            )
+          }
+        />
+        <CgoHeroCard
+          primary
+          label={heroCardLabel(currentYear, currentHeroRange)}
+          reports={currentHeroReports}
+          range={currentHeroRange}
+          onRangeChange={setCurrentHeroRange}
+          onTotalClick={() => openDrilldown(currentHeroReports, `${heroCardLabel(currentYear, currentHeroRange)} - Total Cargo Reports`)}
+          onCategoryClick={(category) =>
+            openDrilldown(
+              currentHeroReports.filter((r) => getCategory(r) === category),
+              `${heroCardLabel(currentYear, currentHeroRange)} - ${category}`
+            )
+          }
+        />
       </div>
 
       <section>

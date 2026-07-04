@@ -26,7 +26,7 @@ const FILTER_FIELDS = DASHBOARD_FILTER_FIELDS.map((field) => ({
   label: field.key === 'hub'
     ? 'HUB'
     : field.key === 'branch'
-    ? 'Branch'
+    ? 'Station'
     : field.key === 'maskapai'
     ? 'Maskapai'
     : field.key === 'airline'

@@ -189,7 +189,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
             </label>
 
             {/* Common */}
-            <SelectField label="Branch" value={filters.branch} options={options.branches} icon={Building2} emptyLabel="All branches" onChange={(v) => updateFilter("branch", v)} />
+            <SelectField label="Station" value={filters.branch} options={options.branches} icon={Building2} emptyLabel="All branches" onChange={(v) => updateFilter("branch", v)} />
             <SelectField label="Airlines" value={filters.airline} options={options.airlines} icon={Plane} emptyLabel="All airlines" onChange={(v) => updateFilter("airline", v)} />
 
             {/* Source — always visible, drives JOUMPA mode */}
@@ -224,7 +224,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
               <input
                 value={filters.search}
                 onChange={(event) => updateFilter("search", event.target.value)}
-                placeholder="ID, reference number, report, flight, branch, airlines…"
+                placeholder="ID, reference number, report, flight, station, airlines…"
                 className="h-14 w-full rounded-2xl border border-slate-200 bg-white pl-14 pr-4 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10"
               />
             </span>

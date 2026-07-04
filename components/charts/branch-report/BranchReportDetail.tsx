@@ -177,7 +177,7 @@ function BranchRankTable({ data }: { data: BranchSummary[] }) {
         <thead className="bg-gray-50">
           <tr>
             <th className="px-3 py-2 text-left font-semibold text-gray-600">Rank</th>
-            <th className="px-3 py-2 text-left font-semibold text-gray-600">Branch</th>
+            <th className="px-3 py-2 text-left font-semibold text-gray-600">Station</th>
             <th className="px-3 py-2 text-right font-semibold text-gray-600">Total</th>
             <th className="px-3 py-2 text-right font-semibold text-gray-600">Irreg.</th>
             <th className="px-3 py-2 text-right font-semibold text-gray-600">Complaint</th>
@@ -710,7 +710,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
       {}
       {chartData.kpis && (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <KPICard title="Total Branches" value={chartData.kpis.totalBranches} color="blue" explanation="Jumlah cabang yang dipantau dalam laporan ini." />
+          <KPICard title="Total Stations" value={chartData.kpis.totalBranches} color="blue" explanation="Jumlah cabang yang dipantau dalam laporan ini." />
           <KPICard
             title="Top Performer"
             value={chartData.kpis.topPerformer.name}
@@ -726,7 +726,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
             explanation="Cabang dengan performa terendah dalam periode ini." 
           />
           <KPICard
-            title="Avg Reports/Branch"
+            title="Avg Reports/Station"
             value={chartData.kpis.avgReportsPerBranch}
             color="yellow"
             explanation="Rata-rata laporan per cabang pada periode ini." 
@@ -743,14 +743,14 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
 
       {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <h2 className="text-lg font-bold text-gray-800 mb-4">Branch Performance Ranking</h2>
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Station Performance Ranking</h2>
         <BranchRankTable data={chartData.branchData} />
       </section>
 
       {}
       {chartData.categoryDistribution.length > 0 && (
         <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Category Distribution per Branch (Top 10)</h2>
+          <h2 className="text-lg font-bold text-gray-800 mb-4">Category Distribution per Station (Top 10)</h2>
           <ResponsiveContainer width="100%" height={400}>
             <RechartsBarChart data={chartData.categoryDistribution.slice(0, 10)} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" />
@@ -800,7 +800,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
 
       {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <h2 className="text-lg font-bold text-gray-800 mb-4">Category Composition by Branch</h2>
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Category Composition by Station</h2>
         <CategoryStackedBar data={chartData.categoryData} />
       </section>
 
@@ -830,12 +830,12 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
       {}
       <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-gray-800">Branch Intelligence Reports</h2>
+          <h2 className="text-lg font-bold text-gray-800">Station Intelligence Reports</h2>
         </div>
         <DataTableWithPagination 
           data={investigativeData} 
           isLoading={tableLoading}
-          title="Branch Intelligence Reports"
+          title="Station Intelligence Reports"
           rowsPerPage={3}
         />
       </section>
@@ -858,7 +858,7 @@ export default function BranchReportDetail({ filters = {}, hideAnalyzeButton = f
       {}
       <InvestigativeTable
         data={investigativeData}
-        title="Investigative Table - Branch Reports"
+        title="Investigative Table - Station Reports"
         rowsPerPage={5}
         maxRows={40}
         isLoading={tableLoading}

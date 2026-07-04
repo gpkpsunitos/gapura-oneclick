@@ -45,7 +45,7 @@ function EmbedAreaReportContent() {
   return (
     <EmbedDetailLayout
       title="Case Report by Area"
-      subtitle="Multi-dimensional geographic analysis (Branch × Airline × Area)"
+      subtitle="Multi-dimensional geographic analysis (Station × Airline × Area)"
       onBack={() => router.push(getBackUrl())}
       isStatic={isStatic}
       filters={filters}

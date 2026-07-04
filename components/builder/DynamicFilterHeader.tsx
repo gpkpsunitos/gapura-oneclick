@@ -46,7 +46,7 @@ export function DynamicFilterHeader({ onFilterChange, initialFilters, variant = 
 
   const [options, setOptions] = useState<FilterOptionsState>({
     hub: [{ value: 'all', label: 'HUB: All' }],
-    branch: [{ value: 'all', label: 'Branch: All' }],
+    branch: [{ value: 'all', label: 'Station: All' }],
     airline: [{ value: 'all', label: 'Airlines: All' }],
     airline_type: [{ value: 'all', label: 'Maskapai: All' }],
     main_category: [{ value: 'all', label: 'Category: All' }],
@@ -101,9 +101,9 @@ export function DynamicFilterHeader({ onFilterChange, initialFilters, variant = 
           options={options.branch} 
           value={current.branch} 
           onChange={(v) => mergeAndChange({ branch: v })} 
-          placeholder="Branch" 
+          placeholder="Station" 
           variant={variant}
-          label="Branch / Station"
+          label="Station"
         />
       </div>
       <div className="flex-1 min-w-[140px] max-w-[200px]">
