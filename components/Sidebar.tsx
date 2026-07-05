@@ -362,11 +362,13 @@ export default function Sidebar({ role, division }: { role: string; division?: s
     // (e.g. iPad 820px, iPad Pro 12.9" @ 1024px) get the bottom nav, not the
     // squeezed desktop sidebar. lg (1024) used to be the cutoff, but iPad Pro
     // portrait is exactly 1024px wide so it matched lg: and wrongly got the sidebar.
-    const collapseBp = 'xl';
+    // NOTE: breakpoint prefix must be a literal `xl:` string — Tailwind's
+    // scanner can't see classes built via `${var}:block` template interpolation,
+    // so an interpolated prefix silently never generates the override rule.
 
     return (
         <>
-            <div className={cn(`${collapseBp}:hidden fixed top-4 left-4 z-50`, isEskalasi ? '' : 'pointer-events-none opacity-0')}>
+            <div className={cn('xl:hidden fixed top-4 left-4 z-50', isEskalasi ? '' : 'pointer-events-none opacity-0')}>
                 <button
                     onClick={() => setMobileOpen(true)}
                     className="p-2.5 bg-white rounded-xl shadow-md border border-gray-200 text-[var(--text-primary)] active:scale-95 transition-transform"
@@ -377,11 +379,11 @@ export default function Sidebar({ role, division }: { role: string; division?: s
 
             {}
             <div
-                className={cn(`fixed inset-0 bg-black/20 backdrop-blur-sm z-40 ${collapseBp}:hidden transition-opacity duration-300`, mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none')}
+                className={cn('fixed inset-0 bg-black/20 backdrop-blur-sm z-40 xl:hidden transition-opacity duration-300', mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none')}
                 onClick={() => setMobileOpen(false)}
             />
             <div
-                className={cn(`fixed inset-y-0 left-0 w-[280px] max-w-[85vw] z-50 shadow-2xl ${collapseBp}:hidden transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]`, mobileOpen ? 'translate-x-0' : '-translate-x-full')}
+                className={cn('fixed inset-y-0 left-0 w-[280px] max-w-[85vw] z-50 shadow-2xl xl:hidden transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]', mobileOpen ? 'translate-x-0' : '-translate-x-full')}
             >
                  <NavContent {...navContentProps} />
                   <button
@@ -392,7 +394,7 @@ export default function Sidebar({ role, division }: { role: string; division?: s
                 </button>
             </div>
 
-            <div className={`hidden ${collapseBp}:block fixed top-0 left-0 h-screen w-[240px] lg:w-[260px] z-40 border-r border-dashed border-gray-200 shadow-[2px_0_24px_rgba(0,0,0,0.02)]`}>
+            <div className="hidden xl:block fixed top-0 left-0 h-screen w-[240px] lg:w-[260px] z-40 border-r border-dashed border-gray-200 shadow-[2px_0_24px_rgba(0,0,0,0.02)]">
                 <NavContent {...navContentProps} />
             </div>
 

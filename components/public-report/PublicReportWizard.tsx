@@ -30,7 +30,7 @@ import {
   type EvidenceUploadStatus,
   type DuplicateCandidate,
 } from './wizard-shared';
-import { AlertTriangle, Calendar, CheckCircle, Ship, Plane, Package, MessageSquare, X, ChevronRight, ChevronLeft, ArrowRight, Upload, Loader2, MapPin, QrCode, ClipboardCheck, ExternalLink, BookOpen, Activity, Bot, PenLine, Eye, EyeOff, Wrench } from 'lucide-react';
+import { AlertTriangle, Calendar, CheckCircle, Ship, Plane, Package, MessageSquare, X, ChevronRight, ChevronLeft, ArrowRight, Upload, Loader2, MapPin, QrCode, ClipboardCheck, ExternalLink, BookOpen, Activity, Bot, PenLine, Eye, EyeOff, Wrench, Shirt } from 'lucide-react';
 import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { NoiseTexture } from '@/components/ui/NoiseTexture';
@@ -200,23 +200,57 @@ export function PublicReportWizard() {
     },
     {
       id: 'Irregularity',
-      title: 'Irregularity Report',
-      description: 'Report operational issues, damage, or irregularities.',
+      title: 'Ground Handling Irregularity Report',
+      description: 'Report ground handling operational issues, damage, or irregularities.',
       icon: AlertTriangle,
       color: 'oklch(0.55 0.22 30)',
       span: 'col-span-1 row-span-1 sm:col-span-2 sm:row-span-2 lg:col-span-2 lg:row-span-2'
     },
     {
       id: 'JOUMPA',
-      title: 'JOUMPA',
+      title: 'Joumpa Irregularity Report',
       description: 'Report operational issues, damage, or irregularities related to JOUMPA service.',
       icon: AlertTriangle,
       color: 'oklch(0.50 0.15 190)',
       span: 'col-span-1 row-span-1 sm:col-span-2 sm:row-span-2 lg:col-span-2 lg:row-span-2',
     },
     {
+      id: 'CustomerAirlineSurvey',
+      title: 'Customer Airline Passenger Survey',
+      description: 'Help us improve our service via passenger survey.',
+      icon: QrCode,
+      color: 'oklch(0.60 0.20 340)',
+      span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+      qrLinks: [
+        { label: 'Passenger Survey', url: getLinkUrl(externalLinks, 'survey-penumpang') }
+      ]
+    },
+    {
+      id: 'JoumpaSurvey',
+      title: 'Joumpa Customer Survey',
+      description: 'Help us improve JOUMPA service via customer survey.',
+      icon: QrCode,
+      color: 'oklch(0.52 0.17 300)',
+      span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+      qrLinks: [
+        { label: 'JOUMPA Customer Survey', url: getLinkUrl(externalLinks, 'customer-joumpa') }
+      ]
+    },
+    {
+      id: 'DOS',
+      title: '[DOS] Direct Observation Form',
+      description: 'Quick access to the Direct Observation Form submission.',
+      icon: Eye,
+      color: 'oklch(0.50 0.18 250)',
+      span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+      loginProtected: true,
+      qrLinks: [
+        { label: 'Direct Observation Form', url: 'https://forms.gle/HScxeQyiSLVdyYWe6' }
+      ]
+    },
+    {
       id: 'SLA',
-      title: 'SLA Report Submission',
+      title: 'Form SLA Report',
       description: 'Quick access to SLA report submission.',
       icon: ClipboardCheck,
       color: 'oklch(0.45 0.18 240)',
@@ -228,27 +262,15 @@ export function PublicReportWizard() {
       ]
     },
     {
-      id: 'Survey',
-      title: 'Passenger Survey',
-      description: 'Help us improve our service via survey.',
-      icon: QrCode,
-      color: 'oklch(0.60 0.20 340)',
-      span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
-      qrLinks: [
-        { label: 'Passenger Survey', url: getLinkUrl(externalLinks, 'survey-penumpang') },
-        { label: 'JOUMPA Customer Survey', url: getLinkUrl(externalLinks, 'customer-joumpa') }
-      ]
-    },
-    {
-      id: 'WSN',
-      title: 'Weekly Service Notice',
-      description: 'Access the Weekly Service Notice in one link.',
-      icon: Activity,
-      color: 'oklch(0.55 0.18 180)',
+      id: 'HSSE',
+      title: 'Form Inspeksi Health, Safety & Environment',
+      description: 'HEALTH, SAFETY & ENVIRONMENT (HSE)',
+      icon: AlertTriangle,
+      color: 'oklch(0.62 0.22 28)',
       span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
       loginProtected: true,
       qrLinks: [
-        { label: 'Weekly Service Notice', url: getLinkUrl(externalLinks, 'wsn-weekly') }
+        { label: 'HSSE Report Form', url: getLinkUrl(externalLinks, 'hsse-report') }
       ]
     },
     {
@@ -264,15 +286,27 @@ export function PublicReportWizard() {
       ]
     },
     {
-      id: 'HSSE',
-      title: 'INSPECTION REPORT FORM',
-      description: 'HEALTH, SAFETY & ENVIRONMENT (HSE)',
-      icon: AlertTriangle,
-      color: 'oklch(0.62 0.22 28)',
+      id: 'SAM',
+      title: 'Standard Appearance Manual (SAM)',
+      description: 'Operational standard appearance guideline.',
+      icon: Shirt,
+      color: 'oklch(0.50 0.16 200)',
       span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
       loginProtected: true,
       qrLinks: [
-        { label: 'HSSE Report Form', url: getLinkUrl(externalLinks, 'hsse-report') }
+        { label: 'Standard Appearance Manual (SAM)', url: 'https://gapura-my.sharepoint.com/:b:/g/personal/unitserviceskps_gapura_id/IQBewqRkUXZ5TK3Q6VYSi7WSAdM275R3brwefrVQDnxsC28?e=RZG93D' }
+      ]
+    },
+    {
+      id: 'WSN',
+      title: 'Weekly Service Notice',
+      description: 'Access the Weekly Service Notice in one link.',
+      icon: Activity,
+      color: 'oklch(0.55 0.18 180)',
+      span: 'col-span-1 sm:col-span-2 lg:col-span-2 row-span-1',
+      loginProtected: true,
+      qrLinks: [
+        { label: 'Weekly Service Notice', url: getLinkUrl(externalLinks, 'wsn-weekly') }
       ]
     },
     {
@@ -1183,8 +1217,10 @@ export function PublicReportWizard() {
 
           const SECTIONS: { label: string; ids: string[] }[] = [
             { label: 'AI Assistant', ids: ['AIChatbot'] },
-            { label: 'Forms & Reports', ids: ['Irregularity', 'JOUMPA', 'SLA', 'HSSEReport', 'Survey', 'HSSE'] },
-            { label: 'Documents', ids: ['WSN', 'Handbook'] },
+            { label: 'Irregularity, Complaint & Compliment Reports', ids: ['Irregularity', 'JOUMPA'] },
+            { label: 'Passenger Survey Reports', ids: ['CustomerAirlineSurvey', 'JoumpaSurvey'] },
+            { label: 'Form & Reports', ids: ['DOS', 'SLA', 'HSSE', 'HSSEReport'] },
+            { label: 'Documents / Guideline', ids: ['SAM', 'WSN', 'Handbook'] },
           ];
 
           return (

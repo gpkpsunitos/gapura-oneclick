@@ -35,8 +35,8 @@ export default function LoginPage() {
                     <div className="grid grid-cols-2 grid-rows-2 gap-3 w-full h-56 xl:h-72">
                         <div className="relative col-span-1 row-span-2 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/20">
                             <Image
-                                src="/front-page-image2.jpg"
-                                alt="Aktivitas operasional Gapura"
+                                src="/login-collage-1.png"
+                                alt="Petugas JOUMPA melayani penumpang di terminal"
                                 fill
                                 sizes="(max-width: 1023px) 0px, 28vw"
                                 className="object-cover"
@@ -48,8 +48,8 @@ export default function LoginPage() {
 
                         <div className="relative rounded-2xl overflow-hidden shadow-xl ring-1 ring-white/20">
                             <Image
-                                src="/front-image-2.svg"
-                                alt="Visual operasional Gapura"
+                                src="/login-collage-2.png"
+                                alt="Aktivitas ground handling pesawat"
                                 fill
                                 sizes="(max-width: 1023px) 0px, 18vw"
                                 className="object-cover"
@@ -58,8 +58,8 @@ export default function LoginPage() {
 
                         <div className="relative rounded-2xl overflow-hidden shadow-xl ring-1 ring-white/20">
                             <Image
-                                src="/front-image-3.svg"
-                                alt="Visual layanan Gapura"
+                                src="/login-collage-3.jpg"
+                                alt="Kendaraan ground support Gapura di apron"
                                 fill
                                 sizes="(max-width: 1023px) 0px, 18vw"
                                 className="object-cover"
