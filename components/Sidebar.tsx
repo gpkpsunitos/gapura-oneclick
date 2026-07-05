@@ -231,26 +231,26 @@ const NavContent = memo(function NavContent({
                      {showBell && <CommentNotificationBell role={role} />}
                 </div>
 
-                {canReturnToOrigin && (
-                    <button
-                        onClick={onReturnToOrigin}
-                        disabled={switchingOrigin || loading}
-                        className="w-full flex items-center justify-center gap-1.5 md:gap-2 py-1.5 mb-1.5 rounded-lg text-[9px] md:text-[10px] font-bold uppercase tracking-wide text-[var(--brand-primary)] hover:bg-emerald-50 active:bg-emerald-100 transition-colors"
-                    >
-                        <Undo2 size={12} />
-                        {switchingOrigin ? '...' : 'Back to Escalation'}
-                    </button>
-                )}
-
                 {role.startsWith('DIVISI_') && (
-                    <Link
-                        href="/dashboard/eskalasi/select"
-                        onClick={() => setMobileOpen(false)}
-                        className="group/back w-full mb-1.5 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs md:text-sm font-bold text-white bg-gradient-to-br from-orange-500 to-amber-600 border border-orange-600/30 shadow-[0_4px_12px_rgba(249,115,22,0.35)] hover:shadow-[0_6px_18px_rgba(249,115,22,0.45)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[0_2px_8px_rgba(249,115,22,0.35)] transition-all duration-200"
-                    >
-                        <Undo2 size={16} className="shrink-0 transition-transform duration-200 group-hover/back:-translate-x-0.5" />
-                        Back to Workspace
-                    </Link>
+                    canReturnToOrigin ? (
+                        <button
+                            onClick={onReturnToOrigin}
+                            disabled={switchingOrigin || loading}
+                            className="group/back w-full mb-1.5 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs md:text-sm font-bold text-white bg-gradient-to-br from-orange-500 to-amber-600 border border-orange-600/30 shadow-[0_4px_12px_rgba(249,115,22,0.35)] hover:shadow-[0_6px_18px_rgba(249,115,22,0.45)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[0_2px_8px_rgba(249,115,22,0.35)] transition-all duration-200 disabled:opacity-60"
+                        >
+                            <Undo2 size={16} className="shrink-0 transition-transform duration-200 group-hover/back:-translate-x-0.5" />
+                            {switchingOrigin ? '...' : 'Back to Workspace'}
+                        </button>
+                    ) : (
+                        <Link
+                            href="/dashboard/eskalasi/select"
+                            onClick={() => setMobileOpen(false)}
+                            className="group/back w-full mb-1.5 flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs md:text-sm font-bold text-white bg-gradient-to-br from-orange-500 to-amber-600 border border-orange-600/30 shadow-[0_4px_12px_rgba(249,115,22,0.35)] hover:shadow-[0_6px_18px_rgba(249,115,22,0.45)] hover:-translate-y-0.5 active:translate-y-0 active:shadow-[0_2px_8px_rgba(249,115,22,0.35)] transition-all duration-200"
+                        >
+                            <Undo2 size={16} className="shrink-0 transition-transform duration-200 group-hover/back:-translate-x-0.5" />
+                            Back to Workspace
+                        </Link>
+                    )
                 )}
 
                 <button
@@ -286,9 +286,13 @@ export default function Sidebar({ role, division }: { role: string; division?: s
         }>;
     } | null>(role ? '/api/auth/bundle' : null);
 
-    // ponytail: OCS users keep their Schedule/calendar links only on Customer
-    // Service Center routes; hide them while visiting Operational Monitoring (/dashboard/op).
-    const isOcsOnOperational = (role === 'DIVISI_OCS' || role === 'PARTNER_OCS') && pathname.startsWith('/dashboard/op');
+    // ponytail: OCS users keep their Schedule/calendar links only on the Customer
+    // Service dashboard view; hide them on Operational Monitoring (/dashboard/op)
+    // and on the All Reports list, which is ground-handling data, not Customer Service.
+    const isOcsOnReportsList = pathname === '/dashboard/ocs/reports'
+        || (pathname === '/dashboard/ocs' && searchParams.get('view') === 'reports');
+    const isOcsOnOperational = (role === 'DIVISI_OCS' || role === 'PARTNER_OCS')
+        && (pathname.startsWith('/dashboard/op') || isOcsOnReportsList);
     const groups = useMemo(() => {
         const base = resolveNavGroups(role || '', division);
         return isOcsOnOperational ? base.filter((g) => g.title !== 'Schedule') : base;
