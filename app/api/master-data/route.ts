@@ -3,24 +3,21 @@ import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { reportsService } from '@/lib/services/reports-service';
 import { Report } from '@/types';
-import { INDONESIAN_AIRPORTS } from '@/data/airports';
+import { GAPURA_STATIONS, HEAD_OFFICE_CODE } from '@/data/stations';
 
-const EXTRA_BRANCHES: Array<{ code: string; name: string }> = [
-  { code: 'GPS', name: 'Gapura Pusat' },
-];
-
-function mergeStationsWithAirports(dbStations: Array<{ id: string; code: string; name: string }>) {
+function mergeStationsWithCanonical(dbStations: Array<{ id: string; code: string; name: string }>) {
   const byCode = new Map<string, { id: string; code: string; name: string }>();
   for (const s of dbStations) byCode.set(s.code.toUpperCase(), s);
-  for (const extra of EXTRA_BRANCHES) {
-    const code = extra.code.toUpperCase();
-    if (!byCode.has(code)) byCode.set(code, { id: code, code, name: extra.name });
+  for (const station of GAPURA_STATIONS) {
+    const code = station.code.toUpperCase();
+    if (!byCode.has(code)) byCode.set(code, { id: code, code, name: station.name });
   }
-  for (const a of INDONESIAN_AIRPORTS) {
-    const code = a.code.toUpperCase();
-    if (!byCode.has(code)) byCode.set(code, { id: code, code, name: a.name });
-  }
-  return Array.from(byCode.values()).sort((a, b) => a.code.localeCompare(b.code));
+  // Kantor Pusat (KPS) first, branches alphabetical
+  return Array.from(byCode.values()).sort((a, b) => {
+    if (a.code === HEAD_OFFICE_CODE) return -1;
+    if (b.code === HEAD_OFFICE_CODE) return 1;
+    return a.code.localeCompare(b.code);
+  });
 }
 
 export async function GET(request: Request) {
@@ -40,7 +37,7 @@ export async function GET(request: Request) {
                     const base = (!error && Array.isArray(stations) && stations.length > 0)
                         ? stations
                         : await reportsService.getStations();
-                    data = mergeStationsWithAirports(base);
+                    data = mergeStationsWithCanonical(base);
                 }
                 break;
             case 'units':

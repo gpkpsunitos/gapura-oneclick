@@ -329,7 +329,7 @@ function AddUserModal({
                     <label className="space-y-1.5">
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Unit</span>
                         <select value={form.unit_id} onChange={(e) => update('unit_id', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-emerald-500">
-                            <option value="">Tidak ada / GPS</option>
+                            <option value="">Tidak ada / Kantor Pusat (KPS)</option>
                             {units.map((unit) => <option key={unit.id} value={unit.id}>{unit.name}</option>)}
                         </select>
                     </label>

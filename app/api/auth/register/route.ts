@@ -13,16 +13,16 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { 
-            email, 
-            password, 
-            full_name, 
-            nik, 
-            phone, 
-            station_id, 
-            unit_id, 
-            position_id,
-            division
+        const {
+            email,
+            password,
+            full_name,
+            nik,
+            phone,
+            station_id,
+            unit_kerja,
+            jabatan,
+            division,
         } = body;
 
         let stationRow: { id: string; code: string } | null = null;
@@ -53,20 +53,50 @@ export async function POST(request: Request) {
             );
         }
 
-        const isGPS = String(stationRow.code || '').toUpperCase() === 'GPS';
+        const stationCode = String(stationRow.code || '').toUpperCase();
+        const isKPS = stationCode === 'KPS' || stationCode === 'GPS';
 
-        if (!email || !password || !full_name || !nik || !phone || !station_id || !position_id) {
+        if (!email || !password || !full_name || !nik || !phone || !station_id) {
              return NextResponse.json(
                 { error: 'Semua field wajib diisi' },
                 { status: 400 }
             );
         }
 
-        if (!isGPS && !unit_id) {
-             return NextResponse.json(
-                { error: 'Unit kerja wajib disi' },
-                { status: 400 }
-            );
+        const KPS_DIVISIONS = ['OP', 'OS', 'UQ', 'OT', 'OCS'];
+        const DIVISIONS_WITHOUT_JABATAN = ['UQ', 'OT'];
+        const KPS_JABATAN_OPTIONS = ['Staff', 'Analyst', 'Division Head', 'Group Head', 'VP'];
+
+        const unitText = typeof unit_kerja === 'string' ? unit_kerja.trim() : '';
+        const jabatanText = typeof jabatan === 'string' ? jabatan.trim() : '';
+        const divisionInput = typeof division === 'string' ? division.trim().toUpperCase() : '';
+
+        if (isKPS) {
+            if (!KPS_DIVISIONS.includes(divisionInput)) {
+                return NextResponse.json(
+                    { error: 'Divisi tidak valid' },
+                    { status: 400 }
+                );
+            }
+            if (!DIVISIONS_WITHOUT_JABATAN.includes(divisionInput) && !KPS_JABATAN_OPTIONS.includes(jabatanText)) {
+                return NextResponse.json(
+                    { error: 'Jabatan tidak valid' },
+                    { status: 400 }
+                );
+            }
+        } else {
+            if (!unitText || unitText.length > 80) {
+                return NextResponse.json(
+                    { error: 'Unit kerja wajib diisi (maks. 80 karakter)' },
+                    { status: 400 }
+                );
+            }
+            if (!jabatanText || jabatanText.length > 80) {
+                return NextResponse.json(
+                    { error: 'Jabatan wajib diisi (maks. 80 karakter)' },
+                    { status: 400 }
+                );
+            }
         }
 
         if (password.length < 8) {
@@ -144,19 +174,29 @@ export async function POST(request: Request) {
 
         let role: string;
         let userDivision: string;
+        let unitValue: string | null;
+        let positionValue: string | null;
 
-        if (isGPS) {
-
-            role = 'ANALYST';
-            userDivision = body.division || 'GENERAL';
-        } else {
-
-            if (isGapuraEmail) {
-                role = 'MANAGER_CABANG';
+        if (isKPS) {
+            // Divisi + jabatan dipetakan ke role: Analyst -> ANALYST,
+            // jabatan lain -> DIVISI_<divisi>; UQ/OT tanpa jabatan.
+            userDivision = divisionInput;
+            unitValue = null;
+            if (DIVISIONS_WITHOUT_JABATAN.includes(divisionInput)) {
+                role = `DIVISI_${divisionInput}`;
+                positionValue = null;
+            } else if (jabatanText === 'Analyst') {
+                role = 'ANALYST';
+                positionValue = jabatanText;
             } else {
-                role = 'STAFF_CABANG';
+                role = `DIVISI_${divisionInput}`;
+                positionValue = jabatanText;
             }
+        } else {
+            role = isGapuraEmail ? 'MANAGER_CABANG' : 'STAFF_CABANG';
             userDivision = 'GENERAL';
+            unitValue = unitText;
+            positionValue = jabatanText;
         }
 
         const userData = {
@@ -166,8 +206,8 @@ export async function POST(request: Request) {
             nik: nik.toUpperCase(),
             phone,
             station_id: stationRow.id,
-            unit_id,
-            position_id,
+            unit_id: unitValue,
+            position_id: positionValue,
             role,
             division: userDivision,
             status: 'pending',

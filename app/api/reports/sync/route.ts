@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
             // @ts-ignore
             userStationCode = user.stations.code;
 
-            if (userStationCode === 'GPS' || userStationCode === 'PUSAT') {
+            if (userStationCode === 'KPS' || userStationCode === 'GPS' || userStationCode === 'PUSAT') {
                 canViewAll = true;
             }
         }

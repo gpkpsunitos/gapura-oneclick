@@ -1238,7 +1238,7 @@ export class ReportsService {
 
     if (stations.length === 0) {
       const fallbackCodes = [
-        'GPS',
+        'KPS',
 
         'CGK', 'DPS', 'SUB',
 

@@ -17,7 +17,7 @@ const VALID_ROLES = [
     'STAFF_CABANG',
 ];
 
-const VALID_DIVISIONS = ['OS', 'OP', 'HC', 'HT', 'GENERAL'];
+const VALID_DIVISIONS = ['OCS', 'OS', 'OP', 'OT', 'UQ', 'HC', 'HT', 'GENERAL'];
 const VALID_STATUSES = ['pending', 'active', 'rejected', 'suspended'];
 
 const DEFAULT_UNITS: Record<string, { name: string }> = {
@@ -99,9 +99,12 @@ export async function GET(request: Request) {
         if (error) throw error;
 
         const rows = Array.isArray(data) ? data : [];
+        // unit_id/position_id may hold free text (unit kerja/jabatan typed at
+        // registration) instead of UUIDs — only UUIDs can be looked up.
+        const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
         const stationIds = Array.from(new Set(rows.map((user) => user.station_id).filter(Boolean)));
-        const unitIds = Array.from(new Set(rows.map((user) => user.unit_id).filter(Boolean)));
-        const positionIds = Array.from(new Set(rows.map((user) => user.position_id).filter(Boolean)));
+        const unitIds = Array.from(new Set(rows.map((user) => user.unit_id).filter(Boolean).filter(isUuid)));
+        const positionIds = Array.from(new Set(rows.map((user) => user.position_id).filter(Boolean).filter(isUuid)));
 
         const [stationsResult, unitsResult, positionsResult] = await Promise.all([
             stationIds.length
@@ -127,8 +130,16 @@ export async function GET(request: Request) {
             ...user,
             avatar_url: null,
             stations: user.station_id ? stationsById.get(user.station_id) || null : null,
-            units: user.unit_id ? unitsById.get(user.unit_id) || DEFAULT_UNITS[user.unit_id] || null : null,
-            positions: user.position_id ? positionsById.get(user.position_id) || DEFAULT_POSITIONS[user.position_id] || null : null,
+            units: user.unit_id
+                ? unitsById.get(user.unit_id)
+                    || DEFAULT_UNITS[user.unit_id]
+                    || (!isUuid(user.unit_id) ? { name: user.unit_id } : null)
+                : null,
+            positions: user.position_id
+                ? positionsById.get(user.position_id)
+                    || DEFAULT_POSITIONS[user.position_id]
+                    || (!isUuid(user.position_id) ? { name: user.position_id } : null)
+                : null,
         }));
 
         return NextResponse.json(enrichedUsers, {

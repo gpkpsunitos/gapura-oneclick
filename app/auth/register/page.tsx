@@ -6,41 +6,14 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { User, Mail, Lock, UserPlus, Loader2, CheckCircle, Phone, Building2, Users, Briefcase, CreditCard, Info, Shield, Eye, EyeOff, Layers } from 'lucide-react';
-import type { DivisionType } from '@/types';
+import { GAPURA_STATIONS, HEAD_OFFICE_CODE } from '@/data/stations';
 
 interface Station { id: string; code: string; name: string; }
 
-interface Unit { id: string; name: string; }
-
-interface Position { id: string; name: string; }
-
-const DIVISION_OPTIONS: { value: DivisionType; label: string }[] = [
-    { value: 'OS', label: 'Operational Services (OS)' },
-    { value: 'OP', label: 'Operasi (OP)' },
-    { value: 'GENERAL', label: 'Umum / Lainnya' },
-];
-
-const DEFAULT_UNITS: Unit[] = [
-    { id: '00000000-0000-0000-0000-000000000101', name: 'Ramp' },
-    { id: '00000000-0000-0000-0000-000000000102', name: 'Passenger Service' },
-    { id: '00000000-0000-0000-0000-000000000103', name: 'Cargo' },
-    { id: '00000000-0000-0000-0000-000000000104', name: 'GSE' },
-    { id: '00000000-0000-0000-0000-000000000105', name: 'Security' },
-    { id: '00000000-0000-0000-0000-000000000106', name: 'Administrasi' },
-];
-
-const DEFAULT_POSITIONS: Array<Position & { level?: number }> = [
-    { id: '00000000-0000-0000-0000-000000000201', name: 'Super Admin', level: 1 },
-    { id: '00000000-0000-0000-0000-000000000202', name: 'Analyst', level: 2 },
-    { id: '00000000-0000-0000-0000-000000000203', name: 'DIVISI OP', level: 3 },
-    { id: '00000000-0000-0000-0000-000000000206', name: 'OS', level: 3 },
-    { id: '00000000-0000-0000-0000-000000000207', name: 'OSF', level: 3 },
-    { id: '00000000-0000-0000-0000-000000000208', name: 'OSL', level: 3 },
-    { id: '00000000-0000-0000-0000-000000000209', name: 'Staff', level: 10 },
-    { id: '00000000-0000-0000-0000-00000000020A', name: 'Officer', level: 9 },
-    { id: '00000000-0000-0000-0000-00000000020B', name: 'Supervisor', level: 8 },
-    { id: '00000000-0000-0000-0000-00000000020C', name: 'Manager', level: 7 },
-];
+// Divisi kantor pusat (KPS). UQ & OT tidak punya pilihan jabatan.
+const KPS_DIVISIONS = ['OP', 'OS', 'UQ', 'OT', 'OCS'] as const;
+const DIVISIONS_WITHOUT_JABATAN = ['UQ', 'OT'];
+const KPS_JABATAN_OPTIONS = ['Staff', 'Analyst', 'Division Head', 'Group Head', 'VP'];
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -52,9 +25,9 @@ export default function RegisterPage() {
         nik: '',
         phone: '',
         station_id: '',
-        unit_id: '',
-        position_id: '',
-        division: 'GENERAL' as DivisionType,
+        unit_kerja: '',
+        jabatan: '',
+        division: '',
     });
     const [error, setError] = useState('');
     const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -64,69 +37,43 @@ export default function RegisterPage() {
     const [emailHint, setEmailHint] = useState('');
 
     const [stations, setStations] = useState<Station[]>([]);
-    const [units, setUnits] = useState<Unit[]>([]);
-    const [positions, setPositions] = useState<Position[]>([]);
 
-    const isGPS = useMemo(() => {
+    const isKPS = useMemo(() => {
         const station = stations.find(s => s.id === formData.station_id);
-        return station?.code === 'GPS';
+        return station?.code === HEAD_OFFICE_CODE;
     }, [formData.station_id, stations]);
 
+    const needsJabatanSelect = isKPS && !!formData.division && !DIVISIONS_WITHOUT_JABATAN.includes(formData.division);
+
     useEffect(() => {
-        if (isGPS) {
+        if (isKPS) {
             setEmailHint('');
         }
-    }, [isGPS]);
+    }, [isKPS]);
 
     useEffect(() => {
-        const fetchMasterData = async () => {
-
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const settleJson = async (p: Promise<Response>): Promise<any[]> => {
-                try {
-                    const res = await p;
-                    if (!res.ok) return [];
-                    const data = await res.json().catch(() => []);
-                    return Array.isArray(data) ? data : [];
-                } catch {
-                    return [];
+        const fetchStations = async () => {
+            let data: Station[] = [];
+            try {
+                const res = await fetch('/api/master-data?type=stations');
+                if (res.ok) {
+                    const json = await res.json().catch(() => []);
+                    if (Array.isArray(json)) data = json;
                 }
-            };
-            const [stationsData, unitsData, positionsData] = await Promise.all([
-                settleJson(fetch('/api/master-data?type=stations')),
-                settleJson(fetch('/api/master-data?type=units')),
-                settleJson(fetch('/api/master-data?type=positions')),
-            ]);
-            const fallbackCodes = ['GPS', 'CGK', 'DPS', 'SUB', 'UPG', 'KNO', 'BPN', 'MDC', 'PDG', 'PKU', 'BTH', 'PLM'];
-            const fallbackStations = fallbackCodes.map(code => ({ id: code, code, name: code }));
-            setStations(stationsData.length ? stationsData : fallbackStations);
-            setUnits(unitsData.length ? unitsData : DEFAULT_UNITS);
-            setPositions(positionsData);
+            } catch {
+                // fall through to canonical fallback
+            }
+            setStations(data.length ? data : GAPURA_STATIONS.map(s => ({ id: s.code, code: s.code, name: s.name })));
         };
-        fetchMasterData();
+        fetchStations();
     }, []);
 
-    const filteredPositions = useMemo(() => {
-        const pool = positions.length ? positions : DEFAULT_POSITIONS;
-        const centralRoles = ['Super Admin', 'Analyst', 'OS', 'OSF', 'OSL', 'DIVISI OP'];
-        let result = pool.filter(p => {
-            const isCentralRole = centralRoles.some(r => p.name.toUpperCase().includes(r.toUpperCase()));
-            return isGPS ? isCentralRole : !isCentralRole;
-        });
-        if (result.length === 0) {
-            const fallbackPool = DEFAULT_POSITIONS;
-            result = fallbackPool.filter(p => {
-                const isCentralRole = centralRoles.some(r => p.name.toUpperCase().includes(r.toUpperCase()));
-                return isGPS ? isCentralRole : !isCentralRole;
-            });
-        }
-        return result;
-    }, [positions, isGPS]);
-
     const filteredStations = useMemo(() => {
-        const gps = stations.find(s => s.code === 'GPS');
-        const others = stations.filter(s => s.code !== 'GPS');
-        return gps ? [gps, ...others] : others;
+        const kps = stations.find(s => s.code === HEAD_OFFICE_CODE);
+        const others = stations
+            .filter(s => s.code !== HEAD_OFFICE_CODE)
+            .sort((a, b) => a.code.localeCompare(b.code));
+        return kps ? [kps, ...others] : others;
     }, [stations]);
 
     const validateField = (name: string, value: string): string => {
@@ -166,7 +113,7 @@ export default function RegisterPage() {
         if (name === 'nik') value = value.toUpperCase();
 
         if (name === 'email') {
-            if (!isGPS) {
+            if (!isKPS) {
                 const emailLower = value.toLowerCase();
                 if (emailLower.endsWith('@gapura.id')) {
                     setEmailHint('✓ Anda akan terdaftar sebagai Manager/Supervisor');
@@ -186,7 +133,11 @@ export default function RegisterPage() {
         setFieldErrors(prev => ({ ...prev, [name]: error }));
 
         if (name === 'station_id') {
-            setFormData(prev => ({ ...prev, station_id: value, position_id: '', division: 'GENERAL' }));
+            setFormData(prev => ({ ...prev, station_id: value, unit_kerja: '', jabatan: '', division: '' }));
+        }
+
+        if (name === 'division' && DIVISIONS_WITHOUT_JABATAN.includes(value)) {
+            setFormData(prev => ({ ...prev, division: value, jabatan: '' }));
         }
     };
 
@@ -197,7 +148,7 @@ export default function RegisterPage() {
 
         const errors: Record<string, string> = {};
         Object.entries(formData).forEach(([key, value]) => {
-            if (key !== 'confirmPassword' && key !== 'division') {
+            if (key !== 'confirmPassword' && key !== 'division' && key !== 'jabatan' && key !== 'unit_kerja') {
                 const err = validateField(key, value);
                 if (err) errors[key] = err;
             }
@@ -223,9 +174,11 @@ export default function RegisterPage() {
                 nik: formData.nik,
                 phone: formData.phone,
                 station_id: formData.station_id,
-                unit_id: formData.unit_id,
-                position_id: formData.position_id,
-                division: isGPS ? formData.division : undefined,
+                division: isKPS ? formData.division : undefined,
+                jabatan: isKPS
+                    ? (needsJabatanSelect ? formData.jabatan : undefined)
+                    : formData.jabatan,
+                unit_kerja: isKPS ? undefined : formData.unit_kerja,
             };
 
             const res = await fetch('/api/auth/register', {
@@ -393,7 +346,7 @@ export default function RegisterPage() {
                                             />
                                         </div>
                                         {fieldErrors.email && <p className="text-[10px] sm:text-xs text-red-500 mt-1">{fieldErrors.email}</p>}
-                                        {!fieldErrors.email && emailHint && !isGPS && (
+                                        {!fieldErrors.email && emailHint && !isKPS && (
                                             <p
                                                 className={`text-[10px] sm:text-xs mt-1 ${emailHint.startsWith('✓') ? 'text-emerald-600' : 'text-blue-600'}`}
                                                 role="status"
@@ -443,7 +396,7 @@ export default function RegisterPage() {
                                                 ))}
                                             </select>
                                         </div>
-                                        {isGPS && (
+                                        {isKPS && (
                                             <p className="text-[10px] sm:text-xs text-blue-600 mt-1 flex items-center gap-1">
                                                 <Info size={12} />
                                                 Kantor Pusat - Pilih divisi di bawah
@@ -451,67 +404,86 @@ export default function RegisterPage() {
                                         )}
                                     </div>
 
-                                    {isGPS && (
-                                        <div className="animate-in fade-in slide-in-from-top-2 duration-200">
-                                            <label className={labelStyle}>Divisi</label>
-                                            <div className="relative">
-                                                <Layers className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-                                                <select
-                                                    required
-                                                    className={selectStyle}
-                                                    value={formData.division}
-                                                    onChange={(e) => handleChange('division', e.target.value)}
-                                                >
-                                                    {DIVISION_OPTIONS.map((d) => (
-                                                        <option key={d.value} value={d.value}>{d.label}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                                        {!isGPS && (
-                                            <div>
-                                                <label className={labelStyle}>Unit Kerja</label>
+                                    {isKPS && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            <div className={needsJabatanSelect ? '' : 'md:col-span-2'}>
+                                                <label className={labelStyle}>Divisi</label>
                                                 <div className="relative">
-                                                    <Users className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                                                    <Layers className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                                                     <select
-                                                        required={!isGPS}
+                                                        required
                                                         className={selectStyle}
-                                                        value={formData.unit_id}
-                                                        onChange={(e) => handleChange('unit_id', e.target.value)}
+                                                        value={formData.division}
+                                                        onChange={(e) => handleChange('division', e.target.value)}
                                                     >
-                                                        <option value="">Pilih Unit</option>
-                                                        {units.map((u) => (
-                                                            <option key={u.id} value={u.id}>{u.name}</option>
+                                                        <option value="">Pilih Divisi</option>
+                                                        {KPS_DIVISIONS.map((d) => (
+                                                            <option key={d} value={d}>{d}</option>
                                                         ))}
                                                     </select>
                                                 </div>
                                             </div>
-                                        )}
-                                        <div className={isGPS ? "col-span-2" : ""}>
-                                            <label className={labelStyle}>Jabatan</label>
-                                            <div className="relative">
-                                                <Briefcase className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-                                                <select
-                                                    required
-                                                    className={selectStyle}
-                                                    value={formData.position_id}
-                                                    onChange={(e) => handleChange('position_id', e.target.value)}
-                                                    disabled={!formData.station_id}
-                                                >
-                                                    <option value="">Pilih Jabatan</option>
-                                                    {filteredPositions.map((p) => (
-                                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            {!formData.station_id && (
-                                                <p className="text-[10px] sm:text-xs text-gray-400 mt-1">Pilih station terlebih dahulu</p>
+                                            {needsJabatanSelect && (
+                                                <div>
+                                                    <label className={labelStyle}>Jabatan</label>
+                                                    <div className="relative">
+                                                        <Briefcase className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                                                        <select
+                                                            required
+                                                            className={selectStyle}
+                                                            value={formData.jabatan}
+                                                            onChange={(e) => handleChange('jabatan', e.target.value)}
+                                                        >
+                                                            <option value="">Pilih Jabatan</option>
+                                                            {KPS_JABATAN_OPTIONS.map((j) => (
+                                                                <option key={j} value={j}>{j}</option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
-                                    </div>
+                                    )}
+
+                                    {!isKPS && (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                                            <div>
+                                                <label className={labelStyle}>Unit Kerja</label>
+                                                <div className="relative">
+                                                    <Users className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        maxLength={80}
+                                                        className={inputStyle}
+                                                        placeholder="Contoh: Ramp, Passenger Service"
+                                                        value={formData.unit_kerja}
+                                                        onChange={(e) => handleChange('unit_kerja', e.target.value)}
+                                                        disabled={!formData.station_id}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className={labelStyle}>Jabatan</label>
+                                                <div className="relative">
+                                                    <Briefcase className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                                                    <input
+                                                        type="text"
+                                                        required
+                                                        maxLength={80}
+                                                        className={inputStyle}
+                                                        placeholder="Contoh: Supervisor, Officer"
+                                                        value={formData.jabatan}
+                                                        onChange={(e) => handleChange('jabatan', e.target.value)}
+                                                        disabled={!formData.station_id}
+                                                    />
+                                                </div>
+                                            </div>
+                                            {!formData.station_id && (
+                                                <p className="md:col-span-2 text-[10px] sm:text-xs text-gray-400 -mt-1">Pilih station terlebih dahulu</p>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
