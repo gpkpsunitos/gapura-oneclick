@@ -32,38 +32,49 @@ export default function LoginPage() {
                 </div>
 
                 <div className="relative z-10 mt-6">
-                    <div className="grid grid-cols-2 grid-rows-2 gap-3 w-full h-56 xl:h-72">
-                        <div className="relative col-span-1 row-span-2 rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/20">
+                    <div className="flex flex-col gap-3 w-full">
+                        <div
+                            className="relative w-full overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/20"
+                            style={{ aspectRatio: '2048 / 1362' }}
+                        >
                             <Image
                                 src="/login-collage-1.png"
                                 alt="Petugas JOUMPA melayani penumpang di terminal"
                                 fill
-                                sizes="(max-width: 1023px) 0px, 28vw"
-                                className="object-cover"
+                                sizes="(max-width: 1023px) 0px, 50vw"
+                                className="object-contain"
                                 quality={80}
                                 priority
                                 loading="eager"
                             />
                         </div>
 
-                        <div className="relative rounded-2xl overflow-hidden shadow-xl ring-1 ring-white/20">
-                            <Image
-                                src="/login-collage-2.png"
-                                alt="Aktivitas ground handling pesawat"
-                                fill
-                                sizes="(max-width: 1023px) 0px, 18vw"
-                                className="object-cover"
-                            />
-                        </div>
+                        <div className="flex gap-3 w-full">
+                            <div
+                                className="relative overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/20"
+                                style={{ aspectRatio: '1536 / 1024', flexGrow: 1536 / 1024, flexBasis: 0 }}
+                            >
+                                <Image
+                                    src="/login-collage-2.png"
+                                    alt="Aktivitas ground handling pesawat"
+                                    fill
+                                    sizes="(max-width: 1023px) 0px, 25vw"
+                                    className="object-contain"
+                                />
+                            </div>
 
-                        <div className="relative rounded-2xl overflow-hidden shadow-xl ring-1 ring-white/20">
-                            <Image
-                                src="/login-collage-3.jpg"
-                                alt="Kendaraan ground support Gapura di apron"
-                                fill
-                                sizes="(max-width: 1023px) 0px, 18vw"
-                                className="object-cover"
-                            />
+                            <div
+                                className="relative overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/20"
+                                style={{ aspectRatio: '4224 / 3168', flexGrow: 4224 / 3168, flexBasis: 0 }}
+                            >
+                                <Image
+                                    src="/login-collage-3.jpg"
+                                    alt="Kendaraan ground support Gapura di apron"
+                                    fill
+                                    sizes="(max-width: 1023px) 0px, 25vw"
+                                    className="object-contain"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
