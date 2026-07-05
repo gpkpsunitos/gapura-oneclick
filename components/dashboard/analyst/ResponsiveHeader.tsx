@@ -50,6 +50,7 @@ interface ResponsiveHeaderProps {
   activeView?: HeaderView;
   onViewChange?: (view: HeaderView) => void;
   hideDateRangeSelector?: boolean;
+  createReportHref?: string;
 }
 
 export function ResponsiveHeader({
@@ -72,6 +73,7 @@ export function ResponsiveHeader({
   activeView,
   onViewChange,
   hideDateRangeSelector = false,
+  createReportHref = '/dashboard/employee/new',
 }: ResponsiveHeaderProps) {
   const router = useRouter();
   const [isDateOpen, setIsDateOpen] = useState(false);
@@ -294,7 +296,7 @@ export function ResponsiveHeader({
 
   const createReportButton = (
     <Button
-      onClick={() => router.push('/dashboard/employee/new')}
+      onClick={() => router.push(createReportHref)}
       className={cn(
         'min-h-[48px] px-5 sm:px-6 rounded-2xl font-display font-bold tracking-tight transition-all duration-300 w-full sm:w-auto justify-center',
         'bg-gradient-to-br from-[var(--brand-emerald-500)] to-[var(--brand-emerald-600)] text-[var(--text-on-brand)]',

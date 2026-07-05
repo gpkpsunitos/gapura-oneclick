@@ -286,17 +286,42 @@ export default function Sidebar({ role, division }: { role: string; division?: s
         }>;
     } | null>(role ? '/api/auth/bundle' : null);
 
-    // ponytail: OCS users keep their Schedule/calendar links only on the Customer
-    // Service dashboard view; hide them on Operational Monitoring (/dashboard/op)
-    // and on the All Reports list, which is ground-handling data, not Customer Service.
-    const isOcsOnReportsList = pathname === '/dashboard/ocs/reports'
-        || (pathname === '/dashboard/ocs' && searchParams.get('view') === 'reports');
-    const isOcsOnOperational = (role === 'DIVISI_OCS' || role === 'PARTNER_OCS')
-        && (pathname.startsWith('/dashboard/op') || isOcsOnReportsList);
+    const isOcsOrOs = role === 'DIVISI_OCS' || role === 'PARTNER_OCS' || role === 'DIVISI_OS' || role === 'PARTNER_OS';
+
+    // ponytail: OCS/OS users keep their Schedule/calendar links only on their own
+    // Customer Service dashboard view; hide them on Operational Monitoring
+    // (/dashboard/op), on their own All Reports list (ground-handling data, not
+    // Customer Service), and on the shared create-report page when it was opened
+    // in ground-handling mode (not ?type=joumpa) — otherwise navigating there
+    // from Operational Monitoring would snap the sidebar back to Customer Service.
+    const isOwnReportsList = pathname === '/dashboard/ocs/reports' || pathname === '/dashboard/os/reports'
+        || ((pathname === '/dashboard/ocs' || pathname === '/dashboard/os') && searchParams.get('view') === 'reports');
+    const isOnOperationalMonitoring = isOcsOrOs && pathname.startsWith('/dashboard/op');
+    const isOnOperationalCreateReport = isOcsOrOs
+        && pathname === '/dashboard/employee/new' && searchParams.get('type') !== 'joumpa';
+    const isOperationalContext = isOnOperationalMonitoring || isOnOperationalCreateReport;
+    const hideSchedule = isOcsOrOs && (isOperationalContext || isOwnReportsList);
+
     const groups = useMemo(() => {
         const base = resolveNavGroups(role || '', division);
-        return isOcsOnOperational ? base.filter((g) => g.title !== 'Schedule') : base;
-    }, [role, division, isOcsOnOperational]);
+        const withoutSchedule = hideSchedule ? base.filter((g) => g.title !== 'Schedule') : base;
+
+        // The nav config is fixed per role, so "Dashboard"/"All Reports" always
+        // point at the user's own division. While actually browsing Operational
+        // Monitoring (or filing a ground-handling report from it), repoint those
+        // two links at /dashboard/op so they don't yank the user back to their
+        // own Customer Service dashboard mid-browse.
+        if (!isOperationalContext) return withoutSchedule;
+        return withoutSchedule.map((group) => group.title !== 'Monitoring' ? group : {
+            ...group,
+            items: group.items.map((item) => ({
+                ...item,
+                href: item.label === 'Dashboard' ? '/dashboard/op'
+                    : item.label === 'All Reports' ? '/dashboard/op/reports'
+                    : item.href,
+            })),
+        });
+    }, [role, division, hideSchedule, isOperationalContext]);
     // Non-OCS analysts lose the comment-notification bell along with their other OCS-only features.
     const showBell = !(role === 'ANALYST' && (division || '').toUpperCase() !== 'OCS');
 

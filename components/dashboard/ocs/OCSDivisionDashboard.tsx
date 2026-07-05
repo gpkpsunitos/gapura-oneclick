@@ -664,6 +664,7 @@ export function OCSDivisionDashboard({
             activeView={undefined}
             onViewChange={undefined}
             hideDateRangeSelector={division.code === 'OCS'}
+            createReportHref={view === 'dashboard' ? '/dashboard/employee/new?type=joumpa' : '/dashboard/employee/new?type=irregularity'}
           />
           {!isOpDivision && !forceView && division.code !== 'OCS' && (
             <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">

@@ -726,6 +726,7 @@ export function OSDivisionDashboard({
             subtitle={isOpDivision && !isScopeLocked ? 'Operational summary and quick access for Operations Division' : undefined}
             activeView={undefined}
             onViewChange={undefined}
+            createReportHref={view === 'dashboard' ? '/dashboard/employee/new?type=joumpa' : '/dashboard/employee/new?type=irregularity'}
           />
           {!isOpDivision && !forceView && (
             <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">

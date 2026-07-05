@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks/use-auth';
 import PublicIrregularityForm from '@/components/public-report/PublicIrregularityForm';
@@ -11,8 +11,11 @@ type CreateReportTab = 'irregularity' | 'joumpa';
 
 export default function NewReportPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
-  const [tab, setTab] = useState<CreateReportTab>('irregularity');
+  const [tab, setTab] = useState<CreateReportTab>(
+    searchParams.get('type') === 'joumpa' ? 'joumpa' : 'irregularity'
+  );
 
   const onSubmitted = () => {
     setTimeout(() => router.push('/dashboard/employee'), 1500);
