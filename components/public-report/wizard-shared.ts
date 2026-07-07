@@ -129,7 +129,14 @@ export type DocEdits = {
 
   reporter_name: string;
   reporter_title: string;
+
+  doc_title?: string;
+  acknowledge_label?: string;
 };
+
+export type TextDocEditKey = {
+  [K in keyof DocEdits]: DocEdits[K] extends string ? K : never
+}[keyof DocEdits];
 
 export type EvidenceUploadStatus = {
   status: 'pending' | 'uploading' | 'uploaded' | 'failed';

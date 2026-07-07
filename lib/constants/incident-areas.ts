@@ -48,7 +48,17 @@ export const AREA_CATEGORIES: Record<AreaId, string[]> = {
     'Cargo Safety, Accident & Asset Damage Incident',
     'Other',
   ],
-  GENERAL: ['Other'],
+  GENERAL: [
+    'Compliment Report Excellent Service',
+    'On Time Performance',
+    'Safety and Security (General)',
+    'Staff Appearance',
+    'Staff attitude & Competencies',
+    'Care with Customers Needs',
+    'Prompt Response to Complaint Handling',
+    'Overall Company Service',
+    'Other',
+  ],
   GSE: [
     'GSE Safety & Damage Incident',
     'GSE Operator Issue / Lack of SDM',

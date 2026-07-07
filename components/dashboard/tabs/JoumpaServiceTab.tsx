@@ -21,6 +21,7 @@ import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
 import { getLinkUrl } from '@/lib/external-links';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
 import { useVoiceDrilldown } from '@/components/chart-detail/useVoiceDrilldown';
+import { YearCard } from '@/components/dashboard/year-context';
 import { ReportTable, ReportTBody, ReportTD, ReportTH, ReportTHead, ReportTR } from '@/components/ui/report-table';
 import {
   isJoumpaServiceReport as resolveIsJoumpaServiceReport,
@@ -417,6 +418,7 @@ function JoumpaPanel({
   title,
   subtitle,
   total,
+  headerExtra,
   children,
   className = '',
   bodyClassName = '',
@@ -424,6 +426,7 @@ function JoumpaPanel({
   title: string;
   subtitle?: string;
   total?: number;
+  headerExtra?: ReactNode;
   children: ReactNode;
   className?: string;
   bodyClassName?: string;
@@ -444,12 +447,15 @@ function JoumpaPanel({
             ) : null}
           </div>
         </div>
-        {typeof total === 'number' ? (
-          <span className="inline-flex items-baseline gap-1 rounded-md bg-[color:var(--sr-accent-soft)] px-2 py-0.5 text-[color:var(--sr-accent-dark)]">
-            <span className="font-mono text-[13px] font-bold tabular-nums">{total}</span>
-            <span className="text-[9px] font-bold uppercase tracking-[0.12em]">cases</span>
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {headerExtra}
+          {typeof total === 'number' ? (
+            <span className="inline-flex items-baseline gap-1 rounded-md bg-[color:var(--sr-accent-soft)] px-2 py-0.5 text-[color:var(--sr-accent-dark)]">
+              <span className="font-mono text-[13px] font-bold tabular-nums">{total}</span>
+              <span className="text-[9px] font-bold uppercase tracking-[0.12em]">cases</span>
+            </span>
+          ) : null}
+        </div>
       </div>
       <div className={`min-h-0 flex-1 ${bodyClassName}`}>{children}</div>
     </div>
@@ -463,6 +469,7 @@ function JoumpaHorizontalBarPanel({
   className = 'h-[16rem]',
   labelWidth = 118,
   onRowClick,
+  headerExtra,
 }: {
   title: string;
   rows: MetricRow[];
@@ -470,11 +477,12 @@ function JoumpaHorizontalBarPanel({
   className?: string;
   labelWidth?: number;
   onRowClick?: (row: MetricRow) => void;
+  headerExtra?: ReactNode;
 }) {
   const chartHeight = Math.max(150, rows.length * 30);
 
   return (
-    <JoumpaPanel title={title} className={className} bodyClassName="overflow-auto px-1.5 py-2">
+    <JoumpaPanel title={title} className={className} bodyClassName="overflow-auto px-1.5 py-2" headerExtra={headerExtra}>
       {rows.length === 0 ? <EmptyPanel /> : (
         <div style={{ height: chartHeight }}>
           <ResponsiveContainer width="100%" height="100%">
@@ -1700,11 +1708,6 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
     ];
   }, [joumpaDashboardReports]);
 
-  const allMonthlyRows = useMemo(
-    () => buildMonthlyRows(joumpaDashboardReports, (report) => report.date_of_event || report.created_at),
-    [joumpaDashboardReports]
-  );
-
   const hubRows = useMemo(
     () => buildCountRows(joumpaDashboardReports, (report) => normalizeText(report.hub, '-')),
     [joumpaDashboardReports]
@@ -1950,19 +1953,22 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
 
         {}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <JoumpaHorizontalBarPanel
-            title="Joumpa Monthly Report"
-            rows={allMonthlyRows}
-            className="h-[18rem]"
-            labelWidth={78}
-            onRowClick={(row) => openDrilldown(
-              joumpaDashboardReports.filter((report) => {
-                const date = parseCalendarDate(report.date_of_event || report.created_at);
-                return date ? monthLabel(date) === row.label : false;
-              }),
-              `Joumpa Monthly Report: ${row.label}`
-            )}
-          />
+          <YearCard reports={joumpaDashboardReports}>{({ filtered, toggle }) => (
+            <JoumpaHorizontalBarPanel
+              title="Joumpa Monthly Report"
+              rows={buildMonthlyRows(filtered, (report) => report.date_of_event || report.created_at)}
+              className="h-[18rem]"
+              labelWidth={78}
+              headerExtra={toggle}
+              onRowClick={(row) => openDrilldown(
+                filtered.filter((report) => {
+                  const date = parseCalendarDate(report.date_of_event || report.created_at);
+                  return date ? monthLabel(date) === row.label : false;
+                }),
+                `Joumpa Monthly Report: ${row.label}`
+              )}
+            />
+          )}</YearCard>
           <JoumpaCustomerCategoryPanel
             rows={customerCategoryRows}
             className="h-[18rem]"

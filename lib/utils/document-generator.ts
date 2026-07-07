@@ -267,7 +267,7 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text('IRREGULARITY REPORT FORM', marginX + 45, currentY + 12);
+    doc.text(report.doc_title || 'IRREGULARITY REPORT FORM', marginX + 45, currentY + 12);
 
     currentY += 28;
 
@@ -466,7 +466,7 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
 
     doc.setFont('helvetica', 'normal');
     doc.text('Acknowledge by,', marginX + contentWidth - (contentWidth / 4), startSignatureY + 22, { align: 'center' });
-    doc.text('Manager of Airside Service', marginX + contentWidth - (contentWidth / 4), startSignatureY + 30, { align: 'center' });
+    doc.text(report.acknowledge_label || 'Manager of Airside Service', marginX + contentWidth - (contentWidth / 4), startSignatureY + 30, { align: 'center' });
 
     doc.setFont('helvetica', 'bold');
     doc.text('( ........................ )', marginX + contentWidth - (contentWidth / 4), startSignatureY + 46, { align: 'center' });
@@ -533,7 +533,7 @@ export const generateWord = async (report: any, signatureDataUrl?: string | null
 
     titleSection.push(
         new Paragraph({
-            children: [new TextRun({ text: 'IRREGULARITY REPORT FORM', bold: true, color: '111827', size: 32 })],
+            children: [new TextRun({ text: report.doc_title || 'IRREGULARITY REPORT FORM', bold: true, color: '111827', size: 32 })],
             alignment: AlignmentType.CENTER,
             spacing: { after: 100 }
         })
@@ -845,7 +845,7 @@ export const generateWord = async (report: any, signatureDataUrl?: string | null
                             new Paragraph({ text: "Acknowledge by,", spacing: { after: 50 }, alignment: AlignmentType.CENTER }),
                             new Paragraph({
                                 children: [
-                                    new TextRun({ text: "Manager of Airside Service", font: "Arial", size: 24 })
+                                    new TextRun({ text: report.acknowledge_label || "Manager of Airside Service", font: "Arial", size: 24 })
                                 ],
                                 alignment: AlignmentType.CENTER
                             }),

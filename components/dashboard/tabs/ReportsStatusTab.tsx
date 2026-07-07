@@ -205,6 +205,37 @@ function StatusDonut({
   );
 }
 
+function wrapAirlineLabel(label: string, maxCharsPerLine = 12): string[] {
+  if (label.length <= maxCharsPerLine) return [label];
+  const words = label.split(' ');
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length <= maxCharsPerLine) {
+      current = next;
+    } else {
+      if (current) lines.push(current);
+      current = word;
+    }
+  }
+  if (current) lines.push(current);
+  return lines.slice(0, 2);
+}
+
+function WrappedYAxisTick({ x, y, payload }: { x?: number; y?: number; payload?: { value: string } }) {
+  const lines = wrapAirlineLabel(payload?.value ?? '');
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {lines.map((line, i) => (
+        <text key={i} x={0} y={0} dy={(i - (lines.length - 1) / 2) * 12 + 4} textAnchor="end" fontSize={11} fontWeight={600} fill="var(--sr-text)">
+          {line}
+        </text>
+      ))}
+    </g>
+  );
+}
+
 function StackedHBar({
   rows,
   maxRows = 12,
@@ -228,18 +259,17 @@ function StackedHBar({
   };
 
   return (
-    <div style={{ height: Math.max(228, capped.length * 32 + 68) }} className="px-2 py-3">
+    <div style={{ height: Math.max(228, capped.length * 38 + 68) }} className="px-2 py-3">
       <ResponsiveContainer width="100%" height="100%">
         <BarChart layout="vertical" data={capped} margin={{ top: 4, right: 40, bottom: 0, left: 0 }} barCategoryGap="25%">
           <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--sr-text-3)' }} axisLine={false} tickLine={false} allowDecimals={false} />
           <YAxis
             type="category"
             dataKey="label"
-            width={110}
-            tick={{ fontSize: 11, fontWeight: 600, fill: 'var(--sr-text)' }}
+            width={130}
+            tick={<WrappedYAxisTick />}
             axisLine={false}
             tickLine={false}
-            tickFormatter={(v: string) => v.length > 14 ? `${v.slice(0, 13)}…` : v}
           />
           <Tooltip
             cursor={{ fill: 'rgba(0,0,0,0.04)' }}

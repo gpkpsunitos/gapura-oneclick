@@ -409,7 +409,7 @@ export default function AdminUsersPage() {
             const params = new URLSearchParams();
             if (activeTab === 'pending') params.set('status', 'pending');
             else if (statusFilter !== 'all') params.set('status', statusFilter);
-            const res = await fetch(`/api/admin/users?${params.toString()}`);
+            const res = await fetch(`/api/admin/users?${params.toString()}`, { cache: 'no-store' });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Gagal memuat data user');
             setUsers(Array.isArray(data) ? data : []);

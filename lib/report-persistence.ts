@@ -61,7 +61,7 @@ export function buildReportsSyncRow(report: Partial<Report>): Record<string, unk
         id: uuidv5(sheetId, IRRS_NAMESPACE_UUID),
         sheet_id: sheetId,
         user_id: report.user_id || null,
-        title: report.title || report.report || '(Tanpa Judul)',
+        title: report.title || report.report || null,
         description: report.description || report.report || null,
         location: report.location || null,
         reporter_email: report.reporter_email || null,

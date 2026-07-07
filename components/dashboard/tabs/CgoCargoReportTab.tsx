@@ -22,6 +22,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import type { Report } from '@/types';
+import { AREA_CATEGORIES } from '@/lib/constants/incident-areas';
 import { normalizeText } from './summary/summary-utils';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
 import { ChartAiAnalysisButton, type ChartAiContext } from '@/components/dashboard/ai/ChartAiAnalysisButton';
@@ -44,9 +45,11 @@ function readAirline(r: Report): string {
   return val(r.airlines) || val(r.airline);
 }
 const NOISY_CARGO_VALUES = new Set(['unknown', '#n/a', 'n/a', '-', '_', '–', '—']);
+const VALID_CARGO_CATEGORIES = new Set(AREA_CATEGORIES.CARGO);
 function readCargoCategory(r: Report): string {
   const raw = val(r.category_case_cargo) || val(r.supporting_evidence);
   if (!raw || raw.length <= 1 || NOISY_CARGO_VALUES.has(raw.toLowerCase())) return '';
+  if (!VALID_CARGO_CATEGORIES.has(raw)) return '';
   return raw;
 }
 
@@ -1204,7 +1207,7 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
           </Panel>
 
           <Panel
-            title="Airlines Type Report"
+            title="Airline Type"
             total={airlineTypeRows.reduce((s, r) => s + r.total, 0)}
             className="h-[18rem]"
             aiContext={{
@@ -1227,7 +1230,7 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
           </Panel>
 
           <Panel
-            title="Report Category"
+            title="Category"
             total={reportCategoryRows.reduce((s, r) => s + r.total, 0)}
             className="h-[18rem]"
             aiContext={{
@@ -1329,11 +1332,11 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
-          <h2>Cross-Tab Analysis</h2>
+          <h2>Breakdown CGO Category</h2>
         </div>
         <div className="grid gap-4 xl:grid-cols-2">
           <Panel
-            title="Cargo Hotspots by Station"
+            title="CGO Station Category Report"
             className="h-[24rem]"
             bodyClassName="overflow-hidden"
             aiContext={{
@@ -1357,7 +1360,7 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
           </Panel>
 
           <Panel
-            title="Cargo Hotspots by Airline"
+            title="CGO Airlines Category Report"
             className="h-[24rem]"
             bodyClassName="overflow-hidden"
             aiContext={{
@@ -1381,7 +1384,7 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
           </Panel>
 
           <Panel
-            title="Landside Report Classification"
+            title="CGO Report Category"
             className="h-[24rem]"
             bodyClassName="overflow-hidden"
             aiContext={{
@@ -1405,7 +1408,7 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
           </Panel>
 
           <Panel
-            title="Status Report Airlines"
+            title="Status Report"
             className="h-[24rem]"
             bodyClassName="overflow-hidden"
             aiContext={{
@@ -1436,10 +1439,10 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
       <section>
         <div className="sr-section-h">
           <span className="sr-section-rule" aria-hidden="true" />
-          <h2>Detail Report Landside &amp; Airside</h2>
+          <h2>Detail Report CGO</h2>
         </div>
         <Panel
-          title="Detail Report Landside & Airside"
+          title="Detail Report CGO"
           className="h-[34rem]"
           bodyClassName="flex min-h-0 flex-col p-3"
           aiContext={{

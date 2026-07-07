@@ -118,6 +118,10 @@ function isAirsideReport(r: Report) {
   return hasValue(r.apron_area_category) || area.includes('apron') || area.includes('airside');
 }
 
+function isGeneralAreaReport(r: Report) {
+  return resolveAreaType(r) === 'General';
+}
+
 function normalizeSeverity(value: unknown): string {
   const t = val(value).toUpperCase();
   if (!t) return '-';
@@ -290,6 +294,22 @@ function buildMatrix(
   return cells;
 }
 
+// ponytail: cross-dimensional category matrices should only ever show the
+// canonical classifications (drops stray "Test" data entries) and always
+// include Occurrence / Accident-Incident columns even at zero count.
+function isCanonicalCategory(r: Report): boolean {
+  return (REPORT_CATEGORIES as readonly string[]).includes(getCategory(r));
+}
+
+function categoryColumnRows(reports: Report[]): CountRow[] {
+  const counts = aggregate(reports.filter(isCanonicalCategory), getCategory);
+  return REPORT_CATEGORIES.map((name) => ({
+    id: name.toLowerCase(),
+    label: name,
+    total: counts.find((c) => c.label === name)?.total || 0,
+  }));
+}
+
 function sqiAiContext(chartTitle: string, chartType: string, chartData: unknown): ChartAiContext {
   return {
     section: 'Service Quality Improvement',
@@ -373,11 +393,12 @@ function KpiTile({ label, value, helper, tone = 'accent' }: { label: string; val
   );
 }
 
-type AreaScope = 'all' | 'landside' | 'airside';
+type AreaScope = 'all' | 'landside' | 'airside' | 'general';
 const AREA_SCOPE_OPTIONS: { value: AreaScope; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'landside', label: 'Landside' },
   { value: 'airside', label: 'Airside' },
+  { value: 'general', label: 'General' },
 ];
 
 function AreaCard({
@@ -391,6 +412,7 @@ function AreaCard({
   const filtered = useMemo(() => {
     if (area === 'landside') return reports.filter(isLandsideReport);
     if (area === 'airside') return reports.filter((r) => !isLandsideReport(r) && isAirsideReport(r));
+    if (area === 'general') return reports.filter((r) => !isLandsideReport(r) && !isAirsideReport(r) && isGeneralAreaReport(r));
     return reports;
   }, [area, reports]);
   const toggle = (
@@ -642,7 +664,7 @@ function HeatMatrix({
       <table className="sr-table text-[11px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
         <thead>
           <tr>
-            <th className="!text-left" style={{ width: '32%', whiteSpace: 'normal' }}>{rowLabel}</th>
+            <th className="!text-left" style={{ width: '18%', whiteSpace: 'normal' }}>{rowLabel}</th>
             {colKeys.map((c) => (
               <th key={c.id} className="sr-center" style={{ whiteSpace: 'normal' }}>{c.label}</th>
             ))}
@@ -1518,8 +1540,8 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
         <div className="grid gap-3 xl:grid-cols-2">
           <YearCard reports={scopedReports}>{({ filtered, toggle }) => {
             const branchRowsLocal = aggregate(filtered, getBranch).slice(0, 12);
-            const catRowsLocal = aggregate(filtered, getCategory);
-            const cells = buildMatrix(filtered, getBranch, getCategory);
+            const catRowsLocal = categoryColumnRows(filtered);
+            const cells = buildMatrix(filtered.filter(isCanonicalCategory), getBranch, getCategory);
             return (
               <Panel headerExtra={toggle} title="Station Volume by Report Category" subtitle="Station hotspots across report types" className="h-[26rem]" aiContext={sqiAiContext('Station x Report Category', 'pivot_table', { keys: branchRowsLocal, cols: catRowsLocal })} bodyClassName="overflow-hidden">
                 <HeatMatrix rowKeys={branchRowsLocal.map((r) => ({ id: r.id, label: r.label }))} rowLabel="Station" colKeys={catRowsLocal.map((r) => ({ id: r.label, label: r.label }))} cells={cells} onOpen={(rs, ctx) => openDrilldown(rs, ctx)} />
@@ -1529,8 +1551,8 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
 
           <YearCard reports={scopedReports}>{({ filtered, toggle }) => {
             const airlineRowsLocal = aggregate(filtered, getAirline).slice(0, 12);
-            const catRowsLocal = aggregate(filtered, getCategory);
-            const cells = buildMatrix(filtered, getAirline, getCategory);
+            const catRowsLocal = categoryColumnRows(filtered);
+            const cells = buildMatrix(filtered.filter(isCanonicalCategory), getAirline, getCategory);
             return (
               <Panel headerExtra={toggle} title="Airline Volume by Report Category" subtitle="Which airlines drive which report types" className="h-[26rem]" aiContext={sqiAiContext('Airline x Report Category', 'pivot_table', { keys: airlineRowsLocal, cols: catRowsLocal })} bodyClassName="overflow-hidden">
                 <HeatMatrix rowKeys={airlineRowsLocal.map((r) => ({ id: r.id, label: r.label }))} rowLabel="Airline" colKeys={catRowsLocal.map((r) => ({ id: r.label, label: r.label }))} cells={cells} onOpen={(rs, ctx) => openDrilldown(rs, ctx)} />
@@ -1677,10 +1699,10 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                     <th className="!text-left" style={{ whiteSpace: 'normal', width: '17%' }}>Sub-Category</th>
                     <th className="!text-left" style={{ whiteSpace: 'normal', width: '13%' }}>Case Classification</th>
                     <th className="sr-center" style={{ whiteSpace: 'normal', width: '7%' }}>Reports</th>
-                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>First Seen</th>
-                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>Last Seen</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>First Data</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>Last Data</th>
                     <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>Trend (3mo)</th>
-                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '12%' }}>Top Root Cause</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '12%' }}>Root Cause</th>
                     <th className="sr-center" style={{ whiteSpace: 'normal', width: '6%' }}>Top Severity</th>
                     <th className="sr-center" style={{ whiteSpace: 'normal', width: '12%' }}>Status</th>
                   </tr>

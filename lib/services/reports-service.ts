@@ -597,7 +597,6 @@ export class ReportsService {
     if (report.report && report.report.trim()) {
         report.title = report.report.trim();
     }
-    if (!report.title) report.title = '(Tanpa Judul)';
 
     const parsedEventDate = parseDate(report.date_of_event as string);
     if (parsedEventDate) {
@@ -1082,6 +1081,8 @@ export class ReportsService {
 
       for (let index = 0; index < rows.length; index++) {
         const row = rows[index];
+        const isBlankRow = !row || row.every((cell) => cell === undefined || cell === null || String(cell).trim() === '');
+        if (isBlankRow) continue;
         const report = this.mapRowToReport(row, columnMapping, sheetName, index);
         allReports.push(report);
       }

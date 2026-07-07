@@ -1,7 +1,7 @@
 'use client';
 
 import { useDeferredValue, useMemo, useState, type ReactNode } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import type { Report } from '@/types';
 import { normalizeText } from './summary/summary-utils';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
@@ -227,7 +227,9 @@ function MonthBarChart({
               );
             }}
           />
-          <Bar dataKey="total" radius={[3, 3, 0, 0]} fill="var(--sr-accent)" onClick={(d: unknown) => { const row = d as { month: string; total: number; reports: Report[] }; onOpen(row.reports, `Month: ${row.month}`); }} style={{ cursor: 'pointer' }} />
+          <Bar dataKey="total" radius={[3, 3, 0, 0]} fill="var(--sr-accent)" onClick={(d: unknown) => { const row = d as { month: string; total: number; reports: Report[] }; onOpen(row.reports, `Month: ${row.month}`); }} style={{ cursor: 'pointer' }}>
+            <LabelList dataKey="total" position="top" style={{ fontSize: 11, fontWeight: 700, fill: 'var(--sr-text)' }} />
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -272,13 +274,13 @@ function CrossMatrix2025({
     return `rgba(6,78,59,${intensity.toFixed(3)})`;
   };
   return (
-    <div className="overflow-y-auto" style={{ maxHeight: 280 }}>
-      <table className="sr-table w-full text-[11px]">
+    <div className="overflow-auto" style={{ maxHeight: 280 }}>
+      <table className="sr-table text-[11px]">
         <thead className="sticky top-0 z-10 bg-[color:var(--sr-overlay)]">
           <tr>
-            <th className="sr-sticky-col-1 !text-left text-[10px]">{rowHeader}</th>
+            <th className="sr-sticky-col-1 !text-left text-[10px]" style={{ width: 140, minWidth: 140, whiteSpace: 'normal' }}>{rowHeader}</th>
             {colLabels.map((c) => (
-              <th key={c} className="sr-center max-w-[70px] truncate text-[10px]" title={c}>{c}</th>
+              <th key={c} className="sr-center whitespace-nowrap px-2 text-[10px]" style={{ minWidth: 80 }} title={c}>{c}</th>
             ))}
             <th className="sr-center text-[11px]">Total</th>
           </tr>
@@ -286,7 +288,7 @@ function CrossMatrix2025({
         <tbody>
           {rowLabels.map((r) => (
             <tr key={r}>
-              <td className="sr-label sr-sticky-col-1 align-middle text-[11px]">{r}</td>
+              <td className="sr-label sr-sticky-col-1 align-middle text-[11px]" style={{ width: 140, minWidth: 140, whiteSpace: 'normal' }}>{r}</td>
               {colLabels.map((c) => {
                 const cell = cells[r]?.[c];
                 const v = cell?.total ?? 0;
@@ -310,7 +312,7 @@ function CrossMatrix2025({
             </tr>
           ))}
           <tr>
-            <td className="sr-label sr-sticky-col-1 !bg-[color:var(--sr-overlay)] align-middle font-bold uppercase tracking-[0.06em] text-[11px]">
+            <td className="sr-label sr-sticky-col-1 !bg-[color:var(--sr-overlay)] align-middle font-bold uppercase tracking-[0.06em] text-[11px]" style={{ width: 140, minWidth: 140, whiteSpace: 'normal' }}>
               {colHeader} Total
             </td>
             {colLabels.map((c) => (
@@ -521,6 +523,28 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
     }),
     [categoryRows, motorizedRows, nonMotorizedRows]
   );
+
+  const gse2026Reports = useMemo(
+    () => deferredReports.filter((r) => yearOf(r) === 2026 && val(r.apron_area_category).toLowerCase().includes('gse')),
+    [deferredReports]
+  );
+
+  const month2026Rows = useMemo(() => {
+    const buckets = new Map<string, { total: number; reports: Report[]; sortKey: number }>();
+    gse2026Reports.forEach((r) => {
+      const m = monthOf(r);
+      if (!m) return;
+      const raw = r.date_of_event || r.event_date || r.incident_date || r.created_at;
+      const d = new Date(raw!);
+      const sortKey = d.getUTCFullYear() * 100 + d.getUTCMonth();
+      const existing = buckets.get(m);
+      if (existing) { existing.total += 1; existing.reports.push(r); }
+      else buckets.set(m, { total: 1, reports: [r], sortKey });
+    });
+    return Array.from(buckets.entries())
+      .map(([month, v]) => ({ month, ...v }))
+      .sort((a, b) => a.sortKey - b.sortKey);
+  }, [gse2026Reports]);
 
   const gse2025Reports = useMemo(
     () => deferredReports.filter((r) => yearOf(r) === 2025 && val(r.apron_area_category).toLowerCase().includes('gse')),
@@ -782,6 +806,23 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
         </div>
       </section>
 
+      {month2026Rows.length > 0 && (
+        <section>
+          <div className="sr-section-h">
+            <span className="sr-section-rule" aria-hidden="true" />
+            <h2>Monthly Reports</h2>
+          </div>
+          <Panel
+            title="GSE Monthly Report"
+            subtitle="2026 — click any bar to drill into records"
+            total={gse2026Reports.length}
+            aiContext={{ section: 'GSE Performance 2026', chartTitle: 'Monthly GSE Trend 2026', chartType: 'gse_2026_monthly_trend', chartData: month2026Rows.map((r) => ({ month: r.month, total: r.total })), featureHints: ['summarization', 'rootCause'] }}
+          >
+            <MonthBarChart rows={month2026Rows} onOpen={(items, ctx) => openDrilldown(items, ctx)} />
+          </Panel>
+        </section>
+      )}
+
       {}
       {gse2025Reports.length > 0 && (
         <div className="flex justify-center pt-2">
@@ -822,7 +863,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
           {}
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatBadge label="Total Cases" value={grand2025} onClick={() => openDrilldown(gse2025Reports, '2025 GSE — All Cases')} />
-            <StatBadge label="Incident Categories" value={apron2025Rows.length} onClick={() => openDrilldown(gse2025Reports, '2025 GSE — All Categories')} />
+            <StatBadge label="GSE Categories" value={apron2025Rows.length} onClick={() => openDrilldown(gse2025Reports, '2025 GSE — All Categories')} />
             <StatBadge label="Airlines Involved" value={airline2025Rows.length} onClick={() => openDrilldown(gse2025Reports.filter((r) => !!(val(r.airlines) || val(r.airline))), '2025 GSE — Airline Cases')} />
             <StatBadge label="Stations" value={branch2025Rows.length} onClick={() => openDrilldown(gse2025Reports.filter((r) => !!(val(r.branch) || val(r.station_code) || val(r.branch_code))), '2025 GSE — Station Cases')} />
           </div>
@@ -831,16 +872,16 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
           <section>
             <div className="sr-section-h">
               <span className="sr-section-rule" aria-hidden="true" />
-              <h2>Carrier &amp; Station Exposure Analysis</h2>
+              <h2>GSE Performance Station &amp; Airline Report</h2>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <Panel
-                title="GSE Incident Distribution by Carrier"
+                title="GSE Distribution by Carrier"
                 subtitle="Category vs. top airlines · others grouped"
                 total={grand2025}
                 aiContext={{
                   section: 'GSE Performance 2025',
-                  chartTitle: 'GSE Incident Distribution by Carrier',
+                  chartTitle: 'GSE Distribution by Carrier',
                   chartType: 'gse_2025_category_airline_matrix',
                   chartData: rowLabels2025.map((r) => ({ category: r, total: rowTotals2025[r], ...Object.fromEntries(colLabels2025.map((c) => [c, matrix2025[r]?.[c]?.total ?? 0])) })),
                   featureHints: ['riskScoring', 'rootCause', 'summarization'],
@@ -853,19 +894,19 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
                   rowTotals={rowTotals2025}
                   colTotals={colTotals2025}
                   grandTotal={grand2025}
-                  rowHeader="GSE Incident Category"
+                  rowHeader="Airline Reports GSE Category"
                   colHeader="Airline"
                   onOpen={(items, ctx) => openDrilldown(items, ctx)}
                 />
               </Panel>
 
               <Panel
-                title="GSE Incident Distribution by Station"
+                title="GSE Distribution by Station"
                 subtitle="Category vs. top stations · others grouped"
                 total={grand2025}
                 aiContext={{
                   section: 'GSE Performance 2025',
-                  chartTitle: 'GSE Incident Distribution by Station',
+                  chartTitle: 'GSE Distribution by Station',
                   chartType: 'gse_2025_category_station_matrix',
                   chartData: stationRowLabels.map((r) => ({ category: r, total: stationRowTotals[r], ...Object.fromEntries(stationColLabels.map((c) => [c, stationMatrix[r]?.[c]?.total ?? 0])) })),
                   featureHints: ['riskScoring', 'rootCause', 'summarization'],
@@ -878,7 +919,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
                   rowTotals={stationRowTotals}
                   colTotals={stationColTotals}
                   grandTotal={grand2025}
-                  rowHeader="GSE Incident Category"
+                  rowHeader="Station Reports GSE category"
                   colHeader="Station"
                   onOpen={(items, ctx) => openDrilldown(items, ctx)}
                 />
@@ -890,11 +931,11 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
           <section>
             <div className="sr-section-h">
               <span className="sr-section-rule" aria-hidden="true" />
-              <h2>Category &amp; Carrier Breakdown</h2>
+              <h2>GSE Category Breakdown</h2>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
               <Panel
-                title="GSE Incident Category"
+                title="Category GSE Report"
                 total={apron2025Rows.reduce((s, r) => s + r.total, 0)}
                 aiContext={{ section: 'GSE Performance 2025', chartTitle: 'GSE Incident Category', chartType: 'gse_2025_apron_category', chartData: apron2025Rows.map((r) => ({ name: r.label, total: r.total })), featureHints: ['riskScoring', 'summarization'] }}
               >
@@ -902,7 +943,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
               </Panel>
 
               <Panel
-                title="Airline Involvement"
+                title="Airline Reports"
                 total={airline2025Rows.reduce((s, r) => s + r.total, 0)}
                 aiContext={{ section: 'GSE Performance 2025', chartTitle: 'Airline Involvement 2025', chartType: 'gse_2025_airline', chartData: airline2025Rows.map((r) => ({ name: r.label, total: r.total })), featureHints: ['riskScoring', 'rootCause', 'actionRecommendation'] }}
               >
@@ -910,7 +951,7 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
               </Panel>
 
               <Panel
-                title="Station Exposure"
+                title="Station Reports"
                 total={branch2025Rows.reduce((s, r) => s + r.total, 0)}
                 aiContext={{ section: 'GSE Performance 2025', chartTitle: 'Station Exposure 2025', chartType: 'gse_2025_station', chartData: branch2025Rows.map((r) => ({ name: r.label, total: r.total })), featureHints: ['riskScoring', 'summarization', 'actionRecommendation'] }}
               >
@@ -923,10 +964,10 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
           <section>
             <div className="sr-section-h">
               <span className="sr-section-rule" aria-hidden="true" />
-              <h2>Monthly Incident Trend</h2>
+              <h2>Monthly Reports</h2>
             </div>
             <Panel
-              title="GSE Incident Volume by Month"
+              title="GSE Monthly Report"
               subtitle="2025 — click any bar to drill into records"
               total={grand2025}
               aiContext={{ section: 'GSE Performance 2025', chartTitle: 'Monthly GSE Trend 2025', chartType: 'gse_2025_monthly_trend', chartData: month2025Rows.map((r) => ({ month: r.month, total: r.total })), featureHints: ['summarization', 'rootCause'] }}

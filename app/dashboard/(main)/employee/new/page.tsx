@@ -18,7 +18,7 @@ export default function NewReportPage() {
   );
 
   const onSubmitted = () => {
-    setTimeout(() => router.push('/dashboard/employee'), 1500);
+    router.push('/dashboard/employee');
   };
 
   return (

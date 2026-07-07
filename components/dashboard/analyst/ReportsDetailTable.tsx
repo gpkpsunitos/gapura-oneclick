@@ -330,12 +330,19 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
 
   if (reports.length === 0) {
     return (
-      <div className="rounded-2xl border border-[var(--surface-4)] bg-[var(--surface-1)] py-20 flex flex-col items-center justify-center gap-4">
-        <div className="p-5 rounded-full bg-[var(--surface-2)]">
-          <FileText size={32} className="text-[var(--text-muted)] opacity-30" />
+      <div className="rounded-2xl border border-[var(--surface-4)] bg-[var(--surface-1)]">
+        {toolbarFilter && (
+          <div className="border-b border-[var(--surface-4)] bg-[var(--surface-0)] px-4 py-3">
+            {toolbarFilter}
+          </div>
+        )}
+        <div className="py-20 flex flex-col items-center justify-center gap-4">
+          <div className="p-5 rounded-full bg-[var(--surface-2)]">
+            <FileText size={32} className="text-[var(--text-muted)] opacity-30" />
+          </div>
+          <p className="text-base font-display font-bold text-[var(--text-secondary)]">{emptyTitle}</p>
+          <p className="text-sm text-[var(--text-muted)]">{emptySubtitle}</p>
         </div>
-        <p className="text-base font-display font-bold text-[var(--text-secondary)]">{emptyTitle}</p>
-        <p className="text-sm text-[var(--text-muted)]">{emptySubtitle}</p>
       </div>
     );
   }

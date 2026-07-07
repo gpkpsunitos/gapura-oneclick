@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Check, X } from 'lucide-react';
+import { Check, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const OTHER = '__other__';
@@ -108,6 +108,38 @@ export function Options({
   );
 }
 
+export function StepProgress({ step, total }: { step: number; total: number }) {
+  return (
+    <div className="jm-progress">
+      {Array.from({ length: total }).map((_, i) => (
+        <span key={i} className={cn('jm-progress__dot', i < step && 'jm-progress__dot--done')} />
+      ))}
+    </div>
+  );
+}
+
+export function StepFooter({
+  onBack, backDisabled, isLast, onNext, nextDisabled, submitting, nextLabel = 'Continue',
+}: {
+  onBack: () => void; backDisabled: boolean; isLast: boolean;
+  onNext?: () => void; nextDisabled: boolean; submitting: boolean; nextLabel?: string;
+}) {
+  return (
+    <div className="jm-stepnav">
+      <button type="button" onClick={onBack} disabled={backDisabled} className="jm-btn-back">Back</button>
+      <button
+        type={isLast ? 'submit' : 'button'}
+        onClick={isLast ? undefined : onNext}
+        disabled={nextDisabled}
+        className={cn('jm-submit', nextDisabled && 'jm-submit--disabled')}
+      >
+        {submitting && <Loader2 size={16} className="animate-spin" strokeWidth={2} />}
+        {isLast ? (submitting ? 'Submitting…' : 'Submit report') : nextLabel}
+      </button>
+    </div>
+  );
+}
+
 export function InlineShell({ ariaLabel, children }: { ariaLabel: string; children: React.ReactNode }) {
   useEffect(() => {
     const el = document.createElement('link');
@@ -124,7 +156,7 @@ export function InlineShell({ ariaLabel, children }: { ariaLabel: string; childr
   );
 }
 
-export function FormShell({ onClose, ariaLabel, children }: { onClose: () => void; ariaLabel: string; children: React.ReactNode }) {
+export function FormShell({ onClose, ariaLabel, wide, children }: { onClose: () => void; ariaLabel: string; wide?: boolean; children: React.ReactNode }) {
   useEffect(() => {
     const el = document.createElement('link');
     el.rel = 'stylesheet';
@@ -139,7 +171,7 @@ export function FormShell({ onClose, ariaLabel, children }: { onClose: () => voi
     <div className="jm-root" role="dialog" aria-modal="true" aria-label={ariaLabel}>
       <style dangerouslySetInnerHTML={{ __html: FORM_CSS }} />
       <div className="jm-backdrop" onClick={onClose} />
-      <div className="jm-frame">
+      <div className={cn('jm-frame', wide && 'jm-frame--wide')}>
         <button type="button" onClick={onClose} className="jm-close" aria-label="Close">
           <X size={16} strokeWidth={2.2} />
         </button>
@@ -204,6 +236,7 @@ export const FORM_CSS = `
   position: relative;
   width: 100%; max-width: 720px;
   max-height: 92vh;
+  transition: max-width .25s ease;
   display: flex; flex-direction: column;
   background: var(--paper);
   border-radius: 28px;
@@ -214,6 +247,7 @@ export const FORM_CSS = `
     0 1px 0 0 rgba(255,255,255,0.9) inset;
   animation: jm-rise .45s cubic-bezier(.2,.85,.2,1);
 }
+.jm-frame--wide { max-width: 1040px; }
 .jm-close {
   position: absolute; top: 20px; right: 20px; z-index: 10;
   width: 32px; height: 32px; border-radius: 999px;
@@ -397,6 +431,25 @@ export const FORM_CSS = `
 .jm-file__remove:hover { background: rgba(208,52,44,0.10); color: var(--red); }
 
 .jm-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+.jm-progress { display: flex; gap: 6px; margin: 2px 0 4px; }
+.jm-progress__dot { height: 4px; flex: 1; border-radius: 999px; background: var(--fill-2); transition: background .2s ease; }
+.jm-progress__dot--done { background: var(--teal); }
+
+.jm-stepnav { display: flex; gap: 12px; }
+.jm-stepnav .jm-submit { flex: 1; }
+.jm-btn-back {
+  flex-shrink: 0;
+  padding: 14px 22px;
+  background: var(--fill);
+  color: var(--ink);
+  border: none; border-radius: 14px;
+  font-family: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  transition: background .18s ease, opacity .18s ease;
+}
+.jm-btn-back:hover:not(:disabled) { background: var(--fill-2); }
+.jm-btn-back:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .jm-footer {
   padding: 16px 32px 24px;

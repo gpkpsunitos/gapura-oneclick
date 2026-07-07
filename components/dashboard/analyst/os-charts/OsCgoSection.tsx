@@ -792,7 +792,7 @@ export function OsCgoSection({
 
                         {}
                         <div className={cn(OS_CARD_CLASS, "flex h-[34rem] min-h-0 flex-col p-6 group transition-all duration-500 hover:shadow-2xl")}>
-                            <h3 className="shrink-0 text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Detail Report Landside & Airside</h3>
+                            <h3 className="shrink-0 text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Detail Report CGO</h3>
                             <p className="shrink-0 text-[10px] font-medium text-[var(--text-muted)] mb-4">Data laporan CGO diurutkan berdasarkan tanggal</p>
                             <DetailReportTable
                                 data={[...cgoReports].sort((a, b) => {

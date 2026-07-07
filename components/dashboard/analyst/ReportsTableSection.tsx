@@ -25,7 +25,12 @@ export function ReportsTableSection({
 
   const todayCases = useMemo(() => {
     const todayKey = new Date().toDateString();
-    return reports.filter((r) => new Date(r.created_at).toDateString() === todayKey);
+    return reports.filter((r) =>
+      new Date(r.created_at).toDateString() === todayKey &&
+      // ponytail: blank rows synced from trailing empty sheet rows have no
+      // title, report text, or reporter — skip instead of showing "(Tanpa Judul)"
+      (r.report || r.title || r.description || r.reporter_name)
+    );
   }, [reports]);
 
   const columns: TableColumn<Report>[] = useMemo(() => [
