@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { normalizeDivisionCode, reportsService, type ReportQueryFilters } from '@/lib/services/reports-service';
+import { applyReportsRbacFilter } from '@/lib/reports-rbac';
 
 export async function GET(request: NextRequest) {
   try {
@@ -42,12 +43,17 @@ export async function GET(request: NextRequest) {
     const sourceParam = searchParams.get('source');
     const source: 'sheets' | 'sync' = sourceParam === 'sheets' ? 'sheets' : 'sync';
 
-    const reports = await reportsService.getReports({ 
-      refresh, 
+    const allReports = await reportsService.getReports({
+      refresh,
       filters,
       fields,
       source,
     });
+
+    const role = String(session.role || '').trim().toUpperCase();
+    const stationId = (session.station_id as string | null) ?? null;
+    const email = String(session.email || '').trim().toLowerCase();
+    const reports = applyReportsRbacFilter(allReports, role, session.id as string, stationId, email);
 
     return NextResponse.json({
       timestamp: Date.now(),
@@ -55,7 +61,8 @@ export async function GET(request: NextRequest) {
       reports
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        // Per-session RBAC-filtered data must never be cached in a shared/CDN cache.
+        'Cache-Control': 'private, no-store',
       }
     });
 

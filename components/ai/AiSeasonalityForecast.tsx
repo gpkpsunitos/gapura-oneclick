@@ -64,7 +64,7 @@ function ForecastCard({ data, icon: Icon, colorClass }: { data: SeasonalityCateg
           </div>
         </div>
         <div className="h-[180px] w-full mb-4 flex items-center justify-center text-xs text-gray-500 border border-dashed border-gray-200 rounded-lg">
-          Tidak ada data
+          No data
         </div>
       </div>
     );
@@ -95,7 +95,7 @@ function ForecastCard({ data, icon: Icon, colorClass }: { data: SeasonalityCateg
           </div>
         </div>
         <div className="h-[180px] w-full mb-4 flex items-center justify-center text-xs text-gray-500 border border-dashed border-gray-200 rounded-lg">
-          Tidak ada data
+          No data
         </div>
       </div>
     );

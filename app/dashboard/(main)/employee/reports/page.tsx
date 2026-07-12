@@ -80,7 +80,7 @@ export default function EmployeeReportsPage() {
     if (!userSession) {
         return (
             <div className="flex min-h-[50vh] items-center justify-center text-sm font-semibold text-slate-500">
-                Memuat data laporan...
+                Loading report data...
             </div>
         );
     }
@@ -95,12 +95,13 @@ export default function EmployeeReportsPage() {
         <div className="space-y-6">
             {}
             <ReportMasterDetail
-                title="Laporan Saya"
+                title="My Reports"
                 reports={reports}
                 loading={loading}
                 userRole={displayRole}
                 currentUserId={userSession?.id}
                 currentUserStationId={userSession?.station_id}
+                onRefresh={fetchReports}
             />
         </div>
     );

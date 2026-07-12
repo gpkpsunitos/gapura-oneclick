@@ -67,7 +67,7 @@ async function loadDashboard(): Promise<DashboardConfig> {
   if (dashboardCache) return dashboardCache;
   if (!dashboardPromise) {
     dashboardPromise = fetch(`/api/dashboards?slug=${SLUG}`).then(async (r) => {
-      if (!r.ok) throw new Error(r.status === 403 ? 'Akses ditolak' : 'Gagal memuat dashboard');
+      if (!r.ok) throw new Error(r.status === 403 ? 'Akses ditolak' : 'Failed to load dashboard');
       return r.json();
     });
   }
@@ -91,7 +91,7 @@ async function loadPage(pageIndex: number): Promise<PagePayload> {
   });
   const promise = fetch(`/api/dashboards?${params}`)
     .then(async (r) => {
-      if (!r.ok) throw new Error(r.status === 403 ? 'Akses ditolak' : 'Gagal memuat data');
+      if (!r.ok) throw new Error(r.status === 403 ? 'Akses ditolak' : 'Failed to load data');
       const payload = await r.json();
       const map = new Map<string, ChartResult>();
       for (const [id, value] of Object.entries(payload.chartResults || {})) {
@@ -212,7 +212,7 @@ export function CustomerFeedbackPageTab({ pageIndex }: Props) {
       <div className="sr-scope bg-[color:var(--sr-canvas)] px-4 py-10 sm:px-6 lg:px-8">
         <div className="sr-card flex items-center justify-center gap-3 px-6 py-12 text-[13px] font-bold text-[color:var(--sr-text-3)]">
           <Loader2 size={18} className="animate-spin text-[color:var(--sr-accent)]" />
-          Memuat data...
+          Loading data...
         </div>
       </div>
     );
@@ -230,7 +230,7 @@ export function CustomerFeedbackPageTab({ pageIndex }: Props) {
     return (
       <div className="sr-scope bg-[color:var(--sr-canvas)] px-4 py-10 sm:px-6 lg:px-8">
         <div className="sr-card px-6 py-8 text-center text-sm font-bold text-[color:var(--sr-text-3)]">
-          Tidak ada data.
+          No data.
         </div>
       </div>
     );
@@ -472,6 +472,7 @@ function SrDonut({ data }: { data: Point[] }) {
         <ResponsiveContainer width="100%" height="100%" minHeight={140}>
           <PieChart>
             <Pie
+              isAnimationActive={false}
               data={data}
               dataKey="value"
               nameKey="name"

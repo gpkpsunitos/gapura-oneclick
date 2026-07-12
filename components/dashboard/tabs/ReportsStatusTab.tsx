@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import type { Report } from '@/types';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
@@ -173,6 +173,7 @@ function StatusDonut({
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
+              isAnimationActive={false}
               data={data}
               cx="50%" cy="50%"
               innerRadius="52%" outerRadius="80%"
@@ -317,6 +318,7 @@ type RecordRow = {
   status: string;
   report: string;
   flightNumber: string;
+  raw: Report;
 };
 
 function buildRecordRow(r: Report): RecordRow {
@@ -332,12 +334,11 @@ function buildRecordRow(r: Report): RecordRow {
     status: getStatus(r),
     report: val(r.report || r.description) || '—',
     flightNumber: val(r.flight_number) || '—',
+    raw: r,
   };
 }
 
-function RecordsTable({ rows, title }: { rows: RecordRow[]; title: string }) {
-  const [expandedId, setExpandedId] = useState<string | null>(null);
-
+function RecordsTable({ rows, title, onRowClick }: { rows: RecordRow[]; title: string; onRowClick: (row: RecordRow) => void }) {
   return (
     <Panel title={title} subtitle={`${rows.length} records`}>
       <div className="overflow-y-auto" style={{ height: '36rem' }}>
@@ -353,52 +354,35 @@ function RecordsTable({ rows, title }: { rows: RecordRow[]; title: string }) {
               <th style={{ width: '19%' }} className="!text-left">Case Classification</th>
               <th style={{ width: '9%' }} className="sr-center">Severity</th>
               <th style={{ width: '8%' }} className="sr-center">Status</th>
-              <th style={{ width: '5%' }} className="sr-center">▼</th>
+              <th style={{ width: '5%' }} className="sr-center">▸</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr><td colSpan={10} className="!py-10 text-center text-[color:var(--sr-text-3)]">No data</td></tr>
-            ) : rows.map((row) => {
-              const isExpanded = expandedId === row.id;
-              return (
-                <Fragment key={row.id}>
-                  <tr className={isExpanded ? '!bg-[color:var(--sr-accent-soft)]' : ''}>
-                    <td className="font-mono tabular-nums" style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.date}</td>
-                    <td className="font-bold" style={{ padding: '8px 10px', fontSize: 12 }}>{row.branch}</td>
-                    <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.airline}</td>
-                    <td className="font-mono font-semibold tabular-nums" style={{ padding: '8px 10px', fontSize: 12 }}>{row.flightNumber}</td>
-                    <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.category}</td>
-                    <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.area}</td>
-                    <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>
-                      <span className="block leading-snug" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                        {row.caseClass}
-                      </span>
-                    </td>
-                    <td className="sr-center" style={{ padding: '8px 10px', textAlign: 'center' }}><SeverityBadge severity={row.severity} /></td>
-                    <td className="sr-center" style={{ padding: '8px 10px', textAlign: 'center' }}><StatusBadge status={row.status} /></td>
-                    <td className="sr-center" style={{ padding: '8px 10px', textAlign: 'center' }}>
-                      <button
-                        type="button"
-                        onClick={() => setExpandedId(isExpanded ? null : row.id)}
-                        className={`inline-flex h-6 items-center justify-center rounded-md px-2 text-[10px] font-bold uppercase tracking-[0.04em] transition-colors ${isExpanded ? 'bg-[color:var(--sr-sunken)] text-[color:var(--sr-text-2)]' : 'bg-[color:var(--sr-accent)] text-white hover:bg-[color:var(--sr-accent-strong)]'}`}
-                      >
-                        {isExpanded ? '▲' : '▼'}
-                      </button>
-                    </td>
-                  </tr>
-                  {isExpanded && (
-                    <tr>
-                      <td colSpan={10} className="!bg-[color:var(--sr-sunken)] !p-0">
-                        <div className="border-l-4 border-[color:var(--sr-accent)] p-4">
-                          <p className="text-[12px] font-medium leading-snug text-[color:var(--sr-text)] whitespace-pre-wrap">{row.report}</p>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })}
+            ) : rows.map((row) => (
+              <tr
+                key={row.id}
+                onClick={() => onRowClick(row)}
+                className="cursor-pointer transition-colors hover:!bg-[color:var(--sr-accent-soft)]"
+                title="Klik untuk lihat detail lengkap"
+              >
+                <td className="font-mono tabular-nums" style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.date}</td>
+                <td className="font-bold" style={{ padding: '8px 10px', fontSize: 12 }}>{row.branch}</td>
+                <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.airline}</td>
+                <td className="font-mono font-semibold tabular-nums" style={{ padding: '8px 10px', fontSize: 12 }}>{row.flightNumber}</td>
+                <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.category}</td>
+                <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.area}</td>
+                <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                  <span className="block leading-snug" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    {row.caseClass}
+                  </span>
+                </td>
+                <td className="sr-center" style={{ padding: '8px 10px', textAlign: 'center' }}><SeverityBadge severity={row.severity} /></td>
+                <td className="sr-center" style={{ padding: '8px 10px', textAlign: 'center' }}><StatusBadge status={row.status} /></td>
+                <td className="sr-center text-[color:var(--sr-text-3)]" style={{ padding: '8px 10px', textAlign: 'center' }}>▸</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -598,8 +582,16 @@ export function ReportsStatusTab({ reports }: ReportsStatusTabProps) {
                 <h2>Records Detail</h2>
               </div>
               <div className="space-y-4">
-                <RecordsTable rows={openRecords} title={`Open Reports (${openCount})`} />
-                <RecordsTable rows={closedRecords} title={`Closed Reports (${closedCount})`} />
+                <RecordsTable
+                  rows={openRecords}
+                  title={`Open Reports (${openCount})`}
+                  onRowClick={(row) => openDrilldown([row.raw], `${row.branch} · ${row.airline} · ${row.date}`)}
+                />
+                <RecordsTable
+                  rows={closedRecords}
+                  title={`Closed Reports (${closedCount})`}
+                  onRowClick={(row) => openDrilldown([row.raw], `${row.branch} · ${row.airline} · ${row.date}`)}
+                />
               </div>
             </section>
           </>

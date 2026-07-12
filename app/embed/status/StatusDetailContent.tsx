@@ -100,10 +100,10 @@ export function StatusDetailContent() {
 
   return (
     <>
-      <Link href={`/embed/overview?range=${range}`} className="back-link">← Kembali ke Overview</Link>
+      <Link href={`/embed/overview?range=${range}`} className="back-link">← Back to Overview</Link>
 
       <header className="page-header">
-        <h1 className="page-title">Status Laporan</h1>
+        <h1 className="page-title">Report Status</h1>
         <p className="page-subtitle">Pipeline dan SLA compliance</p>
       </header>
 
@@ -134,6 +134,7 @@ export function StatusDetailContent() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
+                  isAnimationActive={false}
                   data={statusPieData}
                   cx="50%"
                   cy="50%"
@@ -174,11 +175,11 @@ export function StatusDetailContent() {
         </EmbedCard>
       </div>
 
-      <EmbedCard title="Daftar Laporan" className="mt-6">
+      <EmbedCard title="Report List" className="mt-6">
         <div className="embed-table-container">
           <table className="embed-table">
             <thead>
-              <tr><th>Tanggal</th><th>Judul</th><th>Airline</th><th>Status</th><th>Severity</th></tr>
+              <tr><th>Date</th><th>Judul</th><th>Airline</th><th>Status</th><th>Severity</th></tr>
             </thead>
             <tbody>
               {(data?.reports || []).slice(0, 50).map((r) => (

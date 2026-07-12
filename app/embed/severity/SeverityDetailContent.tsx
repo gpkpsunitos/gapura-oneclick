@@ -27,8 +27,19 @@ interface ReportsResponse {
 const SEVERITY_CONFIG: Record<string, { label: string; color: string }> = {
   'low': { label: 'Low', color: '#22c55e' },
   'medium': { label: 'Medium', color: '#fbbf24' },
-  'high': { label: 'High', color: '#ef4444' }
+  'high': { label: 'High', color: '#ef4444' },
+  'top risk': { label: 'Top Risk', color: '#991b1b' }
 };
+
+// Report severity values are stored uppercase (e.g. "TOP RISK"); look up
+// case-insensitively so the KPI cards don't silently show 0.
+function severityCount(bySeverity: Record<string, number> | undefined, key: string): number {
+  if (!bySeverity) return 0;
+  const target = key.toLowerCase();
+  return Object.entries(bySeverity)
+    .filter(([name]) => name.toLowerCase() === target)
+    .reduce((sum, [, count]) => sum + count, 0);
+}
 
 const FIXED_DONUT_RANK_COLORS = ['#81c784', '#13b5cb', '#cddc39'];
 
@@ -82,9 +93,9 @@ export function SeverityDetailContent() {
 
   const severityPieData = Object.entries(data?.summary.bySeverity || {})
     .map(([name, value]) => ({
-      name: SEVERITY_CONFIG[name]?.label || name,
+      name: SEVERITY_CONFIG[name.toLowerCase()]?.label || name,
       value,
-      color: SEVERITY_CONFIG[name]?.color || '#64748b'
+      color: SEVERITY_CONFIG[name.toLowerCase()]?.color || '#64748b'
     }))
     .sort((a, b) => b.value - a.value);
 
@@ -99,15 +110,16 @@ export function SeverityDetailContent() {
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count);
 
-  const highCount = data?.summary.bySeverity?.high || 0;
-  const mediumCount = data?.summary.bySeverity?.medium || 0;
-  const lowCount = data?.summary.bySeverity?.low || 0;
+  const topRiskCount = severityCount(data?.summary.bySeverity, 'top risk');
+  const highCount = severityCount(data?.summary.bySeverity, 'high');
+  const mediumCount = severityCount(data?.summary.bySeverity, 'medium');
+  const lowCount = severityCount(data?.summary.bySeverity, 'low');
 
   const title = levelFilter ? `Severity: ${SEVERITY_CONFIG[levelFilter]?.label || levelFilter}` : 'Analisis Severity';
 
   return (
     <>
-      <Link href={`/embed/overview?range=${range}`} className="back-link">← Kembali ke Overview</Link>
+      <Link href={`/embed/overview?range=${range}`} className="back-link">← Back to Overview</Link>
 
       <header className="page-header">
         <h1 className="page-title">{title}</h1>
@@ -117,6 +129,10 @@ export function SeverityDetailContent() {
       <DateRangeFilter />
 
       <div className="kpi-grid">
+        <div className="kpi-card">
+          <div className="kpi-value" style={{ color: '#991b1b' }}>{topRiskCount}</div>
+          <div className="kpi-label">Top Risk</div>
+        </div>
         <div className="kpi-card">
           <div className="kpi-value" style={{ color: '#ef4444' }}>{highCount}</div>
           <div className="kpi-label">High</div>
@@ -141,6 +157,7 @@ export function SeverityDetailContent() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
+                  isAnimationActive={false}
                   data={severityPieData}
                   cx="50%"
                   cy="50%"
@@ -177,11 +194,11 @@ export function SeverityDetailContent() {
         </EmbedCard>
       </div>
 
-      <EmbedCard title="Daftar Laporan" className="mt-6">
+      <EmbedCard title="Report List" className="mt-6">
         <div className="embed-table-container">
           <table className="embed-table">
             <thead>
-              <tr><th>Tanggal</th><th>Judul</th><th>Kategori</th><th>Area</th><th>Severity</th><th>Status</th></tr>
+              <tr><th>Date</th><th>Judul</th><th>Kategori</th><th>Area</th><th>Severity</th><th>Status</th></tr>
             </thead>
             <tbody>
               {(data?.reports || []).slice(0, 50).map((r) => (

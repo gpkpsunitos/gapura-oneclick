@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useSWR from 'swr';
@@ -242,7 +242,8 @@ export default function OCSRecordsTabs() {
   return (
     <div className="space-y-4">
       {/* Tab bar — exact OP style: frosted glass pill + framer-motion 3D active */}
-      <div className="flex justify-center sticky top-0 z-40 py-1 sm:py-2">
+      <div className="relative flex justify-center sticky top-0 z-40 py-1 sm:py-2">
+        <div className="pointer-events-none absolute right-0 top-1 bottom-1 w-8 bg-gradient-to-l from-[var(--surface-0,#fff)] to-transparent sm:hidden" />
         <div className="flex p-1 sm:p-1.5 rounded-2xl bg-[oklch(1_0_0_/_0.4)] backdrop-blur-2xl border border-[oklch(1_0_0_/_0.1)] shadow-inner-rim max-w-full overflow-x-auto no-scrollbar">
           {TABS.map((t) => (
             <button
@@ -447,6 +448,8 @@ export default function OCSRecordsTabs() {
         </AnimatePresence>
 
         {/* Table */}
+        <div className="relative">
+        <div className="pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-8 bg-gradient-to-l from-white to-transparent sm:hidden" />
         <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -531,6 +534,7 @@ export default function OCSRecordsTabs() {
           </tbody>
         </table>
         </div>{/* /overflow-x-auto */}
+        </div>{/* /fade wrapper */}
       </div>{/* /unified card */}
 
       {(showForm || editing) && (
@@ -566,7 +570,10 @@ function RecordForm({
     '/api/master-data?type=stations', fetcher, { revalidateOnFocus: false }
   );
 
+  const submittingRef = useRef(false);
   const submit = async () => {
+    if (submittingRef.current) return; // ponytail: sync guard vs same-tick double-submit
+    submittingRef.current = true;
     setSaving(true);
     try {
       const res = await fetch('/api/ocs-records', {
@@ -579,6 +586,7 @@ function RecordForm({
     } catch {
       alert('Failed to save entry');
     } finally {
+      submittingRef.current = false;
       setSaving(false);
     }
   };

@@ -6,7 +6,11 @@ import { readSessionPayload } from '@/lib/auth-utils';
 import { reportsService } from '@/lib/services/reports-service';
 import { getStationLock } from '@/lib/get-station-lock';
 
-export const revalidate = 60;
+// This page embeds per-user, station-scoped report data directly into the
+// server-rendered HTML via `initialReports`. ISR (`revalidate`) would cache
+// that personalized payload and serve it to every subsequent visitor
+// regardless of their own role/station, so it must always render fresh.
+export const dynamic = 'force-dynamic';
 
 export default async function ManagerAllReportsPage() {
     const token = (await cookies()).get('session')?.value;

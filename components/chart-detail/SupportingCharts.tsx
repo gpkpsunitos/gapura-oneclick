@@ -391,7 +391,7 @@ export function SupportingCharts({ charts, dataMap, loading, source = 'ai', view
             </span>
           ) : (
             <span className="ml-2 text-[9px] font-medium text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 flex items-center gap-1">
-              📊 Dari Data Laporan
+              📊 From Report Data
             </span>
           )}
         </div>
@@ -415,7 +415,7 @@ export function SupportingCharts({ charts, dataMap, loading, source = 'ai', view
                 <div className="w-10 h-10 bg-red-50 rounded-full flex items-center justify-center mb-3">
                   <Info className="w-5 h-5 text-red-400" />
                 </div>
-                <h4 className="text-[11px] font-bold text-slate-700 uppercase mb-1">Gagal Memuat Chart</h4>
+                <h4 className="text-[11px] font-bold text-slate-700 uppercase mb-1">Failed to Load Chart</h4>
                 <p className="text-[10px] text-slate-400">Terjadi kesalahan saat mengambil data untuk visualisasi ini.</p>
               </div>
             );

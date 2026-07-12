@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Bar,
   BarChart,
@@ -650,6 +651,7 @@ function JoumpaPiePanel({
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
+                    isAnimationActive={false}
                     data={rows}
                     dataKey="value"
                     nameKey="name"
@@ -1084,20 +1086,28 @@ function JoumpaCategoryMatrixTable({
   return (
     <JoumpaPanel title={title} className={className} bodyClassName="overflow-auto">
       {rows.rows.length === 0 ? <EmptyPanel /> : (
-        <ReportTable density="compact" containerClassName="overflow-visible rounded-none border-0 shadow-none" className="min-w-[720px] w-full border-collapse text-[11px]">
+        <ReportTable density="compact" containerClassName="overflow-visible rounded-none border-0 shadow-none" className="w-full table-fixed border-collapse text-[10px]">
+          <colgroup>
+            <col className={secondaryHeader ? 'w-[22%]' : 'w-[34%]'} />
+            {secondaryHeader ? <col className="w-[18%]" /> : null}
+            {JOUMPA_CATEGORY_METRICS.map((metric) => (
+              <col key={metric.key} className={secondaryHeader ? 'w-[14%]' : 'w-[16%]'} />
+            ))}
+            <col className={secondaryHeader ? 'w-[14%]' : 'w-[18%]'} />
+          </colgroup>
           <ReportTHead className="sticky top-0 z-20">
             <ReportTR>
-              <ReportTH colSpan={(secondaryHeader ? 2 : 1) + JOUMPA_CATEGORY_METRICS.length + 1} className="border border-[color:var(--sr-border-strong)] bg-[color:var(--sr-accent)] px-2.5 py-2 text-right text-[12px] font-black text-white">
+              <ReportTH colSpan={(secondaryHeader ? 2 : 1) + JOUMPA_CATEGORY_METRICS.length + 1} className="border border-[color:var(--sr-border-strong)] bg-[color:var(--sr-accent)] px-1.5 py-1.5 text-right text-[11px] font-black text-white">
                 Category Report / Total
               </ReportTH>
             </ReportTR>
             <ReportTR className="bg-[color:var(--sr-sunken)] text-[color:var(--sr-text-2)]">
-              <ReportTH className="border border-[color:var(--sr-border)] px-2.5 py-2 text-left font-bold">{primaryHeader}</ReportTH>
-              {secondaryHeader ? <ReportTH className="border border-[color:var(--sr-border)] px-2.5 py-2 text-left font-bold">{secondaryHeader}</ReportTH> : null}
+              <ReportTH className="break-words border border-[color:var(--sr-border)] px-1.5 py-1.5 text-left font-bold">{primaryHeader}</ReportTH>
+              {secondaryHeader ? <ReportTH className="break-words border border-[color:var(--sr-border)] px-1.5 py-1.5 text-left font-bold">{secondaryHeader}</ReportTH> : null}
               {JOUMPA_CATEGORY_METRICS.map((metric) => (
-                <ReportTH key={metric.key} className="border border-[color:var(--sr-border)] px-2.5 py-2 text-center font-bold">{metric.label}</ReportTH>
+                <ReportTH key={metric.key} className="break-words border border-[color:var(--sr-border)] px-1 py-1.5 text-center font-bold">{metric.label}</ReportTH>
               ))}
-              <ReportTH className="border border-[color:var(--sr-border)] px-2.5 py-2 text-center font-black">Grand total</ReportTH>
+              <ReportTH className="break-words border border-[color:var(--sr-border)] px-1 py-1.5 text-center font-black">Grand total</ReportTH>
             </ReportTR>
           </ReportTHead>
           <ReportTBody>
@@ -1109,18 +1119,18 @@ function JoumpaCategoryMatrixTable({
                   {showPrimary ? (
                     <ReportTD
                       rowSpan={rowSpan}
-                      className={`border border-[color:var(--sr-border)] px-2.5 py-2 align-top font-semibold text-[color:var(--sr-text)] ${groupByPrimary ? 'bg-[color:var(--sr-sunken)] font-bold text-[color:var(--sr-accent-dark)]' : ''}`}
+                      className={`break-words border border-[color:var(--sr-border)] px-1.5 py-1.5 align-top font-semibold text-[color:var(--sr-text)] ${groupByPrimary ? 'bg-[color:var(--sr-sunken)] font-bold text-[color:var(--sr-accent-dark)]' : ''}`}
                     >
                       {row.primary}
                     </ReportTD>
                   ) : null}
-                  {secondaryHeader ? <ReportTD className="border border-[color:var(--sr-border)] px-2.5 py-2 align-top text-[color:var(--sr-text)]">{row.secondary || '-'}</ReportTD> : null}
+                  {secondaryHeader ? <ReportTD className="break-words border border-[color:var(--sr-border)] px-1.5 py-1.5 align-top text-[color:var(--sr-text)]">{row.secondary || '-'}</ReportTD> : null}
                   {JOUMPA_CATEGORY_METRICS.map((metric) => {
                     const value = row.values[metric.key] || 0;
                     return (
                       <ReportTD
                         key={metric.key}
-                        className={`${value && onCellClick ? 'cursor-pointer' : ''} border border-[color:var(--sr-border)] px-2.5 py-2 text-center font-semibold text-[color:var(--sr-text)] transition-colors hover:bg-[color:var(--sr-accent-tint)]`}
+                        className={`${value && onCellClick ? 'cursor-pointer' : ''} border border-[color:var(--sr-border)] px-1 py-1.5 text-center font-semibold text-[color:var(--sr-text)] transition-colors hover:bg-[color:var(--sr-accent-tint)]`}
                         style={{ backgroundColor: joumpaHeatColor(value, rows.maxValue) }}
                         onClick={() => value > 0 && onCellClick?.(row, metric.key)}
                       >
@@ -1129,7 +1139,7 @@ function JoumpaCategoryMatrixTable({
                     );
                   })}
                   <ReportTD
-                    className={`${onCellClick ? 'cursor-pointer' : ''} border border-[color:var(--sr-border)] px-2.5 py-2 text-center font-black text-[color:var(--sr-text)]`}
+                    className={`${onCellClick ? 'cursor-pointer' : ''} border border-[color:var(--sr-border)] px-1 py-1.5 text-center font-black text-[color:var(--sr-text)]`}
                     onClick={() => onCellClick?.(row)}
                   >
                     {row.total}
@@ -1138,11 +1148,11 @@ function JoumpaCategoryMatrixTable({
               );
             })}
             <ReportTR className="bg-[color:var(--sr-accent-soft)] font-black">
-              <ReportTD colSpan={secondaryHeader ? 2 : 1} className="border border-[color:var(--sr-accent)] px-2.5 py-2 text-[color:var(--sr-accent-dark)]">Grand total</ReportTD>
+              <ReportTD colSpan={secondaryHeader ? 2 : 1} className="break-words border border-[color:var(--sr-accent)] px-1.5 py-1.5 text-[color:var(--sr-accent-dark)]">Grand total</ReportTD>
               {JOUMPA_CATEGORY_METRICS.map((metric) => (
-                <ReportTD key={metric.key} className="border border-[color:var(--sr-accent)] px-2.5 py-2 text-center text-[color:var(--sr-accent-dark)]">{rows.totals[metric.key]}</ReportTD>
+                <ReportTD key={metric.key} className="border border-[color:var(--sr-accent)] px-1 py-1.5 text-center text-[color:var(--sr-accent-dark)]">{rows.totals[metric.key]}</ReportTD>
               ))}
-              <ReportTD className="border border-[color:var(--sr-accent)] px-2.5 py-2 text-center text-[color:var(--sr-accent-dark)]">{rows.grandTotal}</ReportTD>
+              <ReportTD className="border border-[color:var(--sr-accent)] px-1 py-1.5 text-center text-[color:var(--sr-accent-dark)]">{rows.grandTotal}</ReportTD>
             </ReportTR>
           </ReportTBody>
         </ReportTable>
@@ -1601,7 +1611,7 @@ function LookerQrCard({ title, url, qrUrl }: { title: string; url: string; qrUrl
         </div>
       </JoumpaPanel>
 
-      {showQrModal ? (
+      {showQrModal && typeof document !== 'undefined' ? createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
           <div className="relative z-10 w-full max-w-md border border-[color:var(--sr-border)] bg-white p-6 shadow-[0_32px_80px_-28px_rgba(15,23,42,0.45)]">
             <button
@@ -1628,7 +1638,8 @@ function LookerQrCard({ title, url, qrUrl }: { title: string; url: string; qrUrl
               <span>{copied ? 'Link Copied' : 'Copy Link'}</span>
             </button>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
     </>
   );

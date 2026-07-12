@@ -17,6 +17,11 @@ export async function GET(req: Request) {
         return NextResponse.json([]);
     }
 
+    const role = String(payload.role || '').trim().toUpperCase();
+    if (role !== 'SUPER_ADMIN' && role !== 'ANALYST') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(req.url);
     const entity = searchParams.get('entity');
 

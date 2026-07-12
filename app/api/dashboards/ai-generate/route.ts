@@ -32,7 +32,7 @@ async function buildDataContext(): Promise<string> {
     const reports = await reportsService.getReports();
 
     if (reports.length === 0) {
-        return '\n(Tidak ada data laporan ditemukan)\n';
+        return '\n(No data laporan ditemukan)\n';
     }
 
     const total_reports = reports.length;
@@ -469,7 +469,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
        console.error('AI API error:', error);
        return NextResponse.json(
-        { error: 'Gagal menghubungi AI. Coba lagi nanti.' },
+        { error: 'Gagal menghubungi AI. Try again later.' },
         { status: 502 }
       );
     }

@@ -224,7 +224,7 @@ export function AIInsightCard({ report, className }: Props) {
       }
       setData(parsed.data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Gagal memuat insight');
+      setError(e instanceof Error ? e.message : 'Failed to load insight');
     } finally {
       setLoading(false);
     }
@@ -253,7 +253,7 @@ export function AIInsightCard({ report, className }: Props) {
           )}
         >
           <RefreshCw className={cn('w-3.5 h-3.5', loading && 'animate-spin')} />
-          {loading ? 'Memuat…' : 'Muat ulang'}
+          {loading ? 'Loading…' : 'Muat ulang'}
         </button>
       </div>
 

@@ -268,7 +268,7 @@ export function DashboardComposer({
                       style={{ backgroundColor: GAPURA_GREEN }}
                     >
                       <Plus size={14} />
-                      Tambah Tile
+                      Add Tile
                     </button>
                     <button
                       className="flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-purple-600 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"

@@ -149,7 +149,7 @@ export function FilterBuilder({ filters, availableFields, onAdd, onRemove, onUpd
                     onChange={e => onUpdate(idx, { value: e.target.value })}
                     className="px-2 py-1 text-xs bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)] min-w-[120px]"
                   >
-                    <option value="">Pilih...</option>
+                    <option value="">Select...</option>
                     {fieldDef.enumValues.map(v => (
                       <option key={v} value={v}>{v}</option>
                     ))}
@@ -160,7 +160,7 @@ export function FilterBuilder({ filters, availableFields, onAdd, onRemove, onUpd
                     onChange={e => onUpdate(idx, { value: e.target.value === 'true' })}
                     className="px-2 py-1 text-xs bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)]"
                   >
-                    <option value="">Pilih...</option>
+                    <option value="">Select...</option>
                     <option value="true">Ya</option>
                     <option value="false">Tidak</option>
                   </select>
@@ -225,7 +225,7 @@ export function FilterBuilder({ filters, availableFields, onAdd, onRemove, onUpd
         className="flex items-center gap-1 px-2 py-1 text-[10px] font-medium text-[var(--text-muted)] hover:text-[var(--brand-primary)] hover:bg-[var(--surface-2)] rounded-md transition-colors"
       >
         <Plus size={12} />
-        Tambah Filter
+        Add Filter
       </button>
     </div>
   );

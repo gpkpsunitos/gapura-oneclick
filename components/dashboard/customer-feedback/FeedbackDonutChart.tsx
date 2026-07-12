@@ -57,6 +57,7 @@ export function FeedbackDonutChart({ title, data, colors = [], height = 170 }: F
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
+              isAnimationActive={false}
               data={rankedData}
               cx="50%"
               cy="50%"

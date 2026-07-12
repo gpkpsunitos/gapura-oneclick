@@ -46,7 +46,7 @@ export function DrilldownDetailView({
         return (
             <div className="min-h-[60vh] flex flex-col items-center justify-center">
                 <Loader2 className="w-10 h-10 animate-spin text-[var(--brand-primary)]" />
-                <p className="text-sm text-[var(--text-muted)] mt-4">Memuat data...</p>
+                <p className="text-sm text-[var(--text-muted)] mt-4">Loading data...</p>
             </div>
         );
     }
@@ -60,7 +60,7 @@ export function DrilldownDetailView({
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)] transition-all"
                 >
                     <ArrowLeft size={16} />
-                    Kembali
+                    Back
                 </Link>
             </div>
 
@@ -89,14 +89,14 @@ export function DrilldownDetailView({
             <div className="card-solid p-0 overflow-hidden">
                 <div className="p-5 border-b border-[var(--surface-4)]">
                     <h3 className="font-bold text-[var(--text-primary)]">
-                        {totalCount} Laporan Ditemukan
+                        {totalCount} Reports Found
                     </h3>
                 </div>
 
                 {totalCount === 0 ? (
                     <div className="py-16 text-center">
                         <FileText size={40} className="mx-auto mb-4 opacity-30 text-[var(--text-muted)]" />
-                        <p className="text-[var(--text-muted)]">Tidak ada laporan yang cocok</p>
+                        <p className="text-[var(--text-muted)]">No matching reports</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -107,8 +107,8 @@ export function DrilldownDetailView({
                                     <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Judul</th>
                                     <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Status</th>
                                     <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Severity</th>
-                                    <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Bandara</th>
-                                    <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Tanggal</th>
+                                    <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Station</th>
+                                    <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Date</th>
                                 </tr>
                             </thead>
                             <tbody>

@@ -4,10 +4,41 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { UserRole } from '@/types';
-import { reportsService } from '@/lib/services/reports-service';
 
 interface RouteParams {
     params: Promise<{ id: string }>;
+}
+
+// Lightweight report reference lookup for comment writes. Resolves the stable
+// UUID + sheet id from the synced DB tables ONLY — never touches Google Sheets,
+// so posting a comment is instant. Covers both ground-handling and JOUMPA reports.
+async function resolveReportRef(reportId: string): Promise<{ stableUuid: string; sheetId: string | null } | null> {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reportId);
+    const safe = `"${reportId.replace(/"/g, '""')}"`;
+
+    const ghFilter = isUuid
+        ? `id.eq.${safe},original_id.eq.${safe},sheet_id.eq.${safe}`
+        : `original_id.eq.${safe},sheet_id.eq.${safe}`;
+    const { data: gh } = await supabaseAdmin
+        .from('ground_handling_irregularity_report')
+        .select('id, sheet_id, original_id')
+        .or(ghFilter)
+        .limit(1);
+    if (gh && gh.length > 0) {
+        return { stableUuid: gh[0].id, sheetId: gh[0].sheet_id || gh[0].original_id || null };
+    }
+
+    const jpFilter = isUuid ? `id.eq.${safe},sheet_id.eq.${safe}` : `sheet_id.eq.${safe}`;
+    const { data: jp } = await supabaseAdmin
+        .from('joumpa_reports_sync')
+        .select('id, sheet_id')
+        .or(jpFilter)
+        .limit(1);
+    if (jp && jp.length > 0) {
+        return { stableUuid: jp[0].id, sheetId: jp[0].sheet_id || null };
+    }
+
+    return null;
 }
 
 // Divisions, analysts, eskalasi and super admin can read/post on any report.
@@ -79,9 +110,10 @@ export async function GET(request: Request, { params }: RouteParams) {
             }
         }
 
-        const report = await reportsService.getReportById(reportId);
-
-        const commentIds = [reportId, report?.original_id].filter((val): val is string => !!val);
+        // DB-only ref resolution — never touches Google Sheets, so reading
+        // comments is instant (getReportById could stall ~5s on a live fetch).
+        const ref = await resolveReportRef(reportId);
+        const commentIds = [reportId, ref?.stableUuid, ref?.sheetId].filter((val): val is string => !!val);
         const { data, error } = await supabaseAdmin
             .from('report_comments')
             .select(`
@@ -154,14 +186,14 @@ export async function POST(request: Request, { params }: RouteParams) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        const report = await reportsService.getReportById(reportId);
+        const ref = await resolveReportRef(reportId);
 
-        if (!report) {
+        if (!ref) {
             return NextResponse.json({ error: 'Report not found' }, { status: 404 });
         }
 
-        const stableUuid = report.id;
-        const sheetId = report?.original_id || null;
+        const stableUuid = ref.stableUuid;
+        const sheetId = ref.sheetId;
 
         const { data: comment, error: insertError } = await supabaseAdmin
             .from('report_comments')

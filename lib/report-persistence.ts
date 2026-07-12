@@ -10,6 +10,17 @@ import { v5 as uuidv5 } from 'uuid';
 // uuidv5(sheet_id) — the id the app derives from the live Google Sheet.
 const IRRS_NAMESPACE_UUID = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// user_id is read straight off the "User ID" sheet column, which is free text
+// (often blank, a name, or garbage) — not guaranteed to be the UUID the
+// user_id FK column requires. A single bad row here fails the whole batch
+// upsert and silently drops every report in it.
+function sanitizeUserId(value: unknown): string | null {
+    const str = typeof value === 'string' ? value.trim() : '';
+    return UUID_PATTERN.test(str) ? str : null;
+}
+
 function toIsoOrNow(value: unknown): string {
     if (typeof value === 'string' && value.trim()) {
         const parsed = new Date(value);
@@ -60,7 +71,7 @@ export function buildReportsSyncRow(report: Partial<Report>): Record<string, unk
         // v4 default that never matches the uuidv5(sheet_id) the app looks up by.
         id: uuidv5(sheetId, IRRS_NAMESPACE_UUID),
         sheet_id: sheetId,
-        user_id: report.user_id || null,
+        user_id: sanitizeUserId(report.user_id),
         title: report.title || report.report || null,
         description: report.description || report.report || null,
         location: report.location || null,
@@ -188,7 +199,7 @@ export function buildLegacyReportRow(
 ): Record<string, unknown> {
     const sheetId = resolveReportSheetId(report);
     const normalizedCategory = resolveReportCategory(report);
-    const userId = report.user_id || options?.userId || null;
+    const userId = sanitizeUserId(report.user_id) || options?.userId || null;
 
     return {
         ...(userId ? { user_id: userId } : {}),

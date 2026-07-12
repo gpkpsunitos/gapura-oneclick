@@ -110,7 +110,7 @@ export default function OfflineIndicator() {
           <div className="container mx-auto px-4 py-2">
             <div className="flex items-center justify-center gap-2 text-sm font-medium">
               <Wifi className="w-4 h-4" />
-              <span>Kembali online{pendingActions > 0 ? ' - Menyinkronkan antrean...' : ''}</span>
+              <span>Back online{pendingActions > 0 ? ' - Syncing queue...' : ''}</span>
               {queueSummary.syncing > 0 && (
                 <RefreshCw className="w-4 h-4 animate-spin" />
               )}

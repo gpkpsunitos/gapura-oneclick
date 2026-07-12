@@ -33,9 +33,9 @@ interface OpAnalyticsFilterBarProps {
 const TIME_PRESETS = [
   { key: '30d', label: '30 Hari' },
   { key: '90d', label: '90 Hari' },
-  { key: '6m', label: '6 Bulan' },
-  { key: '1y', label: '1 Tahun' },
-  { key: 'all', label: 'Semua' },
+  { key: '6m', label: '6 Months' },
+  { key: '1y', label: '1 Year' },
+  { key: 'all', label: 'All' },
 ] as const;
 
 function FilterSelect({
@@ -62,7 +62,7 @@ function FilterSelect({
         onChange={(e) => onChange(e.target.value)}
         className="h-9 w-full appearance-none rounded-xl border border-slate-200 bg-white py-1.5 pl-8 pr-3 text-xs font-bold text-slate-700 transition-all hover:border-slate-300 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100"
       >
-        <option value="all">Semua {label}</option>
+        <option value="all">All {label}</option>
         {options.map((opt) => (
           <option key={opt} value={opt}>{opt}</option>
         ))}
@@ -164,7 +164,7 @@ export function OpAnalyticsFilterBar({
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                 )}
               >
-                {sheet === 'all' ? 'Semua' : sheet}
+                {sheet === 'all' ? 'All' : sheet}
               </button>
             ))}
           </div>
@@ -224,7 +224,7 @@ export function OpAnalyticsFilterBar({
           className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-500 transition-colors hover:text-slate-700"
         >
           <Filter className="h-3 w-3" />
-          {expanded ? 'Sembunyikan' : 'Tampilkan Filter'}
+          {expanded ? 'Hide' : 'Show Filter'}
           {activeFilterCount > 0 && (
             <span className="ml-1 rounded-full bg-cyan-100 px-1.5 py-0.5 text-cyan-700">
               {activeFilterCount}

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { checkRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
 
 type DuplicateCandidate = {
   id: string;
@@ -64,6 +65,14 @@ function sameDay(value: unknown, target: string): boolean {
 
 export async function POST(request: Request) {
   try {
+    // No auth required by design (used by the unauthenticated public report
+    // wizard), so rate-limit per IP to prevent scraping incident metadata.
+    const ip = getClientIpFromRequest(request);
+    const rateLimit = checkRateLimit(`duplicates-check:${ip}`, 20, 60_000);
+    if (!rateLimit.success) {
+      return NextResponse.json({ candidates: [] }, { status: 429 });
+    }
+
     const body = await request.json();
     const incidentDate = String(body.incident_date || body.date_of_event || '').slice(0, 10);
     const stationId = String(body.station_id || body.station_code || '').trim();

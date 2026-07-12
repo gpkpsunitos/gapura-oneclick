@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SyncService } from '@/lib/services/sync-service';
 import { JoumpaSyncService } from '@/lib/services/joumpa-sync-service';
 import { logSecurityAudit } from '@/lib/security/audit-logger';
+import { timingSafeStringEqual } from '@/lib/security/rate-limit';
 
 // Vercel Hobby caps functions at 60s. Pin the budget and give the sync most of it
 // to finish in a single run (the old 3:15 continuation cron was dropped to stay
@@ -11,8 +12,12 @@ export const maxDuration = 60;
 const SOFT_TIMEOUT_MS = 50000;
 
 function isCronRequest(request: NextRequest): boolean {
-    return request.headers.get('x-vercel-cron') === 'true' ||
-        request.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`;
+    // Only trust Bearer CRON_SECRET. The `x-vercel-cron` header is a client-
+    // supplied request header and is spoofable, so it must not gate auth.
+    // Fail closed when the secret is unset instead of matching `Bearer undefined`.
+    const secret = process.env.CRON_SECRET;
+    if (!secret) return false;
+    return timingSafeStringEqual(request.headers.get('authorization'), `Bearer ${secret}`);
 }
 
 async function handleCronSync(request: NextRequest) {
@@ -61,6 +66,16 @@ async function handleCronSync(request: NextRequest) {
             console.error('[CRON-SYNC] JOUMPA sync error:', joumpaError);
         }
 
+        // Same reasoning as JOUMPA above — SLA-breach alerts piggyback on this
+        // cron rather than getting their own schedule. Non-blocking on failure.
+        let slaBreaches: Awaited<ReturnType<typeof SyncService.checkSlaBreaches>> | { error: string } | null = null;
+        try {
+            slaBreaches = await SyncService.checkSlaBreaches();
+        } catch (slaError) {
+            slaBreaches = { error: slaError instanceof Error ? slaError.message : 'SLA breach check failed' };
+            console.error('[CRON-SYNC] SLA breach check error:', slaError);
+        }
+
         await logSecurityAudit({
             actorId: 'vercel-cron',
             action: 'SYNC_REPORTS',
@@ -76,7 +91,7 @@ async function handleCronSync(request: NextRequest) {
             userAgent: request.headers.get('user-agent'),
         }).catch(() => {});
 
-        return NextResponse.json({ ...syncResult, joumpa }, {
+        return NextResponse.json({ ...syncResult, joumpa, slaBreaches }, {
             status: syncResult.success ? 200 : 500,
         });
     } catch (error) {

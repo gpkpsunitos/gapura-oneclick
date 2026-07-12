@@ -19,7 +19,7 @@ export default function PublicSLAMenuPage() {
             <ClipboardList size={24} />
           </div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Pengisian Report SLA</h1>
-          <p className="text-gray-500">Pilih kategori untuk melanjutkan</p>
+          <p className="text-gray-500">Select a category to continue</p>
         </div>
 
         <div className="grid gap-4">

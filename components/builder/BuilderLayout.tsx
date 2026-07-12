@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 type Mode = 'explore' | 'dashboard';
 
 const PROMPT_SUGGESTIONS = [
-  { label: 'Laporan Bulanan', prompt: 'Buatkan dashboard laporan bulanan yang menampilkan trend, distribusi kategori, dan perbandingan antar stasiun' },
+  { label: 'Monthly Report', prompt: 'Buatkan dashboard laporan bulanan yang menampilkan trend, distribusi kategori, dan perbandingan antar stasiun' },
   { label: 'Perbandingan Maskapai', prompt: 'Buat dashboard perbandingan jumlah laporan per maskapai dengan breakdown severity dan kategori' },
   { label: 'Trend Compliment', prompt: 'Buatkan dashboard analisis trend compliment per bulan dengan distribusi area dan maskapai' },
   { label: 'Severity Analysis', prompt: 'Buat dashboard analisis severity laporan dengan heatmap per stasiun dan trend waktu' },
@@ -373,7 +373,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
             >
               <Plus size={14} />
-              Tambah ke Dashboard
+              Add to Dashboard
             </button>
           )}
           {editingTileId && mode === 'explore' && (
@@ -627,7 +627,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
                           <span className="inline-flex w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white items-center justify-center text-[10px] font-bold">1</span>
                           <MousePointerClick size={13} className="text-blue-400 opacity-60 group-hover:opacity-100 transition-opacity" />
                         </div>
-                        <p className="text-xs text-[var(--text-secondary)]">Pilih field di panel kiri</p>
+                        <p className="text-xs text-[var(--text-secondary)]">Select a field in the left panel</p>
                       </div>
                       <div className="flex-1 p-3 bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-xl hover:-translate-y-0.5 transition-transform cursor-default group">
                         <div className="flex items-center gap-2 mb-1.5">

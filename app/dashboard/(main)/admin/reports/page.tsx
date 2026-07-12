@@ -95,7 +95,7 @@ export default function AdminReportsPage() {
         <div className="space-y-8 stagger-children">
             {}
             <DashboardHeader
-                title="Kelola Laporan"
+                title="Manage Reports"
                 subtitle="Kelola dan tindaklanjuti semua laporan masuk"
                 totalReports={reports.length}
                 pendingReports={reports.filter(r => r.status === 'OPEN').length}
@@ -110,7 +110,7 @@ export default function AdminReportsPage() {
                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5" style={{ color: 'var(--text-muted)' }} />
                     <input
                         type="text"
-                        placeholder="Cari laporan, nomor kasus, lokasi, pelapor, atau station..."
+                        placeholder="Search reports, case number, location, reporter, or station..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         className="input-field"
@@ -120,7 +120,7 @@ export default function AdminReportsPage() {
                 <div className="flex flex-wrap gap-3">
                     <div className="relative flex-1 min-w-[160px]">
                         <select value={stationFilter} onChange={(e) => setStationFilter(e.target.value)} className="input-field pl-10 pr-10 cursor-pointer" style={{ background: 'var(--surface-2)' }}>
-                            <option value="all">Semua Station</option>
+                            <option value="all">All Stations</option>
                             {stations.map((s) => (<option key={s.id} value={s.id}>{s.code} - {s.name}</option>))}
                         </select>
                         <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
@@ -128,7 +128,7 @@ export default function AdminReportsPage() {
                     </div>
                     <div className="relative flex-1 min-w-[140px]">
                         <select value={filter} onChange={(e) => setFilter(e.target.value)} className="input-field pl-10 pr-10 cursor-pointer" style={{ background: 'var(--surface-2)' }}>
-                            <option value="all">Semua Status</option>
+                            <option value="all">All Statuses</option>
                             <option value="OPEN">Open</option>
                             <option value="ON PROGRESS">On Progress</option>
                             <option value="CLOSED">Closed</option>
@@ -138,7 +138,7 @@ export default function AdminReportsPage() {
                     </div>
                     <div className="relative flex-1 min-w-[140px]">
                         <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} className="input-field pl-10 pr-10 cursor-pointer" style={{ background: 'var(--surface-2)' }}>
-                            <option value="all">Semua Severity</option>
+                            <option value="all">All Severities</option>
                             <option value="TOP RISK">🔴 Top Risk</option>
                             <option value="HIGH RISK">🟠 High Risk</option>
                             <option value="MEDIUM">🟡 Medium</option>
@@ -162,7 +162,7 @@ export default function AdminReportsPage() {
                             <FileText size={18} style={{ color: 'var(--brand-primary)' }} />
                         </div>
                         <div>
-                            <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Daftar Laporan</h3>
+                            <h3 className="font-bold" style={{ color: 'var(--text-primary)' }}>Report List</h3>
                             <p className="text-xs" style={{ color: 'var(--text-muted)' }}>{filteredReports.length} laporan</p>
                         </div>
                     </div>

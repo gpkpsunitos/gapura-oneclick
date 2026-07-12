@@ -81,6 +81,18 @@ export function publicUrl(path: string): string {
   return data.publicUrl;
 }
 
+// Groundwork for moving evidence buckets to private. Generates a short-lived
+// signed URL from a stored object path so read access can be revoked from the
+// bucket without breaking rendering. TTL defaults to 1 hour.
+export async function signedUrl(
+  path: string,
+  { bucket = STORAGE_BUCKET, expiresIn = 3600 }: { bucket?: string; expiresIn?: number } = {},
+): Promise<string | null> {
+  const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, expiresIn);
+  if (error || !data) return null;
+  return data.signedUrl;
+}
+
 export interface StorageUploadInput {
   buffer: Buffer;
   mimeType: string;

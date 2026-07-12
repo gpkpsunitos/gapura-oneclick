@@ -1,74 +1,57 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { verifySession } from '@/lib/auth-utils';
-import { cookies } from 'next/headers';
-import { getHfClient } from '@/lib/hf-client';
+/**
+ * GET /api/ai/risk/summary — combined risk overview across all dimensions
+ * (airline / branch / area), with the top entity per dimension surfaced.
+ */
+import { NextResponse } from 'next/server';
+import { mlClient, type RiskEntry } from '@/lib/ml-client';
 import { resolveCachedAI } from '@/lib/ai-route-cache';
+import {
+  requireElevatedAISession,
+  unauthorizedResponse,
+  aiUnavailableResponse,
+} from '@/lib/ai-route-helpers';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
-export async function GET(req: NextRequest) {
+function entityName(entry: RiskEntry | undefined): string | null {
+  if (!entry) return null;
+  const nameField = Object.entries(entry).find(([, value]) => typeof value === 'string');
+  return nameField ? String(nameField[1]) : null;
+}
+
+export async function GET() {
+  const session = await requireElevatedAISession();
+  if (!session) return unauthorizedResponse();
+
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-    const session = token ? await verifySession(token) : null;
+    const result = await resolveCachedAI({
+      feature: 'risk-summary-v2',
+      scope: {},
+      resolver: async () => {
+        const res = await mlClient.riskScore();
+        const rankings = res.rankings ?? {};
+        return {
+          status: res.status,
+          rankings,
+          highlights: {
+            topAirline: entityName(rankings.airline?.[0]),
+            topBranch: entityName(rankings.branch?.[0]),
+            topArea: entityName(rankings.area?.[0]),
+          },
+        };
+      },
+    });
 
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const { searchParams } = new URL(req.url);
-    const esklasiRegex = searchParams.get('esklasi_regex') || '';
-
-    try {
-      const result = await resolveCachedAI({
-        feature: 'risk-summary',
-        scope: { esklasiRegex },
-        resolver: async () => {
-          const hfClient = getHfClient();
-          const aiResponse = await hfClient.fetch(
-            `/api/ai/risk/summary?esklasi_regex=${encodeURIComponent(esklasiRegex)}`,
-            { method: 'GET', headers: { 'Content-Type': 'application/json' } },
-            { ttl: 300000 }
-          );
-
-          if (!aiResponse.ok) {
-            throw new Error(`AI service error: ${aiResponse.status}`);
-          }
-
-          return aiResponse.json();
-        },
-      });
-
-      return NextResponse.json({
-        ...result.payload,
+    return NextResponse.json(
+      {
+        ...(result.payload as Record<string, unknown>),
         cached: result.cached,
         generatedAt: result.generatedAt,
-        sourceSyncAt: result.sourceSyncAt,
-        stale: result.stale,
-      }, {
-        headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
-        },
-      });
-    } catch (aiError) {
-      console.error('AI Service Error:', aiError);
-
-      return NextResponse.json(
-        { 
-          error: 'AI service tidak tersedia',
-          details: aiError instanceof Error ? aiError.message : 'Unknown error'
-        },
-        { status: 503 }
-      );
-    }
-  } catch (error) {
-    console.error('Risk Summary API Error:', error);
-    return NextResponse.json(
-      { error: 'Terjadi kesalahan saat mengambil ringkasan risiko' },
-      { status: 500 }
+      },
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } },
     );
+  } catch (error) {
+    return aiUnavailableResponse(error);
   }
 }

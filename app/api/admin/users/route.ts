@@ -184,7 +184,7 @@ export async function POST(request: Request) {
         }
 
         if (!email || !full_name || !nik || !phone || !position_id) {
-            return NextResponse.json({ error: 'Semua field wajib diisi' }, { status: 400 });
+            return NextResponse.json({ error: 'All field wajib diisi' }, { status: 400 });
         }
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
@@ -270,7 +270,7 @@ export async function POST(request: Request) {
         const { error: insertErr } = await supabaseAdmin.from('users').insert(insertData);
         if (insertErr) {
             console.error('Create user error:', insertErr);
-            return NextResponse.json({ error: 'Gagal membuat user' }, { status: 500 });
+            return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
         }
 
         return NextResponse.json({
@@ -384,6 +384,6 @@ export async function PATCH(request: Request) {
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Error updating user:', error);
-        return NextResponse.json({ error: 'Gagal mengubah user' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
     }
 }

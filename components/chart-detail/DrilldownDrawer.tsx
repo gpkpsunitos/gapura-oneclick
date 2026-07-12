@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Plane, AlertTriangle, Link as LinkIcon, ClipboardList, Tag, FileText, Route, Building2, ChevronDown, ChevronUp, CalendarDays, CheckCircle, Edit3, Loader } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { Report } from '@/types';
 import { normalizeSeverityLevel } from '@/lib/constants/report-status';
 
@@ -103,7 +104,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
       const code = String((nestedStation as { code?: unknown }).code || '').trim();
       if (code) return code.toUpperCase();
     }
-    return getText(record, ['station_code', 'Station', 'Bandara', 'branch', 'reporting_branch', 'kode_cabang'], 'N/A').toUpperCase();
+    return getText(record, ['station_code', 'Station', 'Station', 'branch', 'reporting_branch', 'kode_cabang'], 'N/A').toUpperCase();
   };
 
   const formatDate = (rawDate: string): string => {
@@ -211,7 +212,11 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
     return 'bg-violet-50 text-violet-700 border-violet-200';
   };
 
-  return (
+  // Portal to <body> so `position: fixed` escapes any ancestor with
+  // transform/filter/will-change (which creates a new containing block and
+  // clips the backdrop to the main content — leaving header/sidebar uncovered).
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -549,7 +554,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600 uppercase tracking-wider transition hover:bg-slate-50"
                           >
                             {isExpanded ? <ChevronUp size={12} strokeWidth={2.5} /> : <ChevronDown size={12} strokeWidth={2.5} />}
-                            {isExpanded ? 'Sembunyikan detail' : 'Lihat detail lengkap'}
+                            {isExpanded ? 'Hide detail' : 'View full detail'}
                           </button>
                         </div>
 
@@ -609,7 +614,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                     <div className="w-20 h-20 rounded-[32px] bg-slate-100 border border-slate-200 flex items-center justify-center mb-6 text-slate-300">
                       <AlertTriangle size={32} />
                     </div>
-                    <div className="text-slate-500 font-bold text-lg">Tidak ada laporan ditemukan</div>
+                    <div className="text-slate-500 font-bold text-lg">No reports found</div>
                     <div className="text-slate-400 text-sm mt-1">Segmen ini tidak memiliki data detail.</div>
                   </div>
                 )}
@@ -618,6 +623,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

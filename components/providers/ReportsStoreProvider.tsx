@@ -93,6 +93,9 @@ export function ReportsStoreProvider({ userId, children }: ProviderProps) {
     } catch (err) {
     } finally {
       fetchInFlight.current = false;
+      // Clear loading on every path: a non-OK response or thrown error used to
+      // leave isLoading=true forever (infinite spinner on cold cache + transient fail).
+      setIsLoading(false);
     }
   }, []);
 

@@ -89,7 +89,7 @@ export function EventModal({
     }
 
     if (isMultiDay && eventEndDate && eventEndDate < eventDate) {
-      setError('Tanggal akhir harus sama atau setelah tanggal mulai');
+      setError('End date must be the same as or after the start date');
       return;
     }
 
@@ -128,12 +128,12 @@ export function EventModal({
 
       if (!response.ok) {
         const err = await response.json();
-        throw new Error(err.error || 'Gagal menyimpan kegiatan');
+        throw new Error(err.error || 'Failed to save event');
       }
 
       await onSave();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Gagal menyimpan kegiatan';
+      const message = err instanceof Error ? err.message : 'Failed to save event';
       setError(message);
     } finally {
       setSaving(false);
@@ -147,7 +147,7 @@ export function EventModal({
       setSaving(true);
       await onDelete(event.id);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Gagal menghapus kegiatan';
+      const message = err instanceof Error ? err.message : 'Failed to delete event';
       setError(message);
       setSaving(false);
     }
@@ -172,7 +172,7 @@ export function EventModal({
               <Dialog.Close asChild>
                 <button
                   className="p-1.5 rounded-lg hover:bg-[var(--surface-3)] transition-all duration-[var(--duration-fast)] ease-[var(--spring-snappy)] focus-visible:outline-2 focus-visible:outline-[var(--brand-primary)]"
-                  aria-label="Tutup"
+                  aria-label="Close"
                 >
                   <X className="w-5 h-5 text-[var(--text-muted)]" />
                 </button>
@@ -201,7 +201,7 @@ export function EventModal({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="event-date" className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-                  {isMultiDay ? 'Tanggal Mulai' : 'Tanggal'} <span className="text-[oklch(0.6_0.22_25)]">*</span>
+                  {isMultiDay ? 'Start Date' : 'Date'} <span className="text-[oklch(0.6_0.22_25)]">*</span>
                 </label>
                 <PrismInput
                   id="event-date"
@@ -213,7 +213,7 @@ export function EventModal({
               {isMultiDay ? (
                 <div>
                   <label htmlFor="event-end-date" className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-                    Tanggal Akhir <span className="text-[oklch(0.6_0.22_25)]">*</span>
+                    End Date <span className="text-[oklch(0.6_0.22_25)]">*</span>
                   </label>
                   <PrismInput
                     id="event-end-date"
@@ -321,15 +321,15 @@ export function EventModal({
                     <PrismSelect
                       options={[
                         { value: 'daily', label: 'Harian' },
-                        { value: 'weekly', label: 'Mingguan' },
-                        { value: 'monthly', label: 'Bulanan' },
+                        { value: 'weekly', label: 'Weekly' },
+                        { value: 'monthly', label: 'Monthly' },
                       ]}
                       value={recurrencePattern}
                       onChange={(value) => setRecurrencePattern(value as RecurrencePattern)}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">Tanggal Akhir</label>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">End Date</label>
                     <PrismInput
                       type="date"
                       value={recurrenceEndDate}
@@ -365,7 +365,7 @@ export function EventModal({
                       onChange={() => setEditScope('all')}
                       className="w-4 h-4 border-[oklch(0.85_0.02_90)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)] focus:ring-2"
                     />
-                    <span className="group-hover:text-[var(--text-primary)] transition-colors">Semua kegiatan berulang</span>
+                    <span className="group-hover:text-[var(--text-primary)] transition-colors">All recurring events</span>
                   </label>
                 </div>
               </fieldset>
@@ -385,13 +385,13 @@ export function EventModal({
             {event ? (
               showDeleteConfirm ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--text-muted)]">Hapus?</span>
+                  <span className="text-xs text-[var(--text-muted)]">Delete?</span>
                   <button
                     onClick={handleDelete}
                     disabled={saving}
                     className="px-3 py-1.5 text-xs font-semibold text-[oklch(0.55_0.2_25)] bg-[oklch(0.6_0.22_25/0.1)] hover:bg-[oklch(0.6_0.22_25/0.15)] rounded-lg transition-colors"
                   >
-                    Ya, Hapus
+                    Yes, Delete
                   </button>
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
@@ -407,7 +407,7 @@ export function EventModal({
                   className="px-3 py-1.5 text-sm text-[oklch(0.55_0.2_25)] hover:bg-[oklch(0.6_0.22_25/0.08)] rounded-lg transition-colors flex items-center gap-1.5"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Hapus
+                  Delete
                 </button>
               )
             ) : (

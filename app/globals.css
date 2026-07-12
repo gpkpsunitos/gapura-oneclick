@@ -730,6 +730,19 @@ html {
   filter: brightness(0.94);
 }
 
+/* Sticky Total column must stay opaque — translucent heat colors let the
+   horizontally-scrolled column beneath bleed through the freeze pane. */
+.sr-scope .sr-table tbody td.sr-sticky-col-right-1.sr-heat-1,
+.sr-scope .sr-table tbody td.sr-sticky-col-right-2.sr-heat-1 { background-color: color-mix(in srgb, #064e3b 18%, var(--sr-raised) 82%) !important; }
+.sr-scope .sr-table tbody td.sr-sticky-col-right-1.sr-heat-2,
+.sr-scope .sr-table tbody td.sr-sticky-col-right-2.sr-heat-2 { background-color: color-mix(in srgb, #064e3b 32%, var(--sr-raised) 68%) !important; }
+.sr-scope .sr-table tbody td.sr-sticky-col-right-1.sr-heat-3,
+.sr-scope .sr-table tbody td.sr-sticky-col-right-2.sr-heat-3 { background-color: color-mix(in srgb, #064e3b 50%, var(--sr-raised) 50%) !important; }
+.sr-scope .sr-table tbody td.sr-sticky-col-right-1.sr-heat-4,
+.sr-scope .sr-table tbody td.sr-sticky-col-right-2.sr-heat-4 { background-color: color-mix(in srgb, #064e3b 68%, var(--sr-raised) 32%) !important; }
+.sr-scope .sr-table tbody td.sr-sticky-col-right-1.sr-heat-5,
+.sr-scope .sr-table tbody td.sr-sticky-col-right-2.sr-heat-5 { background-color: color-mix(in srgb, #064e3b 82%, var(--sr-raised) 18%) !important; }
+
 /* ── Card chrome around tables ── */
 .sr-scope .sr-table-card {
   background: var(--sr-raised);

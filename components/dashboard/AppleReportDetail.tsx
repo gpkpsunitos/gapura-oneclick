@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { ImageOff } from 'lucide-react';
+import { ImageOff, MessageSquare, RotateCcw } from 'lucide-react';
 import { AREA_LABELS } from '@/lib/constants/incident-areas';
 import { FormShell, Section } from '@/components/public-report/apple-form-shell';
+import { CommentInput } from '@/components/dashboard/reports/CommentInput';
 import { getEvidencePreviewUrl } from '@/lib/evidence-url';
 import type { Report } from '@/types';
 
@@ -11,9 +12,10 @@ interface Props {
   report: Report;
   onClose: () => void;
   onUpdateStatus?: (id: string, status: string) => void | Promise<void>;
+  onRefresh?: () => void | Promise<void>;
 }
 
-const detectJoumpa = (r: Report): boolean =>
+export const detectJoumpa = (r: Report): boolean =>
   !!r.category_case_joumpa ||
   !!r.customer_joumpa ||
   !!r.detail_customer_joumpa ||
@@ -56,7 +58,7 @@ function Paragraph({ text }: { text?: string | null }) {
   return <p className="jm-body-para">{val}</p>;
 }
 
-function StatusBadge({ status }: { status?: string }) {
+export function StatusBadge({ status }: { status?: string }) {
   const s = (status || '').toUpperCase();
   const cls =
     s === 'OPEN' ? 'jm-badge jm-badge--open' :
@@ -71,7 +73,7 @@ function StatusBadge({ status }: { status?: string }) {
   );
 }
 
-function SeverityBadge({ severity }: { severity?: string }) {
+export function SeverityBadge({ severity }: { severity?: string }) {
   const s = (severity || '').toUpperCase();
   const cls =
     s === 'TOP RISK' || s === 'URGENT' ? 'jm-badge jm-badge--urgent' :
@@ -124,7 +126,7 @@ function EvidenceGallery({ urls }: { urls: string[] }) {
   );
 }
 
-function IrregularityBody({ report }: { report: Report }) {
+export function IrregularityBody({ report }: { report: Report }) {
   const areaLabel = report.area ? (AREA_LABELS[report.area as keyof typeof AREA_LABELS] || report.area) : '';
   const isGse = report.area === 'GSE' || !!report.gse_available_requirement;
   const airline = report.airlines || report.airline;
@@ -199,7 +201,55 @@ function IrregularityBody({ report }: { report: Report }) {
   );
 }
 
-function JoumpaBody({ report }: { report: Report }) {
+export function FeedbackThread({ report, onRefresh }: { report: Report; onRefresh?: () => void | Promise<void> }) {
+  const comments = report.comments || [];
+  const authorName = (c: NonNullable<Report['comments']>[number]) => c?.users?.full_name || 'Unknown';
+  const timeOf = (iso: string) =>
+    new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+  return (
+    <Section title="Feedback & Discussion" subtitle="Post a response or track the audit trail">
+      <div className="jm-feedback">
+        <CommentInput reportId={report.id} onSuccess={onRefresh} placeholder="Post a response…" />
+
+        {comments.length > 0 ? (
+          <div className="jm-feedback__list">
+            {comments.slice().reverse().map((c) => {
+              if (c.is_system_message) {
+                return (
+                  <div key={c.id} className="jm-feedback__sys">
+                    <span className="jm-feedback__sys-icon"><RotateCcw size={11} /></span>
+                    <span className="jm-feedback__sys-text">{c.content}</span>
+                    <span className="jm-feedback__sys-time">{timeOf(c.created_at)}</span>
+                  </div>
+                );
+              }
+              return (
+                <div key={c.id} className="jm-feedback__item">
+                  <span className="jm-feedback__avatar">{authorName(c).charAt(0) || '?'}</span>
+                  <div className="jm-feedback__bubble">
+                    <div className="jm-feedback__bubble-head">
+                      <span className="jm-feedback__author">{authorName(c)}</span>
+                      <span className="jm-feedback__time">{timeOf(c.created_at)}</span>
+                    </div>
+                    <p className="jm-feedback__content">{c.content}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="jm-feedback__empty">
+            <MessageSquare size={22} />
+            <span>No activity yet</span>
+          </div>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+export function JoumpaBody({ report }: { report: Report }) {
   const isCorporate = (report.customer_joumpa || '').toLowerCase().includes('corporate') && !(report.customer_joumpa || '').toLowerCase().includes('non');
   const isNonCorporate = (report.customer_joumpa || '').toLowerCase().includes('non');
 
@@ -271,7 +321,7 @@ function JoumpaBody({ report }: { report: Report }) {
   );
 }
 
-export function AppleReportDetail({ report, onClose, onUpdateStatus }: Props) {
+export function AppleReportDetail({ report, onClose, onUpdateStatus, onRefresh }: Props) {
   const isJoumpa = detectJoumpa(report);
   const [updating, setUpdating] = useState(false);
   const nextStatus = report.status === 'CLOSED' ? null : 'CLOSED';
@@ -290,24 +340,30 @@ export function AppleReportDetail({ report, onClose, onUpdateStatus }: Props) {
     : [airline, flight, areaLabel].filter(Boolean).join(' · ') || (report.title || 'Irregularity Report');
 
   return (
-    <FormShell onClose={onClose} ariaLabel={isJoumpa ? 'JOUMPA Report Detail' : 'Irregularity Report Detail'}>
+    <FormShell onClose={onClose} wide ariaLabel={isJoumpa ? 'JOUMPA Report Detail' : 'Irregularity Report Detail'}>
       <div className="jm-form">
-        <div className="jm-scroll">
-          <div className="jm-detail__hero">
-            <span className={isJoumpa ? 'jm-detail__eyebrow jm-detail__eyebrow--joumpa' : 'jm-detail__eyebrow'}>
-              {isJoumpa ? 'JOUMPA · Field Report' : 'Ground Handling · Irregularity'}
-            </span>
-            <h2 className="jm-detail__title">{title}</h2>
-            <div className="jm-detail__meta">
-              <StatusBadge status={report.status} />
-              <SeverityBadge severity={report.severity} />
-              {report.reference_number && (
-                <span className="jm-badge">Ref · {report.reference_number}</span>
-              )}
+        <div className="jm-detail-split">
+          <div className="jm-scroll jm-detail-main">
+            <div className="jm-detail__hero">
+              <span className={isJoumpa ? 'jm-detail__eyebrow jm-detail__eyebrow--joumpa' : 'jm-detail__eyebrow'}>
+                {isJoumpa ? 'JOUMPA · Field Report' : 'Ground Handling · Irregularity'}
+              </span>
+              <h2 className="jm-detail__title">{title}</h2>
+              <div className="jm-detail__meta">
+                <StatusBadge status={report.status} />
+                <SeverityBadge severity={report.severity} />
+                {report.reference_number && (
+                  <span className="jm-badge">Ref · {report.reference_number}</span>
+                )}
+              </div>
             </div>
+
+            {isJoumpa ? <JoumpaBody report={report} /> : <IrregularityBody report={report} />}
           </div>
 
-          {isJoumpa ? <JoumpaBody report={report} /> : <IrregularityBody report={report} />}
+          <aside className="jm-scroll jm-detail-side">
+            <FeedbackThread report={report} onRefresh={onRefresh} />
+          </aside>
         </div>
 
         {onUpdateStatus && nextStatus && (

@@ -54,7 +54,7 @@ const CategoryBarList = ({ data, color = '#08ad6f' }: { data: readonly { name: s
                 </div>
             ))}
             {data.length === 0 && (
-                <p className="text-xs text-[var(--text-muted)] text-center py-4">Tidak ada data</p>
+                <p className="text-xs text-[var(--text-muted)] text-center py-4">No data</p>
             )}
         </div>
     );
@@ -288,7 +288,7 @@ export function OsCgoSection({
     if (cgoReports.length === 0) {
         return (
             <div className={cn("flex items-center justify-center py-16 text-gray-400 text-sm", OS_CARD_CLASS)}>
-                Tidak ada data CGO untuk periode ini
+                No CGO data for this period
             </div>
         );
     }
@@ -297,7 +297,7 @@ export function OsCgoSection({
         <div className="space-y-6">
             <PresentationSlide
                 title="CGO - Case Category"
-                subtitle="Laporan dari CGO Sheet"
+                subtitle="Reports from CGO Sheet"
                 icon={BarChart3}
             >
                 <div className="grid grid-cols-1 gap-4">
@@ -362,7 +362,7 @@ export function OsCgoSection({
                                                 interval={0}
                                             />
                                             <Tooltip content={<CustomTooltip />} />
-                                            <Bar dataKey="count" name="Laporan" fill={REFERENCE_COLORS.irregularity} radius={[0, 4, 4, 0]} maxBarSize={20}>
+                                            <Bar dataKey="count" name="Report" fill={REFERENCE_COLORS.irregularity} radius={[0, 4, 4, 0]} maxBarSize={20}>
                                                 <LabelList dataKey="count" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
                                             </Bar>
                                         </BarChart>
@@ -394,7 +394,7 @@ export function OsCgoSection({
                                                 interval={0}
                                             />
                                             <Tooltip content={<CustomTooltip />} />
-                                            <Bar dataKey="count" name="Laporan" fill={REFERENCE_COLORS.complaint} radius={[0, 4, 4, 0]} maxBarSize={16}>
+                                            <Bar dataKey="count" name="Report" fill={REFERENCE_COLORS.complaint} radius={[0, 4, 4, 0]} maxBarSize={16}>
                                                 <LabelList dataKey="count" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
                                             </Bar>
                                         </BarChart>
@@ -426,7 +426,7 @@ export function OsCgoSection({
                                                 interval={0}
                                             />
                                             <Tooltip content={<CustomTooltip />} />
-                                            <Bar dataKey="count" name="Laporan" fill={CHART_PALETTE[2]} radius={[0, 4, 4, 0]} maxBarSize={16}>
+                                            <Bar dataKey="count" name="Report" fill={CHART_PALETTE[2]} radius={[0, 4, 4, 0]} maxBarSize={16}>
                                                 <LabelList dataKey="count" position="right" style={{ fill: 'var(--text-primary)', fontSize: 11, fontWeight: 700 }} />
                                             </Bar>
                                         </BarChart>
@@ -602,7 +602,7 @@ export function OsCgoSection({
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Case Report by Area</h3>
                             <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Area Report / Station by Airlines</p>
                             {cgoCaseReportByArea.length === 0 ? (
-                                <p className="text-xs text-gray-400 text-center py-6">Tidak ada data</p>
+                                <p className="text-xs text-gray-400 text-center py-6">No data</p>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <div className="max-h-[188px] overflow-y-auto">
@@ -757,7 +757,7 @@ export function OsCgoSection({
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">HUB Report</h3>
                             <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Distribusi laporan berdasarkan HUB</p>
                             {cgoHubData.length === 0 ? (
-                                <p className="text-xs text-gray-400 text-center py-6">Tidak ada data HUB</p>
+                                <p className="text-xs text-gray-400 text-center py-6">No hub data</p>
                             ) : (
                                 <div className="h-[250px] overflow-y-auto overflow-x-hidden custom-scrollbar pr-1">
                                     <div style={{ height: Math.max(220, cgoHubData.length * 50) }}>

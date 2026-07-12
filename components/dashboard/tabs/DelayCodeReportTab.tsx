@@ -378,6 +378,7 @@ function Donut({ rows, onOpen }: { rows: CountRow[]; onOpen: (row: CountRow) => 
         <ResponsiveContainer width="100%" height="100%" minHeight={120}>
           <PieChart>
             <Pie
+              isAnimationActive={false}
               data={rows}
               dataKey="total"
               nameKey="label"
@@ -467,11 +468,11 @@ function HeatMatrix({
       <table className="sr-table text-[11px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
         <thead>
           <tr>
-            <th className="!text-left" style={{ width: '32%', whiteSpace: 'normal' }}>{rowLabel}</th>
+            <th className="!text-left" style={{ width: '32%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{rowLabel}</th>
             {colKeys.map((c) => (
-              <th key={c.id} className="sr-center" style={{ whiteSpace: 'normal' }}>{c.label}</th>
+              <th key={c.id} className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{c.label}</th>
             ))}
-            <th className="sr-center" style={{ whiteSpace: 'normal' }}>Total</th>
+            <th className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>Total</th>
           </tr>
         </thead>
         <tbody>
@@ -626,22 +627,22 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
         <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
           <thead>
             <tr>
-              <th style={{ width: '10%', whiteSpace: 'normal' }} className="!text-left">Date</th>
-              <th style={{ width: '6%', whiteSpace: 'normal' }} className="!text-left">Station</th>
-              <th style={{ width: '13%', whiteSpace: 'normal' }} className="!text-left">Airlines</th>
-              <th style={{ width: '15%', whiteSpace: 'normal' }} className="!text-left">Delay Code</th>
-              <th style={{ width: '10%', whiteSpace: 'normal' }} className="!text-left">Category</th>
-              <th style={{ whiteSpace: 'normal' }} className="!text-left">Report</th>
-              <th style={{ width: '9%', whiteSpace: 'normal' }} className="sr-center">Severity</th>
-              <th style={{ width: '8%', whiteSpace: 'normal' }} className="sr-center">Status</th>
-              <th style={{ width: '9%', whiteSpace: 'normal' }} className="sr-center">Details</th>
+              <th style={{ width: '10%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Date</th>
+              <th style={{ width: '6%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Station</th>
+              <th style={{ width: '13%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Airlines</th>
+              <th style={{ width: '15%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Delay Code</th>
+              <th style={{ width: '10%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Category</th>
+              <th style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Report</th>
+              <th style={{ width: '9%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Severity</th>
+              <th style={{ width: '8%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Status</th>
+              <th style={{ width: '9%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Details</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={9} className="!py-10 text-center text-[12px] font-medium text-[color:var(--sr-text-3)]">
-                  Tidak ada data
+                  No data
                 </td>
               </tr>
             ) : (
@@ -899,11 +900,39 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
     title: 'Delay Code Report',
     chartTitle: 'Delay Code Report',
     chartType: 'delay_overview',
-    chartData: [
-      ...monthlyRows.map((r) => ({ label: `Month ${r.label}`, value: r.total })),
-      ...topDelayCodes.slice(0, 10).map((r) => ({ label: `Code ${r.label}`, value: r.total })),
-      ...branchRows.slice(0, 10).map((r) => ({ label: `Station ${r.label}`, value: r.total })),
-      ...severityRows.map((r) => ({ label: `Severity ${r.label}`, value: r.total })),
+    datasets: [
+      {
+        id: 'monthly',
+        name: 'Delay Cases per Month',
+        unit: 'kasus',
+        kind: 'timeseries',
+        description: 'Jumlah laporan delay per bulan, urut kronologis.',
+        rows: monthlyRows.map((r) => ({ label: r.label, value: r.total })),
+      },
+      {
+        id: 'delay_codes',
+        name: 'Kode Delay Terbanyak',
+        unit: 'kasus',
+        kind: 'ranking',
+        description: 'Jumlah kejadian per kode delay IATA.',
+        rows: topDelayCodes.slice(0, 10).map((r) => ({ label: r.label, value: r.total })),
+      },
+      {
+        id: 'stations',
+        name: 'Kasus per Stasiun',
+        unit: 'kasus',
+        kind: 'ranking',
+        description: 'Jumlah laporan delay per stasiun (kode bandara).',
+        rows: branchRows.slice(0, 10).map((r) => ({ label: r.label, value: r.total })),
+      },
+      {
+        id: 'severity',
+        name: 'Tingkat Keparahan',
+        unit: 'kasus',
+        kind: 'ranking',
+        description: 'Jumlah laporan per tingkat keparahan delay.',
+        rows: severityRows.map((r) => ({ label: r.label, value: r.total })),
+      },
     ],
     featureHints: ['forecasting', 'seasonality', 'riskScoring', 'summarization', 'actionRecommendation'],
   }), [monthlyRows, topDelayCodes, branchRows, severityRows]);
@@ -912,7 +941,7 @@ export function DelayCodeReportTab({ reports }: DelayCodeReportTabProps) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <BarChart3 className="w-12 h-12 text-[var(--text-muted)] opacity-30 mb-4" />
-        <p className="text-sm font-medium text-[var(--text-muted)]">Tidak ada data untuk periode ini</p>
+        <p className="text-sm font-medium text-[var(--text-muted)]">No data for this period</p>
       </div>
     );
   }

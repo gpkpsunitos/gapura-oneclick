@@ -8,7 +8,7 @@ export default function AllDivisionsReportsPage() {
         <DivisionReportsPage
             config={{
                 code: '',
-                name: 'Semua Laporan Divisi',
+                name: 'All Division Reports',
                 color: '#6366f1',
                 subtitle: 'Gabungan laporan dari semua divisi aktif (OP, OS, HC, HT)',
                 icon: Layers,

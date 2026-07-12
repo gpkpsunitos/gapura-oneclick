@@ -6,13 +6,13 @@ import { type Report } from '@/types';
 import { DrilldownDetailView } from '@/components/dashboard/DrilldownDetailView';
 
 const TITLE_MAP: Record<string, string> = {
-    category: 'Laporan berdasarkan Kategori',
-    station: 'Laporan berdasarkan Bandara',
-    month: 'Laporan berdasarkan Bulan',
-    status: 'Laporan berdasarkan Status',
-    airline: 'Laporan berdasarkan Maskapai',
-    area: 'Laporan berdasarkan Area',
-    severity: 'Laporan berdasarkan Severity',
+    category: 'Reports by Category',
+    station: 'Reports by Station',
+    month: 'Reports by Month',
+    status: 'Reports by Status',
+    airline: 'Reports by Airline',
+    area: 'Reports by Area',
+    severity: 'Reports by Severity',
 };
 
 export default function AnalystDrilldownPage() {
@@ -89,7 +89,7 @@ export default function AnalystDrilldownPage() {
     }, [allReports, type, value, period]);
 
     const title = useMemo(() => {
-        const base = TITLE_MAP[type] || 'Detail Laporan';
+        const base = TITLE_MAP[type] || 'Report Detail';
         return `${base}: ${value}`;
     }, [type, value]);
 

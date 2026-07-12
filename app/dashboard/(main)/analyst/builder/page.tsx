@@ -231,12 +231,12 @@ export default function DashboardBuilderPage() {
                         </div>
                       ) : deletingFolder === folderName ? (
                         <div className="flex items-center gap-1.5 px-2 py-1 bg-red-50 border border-red-200 rounded-full text-[10px]">
-                          <span className="text-red-600 font-medium">Hapus folder ini? Dashboard dipindah ke Lainnya</span>
+                          <span className="text-red-600 font-medium">Delete this folder? Dashboards will be moved to Other</span>
                           <button
                             onClick={() => handleDeleteFolder(folderName)}
                             className="font-bold text-red-600 hover:text-red-700 underline"
                           >
-                            Hapus
+                            Delete
                           </button>
                           <button
                             onClick={() => setDeletingFolder(null)}
@@ -269,7 +269,7 @@ export default function DashboardBuilderPage() {
                               <button
                                 onClick={() => setDeletingFolder(folderName)}
                                 className="p-1 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 rounded transition-colors"
-                                title="Hapus folder"
+                                title="Delete folder"
                               >
                                 <Trash2 size={10} />
                               </button>
@@ -317,7 +317,7 @@ export default function DashboardBuilderPage() {
                               <button
                                 onClick={() => handleDelete(d.id)}
                                 className="p-1.5 text-[var(--text-muted)] hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
-                                title="Hapus"
+                                title="Delete"
                               >
                                 <Trash2 size={14} />
                               </button>

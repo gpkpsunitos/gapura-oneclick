@@ -218,7 +218,7 @@ function CategoryCard({
           <div className="space-y-2">
             {['High', 'Medium', 'Low'].map((level) => {
               const count = summary.risk_level_distribution[level] || 0;
-              const percent = (count / summary.total_branches) * 100;
+              const percent = summary.total_branches > 0 ? (count / summary.total_branches) * 100 : 0;
               return (
                 <div key={level} className="space-y-1">
                   <div className="flex justify-between text-[10px] font-bold">

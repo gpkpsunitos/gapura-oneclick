@@ -5,6 +5,13 @@ import { verifySession } from '@/lib/auth-utils';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { randomUUID } from 'crypto';
 import { compressToExactSize } from '@/lib/image-compression';
+import { reportsService } from '@/lib/services/reports-service';
+
+const ELEVATED_ROLES = ['SUPER_ADMIN', 'ANALYST', 'DIVISI_ESKALASI', 'DIVISI_OP', 'DIVISI_OS', 'DIVISI_OCS', 'DIVISI_OT', 'DIVISI_UQ', 'DIVISI_HC', 'DIVISI_HT', 'MANAGER_CABANG'];
+
+function normalizeAccessValue(value: unknown): string {
+  return String(value || '').trim().toLowerCase();
+}
 
 export async function POST(
   request: Request,
@@ -17,6 +24,23 @@ export async function POST(
     if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     const payload = await verifySession(token);
     if (!payload) return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+
+    if (!ELEVATED_ROLES.includes(String(payload.role))) {
+      const report = await reportsService.getReportById(id);
+      if (!report) return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+
+      const payloadEmail = normalizeAccessValue(payload.email);
+      const payloadName = normalizeAccessValue((payload as { full_name?: string }).full_name);
+      const canAccessOwnReport = Boolean(
+        report.user_id === payload.id ||
+        (payload.station_id && report.station_id === payload.station_id) ||
+        (payloadEmail && normalizeAccessValue(report.reporter_email) === payloadEmail) ||
+        (payloadName && normalizeAccessValue(report.reporter_name) === payloadName)
+      );
+      if (!canAccessOwnReport) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
 
     const form = await request.formData();
     const file = form.get('file');

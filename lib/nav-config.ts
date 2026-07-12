@@ -241,7 +241,7 @@ export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
 
 // Only OCS-division analysts keep these features; every other analyst loses
 // performance evaluation, circulars/documents, import, calendars, notifications.
-const OCS_ONLY_ANALYST_PATHS = /\/(ocs|calendar|meetings|notifications|performance-links|import|builder|dashboards)(\?|$|\/)/;
+const OCS_ONLY_ANALYST_PATHS = /\/(ocs|calendar|meetings|notifications|performance-links|import|builder|dashboards|documents)(\?|$|\/)/;
 
 export const resolveNavGroups = (role: string, division?: string | null): NavGroupConfig[] => {
     const groups = LINKS_CONFIG[GET_LINKS_KEY(role)] || [];

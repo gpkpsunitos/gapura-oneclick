@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useCallback, memo, type MouseEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import {
   FileText, MapPin, Plane,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
@@ -182,7 +183,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
   onStatusUpdate,
   loading,
   pageSize: initialPageSize,
-  emptyTitle = 'Tidak ada laporan ditemukan',
+  emptyTitle = 'No reports found',
   emptySubtitle = 'Coba sesuaikan filter Anda untuk melihat hasil lain.',
   toolbarFilter,
   fullHeight = false,
@@ -245,11 +246,11 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
   const endIdx = Math.min((page + 1) * pageSize, sortedReports.length);
 
   const sortOptions: Array<{ field: SortField; label: string }> = [
-    { field: 'created_at', label: 'Tanggal' },
+    { field: 'created_at', label: 'Date' },
     { field: 'severity', label: 'Severity' },
     { field: 'status', label: 'Status' },
-    { field: 'station', label: 'Bandara' },
-    { field: 'report', label: 'Laporan' },
+    { field: 'station', label: 'Station' },
+    { field: 'report', label: 'Report' },
   ];
 
   const handleDownloadCaseReport = useCallback(async (event: MouseEvent, report: Report) => {
@@ -308,7 +309,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
       <div className="rounded-2xl border border-[var(--surface-4)] bg-[var(--surface-1)] overflow-hidden">
         <div className="p-8 flex flex-col items-center justify-center gap-3">
           <Loader2 size={24} className="animate-spin text-[var(--brand-emerald-500,#10b981)]" />
-          <p className="text-sm font-medium text-[var(--text-muted)]">Memuat laporan...</p>
+          <p className="text-sm font-medium text-[var(--text-muted)]">Loading reports...</p>
         </div>
         <div className="border-t border-[var(--surface-3)]">
           {Array.from({ length: 8 }).map((_, i) => (
@@ -357,7 +358,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
       <div className="flex flex-col gap-3 border-b border-[var(--surface-4)] bg-[var(--surface-0)] px-4 py-3 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex shrink-0 items-center gap-2 pt-1">
           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
-            Urutkan
+            Sort by
           </span>
           <div className="flex flex-wrap gap-1.5">
             {sortOptions.map((option) => {
@@ -528,7 +529,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
         })}
       </div>
 
-      {statusEditor && (
+      {statusEditor && typeof document !== 'undefined' && createPortal(
         <div
           className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
           onClick={() => {
@@ -646,7 +647,8 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-[var(--surface-4)] bg-[var(--surface-0)]">
@@ -673,6 +675,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
             className="p-1.5 rounded-lg hover:bg-[var(--surface-2)] disabled:opacity-25 transition-colors"
             disabled={page === 0}
             onClick={() => setPage(0)}
+            aria-label="First page"
           >
             <ChevronsLeft size={14} className="text-[var(--text-muted)]" />
           </button>
@@ -680,6 +683,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
             className="p-1.5 rounded-lg hover:bg-[var(--surface-2)] disabled:opacity-25 transition-colors"
             disabled={page === 0}
             onClick={() => setPage(p => p - 1)}
+            aria-label="Previous page"
           >
             <ChevronLeft size={14} className="text-[var(--text-muted)]" />
           </button>
@@ -690,6 +694,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
             className="p-1.5 rounded-lg hover:bg-[var(--surface-2)] disabled:opacity-25 transition-colors"
             disabled={page >= totalPages - 1}
             onClick={() => setPage(p => p + 1)}
+            aria-label="Next page"
           >
             <ChevronRight size={14} className="text-[var(--text-muted)]" />
           </button>
@@ -697,6 +702,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
             className="p-1.5 rounded-lg hover:bg-[var(--surface-2)] disabled:opacity-25 transition-colors"
             disabled={page >= totalPages - 1}
             onClick={() => setPage(totalPages - 1)}
+            aria-label="Last page"
           >
             <ChevronsRight size={14} className="text-[var(--text-muted)]" />
           </button>

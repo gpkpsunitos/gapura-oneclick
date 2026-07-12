@@ -400,6 +400,7 @@ export default function Sidebar({ role, division }: { role: string; division?: s
             <div className={cn('xl:hidden fixed top-4 left-4 z-50', isEskalasi ? '' : 'pointer-events-none opacity-0')}>
                 <button
                     onClick={() => setMobileOpen(true)}
+                    aria-label="Open menu"
                     className="p-2.5 bg-white rounded-xl shadow-md border border-gray-200 text-[var(--text-primary)] active:scale-95 transition-transform"
                 >
                     <Menu size={20} />

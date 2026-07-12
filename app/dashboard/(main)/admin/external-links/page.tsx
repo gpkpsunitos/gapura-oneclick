@@ -31,7 +31,7 @@ export default function ExternalLinksAdminPage() {
       const data = await res.json();
       setLinks((data.links || []).map((l: ExternalLinkEntry) => ({ ...l, isDirty: false })));
     } catch {
-      setError('Gagal memuat link. Menggunakan defaults.');
+      setError('Failed to load links. Using defaults.');
       setLinks(Object.values(DEFAULT_EXTERNAL_LINKS).map((l) => ({ ...l, isDirty: false })));
     } finally {
       setLoading(false);
@@ -48,7 +48,7 @@ export default function ExternalLinksAdminPage() {
       if (!res.ok) throw new Error('Seed failed');
       await fetchLinks();
     } catch {
-      setError('Gagal seed default links.');
+      setError('Failed to seed default links.');
     } finally {
       setLoading(false);
     }
@@ -77,7 +77,7 @@ export default function ExternalLinksAdminPage() {
       if (!res.ok) throw new Error('Save failed');
       setLinks((prev) => prev.map((l) => l.id === link.id ? { ...l, isDirty: false } : l));
     } catch {
-      setError('Gagal menyimpan link.');
+      setError('Failed to save link.');
     } finally {
       setSaving(null);
     }
@@ -96,7 +96,7 @@ export default function ExternalLinksAdminPage() {
       if (!res.ok) throw new Error('Save all failed');
       setLinks((prev) => prev.map((l) => ({ ...l, isDirty: false })));
     } catch {
-      setError('Gagal menyimpan perubahan.');
+      setError('Failed to save changes.');
     } finally {
       setSaving(null);
     }
@@ -139,7 +139,7 @@ export default function ExternalLinksAdminPage() {
       setAddModalOpen(false);
       await fetchLinks();
     } catch {
-      setError('Gagal menambah link baru.');
+      setError('Failed to add new link.');
     } finally {
       setSaving(null);
     }
@@ -163,7 +163,7 @@ export default function ExternalLinksAdminPage() {
             onClick={() => setAddModalOpen(true)}
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold active:scale-95 transition-all"
           >
-            <Plus className="w-4 h-4" /> Tambah Link
+            <Plus className="w-4 h-4" /> Add Link
           </button>
           <button
             onClick={handleSeed}
@@ -350,7 +350,7 @@ function AddLinkModal({
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 space-y-5">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-bold">Tambah Link Baru</h3>
+          <h3 className="text-lg font-bold">Add New Link</h3>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
             <X size={20} />
           </button>
@@ -389,7 +389,7 @@ function AddLinkModal({
             Batal
           </button>
           <button onClick={() => isValid && onSave({ id, label, url, category, description })} disabled={!isValid || isLoading} className="flex-1 px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold disabled:opacity-40 active:scale-95 transition-all">
-            {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Tambah'}
+            {isLoading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : 'Add'}
           </button>
         </div>
       </div>

@@ -320,14 +320,6 @@ export default function EmployeeDashboard() {
             </div>
 
             {}
-            <button
-                onClick={() => router.push('/dashboard/employee/new')}
-                className="md:hidden fixed bottom-20 right-4 w-14 h-14 bg-[var(--brand-primary)] text-white rounded-full shadow-lg shadow-emerald-500/25 flex items-center justify-center z-40 hover:scale-110 active:scale-95 transition-all"
-            >
-                <Plus size={24} />
-            </button>
-
-            {}
             <ReportDetailModal
                 isOpen={!!selectedReport}
                 onClose={() => setSelectedReport(null)}

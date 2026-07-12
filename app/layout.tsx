@@ -42,7 +42,7 @@ export const metadata: Metadata = {
     metadataBase: new URL(metadataBaseUrl),
     title: 'Gapura OneClick',
     applicationName: 'OneClick',
-    description: 'Gapura OneClick - Sistem Pelaporan & Monitoring Operasional Bandara',
+    description: 'Gapura OneClick - Airport Operations Reporting & Monitoring System',
     manifest: '/manifest.webmanifest',
     icons: {
         icon: '/icons/pwa-192.png',
@@ -63,7 +63,7 @@ export const metadata: Metadata = {
         type: 'website',
         siteName: 'OneClick',
         title: 'Gapura OneClick',
-        description: 'Sistem Pelaporan & Monitoring Operasional Bandara',
+        description: 'Airport Operations Reporting & Monitoring System',
         images: [
             {
                 url: '/icons/pwa-512.png',
@@ -75,7 +75,7 @@ export const metadata: Metadata = {
     twitter: {
         card: 'summary_large_image',
         title: 'Gapura OneClick',
-        description: 'Sistem Pelaporan & Monitoring Operasional Bandara',
+        description: 'Airport Operations Reporting & Monitoring System',
         images: [
             {
                 url: '/icons/pwa-512.png',

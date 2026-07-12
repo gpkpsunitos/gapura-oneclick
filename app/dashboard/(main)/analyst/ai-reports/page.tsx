@@ -81,7 +81,7 @@ export default function AIReportsPage() {
                     onClick={() => setShowMobileFilters(false)}
                     className="lg:hidden p-2 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
                   >
-                    Tutup
+                    Close
                   </button>
                 </div>
 
@@ -121,7 +121,7 @@ export default function AIReportsPage() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-slate-900">AI Analytics</h3>
-                  <p className="text-[10px] text-slate-500">Tap untuk ubah filter data</p>
+                  <p className="text-[10px] text-slate-500">Tap to change data filters</p>
                 </div>
               </div>
               <SlidersHorizontal className="w-4 h-4 text-slate-400" />

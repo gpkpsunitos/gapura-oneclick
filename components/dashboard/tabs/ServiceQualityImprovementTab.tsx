@@ -575,6 +575,7 @@ function Donut({ rows, onOpen }: { rows: CountRow[]; onOpen: (row: CountRow) => 
         <ResponsiveContainer width="100%" height="100%" minHeight={120}>
           <PieChart>
             <Pie
+              isAnimationActive={false}
               data={rows}
               dataKey="total"
               nameKey="label"
@@ -664,11 +665,11 @@ function HeatMatrix({
       <table className="sr-table text-[11px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
         <thead>
           <tr>
-            <th className="!text-left" style={{ width: '18%', whiteSpace: 'normal' }}>{rowLabel}</th>
+            <th className="!text-left" style={{ width: '18%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{rowLabel}</th>
             {colKeys.map((c) => (
-              <th key={c.id} className="sr-center" style={{ whiteSpace: 'normal' }}>{c.label}</th>
+              <th key={c.id} className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{c.label}</th>
             ))}
-            <th className="sr-center" style={{ whiteSpace: 'normal' }}>Total</th>
+            <th className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>Total</th>
           </tr>
         </thead>
         <tbody>
@@ -837,23 +838,23 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
       <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
           <thead>
             <tr>
-              <th style={{ width: '9.5%', whiteSpace: 'normal' }} className="!text-left">Date</th>
-              <th style={{ width: '6.5%', whiteSpace: 'normal' }} className="!text-left">Station</th>
-              <th style={{ width: '12%', whiteSpace: 'normal' }} className="!text-left">Airlines</th>
-              <th style={{ width: '7.5%', whiteSpace: 'normal' }} className="!text-left">Flight</th>
-              <th style={{ width: '10.5%', whiteSpace: 'normal' }} className="!text-left">Category</th>
-              <th style={{ width: '10%', whiteSpace: 'normal' }} className="!text-left">Area</th>
-              <th style={{ width: '18.5%', whiteSpace: 'normal' }} className="!text-left">Case Classification</th>
-              <th style={{ width: '8.5%', whiteSpace: 'normal' }} className="sr-center">Severity</th>
-              <th style={{ width: '8%', whiteSpace: 'normal' }} className="sr-center">Status</th>
-              <th style={{ width: '9%', whiteSpace: 'normal' }} className="sr-center">Details</th>
+              <th style={{ width: '9.5%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Date</th>
+              <th style={{ width: '6.5%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Station</th>
+              <th style={{ width: '12%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Airlines</th>
+              <th style={{ width: '7.5%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Flight</th>
+              <th style={{ width: '10.5%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Category</th>
+              <th style={{ width: '10%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Area</th>
+              <th style={{ width: '18.5%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Case Classification</th>
+              <th style={{ width: '8.5%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Severity</th>
+              <th style={{ width: '8%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Status</th>
+              <th style={{ width: '9%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Details</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={10} className="!py-10 text-center text-[12px] font-medium text-[color:var(--sr-text-3)]">
-                  Tidak ada data
+                  No data
                 </td>
               </tr>
             ) : (
@@ -1292,11 +1293,39 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     title: 'Service Quality Improvement',
     chartTitle: 'Service Quality Improvement',
     chartType: 'sqi_overview',
-    chartData: [
-      ...monthlyRows.map((r) => ({ label: `Month ${r.label}`, value: r.total })),
-      ...caseClassRows.slice(0, 10).map((r) => ({ label: `Case ${r.label}`, value: r.total })),
-      ...rootRows.slice(0, 10).map((r) => ({ label: `Root ${r.label}`, value: r.total })),
-      ...branchRows.slice(0, 10).map((r) => ({ label: `Station ${r.label}`, value: r.total })),
+    datasets: [
+      {
+        id: 'monthly',
+        name: 'Cases per Month',
+        unit: 'kasus',
+        kind: 'timeseries',
+        description: 'Jumlah laporan kualitas layanan (landside & airside) per bulan, urut kronologis.',
+        rows: monthlyRows.map((r) => ({ label: r.label, value: r.total })),
+      },
+      {
+        id: 'case_classes',
+        name: 'Jenis Kasus',
+        unit: 'kasus',
+        kind: 'ranking',
+        description: 'Jumlah laporan per klasifikasi jenis kasus.',
+        rows: caseClassRows.slice(0, 10).map((r) => ({ label: r.label, value: r.total })),
+      },
+      {
+        id: 'root_causes',
+        name: 'Akar Masalah',
+        unit: 'kasus',
+        kind: 'ranking',
+        description: 'Jumlah laporan per akar masalah hasil investigasi.',
+        rows: rootRows.slice(0, 10).map((r) => ({ label: r.label, value: r.total })),
+      },
+      {
+        id: 'stations',
+        name: 'Kasus per Stasiun',
+        unit: 'kasus',
+        kind: 'ranking',
+        description: 'Jumlah laporan per stasiun (kode bandara).',
+        rows: branchRows.slice(0, 10).map((r) => ({ label: r.label, value: r.total })),
+      },
     ],
     featureHints: ['rootCause', 'riskScoring', 'similaritySearch', 'actionRecommendation', 'summarization'],
   }), [monthlyRows, caseClassRows, rootRows, branchRows]);
@@ -1605,7 +1634,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
                   <table className="sr-table text-[11.5px]" style={{ width: '100%', minWidth: 720 }}>
                     <thead>
                       <tr>
-                        <th className="!text-left" style={{ whiteSpace: 'normal', width: '20%' }}>Case Classification</th>
+                        <th className="!text-left" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere', width: '20%' }}>Case Classification</th>
                         {data.monthKeys.map((mk) => (
                           <th key={mk} className="sr-center" style={{ whiteSpace: 'nowrap' }}>{data.monthLabel(mk)}</th>
                         ))}
@@ -1694,17 +1723,17 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
               <table className="sr-table text-[11.5px]" style={{ width: '100%', minWidth: 1080 }}>
                 <thead>
                   <tr>
-                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '10%' }}>Station</th>
-                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '7%' }}>Area</th>
-                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '17%' }}>Sub-Category</th>
-                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '13%' }}>Case Classification</th>
-                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '7%' }}>Reports</th>
-                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>First Data</th>
-                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>Last Data</th>
-                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '8%' }}>Trend (3mo)</th>
-                    <th className="!text-left" style={{ whiteSpace: 'normal', width: '12%' }}>Root Cause</th>
-                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '6%' }}>Top Severity</th>
-                    <th className="sr-center" style={{ whiteSpace: 'normal', width: '12%' }}>Status</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere', width: '10%' }}>Station</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere', width: '7%' }}>Area</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere', width: '17%' }}>Sub-Category</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere', width: '13%' }}>Case Classification</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere', width: '7%' }}>Reports</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere', width: '8%' }}>First Data</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere', width: '8%' }}>Last Data</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere', width: '8%' }}>Trend (3mo)</th>
+                    <th className="!text-left" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere', width: '12%' }}>Root Cause</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere', width: '6%' }}>Top Severity</th>
+                    <th className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere', width: '12%' }}>Status</th>
                   </tr>
                 </thead>
                 <tbody>

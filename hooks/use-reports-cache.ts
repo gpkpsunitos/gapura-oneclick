@@ -131,7 +131,17 @@ function useReportsDataSWR(url: string, options?: SWRConfiguration) {
     isValidating,
     isOffline,
     refresh: () => mutate(),
-    lastUpdated: typeof window !== 'undefined' ? 
-      (JSON.parse(localStorage.getItem(STORAGE_KEY_WITH_URL) || 'null')?.timestamp || null) : null
+    lastUpdated: readCachedTimestamp(STORAGE_KEY_WITH_URL),
   };
+}
+
+// ponytail: guarded parse — a corrupt localStorage value would otherwise throw
+// during render (line 135 was raw, unlike the try/catch at the hydrate effect).
+function readCachedTimestamp(key: string): number | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    return JSON.parse(localStorage.getItem(key) || 'null')?.timestamp || null;
+  } catch {
+    return null;
+  }
 }

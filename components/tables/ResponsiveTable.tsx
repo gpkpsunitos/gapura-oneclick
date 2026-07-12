@@ -28,7 +28,7 @@ export function ResponsiveTable<T>({
   className,
   tableClassName,
   cardClassName,
-  emptyMessage = 'Tidak ada data',
+  emptyMessage = 'No data',
   cardBreakpoint = 640,
 }: ResponsiveTableProps<T>) {
   const { width } = useViewport();

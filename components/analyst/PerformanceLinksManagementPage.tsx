@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Copy, ExternalLink, GripVertical, ImagePlus, Loader2, MoreHorizontal, Plus, QrCode, RefreshCw, Search, X } from 'lucide-react';
 import {
     DropdownMenu,
@@ -378,7 +379,7 @@ export function PerformanceLinksManagementPage() {
                 </section>
             </div>
 
-            {qrLink ? (
+            {qrLink && typeof document !== 'undefined' ? createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
                     <div className="w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-2xl">
                         <div className="flex items-start justify-between">
@@ -411,10 +412,11 @@ export function PerformanceLinksManagementPage() {
                             </a>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body,
             ) : null}
 
-            {composerOpen ? (
+            {composerOpen && typeof document !== 'undefined' ? createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
                     <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl">
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
@@ -535,7 +537,8 @@ export function PerformanceLinksManagementPage() {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body,
             ) : null}
         </div>
     );

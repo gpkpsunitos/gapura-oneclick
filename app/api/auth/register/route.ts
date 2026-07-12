@@ -9,7 +9,7 @@ export async function POST(request: Request) {
         const clientIp = getClientIpFromRequest(request);
         const rateLimit = checkRateLimit(`register:${clientIp}`, 3, 60 * 60_000);
         if (!rateLimit.success) {
-            return NextResponse.json({ error: 'Terlalu banyak registrasi. Coba lagi nanti.' }, { status: 429 });
+            return NextResponse.json({ error: 'Terlalu banyak registrasi. Try again later.' }, { status: 429 });
         }
 
         const body = await request.json();
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
 
         if (!email || !password || !full_name || !nik || !phone || !station_id) {
              return NextResponse.json(
-                { error: 'Semua field wajib diisi' },
+                { error: 'All field wajib diisi' },
                 { status: 400 }
             );
         }

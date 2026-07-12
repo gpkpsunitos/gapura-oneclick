@@ -68,7 +68,7 @@ export function OverviewContent() {
       setSeverityData(severity);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
-      setError(err instanceof Error ? err.message : 'Gagal memuat data');
+      setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -91,7 +91,7 @@ export function OverviewContent() {
     return (
       <div className="embed-loading">
         <div className="embed-spinner" />
-        <p style={{ marginTop: '1rem' }}>Memuat data...</p>
+        <p style={{ marginTop: '1rem' }}>Loading data...</p>
       </div>
     );
   }
@@ -130,7 +130,7 @@ export function OverviewContent() {
       <div className="kpi-grid">
         <div className="kpi-card">
           <div className="kpi-value">{totalReports}</div>
-          <div className="kpi-label">Total Laporan</div>
+          <div className="kpi-label">Total Reports</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-value">{pendingCount}</div>
@@ -147,7 +147,7 @@ export function OverviewContent() {
       </div>
 
       {}
-      <EmbedCard title="Trend Laporan" subtitle="Jumlah laporan per hari">
+      <EmbedCard title="Report Trend" subtitle="Jumlah laporan per hari">
         <div className="chart-container">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={airlineData?.trendData || []}>
@@ -184,6 +184,7 @@ export function OverviewContent() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
+                    isAnimationActive={false}
                     data={airlineData?.distribution.slice(0, 6) || []}
                     cx="50%"
                     cy="50%"
@@ -235,6 +236,7 @@ export function OverviewContent() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
+                    isAnimationActive={false}
                     data={statusDonutData}
                     cx="50%"
                     cy="50%"

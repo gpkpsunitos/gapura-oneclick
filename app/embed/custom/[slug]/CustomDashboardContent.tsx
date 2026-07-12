@@ -212,7 +212,7 @@ export function CustomDashboardContent() {
         setError('Akses ditolak');
         return new Map();
       }
-      throw new Error('Gagal memuat data dashboard');
+      throw new Error('Failed to load dashboard data');
     }
 
     const payload = await response.json();

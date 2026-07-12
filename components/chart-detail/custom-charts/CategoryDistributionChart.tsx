@@ -61,7 +61,7 @@ export function CategoryDistributionChart({
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <PieChart className="w-6 h-6 text-gray-400" />
             </div>
-            <p className="text-[11px] text-gray-500">Tidak ada data kategori</p>
+            <p className="text-[11px] text-gray-500">No category data</p>
             <p className="text-[9px] text-gray-400 mt-1">Data mungkin belum tersedia atau kosong</p>
           </div>
         </div>

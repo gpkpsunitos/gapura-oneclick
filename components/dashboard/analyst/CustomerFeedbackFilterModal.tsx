@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Calendar, Filter, Loader2, FileText, Box } from 'lucide-react';
 import { PrismMultiSelect } from '@/components/ui/PrismMultiSelect';
 
@@ -63,6 +64,7 @@ export function CustomerFeedbackFilterModal({
     }, [isOpen, initialDateRange]);
 
     if (!isOpen) return null;
+    if (typeof document === 'undefined') return null;
 
     const handleApply = () => {
         onApply({
@@ -79,7 +81,7 @@ export function CustomerFeedbackFilterModal({
         });
     };
 
-    return (
+    return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
             <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden animate-scale-in mx-4">
                 {}
@@ -104,7 +106,7 @@ export function CustomerFeedbackFilterModal({
                     {}
                     <div className="space-y-3">
                         <h4 className="text-sm font-bold text-gray-700 flex items-center gap-2">
-                            <Calendar size={14} /> Periode Tanggal
+                            <Calendar size={14} /> Date Period
                         </h4>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                             <div>
@@ -139,7 +141,7 @@ export function CustomerFeedbackFilterModal({
                             type="text" 
                             value={customTitle}
                             onChange={(e) => setCustomTitle(e.target.value)}
-                            placeholder="Contoh: Laporan Q1 2024 Station CGK"
+                            placeholder="Example: Q1 2024 Report Station CGK"
                             className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
                         />
                     </div>
@@ -173,7 +175,7 @@ export function CustomerFeedbackFilterModal({
                     <div className="space-y-4">
                         <PrismMultiSelect
                             label="Hub"
-                            placeholder="Pilih Hub..."
+                            placeholder="Select Hub..."
                             options={availableHubs.map(h => ({ label: h, value: h }))}
                             values={selectedHubs}
                             onChange={setSelectedHubs}
@@ -181,7 +183,7 @@ export function CustomerFeedbackFilterModal({
 
                         <PrismMultiSelect
                             label="Station"
-                            placeholder="Pilih Station..."
+                            placeholder="Select Station..."
                             options={availableBranches.map(b => ({ label: b, value: b }))}
                             values={selectedBranches}
                             onChange={setSelectedBranches}
@@ -189,7 +191,7 @@ export function CustomerFeedbackFilterModal({
 
                         <PrismMultiSelect
                             label="Airline"
-                            placeholder="Pilih Airline..."
+                            placeholder="Select Airline..."
                             options={availableAirlines.map(a => ({ label: a, value: a }))}
                             values={selectedAirlines}
                             onChange={setSelectedAirlines}
@@ -197,7 +199,7 @@ export function CustomerFeedbackFilterModal({
 
                         <PrismMultiSelect
                             label="Kategori"
-                            placeholder="Pilih Kategori..."
+                            placeholder="Select Category..."
                             options={availableCategories.map(c => ({ label: c, value: c }))}
                             values={selectedCategories}
                             onChange={setSelectedCategories}
@@ -223,6 +225,7 @@ export function CustomerFeedbackFilterModal({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

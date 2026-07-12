@@ -42,7 +42,7 @@ export default function OfflinePage() {
           href="/"
           className="inline-flex mt-6 px-4 py-2 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700"
         >
-          Kembali ke Beranda
+          Back to Home
         </Link>
       </div>
     </div>

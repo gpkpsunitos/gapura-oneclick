@@ -71,6 +71,7 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
 
     const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
     const handleLogout = useCallback(() => {
+        setIsMenuOpen(false);
         setLogoutConfirmOpen(true);
     }, []);
     const confirmLogout = useCallback(() => {
@@ -117,8 +118,15 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
 
             const isOpOrOs = role === 'DIVISI_OP' || role === 'PARTNER_OP'
                 || (role === 'DIVISI_OS' || role === 'DIVISI_OCS') || role === 'PARTNER_OS';
-            if (!isOpOrOs) {
-                items.push({ href: '/dashboard/ai-reports', label: 'AI', icon: Brain });
+            // Only link to divisions that actually have an ai-reports page — linking to a
+            // generic '/dashboard/ai-reports' 404s since that route doesn't exist.
+            const aiReportsHref = role === 'ANALYST' || role.includes('SUPER') || role === 'ADMIN'
+                ? '/dashboard/analyst/ai-reports'
+                : (role === 'DIVISI_HT' || role === 'PARTNER_HT')
+                    ? '/dashboard/ht/ai-reports'
+                    : null;
+            if (!isOpOrOs && aiReportsHref) {
+                items.push({ href: aiReportsHref, label: 'AI', icon: Brain });
             }
 
             items.push({ href: '#menu', label: 'Menu', icon: Menu });
@@ -159,7 +167,7 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
                                     if (item.isPrimary) {
                                         return (
                                             <div key="primary" className="relative -top-2 sm:-top-3 px-1 sm:px-2">
-                                                <button onClick={() => router.push(item.href)}>
+                                                <button onClick={() => router.push(item.href)} aria-label={item.label || 'Create report'}>
                                                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#0F172A] flex items-center justify-center text-white shadow-lg border-4 border-white transition-transform active:scale-90">
                                                         <PlusCircle size={24} strokeWidth={2} className="sm:hidden" />
                                                         <PlusCircle size={28} strokeWidth={2} className="hidden sm:block" />

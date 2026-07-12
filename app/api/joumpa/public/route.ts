@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { checkDbRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
 import { linkEvidenceFilesToReport, normalizeEvidenceSubmissionId, validateEvidenceForReport } from '@/lib/evidence-files';
 import { JoumpaSyncService } from '@/lib/services/joumpa-sync-service';
+import { findRegisteredUserByEmail } from '@/lib/user-lookup';
 import type { JoumpaFormInput } from '@/lib/joumpa/mapping';
 
 const REQUIRED: Array<keyof JoumpaFormInput> = [
@@ -49,6 +50,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Evidence wajib diunggah sebelum laporan dikirim' }, { status: 400 });
     }
 
+    // Attribute the submission to a registered account when the e-mail matches.
+    const registered = await findRegisteredUserByEmail(email);
+
     const input: JoumpaFormInput = {
       date_of_event: body.date_of_event,
       airlines: body.airlines,
@@ -70,9 +74,10 @@ export async function POST(request: Request) {
       preventive_action: body.preventive_action,
       severity_level: body.severity_level,
       status: body.status,
-      report_by: body.report_by,
+      report_by: registered?.fullName || body.report_by,
       email_address: email,
       evidence_urls: evidence.urls,
+      user_id: registered?.userId,
     };
 
     const row = await JoumpaSyncService.createReport(input);

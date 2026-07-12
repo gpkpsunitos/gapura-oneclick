@@ -1,6 +1,7 @@
 import { after, NextRequest, NextResponse } from 'next/server';
 import { verifySession } from '@/lib/auth-utils';
 import { SyncService } from '@/lib/services/sync-service';
+import { timingSafeStringEqual } from '@/lib/security/rate-limit';
 
 export const runtime = 'nodejs';
 
@@ -18,7 +19,7 @@ function isAuthorized(payload: SessionLike): boolean {
 function hasWebhookSecretAccess(request: NextRequest): boolean {
   const configuredSecret = String(process.env.GOOGLE_SHEETS_WEBHOOK_SECRET || '').trim();
   if (!configuredSecret) return false;
-  return request.headers.get('x-irrs-webhook-secret') === configuredSecret;
+  return timingSafeStringEqual(request.headers.get('x-irrs-webhook-secret'), configuredSecret);
 }
 
 function isEnabled(value: string | undefined): boolean {
@@ -45,9 +46,14 @@ export async function POST(request: NextRequest) {
     const session = request.cookies.get('session')?.value;
     const payload = session ? await verifySession(session) : null;
     const isWebhookSecret = hasWebhookSecretAccess(request);
-    const isDevelopment = process.env.NODE_ENV === 'development';
+    // Auth bypass is opt-in only: never keyed on NODE_ENV alone, so a
+    // misconfigured deployment (NODE_ENV != production) can't silently open
+    // the endpoint. Requires the explicit local flag AND running under `next dev`.
+    const devBypass =
+      process.env.NODE_ENV === 'development' &&
+      isEnabled(process.env.GOOGLE_SHEETS_WEBHOOK_DEV_BYPASS);
 
-    if (!isWebhookSecret && !isAuthorized(payload) && !isDevelopment) {
+    if (!isWebhookSecret && !isAuthorized(payload) && !devBypass) {
       return NextResponse.json(
         { success: false, error: 'Forbidden' },
         { status: 403 }

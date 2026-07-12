@@ -110,12 +110,12 @@ export function CalendarPage({
         });
         setUsers(Array.from(userMap.values()));
       } else {
-        setError('Gagal memuat data kalender. Silakan coba lagi.');
+        setError('Failed to load calendar data. Please try again.');
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('Error fetching events:', err);
-      setError('Terjadi kesalahan jaringan. Silakan coba lagi.');
+      setError('A network error occurred. Please try again.');
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);
@@ -170,7 +170,7 @@ export function CalendarPage({
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.error || 'Gagal memperbarui kegiatan');
+        throw new Error(errData.error || 'Failed to update event');
       }
 
       await fetchEvents();
@@ -190,7 +190,7 @@ export function CalendarPage({
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.error || 'Gagal menyimpan perubahan');
+        throw new Error(errData.error || 'Failed to save changes');
       }
 
       await fetchEvents();
@@ -207,7 +207,7 @@ export function CalendarPage({
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.error || 'Gagal menghapus kegiatan');
+        throw new Error(errData.error || 'Failed to delete event');
       }
 
       await fetchEvents();
@@ -229,8 +229,10 @@ export function CalendarPage({
     setEventModalOpen(false);
   };
 
-  const handleModalDelete = async () => {
-    await fetchEvents();
+  const handleModalDelete = async (eventId: string) => {
+    // handleQuickDelete issues the DELETE, refetches, and throws on failure
+    // (EventModal catches the throw, keeps the modal open, and shows the error).
+    await handleQuickDelete(eventId);
     setEventModalOpen(false);
   };
 

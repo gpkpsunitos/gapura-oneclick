@@ -519,6 +519,15 @@ export async function fetchHubRiskAnalysis(signal?: AbortSignal): Promise<HubRis
     if (Object.keys(data).length === 0) {
       return null;
     }
+    // The ML service falls back to an envelope shape (note/status/rankings/...)
+    // when per-hub breakdowns aren't available yet — that isn't a hub map.
+    const entries = Object.values(data);
+    const looksLikeHubMap = entries.length > 0 && entries.every(
+      (entry) => entry && typeof entry === 'object' && 'risk_score' in entry && 'risk_level' in entry
+    );
+    if (!looksLikeHubMap) {
+      return null;
+    }
     return data as HubRiskSummaryResponse;
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') return null;
@@ -539,6 +548,15 @@ export async function fetchBranchRiskAnalysisAi(signal?: AbortSignal): Promise<B
 
     const data = await response.json();
     if (Object.keys(data).length === 0) {
+      return null;
+    }
+    // The ML service falls back to an envelope shape (status/rankings/...)
+    // when per-branch breakdowns aren't available yet — that isn't a branch map.
+    const entries = Object.values(data);
+    const looksLikeBranchMap = entries.length > 0 && entries.every(
+      (entry) => entry && typeof entry === 'object' && 'risk_score' in entry && 'risk_level' in entry
+    );
+    if (!looksLikeBranchMap) {
       return null;
     }
     return data as BranchRiskSummaryResponse;

@@ -1,61 +1,35 @@
 "use client";
 
 import { purgePwaClientState } from "@/lib/pwa/client-state";
+import { clearAiClientCache } from "@/lib/ai/client-cache";
 
 const LOGOUT_ENDPOINT = "/api/auth/logout";
 const LOGOUT_REDIRECT = "/auth/login?logout=1";
-const LOGOUT_REQUEST_TIMEOUT_MS = 5000;
 
 let logoutInFlight = false;
 
-function navigateToLoggedOutPage() {
-  window.location.replace(LOGOUT_REDIRECT);
-}
-
-async function requestLogout() {
-  const controller = new AbortController();
-  const timeoutId = window.setTimeout(() => controller.abort(), LOGOUT_REQUEST_TIMEOUT_MS);
-
-  try {
-    const response = await fetch(LOGOUT_ENDPOINT, {
-      method: "POST",
-      cache: "no-store",
-      credentials: "same-origin",
-      keepalive: true,
-      signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: "{}",
-    });
-
-    return response.ok;
-  } catch {
-    return false;
-  } finally {
-    window.clearTimeout(timeoutId);
-  }
-}
-
-export async function performOptimisticLogout() {
+export function performOptimisticLogout() {
   if (logoutInFlight) return;
   logoutInFlight = true;
 
   try {
     purgePwaClientState();
-  } catch {
-
-  }
+  } catch {}
 
   try {
-    const ok = await requestLogout();
-    if (!ok) {
-      window.location.replace(`${LOGOUT_ENDPOINT}?redirect=${encodeURIComponent(LOGOUT_REDIRECT)}`);
-      return;
-    }
+    clearAiClientCache();
+  } catch {}
 
-    navigateToLoggedOutPage();
-  } finally {
-    logoutInFlight = false;
-  }
+  // ponytail: fire-and-forget with keepalive so the request survives navigation.
+  // Server clears the cookie; if it fails, the middleware redirects on next request.
+  fetch(LOGOUT_ENDPOINT, {
+    method: "POST",
+    cache: "no-store",
+    credentials: "same-origin",
+    keepalive: true,
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  }).catch(() => {});
+
+  window.location.replace(LOGOUT_REDIRECT);
 }

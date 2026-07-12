@@ -18,7 +18,7 @@ export function AiSeasonalForecast() {
       try {
         setLoading(true);
         const result = await fetchSeasonalForecast();
-        if (result) {
+        if (result && result.monthly_averages && Object.keys(result.monthly_averages).length > 0) {
           setData(result);
         } else {
 

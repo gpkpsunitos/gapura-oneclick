@@ -115,7 +115,7 @@ export function AreaAnalysisChart({ visualization, result, title, explanation }:
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-slate-700">{item.label}</h4>
-                  <p className="text-[10px] text-slate-400 font-medium">{total} Laporan</p>
+                  <p className="text-[10px] text-slate-400 font-medium">{total} Reports</p>
                 </div>
               </div>
 

@@ -122,11 +122,11 @@ function QuickAccessModal({
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 <Link href="/dashboard/employee/new" className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 text-white font-black">
-                  Buat Laporan Internal
+                  Create Internal Report
                   <ArrowRight className="w-4 h-4" />
                 </Link>
                 <Link href="/dashboard/employee" className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl border border-black/10 font-black">
-                  Laporan Saya
+                  My Reports
                 </Link>
               </div>
             </div>

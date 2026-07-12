@@ -19,7 +19,7 @@ interface Recipient {
 }
 
 const ENTITIES = [
-    { value: '', label: 'Semua Entity' },
+    { value: '', label: 'All Entities' },
     { value: 'IRRS_NEW_RECORD', label: 'IRRS New Record' },
     { value: 'GPKPSUNITOS', label: 'GPKPS Unit OS' },
 ];
@@ -50,9 +50,9 @@ export default function NotificationSettings() {
 
             if (!res.ok || !Array.isArray(data)) {
                 if (data.error === 'Unauthorized') {
-                    showMsg('error', 'Silakan login untuk mengelola notifikasi');
+                    showMsg('error', 'Please log in to manage notifications');
                 } else {
-                    throw new Error(data.error || 'Gagal mengambil data');
+                    throw new Error(data.error || 'Failed to fetch data');
                 }
                 setRecipients([]);
             } else {
@@ -60,7 +60,7 @@ export default function NotificationSettings() {
             }
         } catch (err) {
             console.error(err);
-            showMsg('error', 'Gagal memuat daftar penerima');
+            showMsg('error', 'Failed to load recipient list');
         } finally {
             setLoading(false);
         }
@@ -88,7 +88,7 @@ export default function NotificationSettings() {
 
             if (!res.ok) {
                 const data = await res.json();
-                throw new Error(data.error || 'Gagal menambah penerima');
+                throw new Error(data.error || 'Failed to add recipient');
             }
 
             setNewEmail('');
@@ -110,30 +110,30 @@ export default function NotificationSettings() {
                 body: JSON.stringify({ id, enabled: !currentStatus }),
             });
 
-            if (!res.ok) throw new Error('Gagal update status');
+            if (!res.ok) throw new Error('Failed to update status');
 
             setRecipients(recipients.map(r => 
                 r.id === id ? { ...r, enabled: !currentStatus } : r
             ));
         } catch (err) {
-            showMsg('error', 'Gagal mengubah status');
+            showMsg('error', 'Failed to change status');
         }
     };
 
     const deleteRecipient = async (id: string) => {
-        if (!confirm('Hapus penerima ini?')) return;
+        if (!confirm('Delete this recipient?')) return;
 
         try {
             const res = await fetch(`/api/admin/notifications/recipients?id=${id}`, {
                 method: 'DELETE',
             });
 
-            if (!res.ok) throw new Error('Gagal menghapus');
+            if (!res.ok) throw new Error('Failed to delete');
 
             showMsg('success', 'Penerima berhasil dihapus');
             setRecipients(recipients.filter(r => r.id !== id));
         } catch (err) {
-            showMsg('error', 'Gagal menghapus penerima');
+            showMsg('error', 'Failed to delete recipient');
         }
     };
 
@@ -152,7 +152,7 @@ export default function NotificationSettings() {
             });
 
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Gagal mengirim email test');
+            if (!res.ok) throw new Error(data.error || 'Failed to send test email');
 
             showMsg('success', `Email test berhasil dikirim ke ${testEmail}`);
             setTestEmail('');
@@ -232,7 +232,7 @@ export default function NotificationSettings() {
                         {loading ? (
                             <div className="p-12 text-center">
                                 <RefreshCw className="w-8 h-8 text-blue-500 animate-spin mx-auto mb-4" />
-                                <p className="text-slate-400 text-sm">Memuat data...</p>
+                                <p className="text-slate-400 text-sm">Loading data...</p>
                             </div>
                         ) : recipients.length === 0 ? (
                             <div className="p-16 text-center">
@@ -240,7 +240,7 @@ export default function NotificationSettings() {
                                     <Mail className="w-8 h-8 text-slate-300" />
                                 </div>
                                 <h3 className="text-slate-900 font-bold">Belum Ada Penerima</h3>
-                                <p className="text-slate-500 text-sm mt-1">Tambahkan email penerima notifikasi di bawah ini.</p>
+                                <p className="text-slate-500 text-sm mt-1">Add recipient emails for notifications below.</p>
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
@@ -282,7 +282,7 @@ export default function NotificationSettings() {
                                                                 "p-1 rounded-full transition-all duration-300 transform active:scale-90",
                                                                 r.enabled ? "text-emerald-500 hover:text-emerald-600" : "text-slate-300 hover:text-slate-400"
                                                             )}
-                                                            title={r.enabled ? "Nonaktifkan" : "Aktifkan"}
+                                                            title={r.enabled ? "Deactivate" : "Activate"}
                                                         >
                                                             {r.enabled ? <ToggleRight size={32} /> : <ToggleLeft size={32} />}
                                                         </button>
@@ -293,7 +293,7 @@ export default function NotificationSettings() {
                                                         <button 
                                                             onClick={() => deleteRecipient(r.id)}
                                                             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                                            title="Hapus"
+                                                            title="Delete"
                                                         >
                                                             <Trash2 size={18} />
                                                         </button>
@@ -315,7 +315,7 @@ export default function NotificationSettings() {
                     <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-xl space-y-4">
                         <div className="flex items-center gap-2 mb-2">
                             <Plus className="w-4 h-4 text-emerald-600" />
-                            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Tambah Baru</h2>
+                            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-widest">Add New</h2>
                         </div>
 
                         <form onSubmit={handleAddRecipient} className="space-y-3">
@@ -340,7 +340,7 @@ export default function NotificationSettings() {
                                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
                                     <input 
                                         type="email"
-                                        placeholder="email@perusahaan.com"
+                                        placeholder="email@company.com"
                                         value={newEmail}
                                         onChange={(e) => setNewEmail(e.target.value)}
                                         className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-sm font-semibold"
@@ -360,7 +360,7 @@ export default function NotificationSettings() {
                                 )}
                             >
                                 {submitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                                {submitting ? 'Menambah...' : 'Simpan Penerima'}
+                                {submitting ? 'Menambah...' : 'Save Recipient'}
                             </button>
                         </form>
                     </div>

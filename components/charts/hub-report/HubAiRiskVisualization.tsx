@@ -55,7 +55,7 @@ export function HubAiRiskVisualization({ data, isLoading, error }: {
     return null;
   }
 
-  const sortedHubs = Object.entries(data).sort(([, a], [, b]) => b.risk_score - a.risk_score);
+  const sortedHubs = Object.entries(data).sort(([, a], [, b]) => (b.risk_score ?? 0) - (a.risk_score ?? 0));
   const criticalHubs = sortedHubs.filter(([, d]) => d.risk_level === 'Critical' || d.risk_level === 'High');
 
   return (
@@ -80,8 +80,16 @@ export function HubAiRiskVisualization({ data, isLoading, error }: {
 
       <div className="p-5">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {sortedHubs.map(([hubName, details]) => (
-            <div 
+          {sortedHubs.map(([hubName, rawDetails]) => {
+            const details = {
+              ...rawDetails,
+              risk_score: rawDetails.risk_score ?? 0,
+              data_quality_score: rawDetails.data_quality_score ?? 0,
+              severity_distribution: rawDetails.severity_distribution ?? {},
+              issue_categories: rawDetails.issue_categories ?? [],
+            };
+            return (
+            <div
               key={hubName}
               className={`relative p-4 rounded-xl border transition-all hover:shadow-md ${
                 details.risk_level === 'Critical' ? 'bg-red-50/50 border-red-100' :
@@ -154,7 +162,8 @@ export function HubAiRiskVisualization({ data, isLoading, error }: {
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { X, FileText, Upload, CheckCircle2, Loader2, Save } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -54,6 +55,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
   }, [reportData?.id]);
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -189,7 +191,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
         <motion.div
@@ -434,6 +436,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

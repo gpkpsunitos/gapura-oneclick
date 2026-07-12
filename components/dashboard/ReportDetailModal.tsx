@@ -25,13 +25,43 @@ export function ReportDetailModal({
 }: ReportDetailModalProps) {
   const effectiveIsOpen = isOpen ?? !!initialReport;
   const [fullReport, setFullReport] = useState<Report | null>(null);
+  const [fastComments, setFastComments] = useState<Report['comments'] | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); return () => setMounted(false); }, []);
 
+  const reportId = initialReport?.id;
+
+  // Comments come from a DB-only endpoint that never waits on Google Sheets,
+  // so they render instantly even while the full report fetch is still in flight.
+  const refetchComments = async () => {
+    if (!reportId) return;
+    try {
+      const res = await fetch(`/api/reports/${reportId}/comments`);
+      if (res.ok) setFastComments(await res.json());
+    } catch { /* ignore */ }
+  };
+
+  const refetchReport = async () => {
+    await Promise.all([refetchComments(), (async () => {
+      if (!reportId) return;
+      try {
+        const res = await fetch(`/api/reports/${reportId}`);
+        if (res.ok) setFullReport(await res.json());
+      } catch { /* ignore */ }
+    })()]);
+  };
+
   useEffect(() => {
-    if (!effectiveIsOpen || !initialReport) { setFullReport(null); return; }
+    if (!effectiveIsOpen || !initialReport) { setFullReport(null); setFastComments(null); return; }
     let alive = true;
+    // Fast comments first (instant), full report in parallel (may wait on Sheets).
+    (async () => {
+      try {
+        const res = await fetch(`/api/reports/${initialReport.id}/comments`);
+        if (alive && res.ok) setFastComments(await res.json());
+      } catch { /* ignore */ }
+    })();
     (async () => {
       try {
         const res = await fetch(`/api/reports/${initialReport.id}`);
@@ -45,17 +75,28 @@ export function ReportDetailModal({
     return () => { alive = false; };
   }, [effectiveIsOpen, initialReport]);
 
+  // Opening a report clears this user's unread comment notifications for it.
+  useEffect(() => {
+    if (!effectiveIsOpen || !reportId) return;
+    fetch('/api/notifications/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reportId }),
+    }).catch(() => {});
+  }, [effectiveIsOpen, reportId]);
+
   if (!effectiveIsOpen || !initialReport || !mounted) return null;
 
-  const displayReport = fullReport || initialReport;
+  const base = fullReport || initialReport;
+  // Prefer the fast comments; fall back to whatever the full report carried.
+  const displayReport: Report = fastComments
+    ? { ...base, comments: fastComments }
+    : base;
 
   const handleStatus = onUpdateStatus
     ? async (id: string, status: string) => {
         await onUpdateStatus(id, status);
-        try {
-          const res = await fetch(`/api/reports/${id}`);
-          if (res.ok) setFullReport(await res.json());
-        } catch { /* ignore */ }
+        await refetchReport();
         onRefresh?.();
       }
     : undefined;
@@ -65,6 +106,7 @@ export function ReportDetailModal({
       report={displayReport}
       onClose={onClose}
       onUpdateStatus={handleStatus}
+      onRefresh={refetchReport}
     />
   );
 }

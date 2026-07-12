@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { readSessionPayload } from '@/lib/auth-utils';
 import { OCSDivisionDashboardClientLoader } from '@/components/dashboard/ocs/OCSDivisionDashboardClientLoader';
-import { OPDashboardClient } from '@/components/dashboard/OPDashboardClient';
+import { DivisionAnalystDashboard } from '@/components/dashboard/DivisionAnalystDashboard';
 import { reportsService } from '@/lib/services/reports-service';
 import { DIVISIONS } from '@/lib/constants/divisions';
 
@@ -23,5 +23,5 @@ export default async function AnalystPage() {
         initialReports = undefined;
     }
 
-    return <OPDashboardClient initialReports={initialReports} />;
+    return <DivisionAnalystDashboard division={DIVISIONS.ANALYST} initialReports={initialReports} />;
 }

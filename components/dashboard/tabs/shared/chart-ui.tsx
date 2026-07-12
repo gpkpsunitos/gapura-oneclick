@@ -235,7 +235,7 @@ export function CategoryBarList({ data, color = '#4ade80', title, onClick }: { d
           </div>
         ))}
         {data.length === 0 && (
-          <p className="text-xs text-gray-400 text-center py-4">Tidak ada data</p>
+          <p className="text-xs text-gray-400 text-center py-4">No data</p>
         )}
       </div>
       {totalPages > 1 && (
@@ -410,7 +410,7 @@ export function DetailReportTable<T extends Record<string, unknown>>({
   const endIdx = Math.min((page + 1) * DETAIL_PAGE_SIZE, data.length);
 
   if (data.length === 0) {
-    return <p className="text-xs text-gray-400 text-center py-4">Tidak ada data</p>;
+    return <p className="text-xs text-gray-400 text-center py-4">No data</p>;
   }
 
   return (

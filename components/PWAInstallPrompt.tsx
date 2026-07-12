@@ -226,7 +226,7 @@ export default function PWAInstallPrompt() {
           <button
             type="button"
             onClick={handleDismiss}
-            aria-label="Tutup"
+            aria-label="Close"
             className="p-1 rounded-full hover:bg-white/20 transition-colors"
           >
             <X className="w-3.5 h-3.5" />
@@ -256,7 +256,7 @@ export default function PWAInstallPrompt() {
                 <button
                   onClick={handleDismiss}
                   className="p-1 hover:bg-white/20 rounded-lg transition-colors"
-                  aria-label="Tutup"
+                  aria-label="Close"
                 >
                   <X className="w-5 h-5" />
                 </button>

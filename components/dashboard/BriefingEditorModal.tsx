@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { X, FileText, CheckCircle2, Loader2, Save } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -119,7 +121,7 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
     }
   };
 
-  return (
+  return createPortal(
     <AnimatePresence mode="wait">
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6 overflow-hidden">
         <motion.div
@@ -297,6 +299,7 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
           )}
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

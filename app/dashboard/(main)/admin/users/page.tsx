@@ -87,7 +87,7 @@ const divisionConfig: Record<DivisionType, string> = {
 
 const statusConfig: Record<AccountStatus, { label: string; tone: string; icon: typeof Clock3 }> = {
     pending: { label: 'Pending Approval', tone: 'bg-amber-50 text-amber-700 border-amber-200', icon: Clock3 },
-    active: { label: 'Aktif', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: UserCheck },
+    active: { label: 'Active', tone: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: UserCheck },
     rejected: { label: 'Ditolak', tone: 'bg-red-50 text-red-700 border-red-200', icon: UserX },
     suspended: { label: 'Suspended', tone: 'bg-zinc-100 text-zinc-700 border-zinc-200', icon: Shield },
 };
@@ -263,7 +263,7 @@ function AddUserModal({
                 }),
             });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Gagal membuat user');
+            if (!res.ok) throw new Error(data.error || 'Failed to create user');
             onCreated();
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Kesalahan jaringan');
@@ -277,8 +277,8 @@ function AddUserModal({
             <div className="my-8 w-full max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl">
                 <div className="mb-5 flex items-start justify-between gap-4">
                     <div>
-                        <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600">Tambah akun</p>
-                        <h3 className="text-xl font-bold text-slate-900">{isSuperAdmin ? 'Tambah user sistem' : 'Tambah staff cabang'}</h3>
+                        <p className="text-xs font-bold uppercase tracking-[0.22em] text-emerald-600">Add account</p>
+                        <h3 className="text-xl font-bold text-slate-900">{isSuperAdmin ? 'Add system user' : 'Add branch staff'}</h3>
                     </div>
                     <button onClick={onClose} className="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
                         <X size={18} />
@@ -307,7 +307,7 @@ function AddUserModal({
                             <label className="space-y-1.5">
                                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Cabang</span>
                                 <select value={form.station_id} onChange={(e) => update('station_id', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-emerald-500">
-                                    <option value="">Pilih cabang</option>
+                                    <option value="">Select branch</option>
                                     {stations.map((station) => <option key={station.id} value={station.id}>{station.code ? `${station.code} - ` : ''}{station.name}</option>)}
                                 </select>
                             </label>
@@ -322,7 +322,7 @@ function AddUserModal({
                     <label className="space-y-1.5">
                         <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Posisi</span>
                         <select value={form.position_id} onChange={(e) => update('position_id', e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-emerald-500">
-                            <option value="">Pilih posisi</option>
+                            <option value="">Select position</option>
                             {positions.map((position) => <option key={position.id} value={position.id}>{position.name}</option>)}
                         </select>
                     </label>
@@ -344,7 +344,7 @@ function AddUserModal({
                     {isSuperAdmin && (
                         <label className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
                             <input type="checkbox" checked={form.activate} onChange={(e) => update('activate', e.target.checked)} />
-                            <span className="text-sm font-semibold text-slate-700">Aktifkan langsung tanpa approval</span>
+                            <span className="text-sm font-semibold text-slate-700">Activate immediately without approval</span>
                         </label>
                     )}
                 </div>
@@ -406,21 +406,18 @@ export default function AdminUsersPage() {
         setLoading(true);
         setLoadError(null);
         try {
-            const params = new URLSearchParams();
-            if (activeTab === 'pending') params.set('status', 'pending');
-            else if (statusFilter !== 'all') params.set('status', statusFilter);
-            const res = await fetch(`/api/admin/users?${params.toString()}`, { cache: 'no-store' });
+            const res = await fetch('/api/admin/users', { cache: 'no-store' });
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Gagal memuat data user');
+            if (!res.ok) throw new Error(data.error || 'Failed to load user data');
             setUsers(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error('Error fetching users:', error);
-            setLoadError(error instanceof Error ? error.message : 'Gagal memuat data user');
+            setLoadError(error instanceof Error ? error.message : 'Failed to load user data');
             setUsers([]);
         } finally {
             setLoading(false);
         }
-    }, [activeTab, statusFilter]);
+    }, []);
 
     useEffect(() => {
         if (authorized) fetchUsers();
@@ -435,10 +432,10 @@ export default function AdminUsersPage() {
                 body: JSON.stringify({ userId, ...body }),
             });
             const data = await res.json().catch(() => ({}));
-            if (!res.ok) throw new Error(data.error || 'Gagal mengubah user');
+            if (!res.ok) throw new Error(data.error || 'Failed to update user');
             await fetchUsers();
         } catch (error) {
-            alert(error instanceof Error ? error.message : 'Gagal mengubah user');
+            alert(error instanceof Error ? error.message : 'Failed to update user');
         } finally {
             setActionLoading(null);
         }
@@ -512,7 +509,7 @@ export default function AdminUsersPage() {
                                 {[
                                     ['Total', stats.total, 'text-slate-900 bg-slate-50 border-slate-200'],
                                     ['Pending', stats.pending, 'text-amber-700 bg-amber-50 border-amber-200'],
-                                    ['Aktif', stats.active, 'text-emerald-700 bg-emerald-50 border-emerald-200'],
+                                    ['Active', stats.active, 'text-emerald-700 bg-emerald-50 border-emerald-200'],
                                     ['Suspended', stats.suspended, 'text-zinc-700 bg-zinc-50 border-zinc-200'],
                                 ].map(([label, value, tone]) => (
                                     <div key={label} className={`rounded-xl border p-3 ${tone}`}>
@@ -536,7 +533,7 @@ export default function AdminUsersPage() {
                                     }`}
                                 >
                                     <Users className="h-4 w-4" />
-                                    Semua User
+                                    All Users
                                     <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600">{stats.total}</span>
                                 </button>
                                 <button
@@ -568,7 +565,7 @@ export default function AdminUsersPage() {
                                 </button>
                                 <button onClick={() => setShowAdd(true)} className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-600 px-3 text-sm font-bold text-white hover:bg-emerald-700">
                                     <Plus className="h-4 w-4" />
-                                    Tambah
+                                    Add
                                 </button>
                             </div>
                         </div>
@@ -576,7 +573,7 @@ export default function AdminUsersPage() {
                         <div className="p-3">
                             <div className="relative">
                                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Cari nama, email, NIK, HP, cabang, posisi..." className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-medium outline-none focus:border-emerald-500" />
+                                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search name, email, ID number, phone, branch, position..." className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm font-medium outline-none focus:border-emerald-500" />
                             </div>
 
                             {activeTab === 'pending' && (
@@ -598,7 +595,7 @@ export default function AdminUsersPage() {
                                             disabled={activeTab === 'pending'}
                                             className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-9 text-sm font-bold outline-none focus:border-emerald-500 disabled:cursor-not-allowed disabled:opacity-70"
                                         >
-                                            <option value="all">Semua status</option>
+                                            <option value="all">All statuses</option>
                                             {Object.entries(statusConfig).map(([key, item]) => <option key={key} value={key}>{item.label}</option>)}
                                         </select>
                                         <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -608,7 +605,7 @@ export default function AdminUsersPage() {
                                             <div className="relative">
                                                 <SlidersHorizontal className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                                 <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as 'all' | UserRole)} className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-9 text-sm font-bold outline-none focus:border-emerald-500">
-                                                    <option value="all">Semua role</option>
+                                                    <option value="all">All roles</option>
                                                     {roleOptions.map((role) => <option key={role} value={role}>{roleConfig[role].label}</option>)}
                                                 </select>
                                                 <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -616,7 +613,7 @@ export default function AdminUsersPage() {
                                             <div className="relative">
                                                 <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
                                                 <select value={stationFilter} onChange={(e) => setStationFilter(e.target.value)} className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-9 text-sm font-bold outline-none focus:border-emerald-500">
-                                                    <option value="all">Semua cabang</option>
+                                                    <option value="all">All branches</option>
                                                     {stations.map(([id, station]) => <option key={id} value={id}>{station.code} - {station.name}</option>)}
                                                 </select>
                                                 <ChevronDown className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -642,7 +639,7 @@ export default function AdminUsersPage() {
                         ) : filteredUsers.length === 0 ? (
                             <div className="flex h-52 flex-col items-center justify-center text-slate-500">
                                 <Users className="mb-3 h-10 w-10 text-slate-300" />
-                                <p className="font-semibold">{activeTab === 'pending' ? 'Tidak ada user pending approval.' : 'Tidak ada user sesuai filter.'}</p>
+                                <p className="font-semibold">{activeTab === 'pending' ? 'No users pending approval.' : 'No users match the filter.'}</p>
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
@@ -723,7 +720,7 @@ export default function AdminUsersPage() {
                                                             {canActivate && (
                                                                 <button onClick={() => updateUser(user.id, { status: 'active' })} disabled={actionLoading === user.id} className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50">
                                                                     <Check className="h-4 w-4" />
-                                                                    Aktifkan
+                                                                    Activate
                                                                 </button>
                                                             )}
                                                         </div>

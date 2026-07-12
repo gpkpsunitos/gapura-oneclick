@@ -4,10 +4,11 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import {
-  PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from 'recharts';
 import { ArrowLeft, RefreshCw, Loader2, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react';
+import { ResponsivePieChart } from '@/components/charts/ResponsivePieChart';
 
 interface JoumpaRecord {
   timestamp: string;
@@ -370,28 +371,13 @@ export function JoumpaDashboard(props?: { initialCategory?: string; readOnlyCate
           {}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
             <h3 className="text-base font-bold text-gray-800 mb-4">Case Category Report</h3>
-            <div className="flex items-center justify-center" style={{ height: 220 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={caseCategoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={85}
-                    dataKey="value"
-                    label={({ value }: { value: number }) => `${value}`}
-                    labelLine={false}
-                  >
-                    {caseCategoryData.map((entry, i) => (
-                      <Cell key={i} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <ResponsivePieChart
+              key={records.length}
+              data={caseCategoryData}
+              donut
+              innerRadius={50}
+              height="h-[220px]"
+            />
           </div>
 
           {}

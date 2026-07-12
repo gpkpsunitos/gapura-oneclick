@@ -1,53 +1,48 @@
+/**
+ * POST /api/ai/subcategory — classify a report narrative into an area
+ * subcategory. Body: { text, airline?, branch?, area?, category?, report_type? }
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-
-import { verifySession } from '@/lib/auth-utils';
-import { getHfClient } from '@/lib/hf-client';
+import { mlClient, type ClassifyContext } from '@/lib/ml-client';
+import {
+  requireAISession,
+  unauthorizedResponse,
+  aiUnavailableResponse,
+  presentClassification,
+} from '@/lib/ai-route-helpers';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  const session = await requireAISession();
+  if (!session) return unauthorizedResponse();
+
+  let body: Record<string, unknown>;
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-    const session = token ? await verifySession(token) : null;
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Body JSON tidak valid' }, { status: 400 });
+  }
 
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) {
+    return NextResponse.json({ error: 'Teks laporan diperlukan (field "text")' }, { status: 400 });
+  }
 
-    const body = await req.json().catch(() => ({}));
-    const searchParams = new URL(req.url).searchParams;
-    const report = searchParams.get('report') || body.report || body.text || '';
-    const area = searchParams.get('area') || body.area || '';
-    const issueType = searchParams.get('issue_type') || body.issue_type || body.issueType || '';
-    const rootCause = searchParams.get('root_cause') || body.root_cause || body.rootCause || '';
+  const ctx: ClassifyContext = {};
+  for (const key of ['airline', 'branch', 'area', 'category', 'report_type'] as const) {
+    const value = body[key];
+    if (typeof value === 'string' && value.trim()) ctx[key] = value.trim();
+  }
 
-    if (!report) {
-      return NextResponse.json({ error: 'report is required' }, { status: 400 });
-    }
-
-    const params = new URLSearchParams({ report });
-    if (area) params.set('area', area);
-    if (issueType) params.set('issue_type', issueType);
-    if (rootCause) params.set('root_cause', rootCause);
-
-    const hfClient = getHfClient();
-    const response = await hfClient.fetch(
-      `/api/ai/subcategory?${params.toString()}`,
-      { method: 'POST', headers: { Accept: 'application/json' } },
-      { ttl: 300000 }
-    );
-
-    const payload = await response.json().catch(() => null);
-    if (!response.ok) {
-      return NextResponse.json(payload || { error: 'AI service unavailable' }, { status: response.status });
-    }
-
-    return NextResponse.json(payload);
+  try {
+    const res = await mlClient.classifySubcategory(text, ctx);
+    return NextResponse.json({
+      status: res.status,
+      subcategory: presentClassification(res.subcategory),
+    });
   } catch (error) {
-    console.error('[API Proxy] Error classifying subcategory:', error);
-    return NextResponse.json({ error: 'AI service unavailable' }, { status: 503 });
+    return aiUnavailableResponse(error);
   }
 }

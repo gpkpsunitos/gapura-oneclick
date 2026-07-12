@@ -15,7 +15,7 @@ const HEADER_MAPPING: Record<string, string> = {
   'Date of Event': 'date_of_event',
   'Date': 'date_of_event',
   'Tanggal': 'date_of_event',
-  'Month': 'date_of_event',
+  'Bulan': 'date_of_event',
   'Incident Date': 'date_of_event',
 
   'Jenis Maskapai': 'jenis_maskapai',
@@ -257,7 +257,7 @@ export default function ImportDataPage() {
       setUploadStatus('idle');
     } catch (err) {
       console.error('Parse Error:', err);
-      setErrorMessage("Gagal membaca file. Pastikan format Excel/CSV valid.");
+      setErrorMessage("Failed to read file. Make sure it's a valid Excel/CSV format.");
       setUploadStatus('error');
     }
   };
@@ -283,7 +283,7 @@ export default function ImportDataPage() {
       const result = await response.json();
 
       if (!response.ok) {
-          throw new Error(result.error || 'Gagal mengimport ke Google Sheets');
+          throw new Error(result.error || 'Failed to import to Google Sheets');
       }
 
       setSuccessCount(result.count || mappedData.length);
@@ -291,7 +291,7 @@ export default function ImportDataPage() {
     } catch (error) {
       console.error('Import Error:', error);
       setUploadStatus('error');
-      const message = error instanceof Error ? error.message : 'Gagal mengimport data.';
+      const message = error instanceof Error ? error.message : 'Failed to import data.';
       setErrorMessage(message);
     } finally {
       setIsUploading(false);
@@ -312,7 +312,7 @@ export default function ImportDataPage() {
       {}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Import Data Laporan</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Import Report Data</h1>
           <p className="text-gray-500 mt-1">
               Mode Administrator untuk import data massal dari Google Sheets/Excel.
           </p>
@@ -334,7 +334,7 @@ export default function ImportDataPage() {
           <div>
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                 <Database size={18} className="text-blue-600" />
-                1. Pilih Tipe Data
+                1. Select Data Type
             </h3>
             <div className="grid md:grid-cols-2 gap-4">
                 <button
@@ -349,7 +349,7 @@ export default function ImportDataPage() {
                         </div>
                         <span className="font-bold text-gray-900">Landside & Airside</span>
                     </div>
-                    <p className="text-xs text-gray-500">Laporan reguler (Terminal, Apron, General). Sheet: 'NON CARGO'</p>
+                    <p className="text-xs text-gray-500">Regular reports (Terminal, Apron, General). Sheet: 'NON CARGO'</p>
                 </button>
 
                 <button
@@ -364,7 +364,7 @@ export default function ImportDataPage() {
                         </div>
                         <span className="font-bold text-gray-900">Cargo</span>
                     </div>
-                    <p className="text-xs text-gray-500">Laporan khusus Cargo. Sheet: 'CGO'</p>
+                    <p className="text-xs text-gray-500">Cargo-specific reports. Sheet: 'CGO'</p>
                 </button>
 
             </div>
@@ -414,7 +414,7 @@ export default function ImportDataPage() {
                 {uploadStatus === 'success' && (
                     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="p-4 bg-green-50 text-green-700 rounded-xl flex items-center gap-3 border border-green-200">
                         <CheckCircle size={20} />
-                        <span className="font-medium">Berhasil mengimport {successCount} data laporan!</span>
+                        <span className="font-medium">Successfully imported {successCount} report records!</span>
                     </motion.div>
                 )}
                 {uploadStatus === 'error' && (

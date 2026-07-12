@@ -106,6 +106,22 @@ async function reserveDelivery(
         'code' in error &&
         (error as { code?: string }).code === '23505'
     ) {
+        // Fingerprint already reserved. Only dedupe against a prior *successful*
+        // send — 'failed'/'skipped' rows must not permanently block retries.
+        const { data: existing } = await supabaseAdmin
+            .from('notification_delivery_log')
+            .select('status')
+            .eq('fingerprint', fingerprint)
+            .single();
+
+        if (existing && existing.status !== 'sent') {
+            const { error: resetError } = await supabaseAdmin
+                .from('notification_delivery_log')
+                .update({ status: 'pending', error_message: null, payload, subject })
+                .eq('fingerprint', fingerprint);
+            return !resetError;
+        }
+
         return false;
     }
 
@@ -383,7 +399,49 @@ export async function sendTestEmail(options: TestEmailOptions) {
     });
 }
 
+const NOTIFICATION_ENTITY: Record<NotificationPayload['type'], string> = {
+    NEW_REPORT: 'IRRS_NEW_REPORT',
+    SLA_BREACH: 'IRRS_SLA_BREACH',
+    STATUS_CHANGE: 'IRRS_STATUS_CHANGE',
+    COMMENT: 'IRRS_COMMENT',
+};
+
 export async function sendNotification(payload: NotificationPayload): Promise<void> {
+    const entity = payload.targetDivision
+        ? `${NOTIFICATION_ENTITY[payload.type]}_${payload.targetDivision.toUpperCase()}`
+        : NOTIFICATION_ENTITY[payload.type];
+
+    const recipients = await getNotificationRecipients(entity);
+    if (recipients.length === 0) {
+        return;
+    }
+
+    const subject = `[OneClick] ${payload.title}`;
+    const text = [
+        payload.message,
+        '',
+        `Report ID: ${payload.reportId}`,
+        payload.priority ? `Priority: ${payload.priority}` : null,
+        payload.slaDeadline ? `SLA Deadline: ${payload.slaDeadline}` : null,
+        '',
+        '---',
+        'Automatic Notification OneClick IRRS',
+    ].filter(Boolean).join('\n');
+
+    await sendEmail({
+        entity,
+        recipients,
+        subject,
+        text,
+        fingerprintBase: `irrs-${payload.type.toLowerCase()}:${payload.reportId}:${payload.message}`,
+        payload: {
+            type: payload.type,
+            report_id: payload.reportId,
+            target_division: payload.targetDivision || null,
+            priority: payload.priority || null,
+            sla_deadline: payload.slaDeadline || null,
+        },
+    });
 }
 
 export async function notifyNewReport(

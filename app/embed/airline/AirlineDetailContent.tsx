@@ -116,7 +116,7 @@ export function AirlineDetailContent() {
   return (
     <>
       <Link href={`/embed/overview?range=${range}`} className="back-link">
-        ← Kembali ke Overview
+        ← Back to Overview
       </Link>
 
       <header className="page-header">
@@ -130,14 +130,18 @@ export function AirlineDetailContent() {
       <div className="kpi-grid">
         <div className="kpi-card">
           <div className="kpi-value">{data?.summary.total || 0}</div>
-          <div className="kpi-label">Total Laporan</div>
+          <div className="kpi-label">Total Reports</div>
         </div>
         <div className="kpi-card">
           <div className="kpi-value">{pieData.length}</div>
           <div className="kpi-label">Jumlah Airline</div>
         </div>
         <div className="kpi-card">
-          <div className="kpi-value">{data?.summary.bySeverity?.high || 0}</div>
+          <div className="kpi-value">
+            {Object.entries(data?.summary.bySeverity || {})
+              .filter(([name]) => name.toLowerCase() === 'high')
+              .reduce((sum, [, count]) => sum + count, 0)}
+          </div>
           <div className="kpi-label">High Severity</div>
         </div>
       </div>
@@ -149,6 +153,7 @@ export function AirlineDetailContent() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
+                  isAnimationActive={false}
                   data={pieData}
                   cx="50%"
                   cy="50%"
@@ -182,12 +187,12 @@ export function AirlineDetailContent() {
       </div>
 
       {}
-      <EmbedCard title="Daftar Laporan" subtitle="Data detail per laporan" className="mt-6">
+      <EmbedCard title="Report List" subtitle="Data detail per laporan" className="mt-6">
         <div className="embed-table-container">
           <table className="embed-table">
             <thead>
               <tr>
-                <th>Tanggal</th>
+                <th>Date</th>
                 <th>Airline</th>
                 <th>Judul</th>
                 <th>Kategori</th>

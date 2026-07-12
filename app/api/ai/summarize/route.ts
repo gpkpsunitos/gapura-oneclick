@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySession } from '@/lib/auth-utils';
-import { cookies } from 'next/headers';
+import { requireElevatedAISession } from '@/lib/ai-route-helpers';
 import { getHfClient } from '@/lib/hf-client';
 import { resolveCachedAI } from '@/lib/ai-route-cache';
 
@@ -9,9 +8,7 @@ export const maxDuration = 60;
 
 export async function GET(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-    const session = token ? await verifySession(token) : null;
+    const session = await requireElevatedAISession();
 
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,7 +23,7 @@ export async function GET(req: NextRequest) {
     if (category === 'cgo') {
       path = '/api/ai/summarize/cgo';
     } else if (category) {
-      path = `/api/ai/summarize?category=${category}`;
+      path = `/api/ai/summarize?category=${encodeURIComponent(category)}`;
     }
 
     const sep = path.includes('?') ? '&' : '?';

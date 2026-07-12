@@ -96,7 +96,7 @@ export function TileCard({ tile, result, error, onEdit, onRemove, onResize, dash
             <button
               onClick={() => onRemove(tile.id)}
               className="p-1.5 text-[#666] hover:text-red-500 transition-colors"
-              title="Hapus"
+              title="Delete"
             >
               <Trash2 size={14} />
             </button>
@@ -128,7 +128,7 @@ export function TileCard({ tile, result, error, onEdit, onRemove, onResize, dash
           />
         ) : result ? (
           <div className="flex items-center justify-center h-full">
-            <p className="text-xs text-[#999]">Tidak ada data</p>
+            <p className="text-xs text-[#999]">No data</p>
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">

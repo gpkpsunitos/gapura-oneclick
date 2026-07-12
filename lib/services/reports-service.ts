@@ -6,6 +6,7 @@ import { calculateSlaDeadline } from '@/lib/constants/report-status';
 import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
 
 import { buildReportFingerprint } from '@/lib/report-fingerprint';
+import { escapeSpreadsheetCell } from '@/lib/security/sanitize';
 import {
   isCargoReport,
   isGseServiceReport,
@@ -832,8 +833,14 @@ export class ReportsService {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private buildSheetRow(headers: string[], report: Report): any[] {
-    return headers.map((header: string) => {
-      const normalizedHeader = header.trim().toLowerCase();
+    // Every cell is escaped against CSV/formula injection before it reaches
+    // Sheets (writes use valueInputOption USER_ENTERED). See escapeSpreadsheetCell.
+    return headers.map((header: string) => escapeSpreadsheetCell(this.buildSheetCell(header, report)));
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private buildSheetCell(header: string, report: Report): any {
+    const normalizedHeader = header.trim().toLowerCase();
 
       // A single header can be the target of several props (e.g. `category`
       // + `main_category` both map to "Report Category"). Pick the first prop
@@ -896,7 +903,6 @@ export class ReportsService {
         return v;
       }
       return '';
-    });
   }
 
   private async getSheetIdByName(sheetName: string): Promise<number | null> {
@@ -1353,41 +1359,73 @@ export class ReportsService {
     }
 
     const { data, error } = await query;
-    if (error || !data || data.length === 0) return null;
-    const dbRow = data[0];
+    if (!error && data && data.length > 0) {
+      const dbRow = data[0];
 
-    const originalId = dbRow.sheet_id || dbRow.original_id;
-    if (originalId && originalId.includes('!row_')) {
-        try {
-            const liveData = await this.fetchLiveFromSheet(originalId);
-            if (liveData) {
+      const originalId = dbRow.sheet_id || dbRow.original_id;
+      if (originalId && originalId.includes('!row_')) {
+          try {
+              const liveData = await this.fetchLiveFromSheet(originalId);
+              if (liveData) {
 
-                return syncEscalationDivisionAliases({
-                    ...dbRow,
-                    ...liveData,
-                    id: dbRow.id,
-                    sheet_id: originalId,
-                    source_fingerprint: dbRow.source_fingerprint || buildReportFingerprint(dbRow),
-                } as Report);
-            }
-        } catch (err) {
-            console.warn(`[ReportsService] Failed to fetch live data for ${originalId}, falling back to DB:`, err);
-        }
+                  return syncEscalationDivisionAliases({
+                      ...dbRow,
+                      ...liveData,
+                      id: dbRow.id,
+                      sheet_id: originalId,
+                      source_fingerprint: dbRow.source_fingerprint || buildReportFingerprint(dbRow),
+                  } as Report);
+              }
+          } catch (err) {
+              console.warn(`[ReportsService] Failed to fetch live data for ${originalId}, falling back to DB:`, err);
+          }
+      }
+
+      return syncEscalationDivisionAliases({
+        ...dbRow,
+        id: dbRow.id,
+        sheet_id: dbRow.sheet_id,
+        source_fingerprint: dbRow.source_fingerprint || buildReportFingerprint(dbRow),
+        evidence_urls: dbRow.evidence_urls || (dbRow.evidence_url ? [dbRow.evidence_url] : []),
+        status: dbRow.status || 'OPEN',
+        severity: dbRow.severity || 'low',
+        priority: dbRow.priority || 'low',
+        date_of_event: dbRow.date_of_event || dbRow.incident_date || dbRow.created_at,
+        created_at: dbRow.created_at || new Date().toISOString(),
+        stations: dbRow.station_id ? { code: dbRow.station_id, name: dbRow.station_id } : undefined,
+      } as Report);
     }
 
-    return syncEscalationDivisionAliases({
-      ...dbRow,
-      id: dbRow.id,
-      sheet_id: dbRow.sheet_id,
-      source_fingerprint: dbRow.source_fingerprint || buildReportFingerprint(dbRow),
-      evidence_urls: dbRow.evidence_urls || (dbRow.evidence_url ? [dbRow.evidence_url] : []),
-      status: dbRow.status || 'OPEN',
-      severity: dbRow.severity || 'low',
-      priority: dbRow.priority || 'low',
-      date_of_event: dbRow.date_of_event || dbRow.incident_date || dbRow.created_at,
-      created_at: dbRow.created_at || new Date().toISOString(),
-      stations: dbRow.station_id ? { code: dbRow.station_id, name: dbRow.station_id } : undefined,
-    } as Report);
+    // JOUMPA reports live in a separate synced table. The row is already a
+    // complete copy, so we return it directly — no live Google Sheets fetch
+    // (that round-trip was the >10s stall + "Report not found" for JOUMPA).
+    const jpFilter = isUuid
+        ? `id.eq.${safeId},sheet_id.eq.${safeId}`
+        : `sheet_id.eq.${safeId}`;
+    const { data: jpData } = await supabaseAdmin
+        .from('joumpa_reports_sync')
+        .select('*')
+        .or(jpFilter)
+        .limit(1);
+
+    if (jpData && jpData.length > 0) {
+        const row = jpData[0];
+        return syncEscalationDivisionAliases({
+            ...row,
+            id: row.id,
+            sheet_id: row.sheet_id,
+            source_fingerprint: row.source_fingerprint || buildReportFingerprint(row),
+            evidence_urls: row.evidence_urls || (row.evidence_url ? [row.evidence_url] : []),
+            status: row.status || 'OPEN',
+            severity: row.severity || 'low',
+            priority: row.priority || 'low',
+            date_of_event: row.date_of_event || row.created_at,
+            created_at: row.created_at || new Date().toISOString(),
+            stations: row.station_id ? { code: row.station_id, name: row.station_id } : undefined,
+        } as Report);
+    }
+
+    return null;
   }
 
   private async fetchLiveFromSheet(originalId: string): Promise<Partial<Report> | null> {

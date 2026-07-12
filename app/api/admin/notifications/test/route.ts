@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     } catch (err) {
         console.error('[NOTIFICATIONS] Test email failed:', err);
         return NextResponse.json({ 
-            error: err instanceof Error ? err.message : 'Gagal mengirim email test' 
+            error: err instanceof Error ? err.message : 'Failed to send test email' 
         }, { status: 500 });
     }
 }

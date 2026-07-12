@@ -6,7 +6,7 @@ export default function LoginPage() {
     return (
         <div className="min-h-[100dvh] flex flex-col lg:flex-row relative overflow-hidden bg-slate-50">
             <div
-                className="hidden lg:flex lg:w-1/2 flex-col justify-between p-8 xl:p-12 relative"
+                className="hidden lg:flex lg:w-1/2 lg:h-[100dvh] flex-col p-6 xl:p-8 relative overflow-hidden"
                 style={{ background: 'linear-gradient(145deg, #059669, #10b981, #34d399)' }}
             >
                 <div className="absolute inset-0 opacity-10">
@@ -19,77 +19,64 @@ export default function LoginPage() {
                     />
                 </div>
 
-                <div className="relative z-10">
+                <div className="relative z-10 shrink-0">
                     <Image
                         src="/logo.png"
                         alt="Gapura"
-                        width={240}
-                        height={90}
-                        className="object-contain brightness-0 invert"
-                        style={{ width: 'auto', height: 'auto' }}
+                        width={180}
+                        height={68}
+                        className="object-contain brightness-0 invert h-auto w-[140px] xl:w-[180px]"
                         priority
                     />
                 </div>
 
-                <div className="relative z-10 mt-6">
-                    <div className="flex flex-col gap-3 w-full">
-                        <div
-                            className="relative w-full overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/20"
-                            style={{ aspectRatio: '2048 / 1362' }}
-                        >
+                <div className="relative z-10 flex-1 min-h-0 flex flex-col gap-2 mt-4">
+                    <div className="relative flex-[3] min-h-0 overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/20">
+                        <Image
+                            src="/login-collage-1.png"
+                            alt="Petugas JOUMPA melayani penumpang di terminal"
+                            fill
+                            sizes="(max-width: 1023px) 0px, 50vw"
+                            className="object-cover"
+                            quality={80}
+                            priority
+                            loading="eager"
+                        />
+                    </div>
+
+                    <div className="flex gap-2 flex-[2] min-h-0">
+                        <div className="relative flex-[1536] basis-0 overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/20">
                             <Image
-                                src="/login-collage-1.png"
-                                alt="Petugas JOUMPA melayani penumpang di terminal"
+                                src="/login-collage-2.png"
+                                alt="Aktivitas ground handling pesawat"
                                 fill
-                                sizes="(max-width: 1023px) 0px, 50vw"
-                                className="object-contain"
-                                quality={80}
-                                priority
-                                loading="eager"
+                                sizes="(max-width: 1023px) 0px, 25vw"
+                                className="object-cover"
                             />
                         </div>
 
-                        <div className="flex gap-3 w-full">
-                            <div
-                                className="relative overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/20"
-                                style={{ aspectRatio: '1536 / 1024', flexGrow: 1536 / 1024, flexBasis: 0 }}
-                            >
-                                <Image
-                                    src="/login-collage-2.png"
-                                    alt="Aktivitas ground handling pesawat"
-                                    fill
-                                    sizes="(max-width: 1023px) 0px, 25vw"
-                                    className="object-contain"
-                                />
-                            </div>
-
-                            <div
-                                className="relative overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/20"
-                                style={{ aspectRatio: '4224 / 3168', flexGrow: 4224 / 3168, flexBasis: 0 }}
-                            >
-                                <Image
-                                    src="/login-collage-3.jpg"
-                                    alt="Kendaraan ground support Gapura di apron"
-                                    fill
-                                    sizes="(max-width: 1023px) 0px, 25vw"
-                                    className="object-contain"
-                                />
-                            </div>
+                        <div className="relative flex-[1333] basis-0 overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/20">
+                            <Image
+                                src="/login-collage-3.jpg"
+                                alt="Kendaraan ground support Gapura di apron"
+                                fill
+                                sizes="(max-width: 1023px) 0px, 25vw"
+                                className="object-cover"
+                            />
                         </div>
                     </div>
                 </div>
 
-                <div className="relative z-10 space-y-4 xl:space-y-6">
-                    <h1 className="text-2xl xl:text-4xl font-bold text-white leading-tight">
+                <div className="relative z-10 shrink-0 mt-4 space-y-2">
+                    <h1 className="text-xl xl:text-2xl font-bold text-white leading-tight">
                         <em>&quot;One Click&quot;</em> Irregularity Report
                     </h1>
-                    <p className="text-white/80 text-base xl:text-lg max-w-md">
+                    <p className="text-white/80 text-sm xl:text-[15px] max-w-md leading-snug">
                         Integrated system for reporting, tracking, and resolving aviation operational irregularities.
                     </p>
-                </div>
-
-                <div className="relative z-10 text-white/60 text-xs xl:text-sm">
-                    © 2025 Gapura Angkasa. All rights reserved.
+                    <p className="text-white/60 text-[11px] xl:text-xs pt-1">
+                        © 2025 Gapura Angkasa. All rights reserved.
+                    </p>
                 </div>
             </div>
 

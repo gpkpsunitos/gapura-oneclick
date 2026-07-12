@@ -83,6 +83,12 @@ export const WrappedXAxisTick = (props: AxisTickProps) => {
     const displayLines = lines.slice(0, 3);
     if (lines.length > 3) displayLines[2] += '...';
 
+    // Single-word labels (station/airline codes) never wrap, so on a narrow
+    // chart width many of them collide edge-to-edge when centered. Rotating
+    // them gives each one its own diagonal lane instead of touching its
+    // neighbor.
+    const rotate = displayLines.length === 1;
+
     return (
         <g transform={`translate(${x ?? 0},${y ?? 0})`}>
             {displayLines.map((line, i) => (
@@ -90,8 +96,10 @@ export const WrappedXAxisTick = (props: AxisTickProps) => {
                     key={i}
                     x={0}
                     y={0}
-                    dy={16 + (i * 12)}
-                    textAnchor="middle"
+                    dy={rotate ? 4 : 16 + (i * 12)}
+                    dx={rotate ? -4 : 0}
+                    textAnchor={rotate ? 'end' : 'middle'}
+                    transform={rotate ? `rotate(-40)` : undefined}
                     fill="var(--text-muted)"
                     fontSize={10}
                     fontWeight={600}
@@ -207,7 +215,7 @@ export function DetailReportTable({ data }: { data: Report[] }) {
     const endIdx = Math.min((page + 1) * DETAIL_PAGE_SIZE, data.length);
 
     if (data.length === 0) {
-        return <p className="text-xs text-[var(--text-muted)] text-center py-4">Tidak ada data</p>;
+        return <p className="text-xs text-[var(--text-muted)] text-center py-4">No data</p>;
     }
 
     return (

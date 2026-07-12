@@ -57,7 +57,7 @@ export function LookersVersionPage() {
                     </GlassCard>
                     <GlassCard>
                         <Link2 className="h-8 w-8 text-violet-600" />
-                        <h2 className="mt-5 text-xl font-black text-[var(--text-primary)]">Placeholder Aktif</h2>
+                        <h2 className="mt-5 text-xl font-black text-[var(--text-primary)]">Active Placeholder</h2>
                         <p className="mt-2 text-sm text-[var(--text-secondary)]">
                             Sampai URL final tersedia, kartu tetap mengarah ke landing Looker Studio agar integrasi menu sudah siap dipakai.
                         </p>

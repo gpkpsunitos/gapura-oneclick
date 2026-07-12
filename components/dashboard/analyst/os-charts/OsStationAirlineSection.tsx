@@ -258,18 +258,18 @@ export function OsStationAirlineSection({
         <div className="space-y-6">
             {}
             <PresentationSlide
-                title="Analisis Bandara Landside & Airside + CGO"
-                subtitle="Performa dan kategori laporan per cabang"
+                title="Landside & Airside + CGO Station Analysis"
+                subtitle="Performance and report categories per branch"
                 icon={Building2}
-                hint="Klik bar untuk filter per stasiun"
+                hint="Click a bar to filter per station"
             >
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {}
                     <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                         <div className="flex items-center justify-between mb-6">
                             <div>
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-70">Total Laporan per Bandara</h3>
-                                <p className="text-[10px] font-medium text-[var(--text-muted)]">Top 10 Bandara dengan volume tertinggi</p>
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-70">Total Reports per Station</h3>
+                                <p className="text-[10px] font-medium text-[var(--text-muted)]">Top 10 stations by volume</p>
                             </div>
                         </div>
                         <div className="h-[250px] sm:h-[300px]">
@@ -281,7 +281,7 @@ export function OsStationAirlineSection({
                                     <Tooltip content={<CustomTooltip />} />
                                     <Bar
                                         dataKey="count"
-                                        name="Laporan"
+                                        name="Report"
                                         fill={REFERENCE_COLORS.irregularity}
                                         radius={[4, 4, 0, 0]}
                                          
@@ -312,8 +312,8 @@ export function OsStationAirlineSection({
                     <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                         <div className="flex items-center justify-between mb-4">
                             <div>
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-70">Kategori per Bandara</h3>
-                                <p className="text-[10px] font-medium text-[var(--text-muted)]">Breakdown tipe laporan per cabang</p>
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-70">Category per Station</h3>
+                                <p className="text-[10px] font-medium text-[var(--text-muted)]">Report type breakdown per branch</p>
                             </div>
                         </div>
                         {}
@@ -590,7 +590,7 @@ export function OsStationAirlineSection({
                     <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
                         <div className="flex items-center justify-between mb-6">
                             <div>
-                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-70">Total Laporan Maskapai</h3>
+                                <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] opacity-70">Total Reports by Airline</h3>
                                 <p className="text-[10px] font-medium text-[var(--text-muted)]">Top Maskapai dengan laporan terbanyak</p>
                             </div>
                         </div>

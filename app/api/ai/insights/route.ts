@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifySession } from '@/lib/auth-utils';
-import { callOpenRouterAI, type OpenRouterMessage } from '@/lib/ai/openrouter';
+import { requireElevatedAISession } from '@/lib/ai-route-helpers';
+import { callOpenRouterAI, OPENROUTER_MODEL, type OpenRouterMessage } from '@/lib/ai/openrouter';
 import { getGoogleSheets } from '@/lib/google-sheets';
 import { checkDbRateLimit } from '@/lib/security/rate-limit';
 
@@ -10,7 +9,7 @@ export const maxDuration = 60;
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
 const REPORT_SHEETS = ['NON CARGO', 'CGO'];
-const INSIGHTS_MODEL = process.env.INSIGHTS_AI_MODEL || 'google/gemini-2.5-flash-preview';
+const INSIGHTS_MODEL = process.env.INSIGHTS_AI_MODEL || OPENROUTER_MODEL;
 const VLOOKUP_SHEET = 'Data for Vlookup';
 
 interface InsightFilters {
@@ -38,11 +37,17 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
 
   const results = await Promise.all(
     sheetsToFetch.map(async (sheetName) => {
-      const response = await sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: sheetName,
-      });
-      return { sheetName, data: response.data.values || [] };
+      try {
+        const response = await sheets.spreadsheets.values.get({
+          spreadsheetId: SPREADSHEET_ID,
+          range: sheetName,
+        });
+        return { sheetName, data: response.data.values || [] };
+      } catch (err) {
+        // ponytail: VLOOKUP_SHEET may not exist; MAPPED_HUB falls back to the row's own HUB column
+        console.error(`Failed to fetch sheet "${sheetName}":`, err instanceof Error ? err.message : err);
+        return { sheetName, data: [] };
+      }
     })
   );
 
@@ -130,7 +135,7 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
       const filtered = structured.filter((row) => {
 
         if (filters.dateFrom || filters.dateTo) {
-          const dateField = row['Date of Event'] || row['Date_of_Event'] || row['Tanggal'] || row['Date'] || '';
+          const dateField = row['Date of Event'] || row['Date_of_Event'] || row['Date'] || row['Date'] || '';
           if (!dateField) return false;
 
           let rowDate: Date;
@@ -270,7 +275,12 @@ function buildDataContext(
     parts.push(`Hub Distribution: ${JSON.stringify(hubCount)}`);
     parts.push(`--------------------------------------------------`);
 
-    const sampleLimit = rows.length;
+    // Cap the per-row detail dump — summary distributions above already cover the
+    // full filtered set, so this is just a sample for illustrative detail. Without
+    // a cap, large result sets blow past the model's context window (seen with
+    // ~1,100 unfiltered rows producing a 156k-token prompt against a 131k limit).
+    const MAX_DETAIL_ROWS = 300;
+    const sampleLimit = Math.min(rows.length, MAX_DETAIL_ROWS);
     const relevantFields = [
       'Date of Event', 'Date_of_Event',
       'Airlines', 'Airline', 'Maskapai', 'Jenis Maskapai',
@@ -278,7 +288,7 @@ function buildDataContext(
       'Branch', 'Reporting Branch', 'Cabang',
       'MAPPED_HUB', 'HUB', 'Hub',
       'Report Category', 'Irregularity/Complain Category',
-      'Report', 'Laporan',
+      'Report', 'Report',
       'Root Caused', 'Root_Caused', 'Akar Masalah',
       'Action Taken', 'Action_Taken', 'Tindakan',
       'Status',
@@ -291,7 +301,11 @@ function buildDataContext(
     const injectedFields = ['MAPPED_HUB'];
     const activeFields = relevantFields.filter((f) => headers.includes(f) || injectedFields.includes(f));
 
-    parts.push(`\nFull Data (${rows.length} rows):`);
+    parts.push(
+      sampleLimit < rows.length
+        ? `\nSample Data (showing ${sampleLimit} of ${rows.length} rows — use the summary distributions above for totals):`
+        : `\nFull Data (${rows.length} rows):`
+    );
     for (let i = 0; i < sampleLimit; i++) {
       const row = rows[i];
       const compactRow = activeFields
@@ -365,16 +379,9 @@ KUALITAS ANALISIS:
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const payload = await verifySession(token);
+    const payload = await requireElevatedAISession();
     if (!payload) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const rl = await checkDbRateLimit(`ai_insights:${payload.id}`, 5, 24 * 60 * 60 * 1000);
@@ -407,7 +414,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         status: 'success',
         answer:
-          '⚠️ **Tidak ada data** yang ditemukan dengan filter yang dipilih. Coba perluas rentang tanggal atau kurangi filter.',
+          '⚠️ **No data** yang ditemukan dengan filter yang dipilih. Coba perluas rentang tanggal atau kurangi filter.',
         highlights: ['0 data ditemukan'],
         metadata: { dataSize: 0, question, timestamp: new Date().toISOString() },
       });
@@ -423,7 +430,11 @@ export async function POST(request: NextRequest) {
       },
     ];
 
-    const aiResponse = await callOpenRouterAI(messages, INSIGHTS_MODEL, 8192);
+    // 2048 output tokens ≈ 4-6s on fast models; 8192 was rarely used and pushed p95 past SLA.
+    const aiResponse = await callOpenRouterAI(messages, INSIGHTS_MODEL, {
+      maxTokens: 2048,
+      timeoutMs: 25000,
+    });
 
     const highlights: string[] = [`${totalRows} data dianalisis`];
     for (const s of sheetResults) {

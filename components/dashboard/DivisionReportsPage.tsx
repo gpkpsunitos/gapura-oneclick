@@ -109,7 +109,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
       await handleRefresh();
     } catch (error) {
       console.error('Error updating status:', error);
-      alert('Gagal mengupdate status laporan');
+      alert('Failed to update report status');
     }
   };
 
@@ -189,7 +189,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
               <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 transition-colors group-focus-within:text-emerald-500" />
               <input
                 type="text"
-                placeholder="Cari laporan, nomor kasus, lokasi, pelapor..."
+                placeholder="Search reports, case number, location, reporter..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full h-14 pl-14 pr-6 rounded-2xl bg-gray-50 border-transparent focus:bg-white focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/10 transition-all font-medium text-slate-700 outline-none"
@@ -203,7 +203,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
                   onChange={(e) => setFilter(e.target.value)}
                   className="w-full h-12 pl-10 pr-8 appearance-none bg-gray-50 rounded-2xl border border-transparent hover:bg-gray-100 transition-colors outline-none font-bold text-[11px] uppercase tracking-wide text-slate-600"
                 >
-                  <option value="all">Semua Status</option>
+                  <option value="all">All Statuses</option>
                   <option value="OPEN">Open</option>
                   <option value="ON PROGRESS">On Progress</option>
                   <option value="CLOSED">Closed</option>
@@ -219,7 +219,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
                   onChange={(e) => setSeverityFilter(e.target.value)}
                   className="w-full h-12 pl-10 pr-8 appearance-none bg-gray-50 rounded-2xl border border-transparent hover:bg-gray-100 transition-colors outline-none font-bold text-[11px] uppercase tracking-wide text-slate-600"
                 >
-                  <option value="all">Semua Severity</option>
+                  <option value="all">All Severities</option>
                   <option value="high">🔴 High</option>
                   <option value="medium">🟡 Medium</option>
                   <option value="low">🟢 Low</option>
@@ -260,7 +260,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="h-2 w-2 rounded-full animate-pulse" style={{ backgroundColor: config.color }} />
-            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Daftar Laporan</h2>
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">Report List</h2>
           </div>
           <p className="text-xs font-bold text-[var(--text-muted)] bg-[var(--surface-3)] px-3 py-1 rounded-full uppercase tracking-tighter">
             {filteredReports.length} laporan

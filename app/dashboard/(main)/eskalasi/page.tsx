@@ -69,7 +69,7 @@ export default function EskalasiDashboard() {
                 >
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm text-gray-500">Total Laporan</p>
+                            <p className="text-sm text-gray-500">Total Reports</p>
                             <p className="text-2xl font-bold text-gray-900">
                                 {loading ? '-' : stats.total}
                             </p>
@@ -154,7 +154,7 @@ export default function EskalasiDashboard() {
                         className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
                     >
                         <Inbox className="w-5 h-5 text-blue-600" />
-                        <span className="font-medium text-gray-700">Semua Laporan</span>
+                        <span className="font-medium text-gray-700">All Reports</span>
                     </Link>
                     <Link
                         href="/dashboard/analyst"

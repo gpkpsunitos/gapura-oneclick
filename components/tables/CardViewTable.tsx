@@ -38,7 +38,7 @@ export function CardViewTable<T>({
   keyExtractor,
   onRowClick,
   className,
-  emptyMessage = 'Tidak ada data',
+  emptyMessage = 'No data',
   showHeader = false,
 }: CardViewTableProps<T>) {
 
@@ -173,8 +173,8 @@ export function formatMobileDate(date: string | Date): string {
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return 'Hari ini';
-  if (diffDays === 1) return 'Kemarin';
+  if (diffDays === 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays} hari lalu`;
 
   return format(d, 'dd MMM', { locale: id });

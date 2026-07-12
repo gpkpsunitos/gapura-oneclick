@@ -20,7 +20,7 @@ function mapRows(values: string[][]) {
   if (!values || values.length === 0) return [] as WSNRow[];
   const headers = (values[0] || []).map(n);
   const idx = (key: string) => headers.findIndex((h) => h.toLowerCase() === key.toLowerCase());
-  const iBulan = idx('Bulan');
+  const iBulan = idx('Month');
   const iNomor = idx('Nomor WSN');
   const iKet = idx('Keterangan');
   const iUnit = idx('Unit');

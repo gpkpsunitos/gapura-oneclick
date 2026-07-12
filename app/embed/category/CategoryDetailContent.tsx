@@ -184,6 +184,7 @@ function CompactPieChart({ data }: { data: CountDatum[] }) {
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
+              isAnimationActive={false}
               data={pieData}
               dataKey="value"
               nameKey="name"
@@ -340,7 +341,7 @@ export function CategoryDetailContent() {
 
   return (
     <>
-      <Link href={`/embed/overview?range=${range}`} className="back-link">← Kembali ke Overview</Link>
+      <Link href={`/embed/overview?range=${range}`} className="back-link">← Back to Overview</Link>
 
       <header className="page-header report-category-hero">
         <div>
@@ -407,11 +408,11 @@ export function CategoryDetailContent() {
         </EmbedCard>
       </div>
 
-      <EmbedCard title="Daftar Laporan" className="mt-6 compact-card">
+      <EmbedCard title="Report List" className="mt-6 compact-card">
         <div className="embed-table-container">
           <table className="embed-table">
             <thead>
-              <tr><th>Tanggal</th><th>Judul</th><th>Kategori</th><th>Station</th><th>Airlines</th><th>Area</th><th>Status</th><th>Severity</th></tr>
+              <tr><th>Date</th><th>Judul</th><th>Kategori</th><th>Station</th><th>Airlines</th><th>Area</th><th>Status</th><th>Severity</th></tr>
             </thead>
             <tbody>
               {reports.slice(0, 50).map((report) => (

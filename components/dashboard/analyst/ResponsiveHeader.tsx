@@ -84,15 +84,15 @@ export function ResponsiveHeader({
       : { from: new Date().toISOString().split('T')[0], to: new Date().toISOString().split('T')[0] }
   );
 
-  const headerTitle = title ?? 'Pusat Analytics';
-  const headerSubtitle = subtitle ?? 'Divisi Operational Services Center';
+  const headerTitle = title ?? 'Analytics Center';
+  const headerSubtitle = subtitle ?? 'Operational Services Division';
   const isExecutiveVariant = variant === 'op-executive';
   const canToggleView = Boolean(activeView && onViewChange);
 
   const dateRangeOptions = [
-    { value: 'all' as const, label: 'Semua' },
-    { value: 'month' as const, label: '30 Hari' },
-    { value: 'week' as const, label: '7 Hari' },
+    { value: 'all' as const, label: 'All' },
+    { value: 'month' as const, label: '30 Days' },
+    { value: 'week' as const, label: '7 Days' },
     { value: 'custom' as const, label: 'Custom Date' },
   ];
 
@@ -321,7 +321,7 @@ export function ResponsiveHeader({
       )}
     >
       <RefreshCw size={16} className={cn(refreshing && 'animate-spin')} />
-      <span>{refreshing ? 'Memuat...' : 'Refresh'}</span>
+      <span>{refreshing ? 'Loading...' : 'Refresh'}</span>
     </Button>
   );
 
@@ -332,6 +332,7 @@ export function ResponsiveHeader({
           <Button
             key={action.label}
             onClick={action.onClick}
+            aria-label={action.label}
             className={cn(
               'w-full sm:w-auto items-center justify-center sm:justify-start gap-2 min-h-[48px] px-4 sm:px-5 rounded-2xl border-0 transition-all duration-300 font-display font-bold',
               isExecutiveVariant
@@ -402,7 +403,7 @@ export function ResponsiveHeader({
                             : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                         )}
                       >
-                        {viewOption === 'dashboard' ? 'Dashboard' : 'Semua Laporan'}
+                        {viewOption === 'dashboard' ? 'Dashboard' : 'All Reports'}
                       </button>
                     ))}
                   </div>
@@ -441,6 +442,7 @@ export function ResponsiveHeader({
             <Button
               onClick={onCustomerFeedback}
               disabled={cfLoading}
+              aria-label="Feedback"
               className={cn(
                 'hidden xl:inline-flex items-center gap-2 min-h-[48px] px-6',
                 'bg-gradient-to-br from-[var(--brand-emerald-500)] to-[var(--brand-emerald-600)] text-[var(--text-on-brand)]',
@@ -458,6 +460,7 @@ export function ResponsiveHeader({
             <Button
               onClick={onFilterClick}
               variant="ghost"
+              aria-label="Filter"
               className={cn(
                 'hidden xl:inline-flex items-center gap-2 min-h-[48px] px-5',
                 'bg-[oklch(1_0_0_/_0.3)] backdrop-blur-xl border border-[oklch(1_0_0_/_0.1)] text-[var(--text-primary)] transition-all duration-300',
@@ -475,6 +478,7 @@ export function ResponsiveHeader({
             onClick={onExportExcel}
             disabled={exporting !== null}
             variant="ghost"
+            aria-label="Export"
             className={cn(
               'hidden xl:inline-flex items-center gap-2 min-h-[48px] px-5',
               'bg-emerald-500/5 hover:bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-bold',

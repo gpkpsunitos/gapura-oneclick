@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Lock, X, Eye, EyeOff, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 
 interface QuickAccessPasswordModalProps {
 
@@ -72,7 +73,8 @@ export function QuickAccessPasswordModal({
         setTimeout(() => setShake(false), 500);
     };
 
-    return (
+    if (typeof document === 'undefined') return null;
+    return createPortal(
         <AnimatePresence>
             {isOpen && (
                 <>
@@ -125,7 +127,7 @@ export function QuickAccessPasswordModal({
                                 <button
                                     onClick={onClose}
                                     className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors active:scale-95"
-                                    aria-label="Tutup"
+                                    aria-label="Close"
                                 >
                                     <X size={16} />
                                 </button>
@@ -169,7 +171,7 @@ export function QuickAccessPasswordModal({
                                     </div>
                                     {error && (
                                         <p className="text-xs text-red-500 font-medium">
-                                            Password salah. Silakan coba lagi.
+                                            Incorrect password. Please try again.
                                         </p>
                                     )}
                                 </div>
@@ -187,6 +189,7 @@ export function QuickAccessPasswordModal({
                     </motion.div>
                 </>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body,
     );
 }

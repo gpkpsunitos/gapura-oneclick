@@ -4,7 +4,8 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { validateStatusTransition, getTimestampFieldForStatus, getUserFieldForStatus } from '@/lib/utils/validate-transition';
 import { reportsService } from '@/lib/services/reports-service';
-import { notifyReportClosedEmail } from '@/lib/notifications';
+import { notifyReportClosedEmail, notifyStatusChange } from '@/lib/notifications';
+import { isBranchRole } from '@/lib/server/workspace-auth';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -75,6 +76,13 @@ export async function GET(request: Request) {
             filters: status && status !== 'all' ? { status } : undefined,
         });
         const role = String(payload.role || '').trim().toUpperCase();
+
+        // Company-wide report data is for admin/analyst/divisional roles.
+        // Branch staff below manager level must not see other stations' data.
+        if (isBranchRole(role) && role !== 'MANAGER_CABANG') {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        }
+
         const managerStationValues = new Set<string>();
 
         if (role === 'MANAGER_CABANG') {
@@ -140,7 +148,7 @@ export async function GET(request: Request) {
         });
     } catch (error) {
         console.error('Error fetching reports:', error);
-        return NextResponse.json({ error: 'Gagal memuat laporan' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to load reports' }, { status: 500 });
     }
 }
 
@@ -172,7 +180,7 @@ export async function PATCH(request: Request) {
         const report = await reportsService.getReportById(reportId);
 
         if (!report) {
-            return NextResponse.json({ error: 'Laporan tidak ditemukan' }, { status: 404 });
+            return NextResponse.json({ error: 'Report not found' }, { status: 404 });
         }
 
         const userRole = session.role;
@@ -252,9 +260,20 @@ export async function PATCH(request: Request) {
             });
         }
 
+        if (String(newStatus).trim().toUpperCase() !== String(report.status || '').trim().toUpperCase()) {
+            notifyStatusChange(
+                String(updatedReport.id || reportId),
+                updatedReport.title || updatedReport.report || 'Untitled report',
+                String(report.status || '-'),
+                String(newStatus)
+            ).catch((notificationError) => {
+                console.warn('[ADMIN_REPORTS] Status-change notification failed:', notificationError);
+            });
+        }
+
         return NextResponse.json({ success: true, newStatus });
     } catch (error) {
         console.error('Error updating report:', error);
-        return NextResponse.json({ error: 'Gagal mengubah status' }, { status: 500 });
+        return NextResponse.json({ error: 'Failed to change status' }, { status: 500 });
     }
 }

@@ -15,8 +15,8 @@ interface TimePeriodFilterProps {
 const PERIOD_OPTIONS: { value: TimePeriod; label: string }[] = [
     { value: '7d', label: '7 Hari' },
     { value: '30d', label: '30 Hari' },
-    { value: '3m', label: '3 Bulan' },
-    { value: '6m', label: '6 Bulan' },
+    { value: '3m', label: '3 Months' },
+    { value: '6m', label: '6 Months' },
 ];
 
 export function TimePeriodFilter({ value, onChange, className }: TimePeriodFilterProps) {

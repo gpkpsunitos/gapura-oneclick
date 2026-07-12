@@ -102,7 +102,12 @@ interface PointLabelProps {
 
 function renderPieLabel({ cx = 0, cy = 0, midAngle = 0, outerRadius = 0, name = '', value = 0, payload }: PieLabelProps) {
     const total = payload?.total || 0;
-    const pct = total > 0 ? ((value / total) * 100).toFixed(0) : '0';
+    const pctValue = total > 0 ? (value / total) * 100 : 0;
+    // Slices this thin sit close enough to their neighbors that fixed-angle
+    // outside labels collide and render illegibly on top of each other.
+    // The value is still visible via tooltip/legend, so just skip the label.
+    if (pctValue < 4) return null;
+    const pct = pctValue.toFixed(0);
     const radius = outerRadius + 18;
     const x = cx + radius * Math.cos(-midAngle * RADIAN);
     const y = cy + radius * Math.sin(-midAngle * RADIAN);
@@ -324,12 +329,13 @@ export default function ManagerDashboard() {
 
             {}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ChartCard title="Category Distribution" subtitle={`${total} total reports`} hint="Klik segmen untuk detail">
+                <ChartCard title="Category Distribution" subtitle={`${total} total reports`} hint="Click segment for detail">
                     <div style={{ height: 320, width: '100%' }}>
                         {catWithTotal.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
                                     <Pie
+                                      isAnimationActive={false}
                                         data={catWithTotal}
                                         cx="50%"
                                         cy="50%"
@@ -344,7 +350,7 @@ export default function ManagerDashboard() {
                                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         onClick={(entry: any) => {
                                             const cat = entry.name as string;
-                                            openDrilldown(rows.filter(r => (r.main_category || r.category || 'Lainnya') === cat), `Category: ${cat}`);
+                                            openDrilldown(rows.filter(r => (r.main_category || r.category || 'Other') === cat), `Category: ${cat}`);
                                         }}
                                     >
                                         {catWithTotal.map((entry, i) => (
@@ -360,7 +366,7 @@ export default function ManagerDashboard() {
                     </div>
                 </ChartCard>
 
-                <ChartCard title="Severity Distribution" subtitle={`${total} total reports`} hint="Klik bar untuk detail">
+                <ChartCard title="Severity Distribution" subtitle={`${total} total reports`} hint="Click bar for detail">
                     <div style={{ height: 320, width: '100%' }}>
                         {sevWithTotal.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -396,12 +402,13 @@ export default function ManagerDashboard() {
 
             {}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ChartCard title="Report Status" subtitle="Open vs Closed" hint="Klik segmen untuk detail">
+                <ChartCard title="Report Status" subtitle="Open vs Closed" hint="Click segment for detail">
                     <div style={{ height: 300, width: '100%' }}>
                         {statusWithTotal.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart margin={{ top: 20, right: 40, bottom: 20, left: 40 }}>
                                     <Pie
+                                      isAnimationActive={false}
                                         data={statusWithTotal}
                                         cx="50%"
                                         cy="50%"
@@ -432,7 +439,7 @@ export default function ManagerDashboard() {
                     </div>
                 </ChartCard>
 
-                <ChartCard title="Area Distribution" subtitle="Terminal / Apron / General" hint="Klik bar untuk detail">
+                <ChartCard title="Area Distribution" subtitle="Terminal / Apron / General" hint="Click bar for detail">
                     <div style={{ height: 300, width: '100%' }}>
                         {areaWithTotal.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -450,7 +457,7 @@ export default function ManagerDashboard() {
                                         style={{ cursor: 'pointer' }}
                                         // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                         onClick={(data: any) => {
-                                            openDrilldown(rows.filter(r => (r.area || 'Tidak Diketahui') === data.name), `Area: ${data.name}`);
+                                            openDrilldown(rows.filter(r => (r.area || 'Unknown') === data.name), `Area: ${data.name}`);
                                         }}
                                     >
                                         {areaWithTotal.map((_, i) => (
@@ -468,7 +475,7 @@ export default function ManagerDashboard() {
 
             {}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <ChartCard title="Monthly Trend" subtitle="Last 12 months" hint="Klik titik/area untuk detail">
+                <ChartCard title="Monthly Trend" subtitle="Last 12 months" hint="Click point/area for detail">
                     <div style={{ height: 380, width: '100%' }}>
                         {monthlyTrend.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -480,7 +487,7 @@ export default function ManagerDashboard() {
                                     onClick={(chartData: any) => {
                                         const p = chartData?.activePayload?.[0]?.payload;
                                         if (!p) return;
-                                        openDrilldown(rows.filter(r => monthKey(r) === p.rawMonth), `Bulan: ${p.month}`);
+                                        openDrilldown(rows.filter(r => monthKey(r) === p.rawMonth), `Month: ${p.month}`);
                                     }}
                                 >
                                     <defs>
@@ -511,7 +518,7 @@ export default function ManagerDashboard() {
                     </div>
                 </ChartCard>
 
-                <ChartCard title="Monthly Trend by Category" subtitle="Stacked by Irregularity / Complaint / Compliment" hint="Klik bar untuk detail">
+                <ChartCard title="Monthly Trend by Category" subtitle="Stacked by Irregularity / Complaint / Compliment" hint="Click bar for detail">
                     <div style={{ height: 380, width: '100%' }}>
                         {monthlyTrend.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -547,7 +554,7 @@ export default function ManagerDashboard() {
             </div>
 
             {}
-            <ChartCard title="Top 10 Airlines" subtitle="Based on number of reports" hint="Klik bar untuk detail">
+            <ChartCard title="Top 10 Airlines" subtitle="Based on number of reports" hint="Click bar for detail">
                 <div style={{ height: topAirlines.length * 36 + 40, width: '100%' }}>
                     {airlineWithTotal.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -565,7 +572,7 @@ export default function ManagerDashboard() {
                                     style={{ cursor: 'pointer' }}
                                     // eslint-disable-next-line @typescript-eslint/no-explicit-any
                                     onClick={(data: any) => {
-                                        openDrilldown(rows.filter(r => (r.airline || r.airlines || 'Tidak Diketahui') === data.name), `Airline: ${data.name}`);
+                                        openDrilldown(rows.filter(r => (r.airline || r.airlines || 'Unknown') === data.name), `Airline: ${data.name}`);
                                     }}
                                 >
                                     {airlineWithTotal.map((_, i) => (

@@ -143,7 +143,7 @@ export function ChartConfigPanel({ visualization, result, onChange }: ChartConfi
               onChange={e => onChange({ showLegend: e.target.checked })}
               className="rounded border-[var(--surface-4)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
             />
-            Tampilkan Legend
+            Show Legend
           </label>
           <label className="flex items-center gap-2 text-xs text-[var(--text-secondary)] cursor-pointer">
             <input
@@ -152,7 +152,7 @@ export function ChartConfigPanel({ visualization, result, onChange }: ChartConfi
               onChange={e => onChange({ showLabels: e.target.checked })}
               className="rounded border-[var(--surface-4)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)]"
             />
-            Tampilkan Label
+            Show Label
           </label>
         </div>
 

@@ -262,7 +262,7 @@ function Panel({
         <div className="sr-table-caption-title min-w-0">
           <span className="h-6 w-1 bg-[color:var(--sr-gold)]" aria-hidden="true" />
           <div className="min-w-0">
-            <h3 className="truncate text-[15px] font-bold leading-snug tracking-[-0.02em] text-[color:var(--sr-text)]">
+            <h3 className="text-[15px] font-bold leading-snug tracking-[-0.02em] text-[color:var(--sr-text)]">
               {title}
             </h3>
             {subtitle ? (
@@ -444,6 +444,7 @@ function Donut({
         <ResponsiveContainer width="100%" height="100%" minHeight={120}>
           <PieChart>
             <Pie
+              isAnimationActive={false}
               data={rows}
               dataKey="total"
               nameKey="label"
@@ -563,16 +564,16 @@ function HeatMatrix({
               {rowLabel}
             </th>
             {rowLabel2 ? (
-              <th className="!text-left" style={{ width: '28%', whiteSpace: 'normal' }}>
+              <th className="!text-left" style={{ width: '28%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                 {rowLabel2}
               </th>
             ) : null}
             {colKeys.map((c) => (
-              <th key={c.id} className="sr-center" style={{ whiteSpace: 'normal' }}>
+              <th key={c.id} className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                 {c.label}
               </th>
             ))}
-            <th className="sr-center" style={{ whiteSpace: 'normal' }}>Total</th>
+            <th className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>Total</th>
           </tr>
         </thead>
         <tbody>
@@ -713,21 +714,21 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
         >
           <thead>
             <tr>
-              <th style={{ width: '10%', whiteSpace: 'normal' }} className="!text-left">Date</th>
-              <th style={{ width: '11%', whiteSpace: 'normal' }} className="!text-left">Category</th>
-              <th style={{ width: '6%', whiteSpace: 'normal' }} className="!text-left">Station</th>
-              <th style={{ width: '14%', whiteSpace: 'normal' }} className="!text-left">Airlines</th>
-              <th style={{ width: '8%', whiteSpace: 'normal' }} className="!text-left">Flight</th>
-              <th style={{ whiteSpace: 'normal' }} className="!text-left">Report</th>
-              <th style={{ width: '8%', whiteSpace: 'normal' }} className="sr-center">Status</th>
-              <th style={{ width: '9%', whiteSpace: 'normal' }} className="sr-center">Details</th>
+              <th style={{ width: '10%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Date</th>
+              <th style={{ width: '11%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Category</th>
+              <th style={{ width: '6%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Station</th>
+              <th style={{ width: '14%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Airlines</th>
+              <th style={{ width: '8%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Flight</th>
+              <th style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Report</th>
+              <th style={{ width: '8%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Status</th>
+              <th style={{ width: '9%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Details</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="!py-10 text-center text-[12px] font-medium text-[color:var(--sr-text-3)]">
-                  Tidak ada data
+                  No data
                 </td>
               </tr>
             ) : (
@@ -1034,11 +1035,39 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
       section: 'CGO Cargo Report',
       title: 'CGO Cargo Report',
       chartType: 'cgo_overview',
-      chartData: [
-        ...monthlyRows.map((r) => ({ label: `Month ${r.label}`, value: r.total })),
-        ...stationRows.map((r) => ({ label: `Station ${r.label}`, value: r.total })),
-        ...airlineRows.slice(0, 12).map((r) => ({ label: `Airline ${r.label}`, value: r.total })),
-        ...cargoCategoryRows.map((r) => ({ label: `Cargo ${r.label}`, value: r.total })),
+      datasets: [
+        {
+          id: 'monthly',
+          name: 'Cargo Cases per Month',
+          unit: 'kasus',
+          kind: 'timeseries',
+          description: 'Jumlah laporan kargo (CGO) per bulan, urut kronologis.',
+          rows: monthlyRows.map((r) => ({ label: r.label, value: r.total })),
+        },
+        {
+          id: 'stations',
+          name: 'Kasus per Stasiun',
+          unit: 'kasus',
+          kind: 'ranking',
+          description: 'Jumlah laporan kargo per stasiun (kode bandara).',
+          rows: stationRows.map((r) => ({ label: r.label, value: r.total })),
+        },
+        {
+          id: 'airlines',
+          name: 'Kasus per Maskapai',
+          unit: 'kasus',
+          kind: 'ranking',
+          description: 'Jumlah laporan kargo per maskapai.',
+          rows: airlineRows.slice(0, 12).map((r) => ({ label: r.label, value: r.total })),
+        },
+        {
+          id: 'cargo_categories',
+          name: 'Kategori Masalah Kargo',
+          unit: 'kasus',
+          kind: 'ranking',
+          description: 'Jumlah laporan per kategori masalah penanganan kargo.',
+          rows: cargoCategoryRows.map((r) => ({ label: r.label, value: r.total })),
+        },
       ],
       featureHints: ['forecasting', 'seasonality', 'riskScoring', 'summarization', 'actionRecommendation'],
     }),
@@ -1141,7 +1170,7 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <Panel
-            title="Monthly Report"
+            title="Monthly"
             total={monthlyRows.reduce((s, r) => s + r.total, 0)}
             className="h-[18rem]"
             aiContext={{
@@ -1182,7 +1211,7 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
           </Panel>
 
           <Panel
-            title="HUB Report"
+            title="HUB"
             total={hubRows.reduce((s, r) => s + r.total, 0)}
             className="h-[18rem]"
             aiContext={{
@@ -1253,7 +1282,7 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
           </Panel>
 
           <Panel
-            title="Station Report"
+            title="Station"
             total={stationRows.reduce((s, r) => s + r.total, 0)}
             className="h-[18rem]"
             aiContext={{
@@ -1278,7 +1307,7 @@ export function CgoCargoReportTab({ reports }: CgoCargoReportTabProps) {
           </Panel>
 
           <Panel
-            title="Airlines Report"
+            title="Airlines"
             total={airlineRows.reduce((s, r) => s + r.total, 0)}
             className="h-[18rem]"
             aiContext={{

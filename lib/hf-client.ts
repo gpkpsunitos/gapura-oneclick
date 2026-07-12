@@ -43,6 +43,8 @@ interface QueuedRequest {
 interface HfClientConfig {
   /** Base URL untuk layanan AI */
   baseUrl: string;
+  /** API key untuk header X-API-Key (kosong = layanan tanpa autentikasi) */
+  apiKey: string;
   /** Rate limit dalam request per menit */
   rateLimitRpm: number;
   /** Time-to-live cache dalam milidetik */
@@ -84,6 +86,10 @@ const DEFAULT_CONFIG: HfClientConfig = {
   baseUrl: typeof window !== 'undefined'
     ? ''
     : (process.env.AI_SERVICE_URL || process.env.NEXT_PUBLIC_AI_SERVICE_URL || 'https://gapura-dev-gapura-ai.hf.space'),
+  // Server-only secret — di browser selalu kosong (request browser lewat /api proxy).
+  apiKey: typeof window !== 'undefined'
+    ? ''
+    : (process.env.ML_SERVICE_API_KEY || process.env.AI_SERVICE_API_KEY || ''),
   rateLimitRpm: parseInt(process.env.HF_RATE_LIMIT_RPM || '100', 10),
   cacheTtlMs: parseInt(process.env.HF_CACHE_TTL_MS || '900000', 10),
   maxRetries: parseInt(process.env.HF_MAX_RETRIES || '3', 10),
@@ -382,6 +388,12 @@ class HuggingFaceClient {
     signal?: AbortSignal
   ): Promise<Response> {
     const fullUrl = url.startsWith('http') ? url : `${this.config.baseUrl}${url}`;
+    if (this.config.apiKey) {
+      options = {
+        ...options,
+        headers: { ...(options.headers as Record<string, string> | undefined), 'X-API-Key': this.config.apiKey },
+      };
+    }
     const effectiveTtl = cacheOptions?.ttl ?? this.config.cacheTtlMs;
     const cacheKey = cacheOptions?.cacheKey ?? this.generateCacheKey(fullUrl, options);
 
@@ -398,13 +410,15 @@ class HuggingFaceClient {
 
       if (this.pendingRequests.has(cacheKey)) {
         this.stats.dedupedRequests++;
-        return this.pendingRequests.get(cacheKey)!;
+        return this.pendingRequests.get(cacheKey)!.then((response) => response.clone());
       }
     }
 
     const requestPromise = (async () => {
       if (signal?.aborted) {
-        throw new Error('Request aborted');
+        const abortError = new Error('Request aborted');
+        abortError.name = 'AbortError';
+        throw abortError;
       }
 
       if (!this.canMakeRequest()) {
@@ -583,13 +597,16 @@ class HuggingFaceClient {
   }
 }
 
-let globalHfClient: HuggingFaceClient | null = null;
+// One instance per resolved baseUrl. Keying by baseUrl matters because callers
+// like ml-client pass a different ML_SERVICE_URL — a single global singleton
+// would silently pin every caller to whichever baseUrl was requested first.
+const hfClients = new Map<string, HuggingFaceClient>();
 
 /**
- * Mendapatkan atau membuat instance global HuggingFaceClient
- * Menggunakan pattern singleton untuk memastikan hanya satu instance yang digunakan
- * 
- * @param config - Konfigurasi parsial untuk instance baru (hanya jika belum ada)
+ * Mendapatkan atau membuat instance HuggingFaceClient untuk baseUrl tertentu.
+ * Instance dibagi (di-cache) per baseUrl agar timer & cache tidak berlipat.
+ *
+ * @param config - Konfigurasi parsial (dipakai hanya saat instance dibuat).
  * @returns Instance HuggingFaceClient
  * @example
  * ```typescript
@@ -597,27 +614,30 @@ let globalHfClient: HuggingFaceClient | null = null;
  * ```
  */
 export function getHfClient(config?: Partial<HfClientConfig>): HuggingFaceClient {
-  if (!globalHfClient) {
-    globalHfClient = new HuggingFaceClient(config);
+  const baseUrl = config?.baseUrl ?? DEFAULT_CONFIG.baseUrl;
+  let instance = hfClients.get(baseUrl);
+  if (!instance) {
+    instance = new HuggingFaceClient(config);
+    hfClients.set(baseUrl, instance);
   }
-  return globalHfClient;
+  return instance;
 }
 
 /**
- * Mereset instance global HuggingFaceClient
+ * Mereset semua instance HuggingFaceClient.
  *
- * [FIX] Now calls destroy() on the existing instance before nulling
- * the reference. This ensures the setInterval timer, cache Maps,
- * and queued requests are properly cleaned up before the singleton
- * is replaced — preventing the most common leak vector in this module.
+ * [FIX] Now calls destroy() on each existing instance before clearing the
+ * map. This ensures the setInterval timer, cache Maps, and queued requests
+ * are properly cleaned up before the singletons are replaced — preventing
+ * the most common leak vector in this module.
  *
  * Berguna untuk testing atau re-initialization
  */
 export function resetHfClient(): void {
-  if (globalHfClient) {
-    globalHfClient.destroy();
+  for (const instance of hfClients.values()) {
+    instance.destroy();
   }
-  globalHfClient = null;
+  hfClients.clear();
 }
 
 export { HuggingFaceClient };

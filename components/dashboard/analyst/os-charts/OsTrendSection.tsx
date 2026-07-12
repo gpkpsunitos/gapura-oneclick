@@ -81,7 +81,7 @@ function CategoryBarList({ data, color = '#08ad6f', title }: { data: readonly { 
                     </div>
                 ))}
                 {data.length === 0 && (
-                    <p className="text-xs text-[var(--text-muted)] text-center py-4">Tidak ada data</p>
+                    <p className="text-xs text-[var(--text-muted)] text-center py-4">No data</p>
                 )}
             </div>
             {totalPages > 1 && (
@@ -374,7 +374,7 @@ export function OsTrendSection({
         const pending = total - resolved;
         return [
             { name: 'Selesai', value: resolved, fill: '#08ad6f' },
-            { name: 'Belum Selesai', value: pending, fill: '#0f86c1' }
+            { name: 'Not Yet Complete', value: pending, fill: '#0f86c1' }
         ];
     }, [safeTrendData]);
 
@@ -456,7 +456,7 @@ export function OsTrendSection({
                             onClick={() => setIsFilterCollapsed(!isFilterCollapsed)}
                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--surface-3)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-colors text-xs font-bold text-[var(--text-secondary)]"
                         >
-                            <span>{isFilterCollapsed ? 'Tampilkan Filter' : 'Sembunyikan Filter'}</span>
+                            <span>{isFilterCollapsed ? 'Show Filter' : 'Hide Filter'}</span>
                             <motion.svg 
                                 width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                                 animate={{ rotate: isFilterCollapsed ? 0 : 180 }}
@@ -619,6 +619,7 @@ export function OsTrendSection({
                                 <ResponsiveContainer width="100%" height="100%">
                                     <RechartsPie>
                                         <Pie
+                                          isAnimationActive={false}
                                             data={sortedCaseCategoryData}
                                             cx="50%"
                                             cy="50%"
@@ -649,7 +650,7 @@ export function OsTrendSection({
 
                         {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
-                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-6 opacity-70">Tren Bulanan (Irregularity, Complaint, Compliment)</h3>
+                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-6 opacity-70">Monthly Trend (Irregularity, Complaint, Compliment)</h3>
                             <div className="h-[280px]">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart
@@ -724,6 +725,7 @@ export function OsTrendSection({
                                 <ResponsiveContainer width="100%" height="100%">
                                     <RechartsPie>
                                         <Pie
+                                          isAnimationActive={false}
                                             data={categoryByAreaWithColors}
                                             cx="50%"
                                             cy="50%"
@@ -894,7 +896,7 @@ export function OsTrendSection({
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)] mb-1 opacity-70">Case Report by Area</h3>
                             <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Area Report / Station by Airlines</p>
                             {caseReportByAreaData.length === 0 ? (
-                                <p className="text-xs text-gray-400 text-center py-6">Tidak ada data</p>
+                                <p className="text-xs text-gray-400 text-center py-6">No data</p>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <div className="max-h-[188px] overflow-y-auto">

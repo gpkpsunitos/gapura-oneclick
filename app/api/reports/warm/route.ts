@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { reportsService } from '@/lib/services/reports-service';
 import { getSyncState } from '@/lib/sync-state';
-import type { Report } from '@/types';
+import { applyReportsRbacFilter } from '@/lib/reports-rbac';
 
 export async function GET() {
   const cookieStore = await cookies();
@@ -25,7 +25,7 @@ export async function GET() {
 
   const reports = await reportsService.getReports({ source: 'sync' });
 
-  const accessibleReports = applyRbacFilter(reports, role, session.id as string, userStationId, userEmail);
+  const accessibleReports = applyReportsRbacFilter(reports, role, session.id as string, userStationId, userEmail);
 
   const syncState = await getSyncState('reports');
   const cacheVersion = syncState.sync_version || 0;
@@ -48,34 +48,4 @@ export async function GET() {
       'Vary': 'Cookie',
     },
   });
-}
-
-function applyRbacFilter(
-  reports: Report[],
-  role: string,
-  userId: string,
-  stationId: string | null,
-  email: string
-): Report[] {
-  if (role === 'SUPER_ADMIN' || role === 'ANALYST') {
-    return reports;
-  }
-
-  if (role === 'STAFF_CABANG' || role === 'CABANG' || role === 'EMPLOYEE') {
-    return reports.filter(r =>
-      r.user_id === userId ||
-      (email && String(r.reporter_email || '').toLowerCase() === email)
-    );
-  }
-
-  if (role === 'MANAGER_CABANG' && stationId) {
-    return reports.filter(r => r.station_id === stationId || r.branch === stationId);
-  }
-
-  if (role.startsWith('DIVISI_') || role.startsWith('PARTNER_')) {
-    const division = role.split('_').slice(1).join('_');
-    return reports.filter(r => r.target_division === division);
-  }
-
-  return [];
 }

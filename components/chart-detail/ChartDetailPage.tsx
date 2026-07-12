@@ -261,7 +261,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
           onClick={() => router.push('/dashboard')}
           className="px-6 py-2.5 bg-[#6b8e3d] text-white font-bold rounded-lg shadow-md hover:bg-[#5a7a3a] transition-all"
         >
-          Kembali ke Dashboard
+          Back to Dashboard
         </button>
       </div>
     );

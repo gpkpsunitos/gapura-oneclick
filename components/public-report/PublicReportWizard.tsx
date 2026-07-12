@@ -42,6 +42,7 @@ import { SignaturePad } from '@/components/public-report/SignaturePad';
 import PublicJoumpaForm from '@/components/public-report/PublicJoumpaForm';
 import PublicIrregularityForm from '@/components/public-report/PublicIrregularityForm';
 import { generatePDF, generateWord } from '@/lib/utils/document-generator';
+import { toLocalDateInput } from './apple-form-shell';
 import {
   normalizeFlightNumber,
   validatePublicReportFlightStation,
@@ -69,7 +70,7 @@ export function PublicReportWizard() {
   }, []);
 
   const initialFormData: FormData = {
-    incident_date: new Date().toISOString().split('T')[0],
+    incident_date: toLocalDateInput(new Date()),
     airline: '',
     flight_number: '',
     station_id: '',
@@ -109,6 +110,9 @@ export function PublicReportWizard() {
   const [duplicateCheckDone, setDuplicateCheckDone] = useState(false);
   const [uploadToken, setUploadToken] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // ponytail: synchronous re-entry guard — disabled={loading} flips a tick too late
+  // to stop a same-tick second submit from creating a duplicate report.
+  const submittingRef = useRef(false);
   const [createdReport, setCreatedReport] = useState<CreatedReport | null>(null);
   const [submissionMode, setSubmissionMode] = useState<'submitted' | 'queued'>('submitted');
   const [pendingProtectedCategory, setPendingProtectedCategory] = useState<QuickAccessCategory | null>(null);
@@ -433,12 +437,17 @@ export function PublicReportWizard() {
   /**
    * Menangani file yang dipilih untuk diunggah
    */
+  const uploadingFilesRef = useRef(false);
+  const [uploadingFiles, setUploadingFiles] = useState(false);
   const handleFilesSelected = async () => {
     if (!selectedFiles.length) return;
+    if (uploadingFilesRef.current) return;
     if (!navigator.onLine) {
       setError('You are offline. Files will be queued when the report is submitted.');
       return;
     }
+    uploadingFilesRef.current = true;
+    setUploadingFiles(true);
     try {
       const { uploadedUrls, failedKeys, successKeys } = await uploadEvidenceFiles(selectedFiles);
       setFormData((prev) => ({ ...prev, evidence_urls: [...prev.evidence_urls, ...uploadedUrls] }));
@@ -447,6 +456,9 @@ export function PublicReportWizard() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to upload evidence';
       setError(message);
+    } finally {
+      uploadingFilesRef.current = false;
+      setUploadingFiles(false);
     }
   };
 
@@ -872,6 +884,8 @@ export function PublicReportWizard() {
    */
   const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
     if (e) e.preventDefault();
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setLoading(true);
     setError('');
     try {
@@ -902,7 +916,7 @@ export function PublicReportWizard() {
         }
       }
 
-      const airlineValue = formData.airline === 'Other / Lainnya'
+      const airlineValue = formData.airline === 'Other'
         ? (formData.airline_other.trim() || 'Other')
         : formData.airline;
       const areaCategoryValue = formData.area_category === 'Other'
@@ -1033,6 +1047,7 @@ export function PublicReportWizard() {
       const message = err instanceof Error ? err.message : 'Terjadi kesalahan';
       setError(message);
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };
@@ -1417,7 +1432,7 @@ export function PublicReportWizard() {
                             </option>
 	                          ))}
 	                        </select>
-                        {formData.airline === 'Other / Lainnya' && (
+                        {formData.airline === 'Other' && (
                           <input
                             type="text"
                             placeholder="Enter airline name"
@@ -1891,9 +1906,10 @@ export function PublicReportWizard() {
                           </div>
                           <PrismButton
                             onClick={handleFilesSelected}
-                            className="bg-blue-600 text-white px-6 py-2.5 text-sm font-bold shadow-sm active:scale-95 transition-all"
+                            disabled={uploadingFiles}
+                            className="bg-blue-600 text-white px-6 py-2.5 text-sm font-bold shadow-sm active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                           >
-                            Upload Now
+                            {uploadingFiles ? 'Uploading...' : 'Upload Now'}
                           </PrismButton>
                         </div>
 	                        <div className="grid gap-2">
@@ -2043,7 +2059,7 @@ export function PublicReportWizard() {
                           <span aria-hidden="true">DOC</span> Live Preview & Editor
                         </div>
                         <h3 className="text-3xl font-display font-black text-[oklch(0.15_0.05_200)]">Finalize Report</h3>
-                        <p className="text-[oklch(0.40_0.02_200)] font-medium max-w-md">Laporan Anda telah terkirim. Anda dapat mengedit detail di bawah ini dan membubuhkan tanda tangan elektronik sebelum mengunduh file PDF/Word.</p>
+                        <p className="text-[oklch(0.40_0.02_200)] font-medium max-w-md">Your report has been submitted. You can edit the details below and add an electronic signature before downloading the PDF/Word file.</p>
                       </div>
 
                       {/* A4-like Document Container */}
@@ -2614,7 +2630,7 @@ export function PublicReportWizard() {
                     value={loginEmail}
                     onChange={(event) => setLoginEmail(event.target.value)}
                     className="w-full rounded-2xl border border-[oklch(0.15_0.02_200_/_0.1)] bg-[oklch(0.98_0.01_200)] px-4 py-3 text-sm font-bold text-[oklch(0.15_0.05_200)] outline-none transition focus:border-emerald-500/50 focus:bg-white"
-                    placeholder="email@perusahaan.com"
+                    placeholder="email@company.com"
                   />
                 </div>
 

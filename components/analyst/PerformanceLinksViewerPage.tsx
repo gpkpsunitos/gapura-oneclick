@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
     ArrowLeft,
@@ -93,7 +94,7 @@ export function PerformanceLinksViewerPage() {
                 Sign Out
             </button>
 
-            <div className="mx-auto w-full max-w-[1400px] px-4 py-8 pt-20 sm:px-6 lg:px-10 lg:py-10 lg:pt-10">
+            <div className="mx-auto w-full max-w-[1400px] px-4 py-8 pt-20 sm:px-6 lg:px-10 lg:py-10 lg:pt-20">
                 <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
                     <div>
                         <h1 className="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl">
@@ -282,7 +283,8 @@ function LinkModal({
         }
     }, [link]);
 
-    return (
+    if (typeof document === 'undefined') return null;
+    return createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-emerald-950/60 p-4 backdrop-blur-sm" onClick={onClose}>
             <div
                 className="w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl"
@@ -330,6 +332,7 @@ function LinkModal({
                     </button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body,
     );
 }

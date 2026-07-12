@@ -1,54 +1,50 @@
+/**
+ * GET /api/ai/forecast/trends — statistically significant rising/falling
+ * incident trends per entity.
+ * Query: ?dimension=branch|airline|area|subcategory|category&weeks=12
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-
-import { verifySession } from '@/lib/auth-utils';
-import { getHfClient } from '@/lib/hf-client';
+import { mlClient } from '@/lib/ml-client';
 import { resolveCachedAI } from '@/lib/ai-route-cache';
+import {
+  requireElevatedAISession,
+  unauthorizedResponse,
+  aiUnavailableResponse,
+} from '@/lib/ai-route-helpers';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
+const DIMENSIONS = ['airline', 'branch', 'area', 'subcategory', 'category'] as const;
+type Dimension = (typeof DIMENSIONS)[number];
+
 export async function GET(req: NextRequest) {
+  const session = await requireElevatedAISession();
+  if (!session) return unauthorizedResponse();
+
+  const { searchParams } = new URL(req.url);
+  const rawDimension = searchParams.get('dimension') ?? 'branch';
+  const dimension: Dimension = (DIMENSIONS as readonly string[]).includes(rawDimension)
+    ? (rawDimension as Dimension)
+    : 'branch';
+  const weeks = Math.min(52, Math.max(2, Number(searchParams.get('weeks')) || 12));
+
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-    const session = token ? await verifySession(token) : null;
-
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const queryString = new URL(req.url).searchParams.toString();
     const result = await resolveCachedAI({
-      feature: 'forecast-trends',
-      scope: { queryString },
-      resolver: async () => {
-        const hfClient = getHfClient();
-        const response = await hfClient.fetch(
-          `/api/ai/forecast/trends${queryString ? `?${queryString}` : ''}`,
-          { headers: { Accept: 'application/json' } },
-          { ttl: 300000 }
-        );
+      feature: 'forecast-trends-v2',
+      scope: { dimension, weeks },
+      resolver: () => mlClient.trends(dimension, weeks),
+    });
 
-        if (!response.ok) {
-          throw new Error(`AI service returned ${response.status}`);
-        }
-
-        return response.json();
+    return NextResponse.json(
+      {
+        ...result.payload,
+        cached: result.cached,
+        generatedAt: result.generatedAt,
       },
-    });
-
-    return NextResponse.json({
-      ...(result.payload as Record<string, unknown>),
-      cached: result.cached,
-      generatedAt: result.generatedAt,
-      sourceSyncAt: result.sourceSyncAt,
-      stale: result.stale,
-    }, {
-      headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' },
-    });
+      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } },
+    );
   } catch (error) {
-    console.error('[API Proxy] Error fetching forecast trends:', error);
-    return NextResponse.json({ error: 'AI service unavailable' }, { status: 503 });
+    return aiUnavailableResponse(error);
   }
 }

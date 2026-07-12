@@ -232,7 +232,7 @@ function SourceCard({
   const [source, setSource] = useState<SourceFilter>('all');
   const filtered = useMemo(() => applySourceFilter(reports, source), [reports, source]);
   const toggle = (
-    <div className="inline-flex items-center gap-0.5 rounded-full border border-[color:var(--sr-border)] bg-white p-0.5">
+    <div className="inline-flex h-11 items-center gap-0.5 rounded-full border border-[color:var(--sr-border)] bg-white p-1">
       {options.map((opt) => {
         const active = opt.value === source;
         return (
@@ -241,7 +241,7 @@ function SourceCard({
             type="button"
             onClick={() => setSource(opt.value)}
             aria-pressed={active}
-            className={`rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.06em] leading-none transition ${
+            className={`rounded-full px-2.5 py-1.5 text-[11px] font-black uppercase tracking-[0.06em] leading-none transition ${
               active
                 ? 'bg-gradient-to-b from-emerald-500 to-emerald-700 text-white shadow-[0_2px_0_#064e3b]'
                 : 'text-[color:var(--sr-text-3)] hover:text-[color:var(--sr-text)]'
@@ -1130,11 +1130,53 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
     section: 'Summary Report',
     title: 'Summary Report',
     chartType: 'section_summary_report',
-    chartData: [
-      ...categorySummary.rows.map((row) => ({ label: `Category ${row.label}`, value: row.total, values: row.values })),
-      ...stationSummary.rows.slice(0, 12).map((row) => ({ label: `Station ${row.primary} / ${row.secondary || '-'}`, value: row.total, values: row.values })),
-      ...airlineSummary.rows.slice(0, 12).map((row) => ({ label: `Airline ${row.primary} / ${row.secondary || '-'}`, value: row.total, values: row.values })),
-      ...yearComparisonRows.map((row) => ({ label: `YoY ${row.label}`, value: row.current, secondary: `${Math.round(row.deltaPct)}% vs previous year` })),
+    // Named datasets keep incomparable numbers apart (months ≠ stations ≠ YoY).
+    datasets: [
+      {
+        id: 'monthly',
+        name: 'Cases per Month',
+        unit: 'kasus',
+        kind: 'timeseries',
+        description: 'Jumlah laporan per bulan tahun berjalan; breakdown = jumlah per kategori kasus pada bulan tersebut.',
+        rows: categorySummary.rows.map((row) => ({ label: row.label, value: row.total, breakdown: row.values })),
+      },
+      {
+        id: 'stations',
+        name: 'Stasiun & Jenis Kasus',
+        unit: 'kasus',
+        kind: 'ranking',
+        description: 'Jumlah laporan per kombinasi stasiun (kode bandara) dan jenis kasus.',
+        rows: stationSummary.rows.slice(0, 12).map((row) => ({
+          label: `${row.primary} — ${row.secondary || 'Lainnya'}`,
+          value: row.total,
+        })),
+      },
+      {
+        id: 'airlines',
+        name: 'Maskapai & Jenis Kasus',
+        unit: 'kasus',
+        kind: 'ranking',
+        description: 'Jumlah laporan per kombinasi maskapai dan jenis kasus.',
+        rows: airlineSummary.rows.slice(0, 12).map((row) => ({
+          label: `${row.primary} — ${row.secondary || 'Lainnya'}`,
+          value: row.total,
+        })),
+      },
+      {
+        id: 'yoy',
+        name: 'This Year vs Last Year',
+        unit: 'kasus',
+        kind: 'comparison',
+        description: 'value = jumlah tahun berjalan per kategori; delta = perubahan % dibanding tahun sebelumnya.',
+        rows: yearComparisonRows.map((row) => ({
+          label: row.label,
+          value: row.current,
+          delta: row.previous > 0 ? Math.round(((row.current - row.previous) / row.previous) * 100) : undefined,
+          note: row.previous > 0
+            ? `tahun lalu ${row.previous}`
+            : 'tidak ada baseline tahun lalu',
+        })),
+      },
     ],
     featureHints: ['forecasting', 'seasonality', 'riskScoring', 'summarization', 'actionRecommendation'],
   }), [airlineSummary.rows, categorySummary.rows, stationSummary.rows, yearComparisonRows]);
@@ -1312,7 +1354,7 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
           <ExpandableReportBlock
             open={showLandsideAirlines}
             onToggle={() => setShowLandsideAirlines((value) => !value)}
-            buttonLabel="Tampilkan Landside Area By Airlines Report"
+            buttonLabel="Show Landside Area By Airlines Report"
           >
             <YearCard reports={reports}>{({ filtered: yearReports, toggle: yearToggle, year }) => {
                 const landsideRows = yearReports.filter((report) => hasMeaningfulValue(report.terminal_area_category));
@@ -1388,7 +1430,7 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
           <ExpandableReportBlock
             open={showAirsideAirlines}
             onToggle={() => setShowAirsideAirlines((value) => !value)}
-            buttonLabel="Tampilkan Airside Area By Airlines Report"
+            buttonLabel="Show Airside Area By Airlines Report"
           >
             <YearCard reports={reports}>{({ filtered: yearReports, toggle: yearToggle, year }) => (
               <SourceCard reports={yearReports} options={AIRSIDE_SOURCE_OPTIONS}>{({ filtered, toggle: sourceToggle, source }) => {
@@ -1464,7 +1506,7 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
           <ExpandableReportBlock
             open={showGeneralAirlines}
             onToggle={() => setShowGeneralAirlines((value) => !value)}
-            buttonLabel="Tampilkan General Service By Airlines Report"
+            buttonLabel="Show General Service By Airlines Report"
           >
             <YearCard reports={reports}>{({ filtered: yearReports, toggle: yearToggle, year }) => {
               const generalRows = yearReports.filter((report) => hasMeaningfulValue(report.general_category));
@@ -1557,7 +1599,7 @@ function ExpandableReportBlock({
         {open ? (
           <>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15" /></svg>
-            Sembunyikan Report
+            Hide Report
           </>
         ) : (
           <>
@@ -2018,7 +2060,7 @@ function AnnualReportSummary({
     <div className="sr-card relative overflow-hidden p-6 sm:p-8">
       <div className="absolute inset-x-0 top-0 h-[5px] bg-[color:var(--sr-accent)]" aria-hidden="true" />
       <div className="space-y-7">
-      <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex items-center gap-4">
           <span className="inline-block h-11 w-[6px] shrink-0 rounded bg-[color:var(--sr-accent)] shadow-[5px_0_0_var(--sr-gold)]" aria-hidden="true" />
           <div className="flex flex-col gap-1">
@@ -2031,9 +2073,14 @@ function AnnualReportSummary({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-end gap-3">
-          {headerExtra}
-          <label className="flex min-w-[180px] flex-col gap-1.5">
+        <div className="flex flex-wrap items-end justify-start gap-4 xl:justify-end">
+          {headerExtra ? (
+            <div className="flex min-w-[210px] flex-col gap-1.5">
+              <span className="sr-eyebrow">Category</span>
+              {headerExtra}
+            </div>
+          ) : null}
+          <label className="flex min-w-[160px] flex-col gap-1.5">
             <span className="sr-eyebrow">Station</span>
             <select
               value={selectedBranch}
@@ -2049,7 +2096,7 @@ function AnnualReportSummary({
             </select>
           </label>
 
-          <label className="flex min-w-[220px] flex-col gap-1.5">
+          <label className="flex min-w-[200px] flex-col gap-1.5">
             <span className="sr-eyebrow">Airlines</span>
             <select
               value={selectedAirline}

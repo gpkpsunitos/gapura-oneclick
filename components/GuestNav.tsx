@@ -276,7 +276,7 @@ export default function GuestNav({ hideSidebar = false, hideMobileNav = false }:
                                         <button
                                             onClick={() => setExpanded(false)}
                                             className="inline-flex items-center justify-center h-7 w-7 rounded-lg bg-white/80 ring-1 ring-black/5 active:scale-95 transition-all"
-                                            aria-label="Tutup MENU"
+                                            aria-label="Close menu"
                                         >
                                             <ChevronUp size={16} className="text-emerald-700 rotate-0" />
                                         </button>

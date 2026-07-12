@@ -1,6 +1,7 @@
 'use client';
 
 import { Link as LinkIcon, ExternalLink, Copy, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 interface DashboardLinkModalProps {
   title: string;
@@ -12,7 +13,8 @@ interface DashboardLinkModalProps {
 }
 
 function DashboardLinkModal({ title, link, onLinkChange, onSave, onClose, onReset }: DashboardLinkModalProps) {
-  return (
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 animate-scale-in border border-[var(--surface-3)]">
@@ -25,7 +27,7 @@ function DashboardLinkModal({ title, link, onLinkChange, onSave, onClose, onRese
           </button>
         </div>
         <p className="text-[13px] text-[var(--text-secondary)] mb-4">
-          Ubah, salin, atau buka tautan {title} (Google Looker Studio).
+          Edit, copy, or open the {title} link (Google Looker Studio).
         </p>
         <div className="space-y-3">
           <label className="block text-[11px] font-bold text-[var(--text-muted)]">Link Dashboard</label>
@@ -68,7 +70,8 @@ function DashboardLinkModal({ title, link, onLinkChange, onSave, onClose, onRese
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

@@ -10,7 +10,7 @@ import { GAPURA_STATIONS, HEAD_OFFICE_CODE } from '@/data/stations';
 
 interface Station { id: string; code: string; name: string; }
 
-// Divisi kantor pusat (KPS). UQ & OT tidak punya pilihan jabatan.
+// Head office (KPS) divisions. UQ & OT have no position selection.
 const KPS_DIVISIONS = ['OP', 'OS', 'UQ', 'OT', 'OCS'] as const;
 const DIVISIONS_WITHOUT_JABATAN = ['UQ', 'OT'];
 const KPS_JABATAN_OPTIONS = ['Staff', 'Analyst', 'Division Head', 'Group Head', 'VP'];
@@ -80,28 +80,28 @@ export default function RegisterPage() {
         switch (name) {
             case 'nik':
                 if (!/^[A-Z0-9]{5,10}$/i.test(value) && value.length > 0) {
-                    return 'NIK harus 5-10 karakter (huruf/angka)';
+                    return 'NIK must be 5-10 characters (letters/numbers)';
                 }
                 break;
             case 'phone':
                 if (!/^08\d{8,11}$/.test(value) && value.length > 0) {
-                    return 'Format: 08xxxxxxxxxx (10-13 digit)';
+                    return 'Format: 08xxxxxxxxxx (10-13 digits)';
                 }
                 break;
             case 'email':
                 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length > 0) {
-                    return 'Format email tidak valid';
+                    return 'Invalid email format';
                 }
                 break;
             case 'password':
                 // Must mirror the server rules in /api/auth/register (8+ chars, mixed case + digit).
                 if (value.length > 0 && (value.length < 8 || !/[A-Z]/.test(value) || !/[a-z]/.test(value) || !/[0-9]/.test(value))) {
-                    return 'Min. 8 karakter, kombinasi huruf besar, kecil & angka';
+                    return 'Min. 8 characters, combination of uppercase, lowercase & numbers';
                 }
                 break;
             case 'confirmPassword':
                 if (value !== formData.password && value.length > 0) {
-                    return 'Password tidak cocok';
+                    return 'Passwords do not match';
                 }
                 break;
         }
@@ -116,9 +116,9 @@ export default function RegisterPage() {
             if (!isKPS) {
                 const emailLower = value.toLowerCase();
                 if (emailLower.endsWith('@gapura.id')) {
-                    setEmailHint('✓ Anda akan terdaftar sebagai Manager/Supervisor');
+                    setEmailHint('✓ You will be registered as Manager/Supervisor');
                 } else if (value.includes('@')) {
-                    setEmailHint('ℹ Anda akan terdaftar sebagai Staff (perlu approval Manager)');
+                    setEmailHint('ℹ You will be registered as Staff (requires Manager approval)');
                 } else {
                     setEmailHint('');
                 }
@@ -155,12 +155,12 @@ export default function RegisterPage() {
         });
 
         if (formData.password !== formData.confirmPassword) {
-            errors.confirmPassword = 'Password tidak cocok';
+            errors.confirmPassword = 'Passwords do not match';
         }
 
         if (Object.keys(errors).length > 0) {
             setFieldErrors(errors);
-            setError('Periksa kembali data yang diisi');
+            setError('Please review the information you entered');
             return;
         }
 
@@ -190,15 +190,15 @@ export default function RegisterPage() {
             const data = await res.json();
 
             if (!res.ok) {
-                throw new Error(data.error || 'Registrasi gagal');
+                throw new Error(data.error || 'Registration failed');
             }
 
-            setSuccess('Registrasi berhasil! Mohon tunggu persetujuan admin sebelum login.');
+            setSuccess('Registration successful! Please wait for admin approval before logging in.');
             setTimeout(() => {
                 router.push('/auth/login');
             }, 3000);
         } catch (err: unknown) {
-            const errorMessage = err instanceof Error ? err.message : 'Registrasi gagal';
+            const errorMessage = err instanceof Error ? err.message : 'Registration failed';
             setError(errorMessage);
         } finally {
             setLoading(false);
@@ -240,16 +240,16 @@ export default function RegisterPage() {
 
                 <div className="relative z-10 space-y-4 xl:space-y-6">
                     <h1 className="text-2xl xl:text-4xl font-bold text-white leading-tight">
-                        Bergabung dengan<br />Tim Operasional<br />Terbaik
+                        Join the<br />Best Operations<br />Team
                     </h1>
                     <p className="text-white/80 text-base xl:text-lg max-w-md">
-                        Daftarkan diri Anda untuk mengakses sistem pelaporan irregularity yang terintegrasi.
+                        Register to access the integrated irregularity reporting system.
                     </p>
 
                     <div className="flex items-center gap-4 pt-4">
                         <div className="flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full">
                             <Shield size={16} className="text-white" />
-                            <span className="text-sm font-medium text-white">Terverifikasi Admin</span>
+                            <span className="text-sm font-medium text-white">Admin Verified</span>
                         </div>
                     </div>
                 </div>
@@ -273,8 +273,8 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="mb-4 sm:mb-6">
-                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Registrasi Akun</h1>
-                        <p className="text-gray-500 mt-1 text-xs sm:text-sm">Lengkapi data untuk bergabung dengan Gapura Integrated Service Analytics</p>
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Account Registration</h1>
+                        <p className="text-gray-500 mt-1 text-xs sm:text-sm">Complete your details to join Gapura Integrated Service Analytics</p>
                     </div>
 
                     <div className="bg-white rounded-xl sm:rounded-2xl shadow-xl shadow-gray-200/50 border border-gray-100 p-4 sm:p-6">
@@ -294,24 +294,24 @@ export default function RegisterPage() {
 
                         <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
                             <div className="pb-3 sm:pb-4 border-b border-gray-100">
-                                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 sm:mb-4">Informasi Pribadi</p>
+                                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 sm:mb-4">Personal Information</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                     <div>
-                                        <label className={labelStyle}>Nama Lengkap</label>
+                                        <label className={labelStyle}>Full Name</label>
                                         <div className="relative">
                                             <User className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                                             <input
                                                 type="text"
                                                 required
                                                 className={inputStyle}
-                                                placeholder="Nama lengkap"
+                                                placeholder="Full name"
                                                 value={formData.full_name}
                                                 onChange={(e) => handleChange('full_name', e.target.value)}
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className={labelStyle}>NIK (Nomor Induk Karyawan)</label>
+                                        <label className={labelStyle}>NIK (Employee ID Number)</label>
                                         <div className="relative">
                                             <CreditCard className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                                             <input
@@ -319,7 +319,7 @@ export default function RegisterPage() {
                                                 required
                                                 maxLength={10}
                                                 className={fieldErrors.nik ? inputErrorStyle : inputStyle}
-                                                placeholder="Contoh: GA12345"
+                                                placeholder="e.g. GA12345"
                                                 value={formData.nik}
                                                 onChange={(e) => handleChange('nik', e.target.value)}
                                             />
@@ -330,7 +330,7 @@ export default function RegisterPage() {
                             </div>
 
                             <div className="pb-3 sm:pb-4 border-b border-gray-100">
-                                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 sm:mb-4">Kontak</p>
+                                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 sm:mb-4">Contact</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                     <div>
                                         <label className={labelStyle}>Email</label>
@@ -357,7 +357,7 @@ export default function RegisterPage() {
                                         )}
                                     </div>
                                     <div>
-                                        <label className={labelStyle}>No. WhatsApp</label>
+                                        <label className={labelStyle}>WhatsApp Number</label>
                                         <div className="relative">
                                             <Phone className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                                             <input
@@ -376,10 +376,10 @@ export default function RegisterPage() {
                             </div>
 
                             <div className="pb-3 sm:pb-4 border-b border-gray-100">
-                                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 sm:mb-4">Organisasi</p>
+                                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 sm:mb-4">Organization</p>
                                 <div className="space-y-3 sm:space-y-4">
                                     <div>
-                                        <label className={labelStyle}>Station / Bandara</label>
+                                        <label className={labelStyle}>Station</label>
                                         <div className="relative">
                                             <Building2 className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                                             <select
@@ -388,7 +388,7 @@ export default function RegisterPage() {
                                                 value={formData.station_id}
                                                 onChange={(e) => handleChange('station_id', e.target.value)}
                                             >
-                                                <option value="">Pilih Station</option>
+                                                <option value="">Select Station</option>
                                                 {filteredStations.map((s) => (
                                                     <option key={s.id} value={s.id}>
                                                         {s.code}
@@ -399,7 +399,7 @@ export default function RegisterPage() {
                                         {isKPS && (
                                             <p className="text-[10px] sm:text-xs text-blue-600 mt-1 flex items-center gap-1">
                                                 <Info size={12} />
-                                                Kantor Pusat - Pilih divisi di bawah
+                                                Head Office - Select division below
                                             </p>
                                         )}
                                     </div>
@@ -407,7 +407,7 @@ export default function RegisterPage() {
                                     {isKPS && (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
                                             <div className={needsJabatanSelect ? '' : 'md:col-span-2'}>
-                                                <label className={labelStyle}>Divisi</label>
+                                                <label className={labelStyle}>Division</label>
                                                 <div className="relative">
                                                     <Layers className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                                                     <select
@@ -416,7 +416,7 @@ export default function RegisterPage() {
                                                         value={formData.division}
                                                         onChange={(e) => handleChange('division', e.target.value)}
                                                     >
-                                                        <option value="">Pilih Divisi</option>
+                                                        <option value="">Select Division</option>
                                                         {KPS_DIVISIONS.map((d) => (
                                                             <option key={d} value={d}>{d}</option>
                                                         ))}
@@ -425,7 +425,7 @@ export default function RegisterPage() {
                                             </div>
                                             {needsJabatanSelect && (
                                                 <div>
-                                                    <label className={labelStyle}>Jabatan</label>
+                                                    <label className={labelStyle}>Position</label>
                                                     <div className="relative">
                                                         <Briefcase className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                                                         <select
@@ -434,7 +434,7 @@ export default function RegisterPage() {
                                                             value={formData.jabatan}
                                                             onChange={(e) => handleChange('jabatan', e.target.value)}
                                                         >
-                                                            <option value="">Pilih Jabatan</option>
+                                                            <option value="">Select Position</option>
                                                             {KPS_JABATAN_OPTIONS.map((j) => (
                                                                 <option key={j} value={j}>{j}</option>
                                                             ))}
@@ -448,7 +448,7 @@ export default function RegisterPage() {
                                     {!isKPS && (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                             <div>
-                                                <label className={labelStyle}>Unit Kerja</label>
+                                                <label className={labelStyle}>Work Unit</label>
                                                 <div className="relative">
                                                     <Users className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                                                     <input
@@ -456,7 +456,7 @@ export default function RegisterPage() {
                                                         required
                                                         maxLength={80}
                                                         className={inputStyle}
-                                                        placeholder="Contoh: Ramp, Passenger Service"
+                                                        placeholder="e.g. Ramp, Passenger Service"
                                                         value={formData.unit_kerja}
                                                         onChange={(e) => handleChange('unit_kerja', e.target.value)}
                                                         disabled={!formData.station_id}
@@ -464,7 +464,7 @@ export default function RegisterPage() {
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className={labelStyle}>Jabatan</label>
+                                                <label className={labelStyle}>Position</label>
                                                 <div className="relative">
                                                     <Briefcase className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                                                     <input
@@ -472,7 +472,7 @@ export default function RegisterPage() {
                                                         required
                                                         maxLength={80}
                                                         className={inputStyle}
-                                                        placeholder="Contoh: Supervisor, Officer"
+                                                        placeholder="e.g. Supervisor, Officer"
                                                         value={formData.jabatan}
                                                         onChange={(e) => handleChange('jabatan', e.target.value)}
                                                         disabled={!formData.station_id}
@@ -480,7 +480,7 @@ export default function RegisterPage() {
                                                 </div>
                                             </div>
                                             {!formData.station_id && (
-                                                <p className="md:col-span-2 text-[10px] sm:text-xs text-gray-400 -mt-1">Pilih station terlebih dahulu</p>
+                                                <p className="md:col-span-2 text-[10px] sm:text-xs text-gray-400 -mt-1">Select a station first</p>
                                             )}
                                         </div>
                                     )}
@@ -488,7 +488,7 @@ export default function RegisterPage() {
                             </div>
 
                             <div>
-                                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 sm:mb-4">Keamanan</p>
+                                <p className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-gray-400 mb-3 sm:mb-4">Security</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                                     <div>
                                         <label className={labelStyle}>Password</label>
@@ -498,14 +498,14 @@ export default function RegisterPage() {
                                                 type={showPassword ? 'text' : 'password'}
                                                 required
                                                 className={fieldErrors.password ? inputErrorStyle : inputStyle}
-                                                placeholder="Min. 8 karakter"
+                                                placeholder="Min. 8 characters"
                                                 value={formData.password}
                                                 onChange={(e) => handleChange('password', e.target.value)}
                                             />
                                             <button
                                                 type="button"
                                                 onClick={() => setShowPassword(!showPassword)}
-                                                aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                                                aria-label={showPassword ? 'Hide password' : 'Show password'}
                                                 className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                                             >
                                                 {showPassword ? <EyeOff size={16} className="sm:hidden" /> : <Eye size={16} className="sm:hidden" />}
@@ -515,9 +515,9 @@ export default function RegisterPage() {
                                         {formData.password.length > 0 && (
                                             <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
                                                 {[
-                                                    { ok: formData.password.length >= 8, label: '8+ karakter' },
-                                                    { ok: /[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password), label: 'Huruf besar & kecil' },
-                                                    { ok: /[0-9]/.test(formData.password), label: 'Angka' },
+                                                    { ok: formData.password.length >= 8, label: '8+ characters' },
+                                                    { ok: /[A-Z]/.test(formData.password) && /[a-z]/.test(formData.password), label: 'Uppercase & lowercase' },
+                                                    { ok: /[0-9]/.test(formData.password), label: 'Number' },
                                                 ].map((req) => (
                                                     <span key={req.label} className={`inline-flex items-center gap-1 text-[10px] sm:text-xs font-medium transition-colors ${req.ok ? 'text-emerald-600' : 'text-gray-400'}`}>
                                                         <CheckCircle size={12} className={req.ok ? 'opacity-100' : 'opacity-40'} />
@@ -529,14 +529,14 @@ export default function RegisterPage() {
                                         {fieldErrors.password && <p className="text-[10px] sm:text-xs text-red-500 mt-1">{fieldErrors.password}</p>}
                                     </div>
                                     <div>
-                                        <label className={labelStyle}>Konfirmasi Password</label>
+                                        <label className={labelStyle}>Confirm Password</label>
                                         <div className="relative">
                                             <Lock className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
                                             <input
                                                 type={showPassword ? 'text' : 'password'}
                                                 required
                                                 className={fieldErrors.confirmPassword ? inputErrorStyle : inputStyle}
-                                                placeholder="Ulangi password"
+                                                placeholder="Repeat password"
                                                 value={formData.confirmPassword}
                                                 onChange={(e) => handleChange('confirmPassword', e.target.value)}
                                             />
@@ -558,12 +558,12 @@ export default function RegisterPage() {
                                 {loading ? (
                                     <>
                                         <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                                        Memproses...
+                                        Processing...
                                     </>
                                 ) : (
                                     <>
                                         <UserPlus className="w-4 h-4 sm:w-5 sm:h-5" />
-                                        Daftar Sekarang
+                                        Register Now
                                     </>
                                 )}
                             </button>
@@ -572,15 +572,15 @@ export default function RegisterPage() {
                         <div className="mt-4 sm:mt-5 p-3 sm:p-4 rounded-lg sm:rounded-xl bg-blue-50 border border-blue-100 flex items-start gap-3">
                             <Info className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500 flex-shrink-0 mt-0.5" />
                             <p className="text-blue-700 text-xs sm:text-sm">
-                                Setelah mendaftar, akun perlu disetujui admin sebelum dapat login ke sistem.
+                                After registering, your account must be approved by an admin before you can log in.
                             </p>
                         </div>
 
                         <div className="mt-4 sm:mt-5 pt-4 sm:pt-5 border-t border-gray-100 text-center">
                             <p className="text-gray-500 text-xs sm:text-sm">
-                                Sudah punya akun?{' '}
+                                Already have an account?{' '}
                                 <Link href="/auth/login" className="font-semibold text-emerald-600 hover:text-emerald-700 active:text-emerald-800 transition-colors">
-                                    Masuk disini
+                                    Sign in here
                                 </Link>
                             </p>
                         </div>

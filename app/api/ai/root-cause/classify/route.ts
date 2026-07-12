@@ -1,63 +1,48 @@
+/**
+ * POST /api/ai/root-cause/classify — classify a report narrative's likely
+ * root cause. Body: { text, airline?, branch?, area?, category?, report_type? }
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySession } from '@/lib/auth-utils';
-import { cookies } from 'next/headers';
-import { getHfClient } from '@/lib/hf-client';
+import { mlClient, type ClassifyContext } from '@/lib/ml-client';
+import {
+  requireAISession,
+  unauthorizedResponse,
+  aiUnavailableResponse,
+  presentClassification,
+} from '@/lib/ai-route-helpers';
 
+export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  const session = await requireAISession();
+  if (!session) return unauthorizedResponse();
+
+  let body: Record<string, unknown>;
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-    const session = token ? await verifySession(token) : null;
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Body JSON tidak valid' }, { status: 400 });
+  }
 
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) {
+    return NextResponse.json({ error: 'Teks laporan diperlukan (field "text")' }, { status: 400 });
+  }
 
-    const body = await req.json().catch(() => ({})) as Record<string, unknown>;
-    const { searchParams } = new URL(req.url);
-    const rootCause = searchParams.get('root_cause')
-      || (typeof body.root_cause === 'string' ? body.root_cause : '')
-      || (typeof body.rootCause === 'string' ? body.rootCause : '')
-      || (typeof body.rootCauseText === 'string' ? body.rootCauseText : '');
-    const report = searchParams.get('report')
-      || (typeof body.report === 'string' ? body.report : '')
-      || (typeof body.description === 'string' ? body.description : '')
-      || (typeof body.title === 'string' ? body.title : '');
-    const area = searchParams.get('area') || (typeof body.area === 'string' ? body.area : '');
-    const category = searchParams.get('category')
-      || (typeof body.category === 'string' ? body.category : '')
-      || (typeof body.issueType === 'string' ? body.issueType : '');
-    const esklasiRegex = searchParams.get('esklasi_regex') || '';
+  const ctx: ClassifyContext = {};
+  for (const key of ['airline', 'branch', 'area', 'category', 'report_type'] as const) {
+    const value = body[key];
+    if (typeof value === 'string' && value.trim()) ctx[key] = value.trim();
+  }
 
-    if (!rootCause) {
-      return NextResponse.json({ error: 'Root cause text is required' }, { status: 400 });
-    }
-
-    let targetPath = `/api/ai/root-cause/classify?root_cause=${encodeURIComponent(rootCause)}`;
-    if (report) targetPath += `&report=${encodeURIComponent(report)}`;
-    if (area) targetPath += `&area=${encodeURIComponent(area)}`;
-    if (category) targetPath += `&category=${encodeURIComponent(category)}`;
-    targetPath += `&esklasi_regex=${encodeURIComponent(esklasiRegex)}`;
-
-    const hfClient = getHfClient();
-    const aiResponse = await hfClient.fetch(
-      targetPath,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
-    );
-
-    if (!aiResponse.ok) {
-      throw new Error(`AI service error: ${aiResponse.status}`);
-    }
-
-    const result = await aiResponse.json();
-    return NextResponse.json(result);
+  try {
+    const res = await mlClient.classifyRootCause(text, ctx);
+    return NextResponse.json({
+      status: res.status,
+      root_cause: presentClassification(res.root_cause),
+    });
   } catch (error) {
-    console.error('AI Root Cause Classification Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to classify root cause', details: error instanceof Error ? error.message : 'Unknown' },
-      { status: 500 }
-    );
+    return aiUnavailableResponse(error);
   }
 }

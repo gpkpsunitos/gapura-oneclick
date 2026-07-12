@@ -116,7 +116,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
             }
         } catch (err) {
             console.error('Customer Feedback shortcut error:', err);
-            alert('Gagal membuka Customer Feedback Dashboard. Silakan coba lagi.');
+            alert('Failed to open Customer Feedback Dashboard. Please try again.');
         } finally {
             setCfLoading(false);
         }
@@ -543,7 +543,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                         <h1 className="text-xl xs:text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white mb-2 leading-tight break-words">
                             Dashboard {division.name}
                         </h1>
-                        <p className="text-white/80 text-xs sm:text-sm">Pusat Analytics Operational Services</p>
+                        <p className="text-white/80 text-xs sm:text-sm">Operational Services Analytics Center</p>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-2 sm:gap-3 shrink-0">
@@ -562,7 +562,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                         {allowCF && (
                             <button 
                                 onClick={() => setShowFilterModal(true)} 
-                                title="Filter Laporan"
+                                title="Filter Reports"
                                 className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all bg-white/10 hover:bg-white/20 text-white border border-white/30 backdrop-blur-sm"
                             >
                                 <Plus size={16} /> 
@@ -583,7 +583,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                 </div>
 
                 <div className="relative z-10 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mt-8 pt-6 border-t border-white/20">
-                    <MiniStat icon={FileText} label="Total Laporan" value={analytics?.summary.totalReports || 0} />
+                    <MiniStat icon={FileText} label="Total Reports" value={analytics?.summary.totalReports || 0} />
                     <MiniStat icon={CheckCircle2} label="Selesai" value={analytics?.summary.resolvedReports || 0} />
                     <MiniStat icon={Clock} label="Pending" value={analytics?.summary.pendingReports || 0} highlight />
                     <MiniStat icon={AlertTriangle} label="High Severity" value={analytics?.summary.highSeverity || 0} />
@@ -625,7 +625,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                         <div className="flex items-center gap-3">
                             <ClipboardList size={20} className={division.textColor} />
                             <div>
-                                <h3 className="font-bold text-base sm:text-lg text-[var(--text-primary)]">Daftar Laporan</h3>
+                                <h3 className="font-bold text-base sm:text-lg text-[var(--text-primary)]">Report List</h3>
                                 <p className="text-[10px] sm:text-xs text-[var(--text-muted)]">{filteredReportsList.length} laporan ditampilkan</p>
                             </div>
                         </div>
@@ -634,7 +634,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] border-none" size={14} />
                                 <input
                                     type="text"
-                                    placeholder="Cari maskapai, flight..."
+                                    placeholder="Search airline, flight..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
                                     className="w-full bg-white border border-[var(--surface-4)] rounded-xl pl-9 pr-4 py-2 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
@@ -663,14 +663,14 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                         <thead>
                             <tr className="border-b border-[var(--surface-4)]">
                                 <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Maskapai / Flight</th>
-                                <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Tanggal Kejadian</th>
+                                <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Incident Date</th>
                                 <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Cabang</th>
                                 <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredReportsList.length === 0 ? (
-                                <tr><td colSpan={5} className="p-8 text-center text-[var(--text-muted)]">Tidak ada laporan ditemukan</td></tr>
+                                <tr><td colSpan={5} className="p-8 text-center text-[var(--text-muted)]">No reports found</td></tr>
                             ) : (
                                 filteredReportsList.map((r) => (
                                     <tr key={r.id} className="border-b border-[var(--surface-4)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer" onClick={() => setSelectedReport(r)}>
@@ -724,11 +724,11 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify(config),
                             });
-                            if (!res.ok) throw new Error('Gagal membuat dashboard');
+                            if (!res.ok) throw new Error('Failed to create dashboard');
                             const data = await res.json();
                             router.push(`/embed/custom/${data.dashboard.slug}`);
                         } catch (err) {
-                            alert('Gagal membuat dashboard terfilter');
+                            alert('Failed to create filtered dashboard');
                         } finally {
                             setFilterLoading(false);
                         }

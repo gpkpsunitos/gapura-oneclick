@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
+import { mlServiceHeaders } from '@/lib/ml-client';
 import { CaseInsightResponse } from '@/lib/schemas/insight';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   try {
     upstream = await fetch(`${HF_BASE}/api/ai/insight/case`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: mlServiceHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({
         report_text: body.report_text ?? body.report ?? '',
         issue_type: body.issue_type ?? body.category ?? null,

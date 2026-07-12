@@ -17,6 +17,16 @@ function client() {
   return getHfClient({ baseUrl: ML_BASE });
 }
 
+/**
+ * Headers for routes that call the ML service with raw fetch() instead of
+ * the shared client. Includes X-API-Key when the service is locked down.
+ * Server-side only — never expose ML_SERVICE_API_KEY to the browser.
+ */
+export function mlServiceHeaders(extra: Record<string, string> = {}): Record<string, string> {
+  const key = process.env.ML_SERVICE_API_KEY || process.env.AI_SERVICE_API_KEY || "";
+  return key ? { ...extra, "X-API-Key": key } : extra;
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -51,11 +61,86 @@ export interface SeasonalityResult {
   peak_season_date?: string;
 }
 
+/**
+ * Classifier statuses from the service:
+ *  - "ok"                → confidence ≥ 0.60 (high)
+ *  - "medium_confidence" → 0.35 ≤ confidence < 0.60
+ *  - "low_confidence"    → label is "UNCERTAIN"; use top_candidates
+ *  - "empty_input" | "model_not_trained"
+ * `reason: "input_dissimilar_to_training_data"` flags out-of-distribution text.
+ */
 export interface ClassifyResult {
   status: string;
   label: string | null;
   confidence: number | null;
   top_candidates?: { label: string; confidence: number }[];
+  nn_similarity?: number;
+  reason?: string;
+}
+
+/** Optional report context — sending these measurably improves accuracy. */
+export interface ClassifyContext {
+  category?: string;
+  airline?: string;
+  branch?: string;
+  area?: string;
+  report_type?: string;
+}
+
+export interface AnalyzeResult {
+  category: ClassifyResult;
+  subcategory: ClassifyResult;
+  root_cause: ClassifyResult;
+  forecast: (Omit<ForecastResult, "status"> & { status?: string }) | null;
+  risk_rankings: RiskScoreResult["rankings"] | null;
+}
+
+export interface TrendEntry {
+  entity: string;
+  direction: "rising" | "falling" | "stable";
+  slope_per_week: number;
+  percent_change: number;
+  half_period_change?: number;
+  p_value: number;
+  r_squared?: number;
+  recent_count: number;
+  baseline_count: number;
+  recent_avg_week: number;
+  data_weeks: number;
+  statistically_significant?: boolean;
+  practically_significant?: boolean;
+  notable?: boolean;
+}
+
+export interface TrendsResult {
+  status: string;
+  dimension: string;
+  window_weeks: number;
+  analysis_from?: string;
+  analysis_to?: string;
+  rising: TrendEntry[];
+  falling: TrendEntry[];
+  stable: TrendEntry[];
+  total_entities?: number;
+}
+
+export interface DimensionForecastEntry {
+  entity: string;
+  forecast: { week: string; predicted_count: number }[];
+  predicted_total: number;
+  current_avg_week: number;
+  trend_direction: "rising" | "falling" | "stable";
+  method: string;
+  history_weeks: number;
+}
+
+export interface DimensionForecastResult {
+  status: string;
+  dimension: string;
+  n_weeks: number;
+  from_week?: string;
+  to_week?: string;
+  forecasts?: DimensionForecastEntry[];
 }
 
 export interface RiskEntry {
@@ -131,18 +216,39 @@ export const mlClient = {
     return post("/seasonality");
   },
 
-  /** Classify report type: Irregularity / Complaint / Compliment / Occurrence / Accident
-   *  (~71% CV acc from the narrative; the old ~98% figure was target leakage). */
-  classifyCategory(text: string): Promise<{ status: string; category: ClassifyResult }> {
-    return post("/classify/category", { text });
+  /** Classify report type: Irregularity / Complaint / Compliment / Occurrence
+   *  (~68% CV acc from the narrative; the old ~98% figure was target leakage). */
+  classifyCategory(text: string, ctx: ClassifyContext = {}): Promise<{ status: string; category: ClassifyResult }> {
+    return post("/classify/category", { text, ...ctx });
   },
 
-  classifySubcategory(text: string): Promise<{ status: string; subcategory: ClassifyResult }> {
-    return post("/classify/subcategory", { text });
+  classifySubcategory(text: string, ctx: ClassifyContext = {}): Promise<{ status: string; subcategory: ClassifyResult }> {
+    return post("/classify/subcategory", { text, ...ctx });
   },
 
-  classifyRootCause(text: string): Promise<{ status: string; root_cause: ClassifyResult }> {
-    return post("/classify/root-cause", { text });
+  classifyRootCause(text: string, ctx: ClassifyContext = {}): Promise<{ status: string; root_cause: ClassifyResult }> {
+    return post("/classify/root-cause", { text, ...ctx });
+  },
+
+  /** All classifiers + 14-day forecast + risk rankings for one report text. */
+  analyze(text: string, ctx: ClassifyContext = {}): Promise<AnalyzeResult> {
+    return post("/analyze", { text, ...ctx });
+  },
+
+  /** Statistically significant rising/falling incident trends per entity. */
+  trends(
+    dimension: "airline" | "branch" | "area" | "subcategory" | "category" = "branch",
+    windowWeeks = 12,
+  ): Promise<TrendsResult> {
+    return post("/analytics/trends", { dimension, window_weeks: windowWeeks });
+  },
+
+  /** Per-entity weekly volume forecast, highest predicted volume first. */
+  forecastByDimension(
+    dimension: "airline" | "branch" | "area" | "subcategory" | "category" = "subcategory",
+    nWeeks = 4,
+  ): Promise<DimensionForecastResult> {
+    return post("/analytics/forecast/by-dimension", { dimension, n_weeks: nWeeks });
   },
 
   riskScore(): Promise<RiskScoreResult> {

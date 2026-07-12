@@ -122,14 +122,14 @@ export function DashboardHeader({
                 {}
                 <div className="flex flex-col sm:flex-row gap-4">
                     <StatCard
-                        label="Total Laporan"
+                        label="Total Reports"
                         value={totalReports}
                         icon={FileText}
                         variant="default"
                         onClick={() => onCardClick?.('all')}
                     />
                     <StatCard
-                        label="Belum Memberikan Feedback"
+                        label="Feedback Not Yet Given"
                         value={pendingReports}
                         icon={Clock}
                         variant="warning"

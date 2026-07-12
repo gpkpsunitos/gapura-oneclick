@@ -1,6 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
+import { createPortal } from 'react-dom';
 import { X, Image as ImageIcon, ChevronLeft, ChevronRight, ExternalLink, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ export function EvidenceViewModal({ isOpen, onClose, evidenceUrls }: EvidenceVie
   const [failedPreviews, setFailedPreviews] = useState<Record<string, boolean>>({});
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const hasMultiple = validUrls.length > 1;
   const safeCurrentIndex = Math.min(currentIndex, Math.max(validUrls.length - 1, 0));
@@ -33,7 +35,7 @@ export function EvidenceViewModal({ isOpen, onClose, evidenceUrls }: EvidenceVie
     setCurrentIndex((prev) => (prev - 1 + validUrls.length) % validUrls.length);
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/50 backdrop-blur-sm">
         <motion.div
@@ -137,6 +139,7 @@ export function EvidenceViewModal({ isOpen, onClose, evidenceUrls }: EvidenceVie
           </div>
         </motion.div>
       </div>
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

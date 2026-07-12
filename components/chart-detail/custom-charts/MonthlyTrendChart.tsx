@@ -35,7 +35,7 @@ const MONTH_NAMES: Record<string, string> = {
 
 export function MonthlyTrendChart({ 
   data, 
-  title = 'Tren Bulanan',
+  title = 'Monthly Trend',
   explanation 
 }: MonthlyTrendChartProps) {
 
@@ -53,7 +53,7 @@ export function MonthlyTrendChart({
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <Calendar className="w-6 h-6 text-gray-400" />
             </div>
-            <p className="text-[11px] text-gray-500">Tidak ada data tren bulanan</p>
+            <p className="text-[11px] text-gray-500">No monthly trend data</p>
             <p className="text-[9px] text-gray-400 mt-1">Data mungkin belum tersedia atau kosong</p>
           </div>
         </div>
@@ -197,7 +197,7 @@ export function MonthlyTrendChart({
 
         {}
         <div className="border-t border-gray-100 pt-3">
-          <div className="text-[9px] font-bold text-gray-500 uppercase mb-2">3 Bulan Terakhir</div>
+          <div className="text-[9px] font-bold text-gray-500 uppercase mb-2">Last 3 Months</div>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {sortedData.slice(-3).map((item, idx) => {
               const monthKey = String(item.month ?? '00').padStart(2, '0');

@@ -35,10 +35,10 @@ interface QueryPanelProps {
 
 const DATE_GRANULARITIES: { value: DateGranularity; label: string }[] = [
   { value: 'day', label: 'Hari' },
-  { value: 'week', label: 'Minggu' },
-  { value: 'month', label: 'Bulan' },
+  { value: 'week', label: 'Week' },
+  { value: 'month', label: 'Month' },
   { value: 'quarter', label: 'Kuartal' },
-  { value: 'year', label: 'Tahun' },
+  { value: 'year', label: 'Year' },
 ];
 
 const AGG_FUNCTIONS: { value: AggregateFunction; label: string }[] = [
@@ -227,7 +227,7 @@ export function QueryPanel({
               }}
               className="text-[10px] text-[var(--text-muted)] hover:text-[var(--brand-primary)]"
             >
-              + Tambah Urutan
+              + Add Sort
             </button>
           </div>
         )}
@@ -256,7 +256,7 @@ export function QueryPanel({
         </button>
         <span className="text-[10px] text-[var(--text-muted)]">Ctrl+Enter</span>
         {!canExecute && !loading && (
-          <span className="text-[10px] text-amber-500">Pilih minimal 1 dimensi atau ukuran</span>
+          <span className="text-[10px] text-amber-500">Select at least 1 dimension or measure</span>
         )}
       </div>
     </div>

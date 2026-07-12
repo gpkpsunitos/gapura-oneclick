@@ -113,7 +113,7 @@ export default function AdminDashboard() {
                             </div>
                             <div className="flex-1">
                                 <p className="font-bold" style={{ color: 'oklch(0.40 0.18 25)' }}>
-                                    {severity.HIGH} Laporan Prioritas Tinggi
+                                    {severity.HIGH} High Priority Reports
                                 </p>
                                 <p className="text-sm" style={{ color: 'oklch(0.55 0.15 25)' }}>
                                     Membutuhkan penanganan segera
@@ -186,8 +186,8 @@ export default function AdminDashboard() {
                         <div className="space-y-4">
                             {[
                                 { label: 'Hari Ini', value: stats?.trends.today, trendKey: 'today' },
-                                { label: 'Minggu Ini', value: stats?.trends.thisWeek, trendKey: 'thisWeek' },
-                                { label: 'Bulan Ini', value: stats?.trends.thisMonth, trendKey: 'thisMonth' },
+                                { label: 'This Week', value: stats?.trends.thisWeek, trendKey: 'thisWeek' },
+                                { label: 'This Month', value: stats?.trends.thisMonth, trendKey: 'thisMonth' },
                             ].map((item) => (
                                 <div
                                     key={item.label}
@@ -243,7 +243,7 @@ export default function AdminDashboard() {
 
             {}
             <PresentationSlide
-                title="Laporan Terbaru"
+                title="Latest Reports"
                 subtitle="5 laporan terakhir"
                 icon={FileText}
             >
@@ -326,7 +326,7 @@ export default function AdminDashboard() {
                             <FileText size={24} style={{ color: 'var(--brand-primary)' }} />
                         </div>
                         <div className="flex-1">
-                            <p className="font-bold" style={{ color: 'var(--text-primary)' }}>Kelola Laporan</p>
+                            <p className="font-bold" style={{ color: 'var(--text-primary)' }}>Manage Reports</p>
                             <p className="text-sm" style={{ color: 'var(--text-muted)' }}>Tinjau dan proses insiden</p>
                         </div>
                         <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" style={{ color: 'var(--text-muted)' }} />

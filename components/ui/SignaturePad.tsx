@@ -119,7 +119,7 @@ export function SignaturePad({ onEnd, className = '', label = 'Draw signature he
           type="button"
           onClick={clear}
           className="absolute top-2 right-2 p-1.5 bg-gray-100 hover:bg-red-50 hover:text-red-600 rounded-md text-gray-500 transition-colors z-10"
-          title="Hapus Tanda Tangan"
+          title="Clear Signature"
         >
           <Eraser className="w-4 h-4" />
         </button>

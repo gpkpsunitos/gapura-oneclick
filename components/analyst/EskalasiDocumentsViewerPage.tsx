@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
     ArrowLeft,
@@ -676,7 +677,7 @@ export function EskalasiDocumentsViewerPage({ hideNav = false }: { hideNav?: boo
                 )}
             </div>
 
-            {composerOpen ? (
+            {composerOpen && typeof document !== 'undefined' ? createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
                     <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
@@ -885,7 +886,8 @@ export function EskalasiDocumentsViewerPage({ hideNav = false }: { hideNav?: boo
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body,
             ) : null}
 
             <ConfirmDialog

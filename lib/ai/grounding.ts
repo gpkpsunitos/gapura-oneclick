@@ -2,7 +2,11 @@
 const NUMBER_RE = /(?<![A-Za-z_])(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(?:\s*%)?/g;
 
 function parseNumber(token: string): number | null {
-  const cleaned = token.replace(/,/g, '').replace(/%$/, '').trim();
+  let cleaned = token.replace(/,/g, '').replace(/%$/, '').trim();
+  // Indonesian thousands separator: "5.000" means 5000, not 5.0.
+  if (/^\d{1,3}(?:\.\d{3})+$/.test(cleaned)) {
+    cleaned = cleaned.replace(/\./g, '');
+  }
   const n = Number(cleaned);
   return Number.isFinite(n) ? n : null;
 }
@@ -38,7 +42,10 @@ export function collectAllowedNumbers(source: unknown, bag = new Set<number>()):
 
 export function isGrounded(value: number, allowed: Set<number>, tolerance = 1): boolean {
   if (allowed.has(value) || allowed.has(Math.round(value))) return true;
-  if (value >= 0 && value <= 100 && !Number.isInteger(value)) return true;
+  // Percentages/shares: `allowed` stores integer percents, so a decimal like
+  // "12,5%" is grounded only when it lands within `tolerance` of a real figure.
+  // A fabricated decimal ("turun 37,4%") that matches nothing is now rejected,
+  // instead of being blanket-accepted just for being in the 0–100 range.
   for (const a of allowed) {
     if (Math.abs(a - value) <= tolerance) return true;
   }

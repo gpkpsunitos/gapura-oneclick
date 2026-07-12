@@ -1,7 +1,7 @@
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
-import { verifySession } from '@/lib/auth-utils';
+import { requireElevatedAISession } from '@/lib/ai-route-helpers';
+import { mlServiceHeaders } from '@/lib/ml-client';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
@@ -168,10 +168,13 @@ async function callEndpoint({
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
+    const orchestratorHeaders = source === 'orchestrator'
+      ? mlServiceHeaders({ Accept: 'application/json' })
+      : { Accept: 'application/json' };
     const response = await fetch(`${baseUrl}${path}`, {
       ...init,
       headers: {
-        Accept: 'application/json',
+        ...orchestratorHeaders,
         ...(init?.headers || {}),
       },
       signal: controller.signal,
@@ -431,9 +434,7 @@ function buildRecommendations(rootCauses: ReturnType<typeof groupCandidates>, ok
 
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-    const session = token ? await verifySession(token) : null;
+    const session = await requireElevatedAISession();
 
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

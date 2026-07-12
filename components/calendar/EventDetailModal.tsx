@@ -77,7 +77,7 @@ export function EventDetailModal({
             <Dialog.Close asChild>
               <button
                 className="p-1.5 rounded-lg hover:bg-[var(--surface-3)] transition-all duration-[var(--duration-fast)] ease-[var(--spring-snappy)] focus-visible:outline-2 focus-visible:outline-[var(--brand-primary)]"
-                aria-label="Tutup"
+                aria-label="Close"
               >
                 <X className="w-5 h-5 text-[var(--text-muted)]" />
               </button>
@@ -94,14 +94,14 @@ export function EventDetailModal({
               {event.is_recurring && (
                 <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-[oklch(0.55_0.18_280/0.1)] text-[oklch(0.55_0.18_280)] text-xs font-semibold">
                   <Repeat className="w-3 h-3" />
-                  Berulang ({event.recurrence_pattern === 'daily' ? 'Harian' : event.recurrence_pattern === 'weekly' ? 'Mingguan' : 'Bulanan'})
+                  Berulang ({event.recurrence_pattern === 'daily' ? 'Harian' : event.recurrence_pattern === 'weekly' ? 'Weekly' : 'Monthly'})
                 </div>
               )}
             </div>
 
             {}
             <div className="space-y-3">
-              <DetailRow icon={Calendar} label={isMultiDay ? 'Rentang Tanggal' : 'Tanggal'}>
+              <DetailRow icon={Calendar} label={isMultiDay ? 'Date Range' : 'Date'}>
                 {formatDate(event.event_date)}
                 {isMultiDay && (
                   <>

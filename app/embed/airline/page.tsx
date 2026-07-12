@@ -16,7 +16,7 @@ function LoadingSkeleton() {
   return (
     <div className="embed-loading">
       <div className="embed-spinner" />
-      <p style={{ marginTop: '1rem' }}>Memuat data airline...</p>
+      <p style={{ marginTop: '1rem' }}>Loading airline data...</p>
     </div>
   );
 }

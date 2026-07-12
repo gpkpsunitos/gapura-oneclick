@@ -357,6 +357,7 @@ export async function PATCH(request: NextRequest) {
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await request.json();
+    const isAdmin = ['SUPER_ADMIN', 'ANALYST'].includes(session.role as string);
 
     if (body.action === 'rename') {
       const { oldFolder: rawOld, newFolder: rawNew } = body as { action: string; oldFolder: string; newFolder: string };
@@ -368,10 +369,12 @@ export async function PATCH(request: NextRequest) {
       if (oldFolder === newFolder) {
         return NextResponse.json({ success: true });
       }
-      const { error } = await supabaseAdmin
+      let query = supabaseAdmin
         .from('custom_dashboards')
         .update({ folder: newFolder || null })
         .eq('folder', oldFolder);
+      if (!isAdmin) query = query.eq('created_by', session.id);
+      const { error } = await query;
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ success: true });
     }
@@ -382,10 +385,12 @@ export async function PATCH(request: NextRequest) {
       if (!folder) {
         return NextResponse.json({ error: 'folder required' }, { status: 400 });
       }
-      const { error } = await supabaseAdmin
+      let query = supabaseAdmin
         .from('custom_dashboards')
         .update({ folder: null })
         .eq('folder', folder);
+      if (!isAdmin) query = query.eq('created_by', session.id);
+      const { error } = await query;
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ success: true });
     }
@@ -398,10 +403,12 @@ export async function PATCH(request: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: 'Dashboard ID required' }, { status: 400 });
     }
-    const { error } = await supabaseAdmin
+    let query = supabaseAdmin
       .from('custom_dashboards')
       .update({ folder })
       .eq('id', id);
+    if (!isAdmin) query = query.eq('created_by', session.id);
+    const { error } = await query;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
     return NextResponse.json({ success: true });
 

@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, MapPin, Plane, AlertTriangle, Link as LinkIcon, FileText, ChevronDown, ChevronUp, CalendarDays, Star, Users, Tag, MessageSquare } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { VoiceDrawerRecord } from './useVoiceDrilldown';
 
 interface VoiceDrilldownDrawerProps {
@@ -108,7 +109,8 @@ export function VoiceDrilldownDrawer({ isOpen, onClose, title, data }: VoiceDril
     setExpandedRows(prev => ({ ...prev, [rowKey]: !prev[rowKey] }));
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <>
@@ -342,6 +344,7 @@ export function VoiceDrilldownDrawer({ isOpen, onClose, title, data }: VoiceDril
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }

@@ -7,14 +7,14 @@ import { DrilldownDetailView } from '@/components/dashboard/DrilldownDetailView'
 
 const TITLE_MAP: Record<string, Record<string, string>> = {
     severity: {
-        high: 'Laporan Severity: High (Accident)',
-        medium: 'Laporan Severity: Medium (Incident)',
-        low: 'Laporan Severity: Low (Hazard)',
+        high: 'Severity Report: High (Accident)',
+        medium: 'Severity Report: Medium (Incident)',
+        low: 'Severity Report: Low (Hazard)',
     },
     trend: {
-        today: 'Laporan Hari Ini',
-        thisWeek: 'Laporan Minggu Ini',
-        thisMonth: 'Laporan Bulan Ini',
+        today: "Today's Reports",
+        thisWeek: "This Week's Reports",
+        thisMonth: "This Month's Reports",
     },
     location: {},
 };
@@ -79,7 +79,7 @@ export default function AdminDrilldownPage() {
     }, [type, value]);
 
     const title = useMemo(() => {
-        if (type === 'location') return `Laporan di Lokasi: ${value}`;
+        if (type === 'location') return `Reports at Location: ${value}`;
         return TITLE_MAP[type]?.[value] || `Detail: ${value}`;
     }, [type, value]);
 

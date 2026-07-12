@@ -60,11 +60,11 @@ export default function LoginForm() {
                 }
             } else {
                 const text = await res.text();
-                data = { error: text?.slice(0, 200) || 'Kesalahan tak diketahui' };
+                data = { error: text?.slice(0, 200) || 'Unknown error' };
             }
 
             if (!res.ok) {
-                throw new Error(data?.error || 'Login gagal');
+                throw new Error(data?.error || 'Login failed');
             }
 
             const requestedNext = new URLSearchParams(window.location.search).get('next');
@@ -81,7 +81,7 @@ export default function LoginForm() {
             const dest = roleRedirects[normalizedRole] || '/dashboard/employee';
             router.push(dest);
         } catch (err: unknown) {
-            setError(err instanceof Error ? err.message : 'Login gagal');
+            setError(err instanceof Error ? err.message : 'Login failed');
         } finally {
             setLoading(false);
         }
@@ -106,7 +106,7 @@ export default function LoginForm() {
                             required
                             autoComplete="email"
                             className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 rounded-lg sm:rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 text-sm transition-all focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 focus:bg-white"
-                            placeholder="email@perusahaan.com"
+                            placeholder="email@company.com"
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                         />
@@ -130,7 +130,7 @@ export default function LoginForm() {
                             type="button"
                             onClick={() => setShowPassword((current) => !current)}
                             className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
-                            aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                            aria-label={showPassword ? 'Hide password' : 'Show password'}
                             aria-pressed={showPassword}
                         >
                             {showPassword ? <EyeOff size={16} className="sm:hidden" /> : <Eye size={16} className="sm:hidden" />}
@@ -151,11 +151,11 @@ export default function LoginForm() {
                     {loading ? (
                         <>
                             <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
-                            Memproses...
+                            Processing...
                         </>
                     ) : (
                         <>
-                            Masuk
+                            Sign In
                             <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
                         </>
                     )}
@@ -173,9 +173,9 @@ export default function LoginForm() {
 
             <div className="mt-6 text-center">
                 <p className="text-xs sm:text-sm text-gray-500">
-                    Belum punya akun?{' '}
+                    Don&apos;t have an account?{' '}
                     <Link href="/auth/register" className="font-semibold text-emerald-700 hover:text-emerald-800">
-                        Daftar di sini
+                        Register here
                     </Link>
                 </p>
             </div>

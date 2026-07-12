@@ -1,11 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const OTHER = '__other__';
 export const resolveOther = (v: string, other: string) => (v === OTHER ? other.trim() : v);
+
+export function toLocalDateInput(date: Date): string {
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().split('T')[0];
+}
 
 export function compressImage(file: File): Promise<File> {
   return new Promise((resolve, reject) => {
@@ -43,7 +49,7 @@ export function Field({ label, required, hint, children }: { label: string; requ
   );
 }
 
-export function Section({ title, subtitle, children }: { title: string; subtitle?: string; children: React.ReactNode }) {
+export function Section({ title, subtitle, children }: { title: React.ReactNode; subtitle?: string; children: React.ReactNode }) {
   return (
     <section className="jm-section">
       <div className="jm-section__head">
@@ -157,7 +163,9 @@ export function InlineShell({ ariaLabel, children }: { ariaLabel: string; childr
 }
 
 export function FormShell({ onClose, ariaLabel, wide, children }: { onClose: () => void; ariaLabel: string; wide?: boolean; children: React.ReactNode }) {
+  const [mounted, setMounted] = useState(false);
   useEffect(() => {
+    setMounted(true);
     const el = document.createElement('link');
     el.rel = 'stylesheet';
     el.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';
@@ -167,7 +175,12 @@ export function FormShell({ onClose, ariaLabel, wide, children }: { onClose: () 
     return () => { el.remove(); document.body.style.overflow = prev; };
   }, []);
 
-  return (
+  if (!mounted) return null;
+
+  // Portal to <body> so `position: fixed` escapes any ancestor with
+  // transform/filter/will-change (which creates a new containing block and
+  // clips the backdrop to the dashboard content — leaving corners uncovered).
+  return createPortal(
     <div className="jm-root" role="dialog" aria-modal="true" aria-label={ariaLabel}>
       <style dangerouslySetInnerHTML={{ __html: FORM_CSS }} />
       <div className="jm-backdrop" onClick={onClose} />
@@ -177,7 +190,8 @@ export function FormShell({ onClose, ariaLabel, wide, children }: { onClose: () 
         </button>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -269,6 +283,23 @@ export const FORM_CSS = `
   scrollbar-width: thin;
   scrollbar-color: rgba(0,0,0,0.15) transparent;
 }
+
+/* Report detail: report body left, feedback right */
+.jm-detail-split { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; }
+.jm-detail-side { border-top: 1px solid var(--line); }
+@media (min-width: 900px) {
+  .jm-detail-split { flex-direction: row; overflow: hidden; }
+  .jm-detail-main { flex: 1.6; min-width: 0; }
+  .jm-detail-side {
+    flex: 1; min-width: 320px; max-width: 400px;
+    border-top: none; border-left: 1px solid var(--line);
+    background: rgba(0,0,0,0.015);
+    padding-top: 48px;
+  }
+}
+@media (max-width: 899px) {
+  .jm-detail-split > .jm-scroll { overflow: visible; }
+}
 .jm-scroll::-webkit-scrollbar { width: 6px; }
 .jm-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 999px; }
 .jm-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -298,6 +329,54 @@ export const FORM_CSS = `
 .jm-section__title { margin: 0; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; color: var(--ink); }
 .jm-section__sub { margin: 4px 0 0; font-size: 13px; color: var(--mute); font-weight: 400; }
 .jm-section__body { display: flex; flex-direction: column; gap: 20px; }
+
+/* Feedback / comment thread inside report detail */
+.jm-feedback { display: flex; flex-direction: column; gap: 18px; }
+.jm-feedback__list {
+  position: relative;
+  display: flex; flex-direction: column; gap: 16px;
+  padding-left: 4px;
+}
+.jm-feedback__list::before {
+  content: ''; position: absolute; left: 15px; top: 6px; bottom: 6px;
+  width: 1px; background: var(--line);
+}
+.jm-feedback__item { position: relative; display: flex; align-items: flex-start; gap: 12px; }
+.jm-feedback__avatar {
+  flex-shrink: 0; z-index: 1;
+  width: 24px; height: 24px; border-radius: 999px;
+  background: #fff; border: 1px solid var(--line);
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: var(--ink-2);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+.jm-feedback__bubble {
+  flex: 1;
+  background: #fff; border: 1px solid var(--line); border-radius: 16px;
+  padding: 12px 14px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+}
+.jm-feedback__bubble-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+.jm-feedback__author { font-size: 12px; font-weight: 700; color: var(--ink); }
+.jm-feedback__time { font-size: 10px; font-weight: 500; color: var(--mute); }
+.jm-feedback__content { margin: 0; font-size: 13px; line-height: 1.55; color: var(--ink-2); white-space: pre-wrap; word-break: break-word; }
+.jm-feedback__sys {
+  position: relative; display: flex; align-items: center; gap: 10px;
+  padding-left: 1px; font-size: 11px; font-style: italic; color: var(--mute);
+}
+.jm-feedback__sys-icon {
+  flex-shrink: 0; z-index: 1;
+  width: 24px; height: 24px; border-radius: 999px;
+  background: var(--fill); border: 1px solid var(--line);
+  display: inline-flex; align-items: center; justify-content: center; color: var(--mute);
+}
+.jm-feedback__sys-time { margin-left: auto; opacity: 0.6; font-weight: 600; }
+.jm-feedback__empty {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 32px 0; border: 1px dashed var(--line); border-radius: 16px;
+  color: var(--mute); background: rgba(255,255,255,0.4);
+  font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
 
 .jm-field { display: flex; flex-direction: column; gap: 8px; }
 .jm-field__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
@@ -410,6 +489,7 @@ export const FORM_CSS = `
 .jm-drop__title { font-size: 14px; font-weight: 600; color: var(--ink); }
 .jm-drop__hint { font-size: 12.5px; color: var(--mute); }
 .jm-drop--full { opacity: 0.4; pointer-events: none; }
+.jm-evidence-required-msg { margin: 10px 0 0; font-size: 12.5px; font-weight: 600; color: var(--red); }
 
 .jm-files { list-style: none; margin: 12px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
 .jm-file {

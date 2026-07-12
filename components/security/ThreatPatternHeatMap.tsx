@@ -45,7 +45,7 @@ export function ThreatPatternHeatMap({ events }: { events: SecurityAlert[] }) {
             timeSlots.map(time => ({
                 dim,
                 time,
-                intensity: Math.min(100, (counts[dim][time] * 25) + (events.length > 0 ? 5 : 0) + Math.floor(Math.random() * 15))
+                intensity: Math.min(100, (counts[dim][time] * 25) + (events.length > 0 ? 5 : 0))
             }))
         ).flat();
     }, [events, timeSlots]);

@@ -65,7 +65,7 @@ export function QuickEditPopover({
       await onSave(event.id, updates);
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Gagal menyimpan perubahan';
+      const message = err instanceof Error ? err.message : 'Failed to save changes';
       setError(message);
     } finally {
       setSaving(false);
@@ -78,7 +78,7 @@ export function QuickEditPopover({
       await onDelete(event.id);
       onClose();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Gagal menghapus kegiatan';
+      const message = err instanceof Error ? err.message : 'Failed to delete event';
       setError(message);
       setSaving(false);
     }
@@ -120,7 +120,7 @@ export function QuickEditPopover({
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Tanggal</label>
+                <label className="block text-xs font-medium text-[var(--text-muted)] mb-1">Date</label>
                 <PrismInput
                   type="date"
                   value={eventDate}
@@ -161,7 +161,7 @@ export function QuickEditPopover({
             {showDeleteConfirm ? (
               <div className="flex items-center gap-2 pt-1">
                 <AlertTriangle className="w-4 h-4 text-[oklch(0.55_0.2_25)] flex-shrink-0" />
-                <span className="text-xs text-[var(--text-secondary)] flex-1">Hapus kegiatan ini?</span>
+                <span className="text-xs text-[var(--text-secondary)] flex-1">Delete this event?</span>
                 <button
                   onClick={handleDelete}
                   disabled={saving}
@@ -192,7 +192,7 @@ export function QuickEditPopover({
                   onClick={onClose}
                   disabled={saving}
                   className="p-2 rounded-lg border border-[oklch(0.92_0.01_90/0.8)] hover:bg-[var(--surface-3)] transition-all duration-[var(--duration-fast)]"
-                  aria-label="Batal"
+                  aria-label="Cancel"
                 >
                   <X className="w-4 h-4 text-[var(--text-muted)]" />
                 </button>
@@ -201,7 +201,7 @@ export function QuickEditPopover({
                   onClick={() => setShowDeleteConfirm(true)}
                   disabled={saving}
                   className="p-2 rounded-lg border border-[oklch(0.6_0.22_25/0.15)] hover:bg-[oklch(0.6_0.22_25/0.06)] transition-all duration-[var(--duration-fast)]"
-                  aria-label="Hapus kegiatan"
+                  aria-label="Delete event"
                 >
                   <Trash2 className="w-4 h-4 text-[oklch(0.55_0.2_25)]" />
                 </button>

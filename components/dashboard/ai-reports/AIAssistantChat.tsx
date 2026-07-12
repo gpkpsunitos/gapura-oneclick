@@ -55,7 +55,7 @@ const SUGGESTION_BUBBLES: SuggestionBubble[] = [
   {
     icon: Search,
     label: 'Top Irregularities',
-    query: 'Tampilkan top 10 kategori irregularity dengan jumlah case, persentase, dan station mana yang paling banyak',
+    query: 'Show the top 10 irregularity categories with case counts, percentages, and the station with the most cases',
     color: 'from-rose-500/20 to-pink-500/20 border-rose-500/30 text-rose-400',
   },
   {
@@ -162,6 +162,7 @@ function AIChart({ config }: { config: any }) {
           ) : type === 'pie' ? (
             <PieChart margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
               <Pie 
+                isAnimationActive={false}
                 data={data} 
                 cx="50%" 
                 cy="50%" 
@@ -229,7 +230,7 @@ function renderMarkdown(content: string): ReactNode {
 
         elements.push(
           <div key={`chart-error-${index}`} className="p-4 my-4 bg-red-50 text-red-600 text-[10px] rounded-xl border border-red-200 font-mono">
-            ⚠️ Gagal memuat visualisasi data. Pastikan format JSON benar.
+            ⚠️ Failed to load data visualization. Make sure the JSON format is correct.
             <pre className="mt-2 opacity-60 text-slate-500">{part.trim()}</pre>
           </div>
         );
@@ -457,7 +458,7 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
       const errorMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: `⚠️ **Gagal menghasilkan insight.** ${err instanceof Error ? err.message : 'Coba lagi nanti.'}`,
+        content: `⚠️ **Failed to generate insight.** ${err instanceof Error ? err.message : 'Try again later.'}`,
         ts: Date.now(),
       };
       setMessages((prev) => [...prev, errorMsg]);

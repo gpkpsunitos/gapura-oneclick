@@ -8,7 +8,7 @@ export default async function AnalystReportsPage() {
     const session = token ? await readSessionPayload(token) : null;
 
     if (session?.division === 'OCS') {
-        redirect('/dashboard/ocs?view=reports');
+        redirect('/dashboard/analyst?view=reports');
     }
 
     redirect('/dashboard/analyst?view=reports');

@@ -40,7 +40,11 @@ export function DashboardFrame({ role, division, children }: { role: string; div
           'flex-1 min-h-screen min-w-0 bg-[var(--surface-0)] flex flex-col',
           isEskalasi ? 'pb-0' : 'pb-[calc(6.5rem+env(safe-area-inset-bottom))] xl:pb-0'
         )}
-        style={{ paddingLeft: `clamp(0px, (100vw - ${collapsePx}px) * 999, 240px)`, maxWidth: '100%' }}
+        // Sidebar's `xl:block` triggers at 100vw >= collapsePx (inclusive), so the
+        // padding step must flip on the same boundary — using collapsePx directly
+        // left padding at 0 at exactly 1280px while the fixed sidebar was already
+        // visible, covering the first 240px of content.
+        style={{ paddingLeft: `clamp(0px, (100vw - ${collapsePx - 1}px) * 999, 240px)`, maxWidth: '100%' }}
       >
         <div className="w-full min-w-0 flex-1 flex flex-col xl:pl-5">
           {children}

@@ -126,10 +126,10 @@ export default function AnalystCharts({
                     </h3>
                     <button
                         onClick={() => setIsGlobalFilterCollapsed(!isGlobalFilterCollapsed)}
-                        aria-label={isGlobalFilterCollapsed ? 'Tampilkan filter' : 'Sembunyikan filter'}
+                        aria-label={isGlobalFilterCollapsed ? 'Show filter' : 'Hide filter'}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[var(--surface-3)] bg-[var(--surface-1)] hover:bg-[var(--surface-2)] transition-colors text-xs font-bold text-[var(--text-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
                     >
-                        <span>{isGlobalFilterCollapsed ? 'Tampilkan' : 'Sembunyikan'}</span>
+                        <span>{isGlobalFilterCollapsed ? 'Show' : 'Hide'}</span>
                         <motion.svg 
                             width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                             animate={{ rotate: isGlobalFilterCollapsed ? 0 : 180 }}
@@ -151,28 +151,28 @@ export default function AnalystCharts({
                             <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 bg-[var(--surface-0)]/30 rounded-b-2xl">
                                 <PrismMultiSelect
                                     label="Hub"
-                                    placeholder="Semua Hub..."
+                                    placeholder="All Hubs..."
                                     options={availableOptions.hubs.map(h => ({ label: h, value: h }))}
                                     values={globalFilters.hubs}
                                     onChange={(vals) => setGlobalFilters(prev => ({ ...prev, hubs: vals }))}
                                   />
                                 <PrismMultiSelect
                                     label="Station"
-                                    placeholder="Semua Station..."
+                                    placeholder="All Stations..."
                                     options={availableOptions.branches.map(b => ({ label: b, value: b }))}
                                     values={globalFilters.branches}
                                     onChange={(vals) => setGlobalFilters(prev => ({ ...prev, branches: vals }))}
                                   />
                                 <PrismMultiSelect
                                     label="Airline"
-                                    placeholder="Semua Airline..."
+                                    placeholder="All Airlines..."
                                     options={availableOptions.airlines.map(a => ({ label: a, value: a }))}
                                     values={globalFilters.airlines}
                                     onChange={(vals) => setGlobalFilters(prev => ({ ...prev, airlines: vals }))}
                                   />
                                 <PrismMultiSelect
                                     label="Kategori"
-                                    placeholder="Semua Kategori..."
+                                    placeholder="All Categories..."
                                     options={availableOptions.categories.map(c => ({ label: c, value: c }))}
                                     values={globalFilters.categories}
                                     onChange={(vals) => setGlobalFilters(prev => ({ ...prev, categories: vals }))}

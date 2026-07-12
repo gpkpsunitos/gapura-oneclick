@@ -46,7 +46,7 @@ type VirtualAssistantChatProps = {
 const INITIAL_MESSAGE: ChatMessage = {
     id: 'assistant-initial',
     role: 'assistant',
-    content: 'Selamat datang. Silakan tanya hal operasional Gapura yang perlu dicek.',
+    content: "Welcome. Ask anything about Gapura operations you'd like to check.",
     status: 'done',
 };
 
@@ -319,8 +319,8 @@ export function VirtualAssistantChat({
                         <Link
                             href="/auth/public-report"
                             className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
-                            aria-label="Kembali"
-                            title="Kembali"
+                            aria-label="Back"
+                            title="Back"
                         >
                             <ArrowLeft className="h-4 w-4" />
                         </Link>

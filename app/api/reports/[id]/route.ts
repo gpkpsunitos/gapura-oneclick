@@ -5,7 +5,7 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { reportsService } from '@/lib/services/reports-service';
 import { persistReportMetadata } from '@/lib/report-persistence';
-import { notifyReportClosedEmail } from '@/lib/notifications';
+import { notifyReportClosedEmail, notifyStatusChange } from '@/lib/notifications';
 import { linkEvidenceFilesToReport, normalizeEvidenceFileIds } from '@/lib/evidence-files';
 
 function normalizeAccessValue(value: unknown): string {
@@ -154,7 +154,12 @@ export async function PATCH(
         ));
 
         if (!allowedRoles.includes(payload.role as string)) {
-            if (!canAccessOwnReport && !isSafeEditedWordPatch) {
+            // isSafeEditedWordPatch previously bypassed ownership entirely for
+            // evidence-only patches, letting any authenticated non-elevated
+            // user attach files to a report they don't own by matching a
+            // filename pattern. Ownership is still required here; the flag is
+            // only used below to control how the merge is performed.
+            if (!canAccessOwnReport) {
                 return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
             }
         }
@@ -323,6 +328,10 @@ export async function PATCH(
             return NextResponse.json({ error: 'Report not found or update failed' }, { status: 404 });
         }
 
+        const isStatusChange =
+            updates.status !== undefined &&
+            String(updates.status).trim().toUpperCase() !== String(existingReport?.status || '').trim().toUpperCase();
+
         if (updates.status !== undefined) {
             try {
                 const statusMsg = `Status laporan diubah ke ${updates.status}${updates.action_taken ? ` — Catatan: ${updates.action_taken}` : ''}`;
@@ -336,6 +345,17 @@ export async function PATCH(
             } catch (statusErr) {
                 console.warn('[Status] Failed to create system comment:', statusErr);
             }
+        }
+
+        if (isStatusChange) {
+            notifyStatusChange(
+                String(updatedReport.id || id),
+                updatedReport.title || updatedReport.report || 'Untitled report',
+                String(existingReport?.status || '-'),
+                String(updates.status)
+            ).catch((notificationError) => {
+                console.warn('[REPORTS_PATCH] Status-change notification failed:', notificationError);
+            });
         }
 
         await persistReportMetadata(updatedReport, {

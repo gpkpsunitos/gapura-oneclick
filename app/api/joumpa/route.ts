@@ -249,7 +249,16 @@ function recordToReport(record: JoumpaRecord, rowNumber: number): Report {
   } as Report;
 }
 
-async function fetchFromSync(params: URLSearchParams) {
+// Basic branch staff must only see their own JOUMPA submissions, not the
+// customer PII of every submission company-wide. Elevated roles (manager,
+// divisional, analyst, admin) keep full access, matching the multi-division
+// sharing already baked into the UI (JOUMPA has no division field to scope by).
+function isBasicStaffRole(role: string): boolean {
+  const normalized = role.trim().toUpperCase();
+  return normalized === 'STAFF_CABANG' || normalized === 'CABANG' || normalized === 'EMPLOYEE';
+}
+
+async function fetchFromSync(params: URLSearchParams, ownerEmail: string | null) {
   let query = supabaseAdmin
     .from('joumpa_reports_sync')
     .select('*')
@@ -265,6 +274,7 @@ async function fetchFromSync(params: URLSearchParams) {
   if (branch) query = query.eq('branch', branch);
   if (category) query = query.eq('category', category);
   if (serviceType) query = query.eq('category_case_joumpa', serviceType);
+  if (ownerEmail) query = query.or(`reporter_email.eq.${ownerEmail},email_address.eq.${ownerEmail}`);
 
   const { data, error } = await query;
   if (error) throw error;
@@ -289,13 +299,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const role = String(payload.role || '').trim().toUpperCase();
+    const ownerEmail = isBasicStaffRole(role) ? String(payload.email || '').trim().toLowerCase() : null;
+
     const { searchParams } = new URL(request.url);
     if (searchParams.get('source') !== 'sheets') {
-      const synced = await fetchFromSync(searchParams);
+      const synced = await fetchFromSync(searchParams, ownerEmail);
       if (synced.total > 0 || searchParams.get('source') === 'sync') {
         return NextResponse.json(synced, {
           headers: {
-            'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+            // Per-session RBAC-filtered data must never be cached in a shared/CDN cache.
+            'Cache-Control': ownerEmail ? 'private, no-store' : 'public, s-maxage=120, stale-while-revalidate=300',
           },
         });
       }
@@ -317,7 +331,10 @@ export async function GET(request: NextRequest) {
     const records = parseRows(headers, dataRows);
     const reportByRecord = new Map(records.map((record, i) => [record, recordToReport(record, i + 2)]));
 
-    const filtered = applyFilters(records, searchParams);
+    let filtered = applyFilters(records, searchParams);
+    if (ownerEmail) {
+      filtered = filtered.filter((record) => record.email.trim().toLowerCase() === ownerEmail);
+    }
     const filteredReports = filtered
       .map((record) => reportByRecord.get(record))
       .filter((report): report is Report => Boolean(report));
@@ -326,7 +343,8 @@ export async function GET(request: NextRequest) {
       { records: filtered, reports: filteredReports, total: filtered.length, source: 'sheets' },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+          // Per-session RBAC-filtered data must never be cached in a shared/CDN cache.
+          'Cache-Control': ownerEmail ? 'private, no-store' : 'public, s-maxage=120, stale-while-revalidate=300',
         },
       }
     );

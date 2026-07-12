@@ -7,14 +7,14 @@ import { AIRLINES } from '@/lib/constants/airlines';
 import { AREA_CATEGORIES, AREA_LABELS, GSE_EQUIPMENT, GSE_TYPES } from '@/lib/constants/incident-areas';
 import { ROOT_CAUSE_CLASSIFICATIONS, getAirlineType, getHubForStation, getWeekInMonth, type DocEdits } from './wizard-shared';
 import { WizardStep } from '@/components/ui/WizardStep';
-import { Field, FormShell, InlineShell, Options, Section, StepFooter, StepProgress, compressImage, resolveOther } from './apple-form-shell';
+import { Field, FormShell, InlineShell, Options, Section, StepFooter, StepProgress, compressImage, resolveOther, toLocalDateInput } from './apple-form-shell';
 import DocumentEditorStep from './DocumentEditorStep';
 
 const MAX_FILES = 5;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 const TOTAL_STEPS = 6;
 
-const AIRLINE_OTHER = 'Other / Lainnya';
+const AIRLINE_OTHER = 'Other';
 const AREAS = ['TERMINAL', 'APRON', 'GSE', 'CARGO', 'GENERAL'] as const;
 type AreaKey = typeof AREAS[number];
 
@@ -54,7 +54,7 @@ interface Form {
 
 const EMPTY: Form = {
   reporter_email: '', reporter_name: '',
-  incident_date: new Date().toISOString().split('T')[0],
+  incident_date: toLocalDateInput(new Date()),
   airline: '', airline_other: '',
   flight_number: '', station_id: '', route: '', delay_code: '',
   area: '', area_category: '', area_category_other: '',
@@ -90,6 +90,18 @@ export default function PublicIrregularityForm({
   const [createdReportData, setCreatedReportData] = useState<unknown>(null);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((p) => ({ ...p, [k]: v }));
+
+  // useAuth() resolves asynchronously, so defaultReporterName/Email are often
+  // still empty on the initial render that seeds `form` above. Backfill once
+  // they arrive, but only into fields the user hasn't already typed into.
+  useEffect(() => {
+    if (!defaultReporterName && !defaultReporterEmail) return;
+    setForm((p) => ({
+      ...p,
+      reporter_name: p.reporter_name || defaultReporterName || '',
+      reporter_email: p.reporter_email || defaultReporterEmail || '',
+    }));
+  }, [defaultReporterName, defaultReporterEmail]);
 
   useEffect(() => {
     const c = new AbortController();
@@ -508,7 +520,10 @@ export default function PublicIrregularityForm({
             </WizardStep>
 
             <WizardStep isActive={step === 6}>
-              <Section title="Evidence" subtitle={`Up to ${MAX_FILES} images, 10 MB each`}>
+              <Section
+                title={<>Evidence<span className="jm-req" aria-hidden>*</span></>}
+                subtitle={`At least 1 photo required — up to ${MAX_FILES} images, 10 MB each`}
+              >
                 <label className={cn('jm-drop', files.length >= MAX_FILES && 'jm-drop--full')}>
                   <Upload size={20} strokeWidth={1.6} />
                   <span className="jm-drop__title">Add photos</span>
@@ -517,6 +532,9 @@ export default function PublicIrregularityForm({
                     onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
                     disabled={files.length >= MAX_FILES} />
                 </label>
+                {files.length === 0 && (
+                  <p className="jm-evidence-required-msg">At least one photo is required to submit this report.</p>
+                )}
                 {files.length > 0 && (
                   <ul className="jm-files">
                     {files.map((file, i) => (

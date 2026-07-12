@@ -10,7 +10,7 @@ export default function CustomDashboardPage() {
       <Suspense fallback={
         <div className="min-h-[60vh] flex flex-col items-center justify-center">
           <Loader2 className="w-10 h-10 animate-spin text-[var(--brand-primary)]" />
-          <p className="text-sm text-[var(--text-muted)] mt-4">Memuat dashboard...</p>
+          <p className="text-sm text-[var(--text-muted)] mt-4">Loading dashboard...</p>
         </div>
       }>
         <CustomDashboardContent />

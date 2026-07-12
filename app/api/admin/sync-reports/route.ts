@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { SyncService } from '@/lib/services/sync-service';
 import { logSecurityAudit } from '@/lib/security/audit-logger';
+import { timingSafeStringEqual } from '@/lib/security/rate-limit';
 
 type SessionLike = { role?: unknown; id?: unknown; email?: unknown } | null | undefined;
 
@@ -24,8 +25,11 @@ export async function POST(request: NextRequest) {
     const session = cookieStore.get('session')?.value;
 
     const authHeader = request.headers.get('authorization');
-    const isVercelCron = request.headers.get('x-vercel-cron') === 'true' ||
-                         authHeader === `Bearer ${process.env.CRON_SECRET}`;
+    // Only trust Bearer CRON_SECRET. The `x-vercel-cron` header is client-supplied
+    // and spoofable — trusting it let any anonymous request reach the destructive
+    // `action:'clear'` path (clearSyncedData). Fail closed when the secret is unset.
+    const cronSecret = process.env.CRON_SECRET;
+    const isVercelCron = !!cronSecret && timingSafeStringEqual(authHeader, `Bearer ${cronSecret}`);
 
     let payload = null;
 

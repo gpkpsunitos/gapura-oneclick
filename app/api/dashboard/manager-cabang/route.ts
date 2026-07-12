@@ -41,7 +41,13 @@ export async function GET() {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    const reports = rows || [];
+    const stationCode = station?.code || stationId;
+    const { data: joumpaRows } = await supabaseAdmin
+        .from('joumpa_reports_sync')
+        .select('*')
+        .or(`station_code.eq.${stationCode},station.eq.${stationCode}`);
+
+    const reports = [...(rows || []), ...(joumpaRows || [])];
     const total = reports.length;
     const openCount = reports.filter(r => r.status === 'OPEN').length;
     const closedCount = reports.filter(r => r.status === 'CLOSED').length;
@@ -54,16 +60,16 @@ export async function GET() {
     const monthlyMap: Record<string, { total: number; Irregularity: number; Complaint: number; Compliment: number }> = {};
 
     for (const r of reports) {
-        const cat = r.main_category || r.category || 'Lainnya';
+        const cat = r.main_category || r.category || 'Other';
         categoryMap[cat] = (categoryMap[cat] || 0) + 1;
 
         const sev = r.severity || 'UNKNOWN';
         severityMap[sev] = (severityMap[sev] || 0) + 1;
 
-        const area = r.area || 'Tidak Diketahui';
+        const area = r.area || 'Unknown';
         areaMap[area] = (areaMap[area] || 0) + 1;
 
-        const airline = r.airline || r.airlines || 'Tidak Diketahui';
+        const airline = r.airline || r.airlines || 'Unknown';
         airlineMap[airline] = (airlineMap[airline] || 0) + 1;
 
         const dateStr = r.date_of_event || r.created_at;
@@ -108,7 +114,7 @@ export async function GET() {
         .slice(-12)
         .map(([month, data]) => {
             const [y, m] = month.split('-');
-            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'];
+            const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
             return {
                 month: `${monthNames[parseInt(m) - 1]} ${y}`,
                 rawMonth: month,

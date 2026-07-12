@@ -756,7 +756,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
             value={chartData.kpis.highestPeakMonth.month}
             subtitle={`${chartData.kpis.highestPeakMonth.count} reports`}
             color="yellow"
-            explanation="Bulan dengan jumlah laporan tertinggi dalam periode ini."
+            explanation="Month with the highest number of reports in this period."
           />
         </div>
       )}

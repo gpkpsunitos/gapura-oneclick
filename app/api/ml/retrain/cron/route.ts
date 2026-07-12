@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mlClient } from '@/lib/ml-client';
+import { timingSafeStringEqual } from '@/lib/security/rate-limit';
 
 // ml-service /retrain runs synchronously (~20-60s). Vercel functions are short-lived,
 // so we kick it off, wait briefly, and return 202 — the ml-service keeps training and
@@ -8,8 +9,12 @@ export const maxDuration = 60; // Vercel Hobby cap.
 const SOFT_TIMEOUT_MS = 8000;
 
 function isCronRequest(request: NextRequest): boolean {
-    return request.headers.get('x-vercel-cron') === 'true' ||
-        request.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`;
+    // Only trust Bearer CRON_SECRET. The `x-vercel-cron` header is a client-
+    // supplied request header and is spoofable, so it must not gate auth.
+    // Fail closed when the secret is unset instead of matching `Bearer undefined`.
+    const secret = process.env.CRON_SECRET;
+    if (!secret) return false;
+    return timingSafeStringEqual(request.headers.get('authorization'), `Bearer ${secret}`);
 }
 
 async function handleCronRetrain(request: NextRequest) {

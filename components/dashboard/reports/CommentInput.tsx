@@ -53,7 +53,7 @@ export function CommentInput({
                 if (textareaRef.current) textareaRef.current.style.height = 'auto';
             } else {
                 const data = await res.json();
-                setError(data.error || 'Gagal mengirim pesan');
+                setError(data.error || 'Failed to send message');
             }
         } catch (err) {
             console.error('Failed to send comment', err);

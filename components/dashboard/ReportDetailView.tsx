@@ -41,7 +41,6 @@ import { generatePDF, generateWord } from "@/lib/utils/document-generator";
 import { DocxEditorModal } from "@/components/dashboard/DocxEditorModal";
 import { BriefingEditorModal } from "@/components/dashboard/BriefingEditorModal";
 import { EvidenceViewModal } from "@/components/dashboard/EvidenceViewModal";
-import { AIAnalysisSection } from "@/components/dashboard/ai-summary";
 import { AIInsightCard } from "@/components/dashboard/ai-insight";
 import { canExportBranchData, canEditReport } from "@/lib/permissions";
 
@@ -813,14 +812,14 @@ export function ReportDetailView({
                     <div className="flex flex-col gap-1">
                       <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Klasifikasi Lampiran</label>
                       <p className="text-xs text-slate-500">
-                        Pilih jenis bukti yang akan diunggah untuk corrective atau preventive action.
+                        Select the type of evidence to upload for the corrective or preventive action.
                       </p>
                       <select 
                         className="mt-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-[var(--brand-primary)]/20 outline-none"
                         value={lampiranActionType || ""}
                         onChange={(e) => setLampiranActionType(e.target.value as LampiranActionType)}
                       >
-                        <option value="" disabled>Pilih jenis bukti lampiran</option>
+                        <option value="" disabled>Select attachment evidence type</option>
                         <option value="CORRECTIVE">Bukti Corrective Action</option>
                         <option value="PREVENTIVE">Bukti Preventive Action</option>
                       </select>

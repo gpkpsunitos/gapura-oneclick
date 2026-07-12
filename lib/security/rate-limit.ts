@@ -77,6 +77,12 @@ export async function checkDbRateLimit(
     return { success: true, remaining: limit - newCount, resetAt: resetAt.getTime() };
 }
 
+export function timingSafeStringEqual(provided: string | null | undefined, expected: string): boolean {
+    const providedBuf = Buffer.from(provided ?? '');
+    const expectedBuf = Buffer.from(expected);
+    return providedBuf.length === expectedBuf.length && timingSafeEqual(providedBuf, expectedBuf);
+}
+
 export function getClientIpFromRequest(request: Request): string {
     return (
         request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||

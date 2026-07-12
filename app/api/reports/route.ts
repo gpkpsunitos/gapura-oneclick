@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { REPORT_STATUS } from '@/lib/constants/report-status';
 import { reportsService } from '@/lib/services/reports-service';
-import { notifyNewRecordEmail } from '@/lib/notifications';
+import { notifyNewRecordEmail, notifyNewReport } from '@/lib/notifications';
 import { persistReportMetadata } from '@/lib/report-persistence';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { bumpSyncVersion } from '@/lib/sync-state';
@@ -119,7 +119,10 @@ export async function GET(request: Request) {
 
         const isDivisionOrPartner = role.startsWith('DIVISI_') || role.startsWith('PARTNER_');
         const adminBypass = role === 'SUPER_ADMIN' || role === 'ANALYST';
-        const bypassFiltering = unfiltered && (isDivisionOrPartner || adminBypass);
+        // Only SUPER_ADMIN/ANALYST may see company-wide unfiltered data.
+        // Division/partner roles must stay scoped to their own target_division
+        // below, even when unfiltered=1 is passed.
+        const bypassFiltering = unfiltered && adminBypass;
 
         if (bypassFiltering) {
             const reports = await reportsService.getReports({
@@ -399,6 +402,19 @@ export async function POST(request: Request) {
                 console.warn('[REPORTS_API] New-record notification failed:', notificationError);
             }),
         ]);
+
+        const targetDivision = newReport.target_division || newReport.esklasi_divisi;
+        if (targetDivision) {
+            notifyNewReport(
+                String(newReport.id || newReport.original_id || ''),
+                targetDivision,
+                newReport.title || newReport.report || 'Untitled report',
+                String(newReport.priority || 'medium'),
+                newReport.sla_deadline || ''
+            ).catch((notificationError) => {
+                console.warn('[REPORTS_API] Division new-report notification failed:', notificationError);
+            });
+        }
 
         after(async () => {
             try {

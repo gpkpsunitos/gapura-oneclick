@@ -159,9 +159,9 @@ export function SubCategoryDetailChart({
             className="w-full py-3 border-t border-gray-50 text-[10px] font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors flex items-center justify-center gap-1"
           >
             {expanded ? (
-              <>Tampilkan Sedikit <ChevronUp size={12} /></>
+              <>Show Less <ChevronUp size={12} /></>
             ) : (
-              <>Lihat Semua ({sortedData.length - limit} lainnya) <ChevronDown size={12} /></>
+              <>View All ({sortedData.length - limit} lainnya) <ChevronDown size={12} /></>
             )}
           </button>
         )}

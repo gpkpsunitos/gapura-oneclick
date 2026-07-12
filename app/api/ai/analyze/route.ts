@@ -1,145 +1,93 @@
+/**
+ * POST /api/ai/analyze — AI analysis of a single report narrative.
+ *
+ * Proxies the Gapura ML Service `/analyze` endpoint (all classifiers +
+ * 14-day forecast + risk rankings) and returns a presentation-ready shape:
+ * plain-language confidence levels, ranked alternatives when the model
+ * abstains, and a compact forecast summary.
+ *
+ * Body: { text: string, airline?, branch?, area?, category?, report_type? }
+ */
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySession } from '@/lib/auth-utils';
-import { cookies } from 'next/headers';
-import { getHfClient } from '@/lib/hf-client';
+import { mlClient, type ClassifyContext } from '@/lib/ml-client';
 import { resolveCachedAI } from '@/lib/ai-route-cache';
+import {
+  requireAISession,
+  unauthorizedResponse,
+  aiUnavailableResponse,
+  presentClassification,
+} from '@/lib/ai-route-helpers';
+
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
+  const session = await requireAISession();
+  if (!session) return unauthorizedResponse();
+
+  let body: Record<string, unknown>;
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-    const session = token ? await verifySession(token) : null;
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: 'Body JSON tidak valid' }, { status: 400 });
+  }
 
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  const text = typeof body.text === 'string' ? body.text.trim() : '';
+  if (!text) {
+    return NextResponse.json(
+      { error: 'Teks laporan diperlukan (field "text")' },
+      { status: 400 },
+    );
+  }
 
-    const body = await req.json();
-    const { data, options = {} } = body;
+  const ctx: ClassifyContext = {};
+  for (const key of ['airline', 'branch', 'area', 'category', 'report_type'] as const) {
+    const value = body[key];
+    if (typeof value === 'string' && value.trim()) ctx[key] = value.trim();
+  }
 
-    if (!data || !Array.isArray(data)) {
-      return NextResponse.json(
-        { error: 'Data laporan diperlukan' },
-        { status: 400 }
-      );
-    }
+  try {
+    const result = await resolveCachedAI({
+      feature: 'analyze-v2',
+      scope: { text, ctx },
+      resolver: async () => {
+        const raw = await mlClient.analyze(text, ctx);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const convertedData = data.map((report: any) => ({
-      Date_of_Event: report.Date_of_Event || report.date_of_event || report.created_at,
-      Airlines: report.Airlines || report.airlines || report.airline || 'Unknown',
-      Flight_Number: report.Flight_Number || report.flight_number || report.flightNumber || 'N/A',
-      Branch: report.Branch || report.branch || report.stations?.code || 'Unknown',
-      HUB: report.HUB || report.hub || 'Unknown',
-      Route: report.Route || report.route || '',
-      Report_Category: report.Report_Category || report.report_category || report.category || 'Irregularity',
-      Irregularity_Complain_Category: report.Irregularity_Complain_Category || report.main_category || report.category_detail || 'Unknown',
-      Report: report.Report || report.description || report.report || report.title || '',
-      Root_Caused: report.Root_Caused || report.root_cause || report.root_caused || '',
-      Action_Taken: report.Action_Taken || report.action_taken || report.action || '',
-      Area: report.Area || report.area || 'Unknown',
-      Status: report.Status || report.status || 'Open',
-      Upload_Irregularity_Photo: report.Upload_Irregularity_Photo || report.photo_url || '',
-    }));
+        const forecastPoints = raw.forecast?.forecast ?? [];
+        const totalNext14 = forecastPoints.reduce((sum, p) => sum + (p.predicted_count || 0), 0);
 
-    const analysisOptions = {
-      predictResolutionTime: options.predictResolutionTime !== false,
-      classifySeverity: options.classifySeverity !== false,
-      extractEntities: options.extractEntities !== false,
-      generateSummary: options.generateSummary !== false,
-      analyzeTrends: options.analyzeTrends !== false,
-    };
+        return {
+          status: 'ok' as const,
+          classifications: {
+            category: presentClassification(raw.category),
+            subcategory: presentClassification(raw.subcategory),
+            root_cause: presentClassification(raw.root_cause),
+          },
+          forecast: raw.forecast
+            ? {
+                daily: forecastPoints,
+                totalNext14: Math.round(totalNext14),
+                avgPerDay: forecastPoints.length
+                  ? totalNext14 / forecastPoints.length
+                  : null,
+                interval: raw.forecast.interval ?? null,
+                trainedThrough: raw.forecast.trained_through ?? null,
+              }
+            : null,
+          risk: raw.risk_rankings ?? null,
+        };
+      },
+    });
 
-    const { searchParams } = new URL(req.url);
-    const esklasiRegex = searchParams.get('esklasi_regex') || '';
-
-    try {
-      const result = await resolveCachedAI({
-        feature: 'analyze',
-        scope: { esklasiRegex, data: convertedData, options: analysisOptions },
-        resolver: async () => {
-          const hfClient = getHfClient();
-          const aiResponse = await hfClient.fetch(
-            `/api/ai/analyze?esklasi_regex=${encodeURIComponent(esklasiRegex)}`,
-            {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                data: convertedData,
-                options: analysisOptions,
-              }),
-            }
-          );
-
-          if (!aiResponse.ok) {
-            throw new Error(`AI service error: ${aiResponse.status}`);
-          }
-
-          const aiResult = await aiResponse.json();
-          return translateToIndonesian(aiResult);
-        },
-      });
-
-      return NextResponse.json({
+    return NextResponse.json(
+      {
         ...(result.payload as Record<string, unknown>),
         cached: result.cached,
         generatedAt: result.generatedAt,
-        sourceSyncAt: result.sourceSyncAt,
-        stale: result.stale,
-      }, {
-        headers: {
-          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
-        },
-      });
-    } catch (aiError) {
-      console.error('AI Service Error:', aiError);
-
-      return NextResponse.json(
-        { 
-          error: 'AI service tidak tersedia',
-          details: aiError instanceof Error ? aiError.message : 'Unknown error'
-        },
-        { status: 503 }
-      );
-    }
-  } catch (error) {
-    console.error('AI Analysis API Error:', error);
-    return NextResponse.json(
-      { error: 'Terjadi kesalahan saat analisis AI' },
-      { status: 500 }
+      },
+      { headers: { 'Cache-Control': 'private, max-age=0' } },
     );
+  } catch (error) {
+    return aiUnavailableResponse(error);
   }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function translateToIndonesian(result: any) {
-  return {
-    ...result,
-    regression: result.regression ? {
-      ...result.regression,
-      modelMetrics: result.regression.modelMetrics ? {
-        ...result.regression.modelMetrics,
-        mae: result.regression.modelMetrics.mae,
-        rmse: result.regression.modelMetrics.rmse,
-        r2: result.regression.modelMetrics.r2,
-        keterangan: {
-          mae: 'Rata-rata Selisih (Mean Absolute Error)',
-          rmse: 'Akar Rata-rata Kuadrat Selisih (Root Mean Square Error)',
-          r2: 'Tingkat Akurasi Model (R-squared)',
-        }
-      } : null,
-    } : null,
-    metadata: {
-      ...result.metadata,
-      infoBahasa: {
-        totalRecords: 'Total Laporan yang Dianalisis',
-        processingTime: 'Waktu Pemrosesan (milidetik)',
-      }
-    }
-  };
 }

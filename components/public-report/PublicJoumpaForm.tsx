@@ -84,6 +84,18 @@ export default function PublicJoumpaForm({
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((p) => ({ ...p, [k]: v }));
 
+  // useAuth() resolves asynchronously, so defaultReporterName/Email are often
+  // still empty on the initial render that seeds `form` above. Backfill once
+  // they arrive, but only into fields the user hasn't already typed into.
+  useEffect(() => {
+    if (!defaultReporterName && !defaultReporterEmail) return;
+    setForm((p) => ({
+      ...p,
+      report_by: p.report_by || defaultReporterName || '',
+      reporter_email: p.reporter_email || defaultReporterEmail || '',
+    }));
+  }, [defaultReporterName, defaultReporterEmail]);
+
   useEffect(() => {
     const c = new AbortController();
     (async () => {
@@ -409,7 +421,10 @@ export default function PublicJoumpaForm({
             </WizardStep>
 
             <WizardStep isActive={step === 6}>
-              <Section title="Evidence" subtitle={`Up to ${MAX_FILES} images, 10 MB each`}>
+              <Section
+                title={<>Evidence<span className="jm-req" aria-hidden>*</span></>}
+                subtitle={`At least 1 photo required — up to ${MAX_FILES} images, 10 MB each`}
+              >
                 <label className={cn('jm-drop', files.length >= MAX_FILES && 'jm-drop--full')}>
                   <Upload size={20} strokeWidth={1.6} />
                   <span className="jm-drop__title">Add photos</span>
@@ -418,6 +433,9 @@ export default function PublicJoumpaForm({
                     onChange={(e) => { addFiles(e.target.files); e.target.value = ''; }}
                     disabled={files.length >= MAX_FILES} />
                 </label>
+                {files.length === 0 && (
+                  <p className="jm-evidence-required-msg">At least one photo is required to submit this report.</p>
+                )}
                 {files.length > 0 && (
                   <ul className="jm-files">
                     {files.map((file, i) => (

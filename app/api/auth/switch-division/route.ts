@@ -139,7 +139,7 @@ export async function POST(request: Request) {
         const switchLimit = await checkDbRateLimit(`switch-division:${originSession.id}:${clientIp}`, 20, 15 * 60_000);
         if (!switchLimit.success) {
             return NextResponse.json(
-                { error: 'Terlalu banyak percobaan switch divisi. Coba lagi nanti.' },
+                { error: 'Terlalu banyak percobaan switch divisi. Try again later.' },
                 { status: 429, headers: { 'Retry-After': String(Math.ceil((switchLimit.resetAt - Date.now()) / 1000)) } }
             );
         }

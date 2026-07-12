@@ -118,6 +118,14 @@ export class JoumpaSyncService {
   }
 
   private static async deleteOrphans(rows: JoumpaRow[]): Promise<number> {
+    // Fail closed: an empty fetch is far more likely a transient Sheets error
+    // (429/5xx, quota, hidden sheet) than the user deleting every row. Deleting
+    // orphans here would wipe the entire table. Mirror the canonical reports-sync
+    // guard and refuse to orphan-delete when nothing was fetched.
+    if (rows.length === 0) {
+      console.warn('[JoumpaSync] Refusing orphan-delete: zero rows fetched (likely a transient upstream error).');
+      return 0;
+    }
     const currentSheetIds = new Set(rows.map((row) => row.sheet_id));
     const { data, error } = await supabaseAdmin.from('joumpa_reports_sync').select('id, sheet_id');
     if (error) {

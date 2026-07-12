@@ -116,8 +116,8 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Filter All Reports</p>
             <p className="truncate text-xs font-semibold text-slate-700">
               {activeCount > 0
-                ? `${activeCount} filter aktif • ${filteredCount.toLocaleString('id-ID')} dari ${totalCount.toLocaleString('id-ID')} report`
-                : 'Tanggal, hub, station, airline, category, classification, area, status, severity'}
+                ? `${activeCount} filter${activeCount === 1 ? '' : 's'} active • ${filteredCount.toLocaleString('en-US')} of ${totalCount.toLocaleString('en-US')} reports`
+                : 'Date, hub, station, airline, category, classification, area, status, severity'}
             </p>
           </div>
         </div>
@@ -134,7 +134,7 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
       {open && (
         <div className="border-t border-emerald-100/70 bg-[#fbfcf8] p-4">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <FilterInput label="Tanggal Mulai" icon={CalendarDays}>
+            <FilterInput label="Start Date" icon={CalendarDays}>
               <input
                 type="date"
                 value={startDate}
@@ -142,7 +142,7 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
                 className={fieldClass}
               />
             </FilterInput>
-            <FilterInput label="Tanggal Akhir" icon={CalendarDays}>
+            <FilterInput label="End Date" icon={CalendarDays}>
               <input
                 type="date"
                 value={endDate}
@@ -150,22 +150,22 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
                 className={fieldClass}
               />
             </FilterInput>
-            <FilterSelect label="Hub" icon={Building2} value={hub} onChange={onHub} emptyLabel="Semua hub" options={options.hubs} />
-            <FilterSelect label="Station" icon={Building2} value={branch} onChange={onBranch} emptyLabel="Semua branch" options={options.branches} />
-            <FilterSelect label="Airlines" icon={Plane} value={airline} onChange={onAirline} emptyLabel="Semua airlines" options={options.airlines} />
-            <FilterSelect label="Category" icon={Tag} value={category} onChange={onCategory} emptyLabel="Semua category" options={options.categories} />
-            <FilterSelect label="Case Classification" icon={Tag} value={caseClassification} onChange={onCaseClassification} emptyLabel="Semua case classification" options={options.caseClassifications} />
-            <FilterSelect label="Area" icon={Building2} value={area} onChange={onArea} emptyLabel="Semua area" options={options.areas} />
-            <FilterSelect label="Status" icon={ShieldAlert} value={status} onChange={onStatus} emptyLabel="Semua status" options={['OPEN', 'ON PROGRESS', 'CLOSED']} allValue="all" />
-            <FilterSelect label="Severity" icon={ShieldAlert} value={severity} onChange={onSeverity} emptyLabel="Semua severity" options={['LOW', 'MEDIUM', 'HIGH', 'TOP RISK']} allValue="all" />
+            <FilterSelect label="Hub" icon={Building2} value={hub} onChange={onHub} emptyLabel="All hubs" options={options.hubs} />
+            <FilterSelect label="Station" icon={Building2} value={branch} onChange={onBranch} emptyLabel="All branches" options={options.branches} />
+            <FilterSelect label="Airlines" icon={Plane} value={airline} onChange={onAirline} emptyLabel="All airlines" options={options.airlines} />
+            <FilterSelect label="Category" icon={Tag} value={category} onChange={onCategory} emptyLabel="All categories" options={options.categories} />
+            <FilterSelect label="Case Classification" icon={Tag} value={caseClassification} onChange={onCaseClassification} emptyLabel="All classifications" options={options.caseClassifications} />
+            <FilterSelect label="Area" icon={Building2} value={area} onChange={onArea} emptyLabel="All areas" options={options.areas} />
+            <FilterSelect label="Status" icon={ShieldAlert} value={status} onChange={onStatus} emptyLabel="All statuses" options={['OPEN', 'ON PROGRESS', 'CLOSED']} allValue="all" />
+            <FilterSelect label="Severity" icon={ShieldAlert} value={severity} onChange={onSeverity} emptyLabel="All severities" options={['LOW', 'MEDIUM', 'HIGH', 'TOP RISK']} allValue="all" />
           </div>
 
           <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(260px,1fr)_auto_auto]">
-            <FilterInput label="Search Manual" icon={Search}>
+            <FilterInput label="Manual Search" icon={Search}>
               <input
                 value={search}
                 onChange={(event) => onSearch(event.target.value)}
-                placeholder="ID, nomor referensi, report, flight, route, station, airlines..."
+                placeholder="ID, reference number, report, flight, route, station, airlines..."
                 className={fieldClass}
               />
             </FilterInput>
@@ -196,10 +196,10 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
 
           <div className="mt-4 flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-800">
-              {filteredCount.toLocaleString('id-ID')} / {totalCount.toLocaleString('id-ID')} reports match
+              {filteredCount.toLocaleString('en-US')} / {totalCount.toLocaleString('en-US')} reports match
             </p>
             <p className="text-xs font-semibold text-slate-500">
-              Filter layar aktif untuk Report List. Export tetap punya scope sendiri.
+              These filters apply to the Report List view. Export keeps its own scope.
             </p>
           </div>
         </div>

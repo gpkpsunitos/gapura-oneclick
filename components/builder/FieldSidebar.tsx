@@ -39,7 +39,7 @@ const FIELD_TYPE_COLORS: Record<string, string> = {
 const FIELD_TYPE_LABELS: Record<string, string> = {
   string: 'Teks',
   number: 'Angka',
-  date: 'Tanggal',
+  date: 'Date',
   datetime: 'Waktu',
   boolean: 'Ya/Tidak',
   uuid: 'ID',
@@ -92,7 +92,7 @@ export function FieldSidebar({
       <div className="p-3 border-b border-[var(--surface-4)]">
         <div className="flex items-center gap-2 mb-2">
           <Database size={14} className="text-[var(--brand-primary)]" />
-          <span className="text-xs font-bold text-[var(--text-primary)]">Pilih Data</span>
+          <span className="text-xs font-bold text-[var(--text-primary)]">Select Data</span>
         </div>
 
         {}
@@ -146,7 +146,7 @@ export function FieldSidebar({
           <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input
             type="text"
-            placeholder="Cari field..."
+            placeholder="Search fields..."
             value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full pl-8 pr-3 py-1.5 text-sm bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)]"

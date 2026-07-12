@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useId } from 'react';
+import { createPortal } from 'react-dom';
 import { X, Save, Link2, Check, Loader2, LayoutGrid, FileText } from 'lucide-react';
 import { QRCodeWithLogo } from '@/components/ui/QRCodeWithLogo';
 
@@ -37,6 +38,7 @@ export function SaveDashboardModal({
   const folderListId = useId();
 
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const handleSave = async () => {
     if (!name.trim()) return;
@@ -58,7 +60,7 @@ export function SaveDashboardModal({
 
   const fullUrl = savedUrl ? `${typeof window !== 'undefined' ? window.location.origin : ''}${savedUrl}` : '';
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-[var(--surface-1)] border border-[var(--surface-4)] rounded-2xl shadow-2xl w-full max-w-md mx-4 animate-scale-in">
@@ -106,7 +108,7 @@ export function SaveDashboardModal({
                   type="text"
                   value={folder}
                   onChange={e => setFolder(e.target.value)}
-                  placeholder="Contoh: Laporan Bulanan"
+                  placeholder="Example: Monthly Report"
                   list={folderListId}
                   className="w-full px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-lg text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]"
                 />
@@ -143,7 +145,7 @@ export function SaveDashboardModal({
                 ) : (
                   <Save size={16} />
                 )}
-                {saving ? 'Menyimpan...' : 'Simpan Dashboard'}
+                {saving ? 'Menyimpan...' : 'Save Dashboard'}
               </button>
             </>
           ) : (
@@ -197,13 +199,14 @@ export function SaveDashboardModal({
                   onClick={onClose}
                   className="flex-1 px-3 py-2 text-xs font-bold text-[var(--text-secondary)] border border-[var(--surface-4)] rounded-lg hover:bg-[var(--surface-2)] transition-colors"
                 >
-                  Tutup
+                  Close
                 </button>
               </div>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

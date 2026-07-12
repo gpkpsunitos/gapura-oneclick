@@ -52,7 +52,7 @@ export function ActionSummaryInsightPanel({
         });
       } catch (loadError) {
         if (!active) return;
-        setError(loadError instanceof Error ? loadError.message : 'Gagal memuat analitik AI');
+        setError(loadError instanceof Error ? loadError.message : 'Failed to load AI analytics');
         onStatus?.({
           cached: false,
           stale: false,
@@ -88,7 +88,7 @@ export function ActionSummaryInsightPanel({
       <div className="flex min-h-[18rem] items-center justify-center rounded-2xl border border-amber-200 bg-white/80">
         <div className="flex items-center gap-3 text-sm font-medium text-slate-600">
           <Loader2 className="h-4 w-4 animate-spin text-amber-600" />
-          Memuat analitik AI...
+          Loading AI analytics...
         </div>
       </div>
     );

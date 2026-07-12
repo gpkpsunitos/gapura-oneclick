@@ -97,14 +97,14 @@ export function Calendar({
 
   if (loading) {
     return (
-      <div className="h-[37.5rem] flex items-center justify-center" role="status" aria-label="Memuat kalender">
+      <div className="h-[37.5rem] flex items-center justify-center" role="status" aria-label="Loading calendar">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
             <div className="w-12 h-12 rounded-full border-2 border-[var(--surface-4)] border-t-[var(--brand-primary)] animate-spin" />
             <CalendarDays className="w-5 h-5 text-[var(--text-muted)] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </div>
           <div className="text-center">
-            <p className="text-[var(--text-secondary)] text-sm font-medium">Memuat kalender...</p>
+            <p className="text-[var(--text-secondary)] text-sm font-medium">Loading calendar...</p>
             <p className="text-[var(--text-muted)] text-xs mt-0.5">Mengambil data kegiatan</p>
           </div>
         </div>
@@ -113,17 +113,17 @@ export function Calendar({
   }
 
   const messages = {
-    today: 'Hari ini',
+    today: 'Today',
     previous: 'Sebelumnya',
     next: 'Selanjutnya',
-    month: 'Bulan',
-    week: 'Minggu',
+    month: 'Month',
+    week: 'Week',
     day: 'Hari',
     agenda: 'Agenda',
-    date: 'Tanggal',
+    date: 'Date',
     time: 'Waktu',
     event: 'Kegiatan',
-    noEventsInRange: 'Tidak ada kegiatan dalam rentang ini.',
+    noEventsInRange: 'No events in this range.',
     showMore: (total: number) => `+${total} lainnya`,
   };
 

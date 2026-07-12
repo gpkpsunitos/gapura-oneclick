@@ -80,7 +80,7 @@ export function ResponsivePieChart({
   if (!displayData || displayData.length === 0 || total === 0) {
     return (
       <div className={cn('w-full rounded-lg border border-gray-100 bg-white/60 p-4 flex items-center justify-center', className)} style={{ minHeight: 180 }}>
-        <div className="text-xs font-medium text-gray-400">Tidak ada data</div>
+        <div className="text-xs font-medium text-gray-400">No data</div>
       </div>
     );
   }
@@ -92,6 +92,7 @@ export function ResponsivePieChart({
       <RechartsContainer width="100%" height="100%">
         <PieChart>
           <RechartsPie
+            isAnimationActive={false}
             data={displayData}
             cx="50%"
             cy="50%"
@@ -104,6 +105,10 @@ export function ResponsivePieChart({
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onClick={onSliceClick ? ((data: any, _index: number, event: any) => { if (event) event.stopPropagation(); onSliceClick(data); }) as any : undefined}
             label={donut && showDataLabels ? ({ cx, cy, midAngle, outerRadius, value }: PieLabelPayload) => {
+              // Slices this thin sit close enough to their neighbors that
+              // fixed-angle outside labels collide and render illegibly on
+              // top of each other, so skip the label below this share.
+              if (total > 0 && (Number(value || 0) / total) * 100 < 4) return null;
               const RADIAN = Math.PI / 180;
               const radius = Number(outerRadius || 0) + 12;
               const x = Number(cx || 0) + radius * Math.cos(-Number(midAngle || 0) * RADIAN);

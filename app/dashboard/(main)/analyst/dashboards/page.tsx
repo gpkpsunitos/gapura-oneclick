@@ -218,7 +218,7 @@ export default function DashboardManagerPage() {
     };
 
     const handleDeleteFolder = async (folderName: string) => {
-        if (!confirm(`Hapus folder "${folderName}"? Dashboard akan dipindahkan ke "Root".`)) return;
+        if (!confirm(`Delete folder "${folderName}"? Dashboards will be moved to "Root".`)) return;
 
         setDashboards(prev => prev.map(d => d.folder === folderName ? { ...d, folder: null } : d));
         if (selectedFolder === folderName) setSelectedFolder('all');
@@ -265,7 +265,7 @@ export default function DashboardManagerPage() {
             }
         } catch (err) {
             console.error('Filter apply error:', err);
-            alert('Gagal membuat dashboard terfilter');
+            alert('Failed to create filtered dashboard');
         } finally {
             setFilterLoading(false);
         }
@@ -307,7 +307,7 @@ export default function DashboardManagerPage() {
                         <h3 className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-muted)] mb-4">Navigasi</h3>
                         <div className="space-y-1">
                             {[
-                                { id: 'all', label: 'Semua Dashboard', icon: LayoutGrid },
+                                { id: 'all', label: 'All Dashboards', icon: LayoutGrid },
                                 { id: 'root', label: 'Tanpa Folder', icon: Folder },
                             ].map(item => (
                                 <button
@@ -440,7 +440,7 @@ export default function DashboardManagerPage() {
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="Cari dashboard berdasarkan nama atau deskripsi..."
+                                placeholder="Search dashboards by name or description..."
                                 className="w-full pl-10 pr-4 py-2 rounded-xl bg-[var(--surface-2)] border-none text-sm focus:ring-2 focus:ring-[var(--brand-primary)]/10 transition-all outline-none"
                             />
                         </div>
@@ -476,7 +476,7 @@ export default function DashboardManagerPage() {
                         {loading ? (
                             <div className="flex flex-col items-center justify-center h-64 text-[var(--text-muted)]">
                                 <Loader2 className="animate-spin mb-2" size={32} />
-                                <p className="text-sm font-medium">Memuat data...</p>
+                                <p className="text-sm font-medium">Loading data...</p>
                             </div>
                         ) : filteredDashboards.length === 0 ? (
                             <div className="flex flex-col items-center justify-center h-64 text-[var(--text-muted)] border-2 border-dashed border-gray-100 rounded-3xl">
@@ -577,7 +577,7 @@ export default function DashboardManagerPage() {
                                                                         onClick={() => handleDeleteDashboard(dashboard.id)}
                                                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl text-left"
                                                                     >
-                                                                        <Trash2 size={14} /> Hapus
+                                                                        <Trash2 size={14} /> Delete
                                                                     </button>
                                                                 </motion.div>
                                                             )}
@@ -750,7 +750,7 @@ export default function DashboardManagerPage() {
                                                                         onClick={() => handleDeleteDashboard(dashboard.id)}
                                                                         className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-xl text-left"
                                                                     >
-                                                                        <Trash2 size={14} /> Hapus
+                                                                        <Trash2 size={14} /> Delete
                                                                     </button>
                                                                 </motion.div>
                                                             )}

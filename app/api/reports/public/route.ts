@@ -1,10 +1,11 @@
 
 import { NextResponse } from 'next/server';
 import { reportsService } from '@/lib/services/reports-service';
-import { notifyNewRecordEmail } from '@/lib/notifications';
+import { notifyNewRecordEmail, notifyNewReport } from '@/lib/notifications';
 import { persistReportMetadata } from '@/lib/report-persistence';
 import { checkDbRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
 import { linkEvidenceFilesToReport, normalizeEvidenceSubmissionId, validateEvidenceForReport } from '@/lib/evidence-files';
+import { findRegisteredUserByEmail } from '@/lib/user-lookup';
 import type { Report } from '@/types';
 
 export async function POST(request: Request) {
@@ -76,9 +77,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Evidence wajib diunggah sebelum laporan dikirim' }, { status: 400 });
     }
 
+    // If the reporter e-mail belongs to a registered user, attribute the report
+    // to that account (owner + display name) instead of leaving it anonymous.
+    const registered = await findRegisteredUserByEmail(email);
+
     const reportData: Partial<Report> = {
       reporter_email: email,
-      reporter_name: body.reporter_name || email,
+      reporter_name: registered?.fullName || body.reporter_name || email,
+      user_id: registered?.userId || undefined,
       title,
       description,
       location: body.location || '',
@@ -150,6 +156,19 @@ export async function POST(request: Request) {
     await notifyNewRecordEmail(newReport, 'public').catch((notificationError) => {
       console.warn('[Public Report] New-record notification failed:', notificationError);
     });
+
+    const targetDivision = newReport.target_division || newReport.esklasi_divisi;
+    if (targetDivision) {
+      notifyNewReport(
+        String(newReport.id || newReport.original_id || ''),
+        targetDivision,
+        newReport.title || newReport.report || 'Untitled report',
+        String(newReport.priority || 'medium'),
+        newReport.sla_deadline || ''
+      ).catch((notificationError) => {
+        console.warn('[Public Report] Division new-report notification failed:', notificationError);
+      });
+    }
 
     return NextResponse.json({ success: true, message: 'Laporan berhasil dikirim', data: newReport }, { status: 201 });
   } catch {

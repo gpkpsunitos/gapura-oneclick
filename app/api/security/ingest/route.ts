@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { DetectionEngine } from '@/lib/security/detection-engine';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { SecurityEvent } from '@/types/security';
@@ -6,8 +7,16 @@ import { SecurityEvent } from '@/types/security';
 export async function POST(request: Request) {
     const startTime = Date.now();
 
+    const expectedKey = process.env.SECURITY_INGEST_KEY;
+    if (!expectedKey) {
+        return NextResponse.json({ error: 'Misconfigured' }, { status: 503 });
+    }
+
     const apiKey = request.headers.get('x-security-key');
-    if (apiKey !== process.env.SECURITY_INGEST_KEY) {
+    const provided = Buffer.from(apiKey ?? '');
+    const expected = Buffer.from(expectedKey);
+    const isAuthorized = provided.length === expected.length && timingSafeEqual(provided, expected);
+    if (!isAuthorized) {
         return NextResponse.json({ error: 'Unauthorized Source' }, { status: 401 });
     }
 

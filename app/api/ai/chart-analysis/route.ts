@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
-import { verifySession } from '@/lib/auth-utils';
+import { requireElevatedAISession } from '@/lib/ai-route-helpers';
+import { mlServiceHeaders } from '@/lib/ml-client';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -1217,8 +1217,8 @@ async function fetchJsonWithAbort(url: string, init: RequestInit, timeoutMs: num
 async function callOrchestrator(name: string, path: string, init?: RequestInit, timeoutMs = FAST_TIMEOUT_MS): Promise<EndpointResult> {
   try {
     const response = await fetchJsonWithAbort(`${AI_BASE_URL}${path}`, {
-      headers: { Accept: 'application/json', ...(init?.headers || {}) },
       ...init,
+      headers: mlServiceHeaders({ Accept: 'application/json', ...((init?.headers as Record<string, string>) || {}) }),
     }, timeoutMs);
     const data = await response.json().catch(() => null);
     return { name, path, ok: response.ok, status: response.status, source: 'orchestrator', data };
@@ -1278,9 +1278,7 @@ function buildFeature(feature: FeatureKey, endpoints: EndpointResult[], chartTit
 
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-    const session = token ? await verifySession(token) : null;
+    const session = await requireElevatedAISession();
 
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

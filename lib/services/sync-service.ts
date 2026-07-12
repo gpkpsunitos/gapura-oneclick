@@ -652,6 +652,45 @@ export class SyncService {
       return { success: false, deleted: 0 };
     }
   }
+
+  // Piggybacks on the daily sync cron rather than its own Vercel cron slot
+  // (Hobby plan caps at 2). notifySLABreach dedupes per report via the
+  // notification fingerprint, so this only ever alerts once per breach.
+  static async checkSlaBreaches(): Promise<{ checked: number; notified: number }> {
+    const { notifySLABreach } = await import('@/lib/notifications');
+    const nowIso = new Date().toISOString();
+
+    const { data: overdue, error } = await supabaseAdmin
+      .from('ground_handling_irregularity_report')
+      .select('id, title, report, sla_deadline, status')
+      .neq('status', 'CLOSED')
+      .not('sla_deadline', 'is', null)
+      .lt('sla_deadline', nowIso)
+      .limit(200);
+
+    if (error) {
+      console.error('[SyncService] SLA breach query failed:', error);
+      return { checked: 0, notified: 0 };
+    }
+
+    let notified = 0;
+    for (const report of overdue || []) {
+      const deadline = new Date(String(report.sla_deadline));
+      const hoursOverdue = Math.round((Date.now() - deadline.getTime()) / 3_600_000);
+      try {
+        await notifySLABreach(
+          String(report.id),
+          String(report.title || report.report || 'Untitled report'),
+          hoursOverdue
+        );
+        notified++;
+      } catch (notifyError) {
+        console.warn('[SyncService] SLA breach notification failed:', notifyError);
+      }
+    }
+
+    return { checked: overdue?.length || 0, notified };
+  }
 }
 
 export const syncService = new SyncService();

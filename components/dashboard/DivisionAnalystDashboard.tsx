@@ -681,6 +681,11 @@ export function DivisionAnalystDashboard({
   };
 
   const isOpDivision = division.code === 'OP';
+  // ANALYST reuses this component (previously it was routed through
+  // OPDashboardClient, which hardcoded division={DIVISIONS.OP} and leaked
+  // "Operations Division" copy onto the Analyst dashboard). Give it the same
+  // executive header treatment as OP, but with its own copy.
+  const isExecutiveDivision = isOpDivision || division.code === 'ANALYST';
 
   if (loading) {
     return (
@@ -721,13 +726,27 @@ export function DivisionAnalystDashboard({
             exporting={exporting}
             divisionDashboardActions={undefined}
             onSwitchDivision={() => router.push('/dashboard/eskalasi/select')}
-            variant={isOpDivision && !isScopeLocked ? 'op-executive' : 'default'}
-            title={isOpDivision && !isScopeLocked ? 'Analytics Center' : undefined}
-            subtitle={isOpDivision && !isScopeLocked ? 'Operational summary and quick access for Operations Division' : undefined}
+            variant={isExecutiveDivision && !isScopeLocked ? 'op-executive' : 'default'}
+            title={
+              isScopeLocked
+                ? `Station Reports — ${lockedBranches![0]}`
+                : isExecutiveDivision
+                  ? 'Analytics Center'
+                  : undefined
+            }
+            subtitle={
+              isScopeLocked
+                ? 'Reports for your assigned station only'
+                : isExecutiveDivision
+                  ? isOpDivision
+                    ? 'Operational summary and quick access for Operations Division'
+                    : 'Company-wide analytics and reporting overview'
+                  : undefined
+            }
             activeView={undefined}
             onViewChange={undefined}
           />
-          {!isOpDivision && !forceView && (
+          {!isExecutiveDivision && !forceView && (
             <div className="mt-2 sm:mt-3 flex flex-wrap gap-1.5 sm:gap-2">
               <button
                 onClick={() => setView('reports')}

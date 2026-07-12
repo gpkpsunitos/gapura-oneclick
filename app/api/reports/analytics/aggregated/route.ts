@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { normalizeDivisionCode, reportsService, type ReportQueryFilters } from '@/lib/services/reports-service';
 import { AnalyticsProcessor } from '@/lib/services/analytics-processor';
+import { applyReportsRbacFilter } from '@/lib/reports-rbac';
 
 export async function GET(request: NextRequest) {
   try {
@@ -43,11 +44,16 @@ export async function GET(request: NextRequest) {
       gseOnly: searchParams.get('gseOnly') === 'true',
     };
 
-    const reports = await reportsService.getReports({ 
-      refresh, 
+    const allReports = await reportsService.getReports({
+      refresh,
       filters,
       source: 'sync',
     });
+
+    const role = String(session.role || '').trim().toUpperCase();
+    const stationId = (session.station_id as string | null) ?? null;
+    const email = String(session.email || '').trim().toLowerCase();
+    const reports = applyReportsRbacFilter(allReports, role, session.id as string, stationId, email);
 
     let aggregatedData: unknown = {};
 
@@ -81,7 +87,8 @@ export async function GET(request: NextRequest) {
       data: aggregatedData
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        // Per-session RBAC-filtered data must never be cached in a shared/CDN cache.
+        'Cache-Control': 'private, no-store',
       }
     });
 

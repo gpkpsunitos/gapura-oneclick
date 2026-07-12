@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createHash } from 'crypto';
 import { v5 as uuidv5 } from 'uuid';
+import { escapeSpreadsheetCell } from '@/lib/security/sanitize';
 
 // Shared JOUMPA sheet <-> Supabase mapping. Ported from the proven
 // scripts/sync-joumpa-scheduler.mjs so the in-app two-way sync and the
@@ -298,7 +299,8 @@ export function buildSheetRowValues(headers: string[], row: JoumpaRow): string[]
   for (const [prop, idx] of Object.entries(colMap)) {
     const value = row[prop];
     if (value == null) continue;
-    values[idx] = Array.isArray(value) ? value.filter(Boolean).join(' | ') : String(value);
+    const cell = Array.isArray(value) ? value.filter(Boolean).join(' | ') : String(value);
+    values[idx] = escapeSpreadsheetCell(cell);
   }
   return values;
 }
@@ -334,6 +336,7 @@ export interface JoumpaFormInput {
   report_by?: string;
   email_address?: string;
   evidence_urls?: string[];
+  user_id?: string;
 }
 
 export function buildRecordFromForm(input: JoumpaFormInput): JoumpaRow {
@@ -364,6 +367,7 @@ export function buildRecordFromForm(input: JoumpaFormInput): JoumpaRow {
     reporter_name: clean(input.report_by) || null,
     email_address: clean(input.email_address) || null,
     reporter_email: clean(input.email_address) || null,
+    user_id: clean(input.user_id) || null,
     airlines: clean(input.airlines) || null,
     airline: clean(input.airlines) || null,
     flight_number: clean(input.flight_number) || null,

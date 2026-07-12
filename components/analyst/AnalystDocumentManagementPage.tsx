@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
     ArrowDownAZ,
     ArrowUpAZ,
@@ -22,6 +23,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAuth } from '@/lib/hooks/use-auth';
 import { cn } from '@/lib/utils';
 import { exportDivisionDocumentsToExcel } from '@/lib/division-documents-export';
@@ -122,10 +124,13 @@ function MaterialButton({ href, label }: { href?: string | null; label: string }
     );
 }
 
-export function AnalystDocumentManagementPage() {
+export function AnalystDocumentManagementPage({ division = 'ANALYST' }: { division?: 'ANALYST' | 'HC' | 'HT' } = {}) {
     const { user } = useAuth(false);
     const role = String(user?.role || '').trim().toUpperCase();
-    const canManage = role === 'SUPER_ADMIN' || role === 'ANALYST';
+    // Mirrors canManageDivisionDocuments in lib/server/workspace-auth.ts:
+    // ANALYST docs are manageable by any analyst; HC/HT docs only by their own division.
+    const canManage = role === 'SUPER_ADMIN'
+        || (division === 'ANALYST' ? role === 'ANALYST' : (role === `DIVISI_${division}` || role === `PARTNER_${division}`));
 
     const [documents, setDocuments] = useState<DivisionDocument[]>([]);
     const [stations, setStations] = useState<StationOption[]>([]);
@@ -148,7 +153,7 @@ export function AnalystDocumentManagementPage() {
         setError('');
         try {
             const [docsRes, stationsRes] = await Promise.all([
-                fetch('/api/division-documents?division=ANALYST', { cache: 'no-store' }),
+                fetch(`/api/division-documents?division=${division}`, { cache: 'no-store' }),
                 fetch('/api/master-data?type=stations', { cache: 'force-cache' }),
             ]);
             if (!docsRes.ok) {
@@ -164,7 +169,7 @@ export function AnalystDocumentManagementPage() {
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [division]);
 
     useEffect(() => { void load(); }, [load]);
 
@@ -253,7 +258,7 @@ export function AnalystDocumentManagementPage() {
         setError('');
         try {
             const body = {
-                division: 'ANALYST',
+                division,
                 category: 'NOTULENSI_RAPAT',
                 title: form.title.trim() || '(No agenda)',
                 meeting_date: form.meeting_date || null,
@@ -285,10 +290,14 @@ export function AnalystDocumentManagementPage() {
         } finally {
             setSaving(false);
         }
-    }, [closeComposer, editing, form, load]);
+    }, [closeComposer, division, editing, form, load]);
 
-    const removeDocument = useCallback(async (doc: DivisionDocument) => {
-        if (!window.confirm(`Remove "${doc.title}"?`)) return;
+    const [removeTarget, setRemoveTarget] = useState<DivisionDocument | null>(null);
+
+    const confirmRemoveDocument = useCallback(async () => {
+        const doc = removeTarget;
+        if (!doc) return;
+        setRemoveTarget(null);
         setSaving(true);
         setError('');
         try {
@@ -301,7 +310,7 @@ export function AnalystDocumentManagementPage() {
         } finally {
             setSaving(false);
         }
-    }, [load]);
+    }, [load, removeTarget]);
 
     const exportExcel = useCallback(async () => {
         setExporting(true);
@@ -603,7 +612,7 @@ export function AnalystDocumentManagementPage() {
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent align="end">
                                                             <DropdownMenuItem onClick={() => openEdit(doc)}>Edit</DropdownMenuItem>
-                                                            <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => void removeDocument(doc)}>
+                                                            <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => setRemoveTarget(doc)}>
                                                                 Remove
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
@@ -625,7 +634,7 @@ export function AnalystDocumentManagementPage() {
                 </section>
             </div>
 
-            {composerOpen ? (
+            {composerOpen && typeof document !== 'undefined' ? createPortal(
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4">
                     <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
                         <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
@@ -797,8 +806,18 @@ export function AnalystDocumentManagementPage() {
                             </div>
                         </form>
                     </div>
-                </div>
+                </div>,
+                document.body,
             ) : null}
+
+            <ConfirmDialog
+                open={removeTarget !== null}
+                title={`Remove "${removeTarget?.title ?? ''}"?`}
+                confirmLabel="Remove"
+                danger
+                onConfirm={() => void confirmRemoveDocument()}
+                onCancel={() => setRemoveTarget(null)}
+            />
         </div>
     );
 }

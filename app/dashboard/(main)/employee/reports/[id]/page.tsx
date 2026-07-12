@@ -108,7 +108,7 @@ export default function EmployeeReportDetailPage() {
             setReport(data);
         } catch (err) {
             if (err instanceof DOMException && err.name === 'AbortError') return;
-            setError('Gagal memuat laporan');
+            setError('Failed to load reports');
         } finally {
             setLoading(false);
         }
@@ -177,12 +177,12 @@ export default function EmployeeReportDetailPage() {
         return (
             <div className="text-center py-20">
                 <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-500" />
-                <p className="text-lg font-medium">Laporan tidak ditemukan</p>
+                <p className="text-lg font-medium">Report not found</p>
                 <button
                     onClick={() => router.push('/dashboard/employee')}
                     className="mt-4 btn-secondary"
                 >
-                    Kembali ke Dashboard
+                    Back to Dashboard
                 </button>
             </div>
         );
@@ -213,7 +213,7 @@ export default function EmployeeReportDetailPage() {
                 <div className="flex-1">
                     <h1 className="text-xl font-bold">{report.title}</h1>
                     <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
-                        Laporan Anda
+                        Your Report
                     </p>
                 </div>
                 <div 
@@ -235,7 +235,7 @@ export default function EmployeeReportDetailPage() {
 
             {}
             <div className="card-solid p-6" style={{ background: 'var(--surface-2)' }}>
-                <h3 className="font-bold mb-4">Status Laporan</h3>
+                <h3 className="font-bold mb-4">Report Status</h3>
                 <div className="flex items-center gap-2">
                     {['OPEN', 'ACKNOWLEDGED', 'ON_PROGRESS', 'WAITING_VALIDATION', 'CLOSED'].map((s, idx) => {
                         const isPassed = ['OPEN', 'ACKNOWLEDGED', 'ON_PROGRESS', 'WAITING_VALIDATION', 'CLOSED']
@@ -256,7 +256,7 @@ export default function EmployeeReportDetailPage() {
 
             {}
             <div className="card-solid p-6" style={{ background: 'var(--surface-2)' }}>
-                <h2 className="font-bold text-lg mb-4">Detail Laporan</h2>
+                <h2 className="font-bold text-lg mb-4">Report Detail</h2>
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="space-y-1">
@@ -264,7 +264,7 @@ export default function EmployeeReportDetailPage() {
                         <p className="font-medium text-sm">{report.stations?.code || report.branch || '-'}</p>
                     </div>
                     <div className="space-y-1">
-                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Tanggal</p>
+                        <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Date</p>
                         <p className="font-medium text-sm">{report.incident_date || '-'}</p>
                     </div>
                     <div className="space-y-1">
@@ -379,7 +379,7 @@ export default function EmployeeReportDetailPage() {
                             </div>
                             <div>
                                 <p className="text-sm">
-                                    Laporan diterima oleh <span className="font-medium">{report.acknowledged_user?.full_name}</span>
+                                    Report acknowledged by <span className="font-medium">{report.acknowledged_user?.full_name}</span>
                                 </p>
                                 <p className="text-xs" style={{ color: 'var(--text-muted)' }}>
                                     {new Date(report.acknowledged_at).toLocaleString('id-ID')}

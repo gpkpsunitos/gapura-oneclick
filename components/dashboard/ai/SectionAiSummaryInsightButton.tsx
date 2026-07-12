@@ -1,72 +1,99 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Brain, Loader2, Sparkles, Table2, TrendingUp } from 'lucide-react';
+/**
+ * "AI Summary & Insight" button — opens a side sheet with two tabs:
+ *
+ *  - Ringkasan : summary of the CURRENT section tab. The dashboard sends
+ *                named datasets (per-month, per-station, YoY, …) to
+ *                POST /api/ai/section-summary; every number displayed is
+ *                computed server-side from the real data, and the LLM only
+ *                writes the narrative around those facts.
+ *  - Wawasan   : network-wide analysis from the Gapura ML Service
+ *                (GET /api/ai/overview): executive summary, key numbers,
+ *                14-day forecast, trends, risk leaderboard, 4-week outlook.
+ */
 
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { RefreshCw, CalendarRange, TrendingUp, ShieldAlert, ArrowUpRight } from 'lucide-react';
+import {
+  ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell,
+} from 'recharts';
+import { cn } from '@/lib/utils';
+import { buildCacheKey, readClientCache, writeClientCache } from '@/lib/ai/client-cache';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import {
+  useMLOverview, buildExecutiveSummary, StatTile, ForecastChart, TrendsPanel,
+  RiskLeaderboard, SubcategoryOutlook, riskEntityName, longDate,
+} from '@/components/ai/ml-overview-sections';
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type SectionDatasetInput = {
+  id: string;
+  name: string;
+  unit?: string;
+  /** 'timeseries' | 'ranking' | 'comparison' — loose so tabs can pass literals. */
+  kind: string;
+  description?: string;
+  rows: Array<{
+    label: string;
+    value: number;
+    delta?: number;
+    note?: string;
+    breakdown?: Record<string, number>;
+  }>;
+};
 
 type SectionAiContext = {
   section: string;
   title: string;
   chartType: string;
-  chartData: unknown;
+  /** Preferred: named datasets so incomparable numbers stay separate. */
+  datasets?: SectionDatasetInput[];
+  /** Legacy flat rows — still accepted by the API. */
+  chartData?: unknown;
   featureHints?: string[];
   filters?: Record<string, unknown>;
 };
 
-type SummaryTableRow = {
-  label: string;
-  value: number | string;
-  note?: string;
+type SummaryDatasetRow = { label: string; value: number; sharePct: number; delta?: number; note?: string };
+
+type SummaryDataset = {
+  id: string;
+  name: string;
+  unit: string;
+  kind: string;
+  total: number;
+  headline: string;
+  rows: SummaryDatasetRow[];
+  narrative: string;
 };
 
-type SummaryChartRow = {
-  label: string;
-  value: number;
+type SummaryRecommendation = {
+  title: string;
+  detail: string;
+  priority: 'tinggi' | 'sedang' | 'rendah';
 };
 
-type SectionSummaryResponse = {
+export type SectionSummaryResponse = {
   status: string;
   cached?: boolean;
   generatedAt: string;
-  model: string;
   section: string;
   executiveSummary: string;
   keyPoints: string[];
-  table: SummaryTableRow[];
-  chart: SummaryChartRow[];
+  datasets: SummaryDataset[];
+  recommendations: SummaryRecommendation[];
   predictiveSummary: string;
-  insights: string[];
 };
 
-type FeatureResult = {
-  key: string;
-  label: string;
-  summary: string;
-  chartSignal: string[];
-  recommendations: string[];
-  visual?: {
-    type: 'bar' | 'forecast' | 'table';
-    rows: Array<{
-      label: string;
-      value?: number;
-      secondary?: string;
-      score?: number;
-    }>;
-  };
-};
-
-type InsightResponse = {
-  status: string;
-  generatedAt: string;
-  context: { section: string; chartTitle: string; chartType: string };
-  features: FeatureResult[];
-};
-
-const summaryMemoryCache = new Map<string, SectionSummaryResponse>();
-const insightMemoryCache = new Map<string, InsightResponse>();
-const CHART_COLORS = ['#007073', '#d9911e', '#42a85b', '#0f86c1', '#b7472a', '#61706a'];
+const SUMMARY_CACHE_NS = 'section-summary';
+// The cacheKey already encodes the exact data snapshot (datasets/chartData),
+// so a long TTL is safe — a different filter/data state gets its own key
+// rather than reusing a stale one.
+const SUMMARY_CACHE_TTL_MS = 60 * 60 * 1000;
 
 function stableKey(value: unknown) {
   try {
@@ -76,47 +103,423 @@ function stableKey(value: unknown) {
   }
 }
 
-function formatNumber(value: unknown) {
-  const num = Number(value);
-  return Number.isFinite(num) ? num.toLocaleString('en-US') : String(value ?? '-');
+function formatNumber(value: number) {
+  return Number.isFinite(value) ? Math.round(value).toLocaleString('id-ID') : '—';
 }
 
-function buildLocalFallbackRows(chartData: unknown): SummaryChartRow[] {
-  if (!Array.isArray(chartData)) return [];
+// ---------------------------------------------------------------------------
+// Ringkasan — shared building blocks
+// ---------------------------------------------------------------------------
 
-  return chartData
-    .map((item, index) => {
-      if (!item || typeof item !== 'object') return null;
-      const row = item as Record<string, unknown>;
-      const label = String(row.name ?? row.label ?? row.month ?? row.category ?? row.branch ?? row.airline ?? row.title ?? `Row ${index + 1}`);
-      const value = Number(row.value ?? row.total ?? row.count ?? row.grandTotal ?? row.total_records ?? 0);
-      return label && Number.isFinite(value) ? { label, value } : null;
-    })
-    .filter((row): row is SummaryChartRow => Boolean(row))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 8);
+const LABEL_CLASS = 'text-[10.5px] font-black uppercase tracking-[0.2em] text-emerald-900/80';
+const CARD_CLASS = 'rounded-2xl border border-[#e7e1d2] bg-white shadow-[0_1px_3px_rgba(76,63,34,0.07)]';
+
+function SummarySkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className={cn(CARD_CLASS, 'h-32 animate-pulse bg-gradient-to-br from-amber-50/60 to-white')} />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className={cn(CARD_CLASS, 'h-52 animate-pulse')} />
+        <div className={cn(CARD_CLASS, 'h-52 animate-pulse')} />
+      </div>
+      <div className={cn(CARD_CLASS, 'h-40 animate-pulse')} />
+      <p className="text-center text-[12px] text-stone-400">
+        AI sedang membaca dan menyimpulkan data bagian ini — mohon tunggu sebentar…
+      </p>
+    </div>
+  );
 }
+
+function ErrorCard({ message, onRetry }: { message: string; onRetry: () => void }) {
+  return (
+    <div className={cn(CARD_CLASS, 'p-10 text-center')}>
+      <p className="break-words text-[13px] text-stone-500">{message}</p>
+      <button
+        onClick={onRetry}
+        className="mt-3 rounded-lg border border-emerald-800/20 bg-emerald-50 px-4 py-1.5 text-[12px] font-bold text-emerald-900 transition hover:bg-emerald-100"
+      >
+        Coba lagi
+      </button>
+    </div>
+  );
+}
+
+/** Signed change badge — rising incident counts are bad (rose), falling good (emerald). */
+function DeltaBadge({ delta }: { delta: number }) {
+  const rising = delta > 0;
+  const flat = delta === 0;
+  return (
+    <span
+      className={cn(
+        'ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-black tabular-nums',
+        flat ? 'bg-stone-100 text-stone-500' : rising ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-700',
+      )}
+    >
+      {flat ? '±0%' : `${rising ? '▲' : '▼'} ${Math.abs(delta)}%`}
+    </span>
+  );
+}
+
+/** Ranked horizontal bars — gold for the leader, emerald for the rest. */
+function RankedBars({ dataset }: { dataset: SummaryDataset }) {
+  const rows = dataset.rows.slice(0, 8);
+  const max = Math.max(...rows.map((row) => row.value), 1);
+  // Share-of-total only makes sense when rows partition one whole.
+  const showShare = dataset.kind === 'ranking';
+
+  return (
+    <div className="space-y-3">
+      {rows.map((row, index) => (
+        <div key={`${row.label}-${index}`}>
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="min-w-0 break-words text-[13px] font-semibold text-stone-700">
+              {row.label}
+              {row.delta !== undefined && <DeltaBadge delta={row.delta} />}
+            </p>
+            <p className="shrink-0 text-[12px] font-bold tabular-nums text-stone-500">
+              {formatNumber(row.value)}
+              {showShare && row.sharePct > 0 && (
+                <span className="ml-1.5 font-semibold text-stone-400">{row.sharePct}%</span>
+              )}
+            </p>
+          </div>
+          {row.note ? (
+            <p className="mt-0.5 break-words text-[11px] leading-snug text-stone-400">{row.note}</p>
+          ) : null}
+          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#f1ede2]">
+            <div
+              className={cn(
+                'h-full rounded-full transition-[width] duration-700',
+                index === 0
+                  ? 'bg-gradient-to-r from-amber-500 to-amber-400'
+                  : 'bg-gradient-to-r from-emerald-700 to-emerald-500',
+              )}
+              style={{ width: `${Math.max(4, (row.value / max) * 100)}%` }}
+            />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Chronological mini column chart for per-month datasets. */
+function MonthlyColumns({ dataset }: { dataset: SummaryDataset }) {
+  const rows = dataset.rows;
+  const maxValue = Math.max(...rows.map((row) => row.value), 0);
+
+  return (
+    <div className="h-36">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={rows} margin={{ top: 16, right: 4, bottom: 0, left: 4 }}>
+          <XAxis
+            dataKey="label"
+            tick={{ fontSize: 10, fill: '#a8a29e' }}
+            tickLine={false}
+            axisLine={{ stroke: '#e7e1d2' }}
+            interval={0}
+            tickFormatter={(label: string) => label.slice(0, 3)}
+          />
+          <Tooltip
+            cursor={{ fill: 'rgba(217,180,110,0.12)' }}
+            contentStyle={{
+              fontSize: 12,
+              border: '1px solid #e7e1d2',
+              borderRadius: 10,
+              boxShadow: '0 4px 12px rgba(76,63,34,0.08)',
+            }}
+            formatter={(value: number) => [`${formatNumber(value)} ${dataset.unit}`, 'Jumlah']}
+          />
+          <Bar dataKey="value" radius={[5, 5, 0, 0]} isAnimationActive={false}>
+            {rows.map((row, index) => (
+              <Cell
+                key={`${row.label}-${index}`}
+                fill={row.value === maxValue && maxValue > 0 ? '#d97706' : '#047857'}
+              />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function DatasetCard({ dataset }: { dataset: SummaryDataset }) {
+  return (
+    <div className={cn(CARD_CLASS, 'flex flex-col p-6')}>
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <h4 className={LABEL_CLASS}>{dataset.name}</h4>
+        {/* Comparison rows may include their own "Total" row — summing them double-counts. */}
+        {dataset.kind !== 'comparison' && (
+          <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-amber-800">
+            {formatNumber(dataset.total)} {dataset.unit}
+          </span>
+        )}
+      </div>
+
+      <p className="mt-3 break-words text-[13.5px] font-semibold leading-relaxed text-emerald-950">
+        {dataset.headline}
+      </p>
+
+      <div className="mt-4 flex-1">
+        {dataset.kind === 'timeseries' && dataset.rows.length >= 3 ? (
+          <MonthlyColumns dataset={dataset} />
+        ) : (
+          <RankedBars dataset={dataset} />
+        )}
+      </div>
+
+      {dataset.narrative ? (
+        <p className="mt-4 break-words border-l-2 border-amber-300 pl-3 text-[12.5px] leading-relaxed text-stone-500">
+          {dataset.narrative}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+const PRIORITY_STYLES: Record<SummaryRecommendation['priority'], { badge: string; label: string }> = {
+  tinggi: { badge: 'border-rose-200 bg-rose-50 text-rose-700', label: 'Prioritas Tinggi' },
+  sedang: { badge: 'border-amber-200 bg-amber-50 text-amber-800', label: 'Prioritas Sedang' },
+  rendah: { badge: 'border-stone-200 bg-stone-50 text-stone-500', label: 'Prioritas Rendah' },
+};
+
+function RecommendationCards({ items }: { items: SummaryRecommendation[] }) {
+  if (items.length === 0) {
+    return <p className="text-[13px] text-stone-400">No recommendations for this section.</p>;
+  }
+  const order = { tinggi: 0, sedang: 1, rendah: 2 } as const;
+  const sorted = [...items].sort((a, b) => order[a.priority] - order[b.priority]);
+
+  return (
+    <div className="space-y-3">
+      {sorted.map((rec, index) => {
+        const style = PRIORITY_STYLES[rec.priority];
+        return (
+          <div
+            key={`${rec.title}-${index}`}
+            className="rounded-xl border border-[#eee9dc] bg-[#fdfcf9] p-4 transition hover:border-amber-200"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
+              <p className="break-words text-[13.5px] font-bold text-stone-800">{rec.title}</p>
+              <span className={cn('shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em]', style.badge)}>
+                {style.label}
+              </span>
+            </div>
+            <p className="mt-1.5 break-words text-[13px] leading-relaxed text-stone-600">{rec.detail}</p>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function KeyPointList({ items }: { items: string[] }) {
+  const cleaned = items
+    .map((item) => String(item ?? '').replace(/^\s*\d+[.)]\s*/, '').trim())
+    .filter(Boolean);
+
+  if (cleaned.length === 0) {
+    return <p className="text-[13px] text-stone-400">No notes for this section.</p>;
+  }
+
+  return (
+    <ul className="space-y-3">
+      {cleaned.slice(0, 6).map((item, index) => (
+        <li key={`${item}-${index}`} className="flex gap-3 text-[13.5px] leading-relaxed text-stone-700">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-900 text-[10px] font-black text-amber-300">
+            {index + 1}
+          </span>
+          <span className="min-w-0 break-words">{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Ringkasan tab
+// ---------------------------------------------------------------------------
+
+export function SummaryTab({
+  loading, error, summary, onRetry,
+}: {
+  loading: boolean;
+  error: string | null;
+  summary: SectionSummaryResponse | null;
+  onRetry: () => void;
+}) {
+  if (loading) return <SummarySkeleton />;
+  if (error) return <ErrorCard message={error} onRetry={onRetry} />;
+  if (!summary) return null;
+
+  const datasets = summary.datasets ?? [];
+
+  return (
+    <div className="space-y-4">
+      {/* Executive summary */}
+      <div className="relative overflow-hidden rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/90 via-white to-emerald-50/70 p-6 shadow-[0_1px_3px_rgba(76,63,34,0.07)]">
+        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-600" aria-hidden="true" />
+        <h4 className={LABEL_CLASS}>Ringkasan Eksekutif</h4>
+        <p className="mt-3 break-words text-[14.5px] leading-relaxed text-stone-800">
+          {summary.executiveSummary}
+        </p>
+      </div>
+
+      {/* One card per dataset — numbers computed from the dashboard data */}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        {datasets.map((dataset) => (
+          <DatasetCard key={dataset.id} dataset={dataset} />
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <div className={cn(CARD_CLASS, 'p-6')}>
+          <h4 className={LABEL_CLASS}>Poin Penting</h4>
+          <div className="mt-4">
+            <KeyPointList items={summary.keyPoints} />
+          </div>
+        </div>
+        <div className={cn(CARD_CLASS, 'p-6')}>
+          <h4 className={LABEL_CLASS}>Rekomendasi Tindakan</h4>
+          <div className="mt-4">
+            <RecommendationCards items={summary.recommendations ?? []} />
+          </div>
+        </div>
+      </div>
+
+      <div className={cn(CARD_CLASS, 'border-emerald-100 bg-gradient-to-br from-emerald-50/60 to-white p-6')}>
+        <h4 className={LABEL_CLASS}>Perkiraan ke Depan</h4>
+        <p className="mt-3 break-words text-[13.5px] leading-relaxed text-stone-700">
+          {summary.predictiveSummary}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Wawasan (network-wide ML analysis) tab
+// ---------------------------------------------------------------------------
+
+function InsightTab({
+  loading, error, data, onRetry,
+}: {
+  loading: boolean;
+  error: string;
+  data: ReturnType<typeof useMLOverview>['data'];
+  onRetry: () => void;
+}) {
+  const sentences = useMemo(() => (data ? buildExecutiveSummary(data) : []), [data]);
+
+  const heroStats = useMemo(() => {
+    if (!data) return null;
+    const points = data.forecast?.forecast ?? [];
+    const total14 = points.reduce((sum, point) => sum + (point.predicted_count || 0), 0);
+    const risingCount =
+      (data.trends.branch?.rising?.length ?? 0) + (data.trends.subcategory?.rising?.length ?? 0);
+    const topRisk = data.risk?.rankings?.airline?.[0];
+    return {
+      total14: points.length ? `±${Math.round(total14)}` : '—',
+      avgPerDay: points.length ? (total14 / points.length).toFixed(1) : '—',
+      risingCount: String(risingCount),
+      topRisk: topRisk ? riskEntityName(topRisk) : '—',
+      topRiskCount: topRisk ? `${topRisk.incident_count} reports recorded` : undefined,
+    };
+  }, [data]);
+
+  if (loading) {
+    return (
+      <div className="space-y-5">
+        <div className="h-36 animate-pulse border border-slate-100 bg-white" />
+        <div className="grid grid-cols-2 gap-4">
+          <div className="h-24 animate-pulse border border-slate-100 bg-white" />
+          <div className="h-24 animate-pulse border border-slate-100 bg-white" />
+        </div>
+        <div className="h-72 animate-pulse border border-slate-100 bg-white" />
+        <p className="text-center text-[12px] text-slate-400">
+          Loading overall analysis — usually takes less than 15 seconds…
+        </p>
+      </div>
+    );
+  }
+
+  if (error) return <ErrorCard message={error} onRetry={onRetry} />;
+  if (!data || !heroStats) return null;
+
+  return (
+    <div className="space-y-5">
+      {/* Executive summary across all data */}
+      <div className="border border-violet-100 bg-gradient-to-br from-violet-50/70 via-white to-white p-6">
+        <h4 className="mb-3 text-[11px] font-bold uppercase leading-relaxed tracking-[0.2em] text-violet-600">
+          Ringkasan Keseluruhan
+        </h4>
+        <ul className="space-y-2.5">
+          {sentences.map((sentence, index) => (
+            <li key={index} className="flex gap-3 text-[13.5px] leading-relaxed text-slate-700">
+              <span className="shrink-0 font-bold tabular-nums text-violet-400">{index + 1}.</span>
+              <span className="break-words">{sentence}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Key numbers */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <StatTile icon={CalendarRange} label="Perkiraan 14 Hari" value={heroStats.total14} hint="total laporan diperkirakan" />
+        <StatTile icon={TrendingUp} label="Rata-rata Harian" value={heroStats.avgPerDay} hint="laporan per hari ke depan" tone="slate" />
+        <StatTile icon={ShieldAlert} label="Perlu Perhatian" value={heroStats.topRisk} hint={heroStats.topRiskCount ?? 'prioritas risiko teratas'} tone="rose" />
+        <StatTile icon={ArrowUpRight} label="Tren Naik" value={heroStats.risingCount} hint="stasiun / kategori sedang meningkat" tone="emerald" />
+      </div>
+
+      {data.forecast?.forecast?.length ? <ForecastChart forecast={data.forecast} /> : null}
+      <TrendsPanel trends={data.trends} />
+      {data.risk ? <RiskLeaderboard risk={data.risk} /> : null}
+      {data.subcategoryForecast ? <SubcategoryOutlook outlook={data.subcategoryForecast} /> : null}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
 
 export function SectionAiSummaryInsightButton({ context }: { context: SectionAiContext }) {
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'summary' | 'insight'>('summary');
-  const [summary, setSummary] = useState<SectionSummaryResponse | null>(null);
+
+  // Ringkasan: per-section summary. cacheKey encodes the exact data shown
+  // (datasets + filters), so a filter change naturally gets its own cache
+  // entry instead of reusing a stale one.
+  const cacheKey = useMemo(() => stableKey(context), [context]);
+  const storageKey = useMemo(() => buildCacheKey(SUMMARY_CACHE_NS, cacheKey), [cacheKey]);
+
+  const [summary, setSummary] = useState<SectionSummaryResponse | null>(() =>
+    readClientCache<SectionSummaryResponse>(storageKey, SUMMARY_CACHE_TTL_MS),
+  );
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
-  const [insight, setInsight] = useState<InsightResponse | null>(null);
-  const [insightLoading, setInsightLoading] = useState(false);
-  const [insightError, setInsightError] = useState<string | null>(null);
+  // Which cacheKey `summary` currently reflects — lets a context change
+  // (different filters/data) trigger a real refetch instead of showing stale data.
+  const loadedKeyRef = useRef<string | null>(summary ? cacheKey : null);
 
-  const cacheKey = useMemo(() => stableKey(context), [context]);
+  // Wawasan: network-wide ML overview (fetched only when the tab is opened)
+  const overview = useMLOverview({ enabled: open && activeTab === 'insight' });
 
-  async function loadSummary() {
-    if (summaryLoading || summary) return;
-    const cached = summaryMemoryCache.get(cacheKey);
-    if (cached) {
-      setSummary(cached);
-      return;
+  const loadSummary = useCallback(async (force = false) => {
+    if (!force && loadedKeyRef.current === cacheKey) return;
+
+    if (!force) {
+      const cached = readClientCache<SectionSummaryResponse>(storageKey, SUMMARY_CACHE_TTL_MS);
+      if (cached) {
+        loadedKeyRef.current = cacheKey;
+        setSummary(cached);
+        setSummaryError(null);
+        return;
+      }
     }
 
+    loadedKeyRef.current = cacheKey;
     setSummaryLoading(true);
     setSummaryError(null);
     try {
@@ -126,378 +529,138 @@ export function SectionAiSummaryInsightButton({ context }: { context: SectionAiC
         body: JSON.stringify(context),
       });
       const payload = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(payload?.error || `AI summary failed (${response.status})`);
-      summaryMemoryCache.set(cacheKey, payload);
+      if (!response.ok) throw new Error(payload?.error || `Failed to generate AI summary (${response.status})`);
+      writeClientCache(storageKey, payload);
+      // Context may have changed while this request was in flight; a stale
+      // response must not clobber the summary for the now-current context.
+      if (loadedKeyRef.current !== cacheKey) return;
       setSummary(payload);
     } catch (error) {
-      setSummaryError(error instanceof Error ? error.message : 'Failed to load AI summary');
+      if (loadedKeyRef.current !== cacheKey) return;
+      loadedKeyRef.current = null;
+      setSummaryError(error instanceof Error ? error.message : 'Failed to generate AI summary');
     } finally {
-      setSummaryLoading(false);
+      if (loadedKeyRef.current === cacheKey || loadedKeyRef.current === null) setSummaryLoading(false);
     }
-  }
-
-  async function loadInsight() {
-    if (insightLoading || insight) return;
-    const cached = insightMemoryCache.get(cacheKey);
-    if (cached) {
-      setInsight(cached);
-      return;
-    }
-
-    setInsightLoading(true);
-    setInsightError(null);
-    try {
-      const response = await fetch('/api/ai/chart-analysis', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          section: context.section,
-          chartTitle: context.title,
-          chartType: context.chartType,
-          chartData: context.chartData,
-          featureHints: context.featureHints,
-          filters: context.filters,
-          fast: false,
-        }),
-      });
-      const payload = await response.json().catch(() => null);
-      if (!response.ok) throw new Error(payload?.error || `AI insight failed (${response.status})`);
-      insightMemoryCache.set(cacheKey, payload);
-      setInsight(payload);
-    } catch (error) {
-      setInsightError(error instanceof Error ? error.message : 'Failed to load AI insight');
-    } finally {
-      setInsightLoading(false);
-    }
-  }
+  }, [cacheKey, storageKey, context]);
 
   useEffect(() => {
-    if (!open) return;
-    if (activeTab === 'summary') void loadSummary();
-    if (activeTab === 'insight') void loadInsight();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, activeTab]);
+    if (open && activeTab === 'summary') void loadSummary();
+  }, [open, activeTab, loadSummary]);
 
-  const openModal = () => {
-    window.alert('Coming soon\n\nThis feature is still on development');
+  const refreshing = activeTab === 'summary' ? summaryLoading : overview.loading;
+  const handleRefresh = () => {
+    if (activeTab === 'summary') void loadSummary(true);
+    else void overview.refresh(true);
   };
 
-  const fallbackRows = buildLocalFallbackRows(context.chartData);
-  const summaryChartRows = summary?.chart?.length ? summary.chart : fallbackRows;
-  const summaryTableRows = summary?.table?.length ? summary.table : fallbackRows.map((row) => ({ ...row, note: 'Local section signal' }));
+  const learnedFrom = overview.data?.health?.row_count
+    ? `Belajar dari ${overview.data.health.row_count.toLocaleString('id-ID')} laporan historis`
+    : null;
+  const retrainedAt = longDate(overview.data?.health?.last_retrain);
 
   return (
     <>
       <button
         type="button"
-        onClick={openModal}
-        className="group relative inline-flex h-11 shrink-0 items-center gap-2 overflow-hidden rounded-xl border border-amber-300 bg-gradient-to-r from-amber-50 via-white to-emerald-50 px-4 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-900 shadow-[0_12px_28px_-16px_rgba(4,120,87,0.55),0_0_0_1px_rgba(217,145,30,0.18)_inset] transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-[0_16px_34px_-18px_rgba(180,83,9,0.55),0_0_0_1px_rgba(217,145,30,0.28)_inset] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 focus-visible:ring-offset-2"
+        onClick={() => setOpen(true)}
+        className="group relative inline-flex h-11 shrink-0 items-center gap-2 overflow-hidden rounded-xl border border-amber-300 bg-gradient-to-r from-amber-50 via-white to-emerald-50 px-5 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-900 shadow-[0_12px_28px_-16px_rgba(4,120,87,0.55),0_0_0_1px_rgba(217,145,30,0.18)_inset] transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-[0_16px_34px_-18px_rgba(180,83,9,0.55),0_0_0_1px_rgba(217,145,30,0.28)_inset] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 focus-visible:ring-offset-2"
       >
         <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_0%,rgba(217,145,30,0.18)_46%,transparent_72%)] opacity-55 transition group-hover:opacity-80" aria-hidden="true" />
-        <span className="relative z-10 flex h-7 w-7 items-center justify-center rounded-lg bg-amber-100 text-amber-700 ring-1 ring-amber-300/70">
-          <Brain size={15} />
-        </span>
         <span className="relative z-10 whitespace-nowrap">AI Summary &amp; Insight</span>
-        <Sparkles size={14} className="relative z-10 text-amber-500" />
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-[min(96vw,1040px)] overflow-y-auto bg-[#fbfdf8] p-0 sm:max-w-[1040px]">
-          <div className="border-b border-[#d7ded2] bg-white px-5 py-4 pr-12">
+        <SheetContent side="right" className="w-[min(96vw,1040px)] overflow-y-auto bg-[#f7f5ef] p-0 sm:max-w-[1040px]">
+          {/* Header */}
+          <div className="border-b border-[#e7e1d2] bg-white px-6 py-5 pr-14">
             <SheetHeader>
-              <div className="flex items-center gap-3">
-                <span className="h-9 w-[4px] bg-[#007073] shadow-[7px_0_0_#d9911e]" aria-hidden="true" />
+              <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <SheetTitle className="truncate text-[22px] font-black tracking-[-0.02em] text-[#007073]">
+                  <SheetTitle className="break-words text-[18px] font-bold text-stone-800">
                     {context.title}
                   </SheetTitle>
-                  <p className="mt-1 text-[11px] font-black uppercase tracking-[0.14em] text-[#61706a]">
-                    AI Summary & Insight
+                  <p className="mt-1 break-words text-[11px] leading-relaxed text-stone-400">
+                    AI Summary &amp; Insight
+                    {learnedFrom ? ` · ${learnedFrom}` : ''}
                   </p>
                 </div>
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold text-stone-400 transition-colors hover:text-emerald-800 disabled:opacity-40"
+                >
+                  <RefreshCw size={13} className={cn(refreshing && 'animate-spin')} />
+                  Perbarui
+                </button>
               </div>
             </SheetHeader>
           </div>
 
-          <div className="px-5 py-4">
-            <div className="grid grid-cols-2 border border-[#8a8a8a] bg-white text-[12px] font-black uppercase tracking-[0.12em] text-[#24322a]">
+          <div className="px-6 py-5">
+            {/* Tabs */}
+            <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-[#e7e1d2] bg-white text-[12px] font-bold">
               <button
                 type="button"
                 onClick={() => setActiveTab('summary')}
-                className={`flex h-10 items-center justify-center gap-2 border-r border-[#8a8a8a] transition ${activeTab === 'summary' ? 'bg-[#72bf75] text-[#0f2415]' : 'hover:bg-[#eef7ef]'}`}
+                className={cn(
+                  'flex h-10 items-center justify-center border-r border-[#e7e1d2] transition-colors',
+                  activeTab === 'summary' ? 'bg-emerald-900 text-amber-100' : 'text-stone-500 hover:bg-stone-50',
+                )}
               >
-                <Sparkles size={15} />
-                AI Summary
+                Ringkasan
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('insight')}
-                className={`flex h-10 items-center justify-center gap-2 transition ${activeTab === 'insight' ? 'bg-[#72bf75] text-[#0f2415]' : 'hover:bg-[#eef7ef]'}`}
+                className={cn(
+                  'flex h-10 items-center justify-center transition-colors',
+                  activeTab === 'insight' ? 'bg-emerald-900 text-amber-100' : 'text-stone-500 hover:bg-stone-50',
+                )}
               >
-                <TrendingUp size={15} />
-                AI Insight
+                Wawasan
               </button>
             </div>
 
-            <div className="mt-4">
+            {/* Body */}
+            <div className="mt-5 space-y-5">
               {activeTab === 'summary' ? (
-                <SummaryPanel
+                <SummaryTab
                   loading={summaryLoading}
                   error={summaryError}
                   summary={summary}
-                  tableRows={summaryTableRows}
-                  chartRows={summaryChartRows}
+                  onRetry={() => loadSummary(true)}
                 />
               ) : (
-                <InsightPanel loading={insightLoading} error={insightError} insight={insight} />
+                <InsightTab
+                  loading={overview.loading}
+                  error={overview.error}
+                  data={overview.data}
+                  onRetry={() => overview.refresh()}
+                />
               )}
+
+              {/* Honest footer */}
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-[#e7e1d2] pt-4 text-[11px] text-stone-400">
+                {activeTab === 'summary' ? (
+                  <span className="break-words">
+                    All figures are calculated directly from dashboard data — AI only composes the narrative and recommendations.
+                  </span>
+                ) : (
+                  <>
+                    <span>
+                      {retrainedAt ? `Model diperbarui ${retrainedAt}` : 'Model diperbarui otomatis secara berkala'}
+                    </span>
+                    <span className="break-words">
+                      All figures are estimates based on historical data patterns — not exact numbers.
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </SheetContent>
       </Sheet>
     </>
-  );
-}
-
-function LoadingState({ label }: { label: string }) {
-  return (
-    <div className="flex min-h-[320px] items-center justify-center border border-[#cfd8ce] bg-white">
-      <div className="flex items-center gap-3 text-sm font-black text-[#61706a]">
-        <Loader2 className="animate-spin" size={20} />
-        {label}
-      </div>
-    </div>
-  );
-}
-
-function ErrorState({ message }: { message: string }) {
-  return (
-    <div className="border border-[#b7472a] bg-[#fff7f0] px-4 py-3 text-sm font-bold text-[#8a321d]">
-      {message}
-    </div>
-  );
-}
-
-function SummaryPanel({
-  loading,
-  error,
-  summary,
-  tableRows,
-  chartRows,
-}: {
-  loading: boolean;
-  error: string | null;
-  summary: SectionSummaryResponse | null;
-  tableRows: SummaryTableRow[];
-  chartRows: SummaryChartRow[];
-}) {
-  if (loading) return <LoadingState label="Building AI summary..." />;
-  if (error) return <ErrorState message={error} />;
-  if (!summary) return null;
-
-  return (
-    <div className="space-y-4">
-      <div className="border border-[#cfd8ce] bg-white p-4 shadow-[0_2px_10px_rgba(15,23,42,0.12)]">
-        <p className="text-[15px] font-semibold leading-7 text-[#263033]">{summary.executiveSummary}</p>
-        <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.12em] text-[#61706a]">
-          <span className="border border-[#cfd8ce] bg-[#fbfdf8] px-2 py-1">{summary.model}</span>
-          <span className="border border-[#cfd8ce] bg-[#fbfdf8] px-2 py-1">{summary.cached ? 'Cached' : 'Fresh'}</span>
-        </div>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[0.58fr_0.42fr]">
-        <DataTable title="AI Summary Table" rows={tableRows} />
-        <SummaryChart rows={chartRows} />
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <PointList title="Key Summary" items={summary.keyPoints} />
-        <PointList title="AI Insights" items={summary.insights} />
-      </div>
-
-      <div className="border border-[#cfd8ce] bg-white p-4">
-        <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[#007073]">Predictive Summary</div>
-        <p className="mt-2 text-sm font-semibold leading-6 text-[#263033]">{summary.predictiveSummary}</p>
-      </div>
-    </div>
-  );
-}
-
-function DataTable({ title, rows }: { title: string; rows: SummaryTableRow[] }) {
-  return (
-    <div className="min-h-[260px] overflow-hidden border border-[#cfd8ce] bg-white">
-      <div className="flex h-10 items-center gap-2 border-b border-[#d7ded2] bg-[#fbfdf8] px-3">
-        <Table2 size={15} className="text-[#d9911e]" />
-        <h3 className="text-sm font-black text-[#1f2a2d]">{title}</h3>
-      </div>
-      <div className="max-h-[320px] overflow-auto">
-        <table className="w-full min-w-[560px] border-collapse text-[12px]">
-          <thead className="sticky top-0 z-10">
-            <tr className="bg-[#72bf75] text-[#0f2415]">
-              <th className="border border-[#6f6f6f] px-3 py-2 text-left font-black">Signal</th>
-              <th className="border border-[#6f6f6f] px-3 py-2 text-right font-black">Value</th>
-              <th className="border border-[#6f6f6f] px-3 py-2 text-left font-black">Note</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={`${row.label}-${index}`} className="hover:bg-[#eef7ef]">
-                <td className="border border-[#8a8a8a] px-3 py-2 font-bold text-[#263033]">{row.label}</td>
-                <td className="border border-[#8a8a8a] px-3 py-2 text-right font-black text-[#1f2a2d]">{formatNumber(row.value)}</td>
-                <td className="border border-[#8a8a8a] px-3 py-2 font-semibold text-[#61706a]">{row.note || '-'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
-function SummaryChart({ rows }: { rows: SummaryChartRow[] }) {
-  return (
-    <div className="min-h-[260px] border border-[#cfd8ce] bg-white p-3">
-      <div className="mb-3 text-sm font-black text-[#1f2a2d]">AI Summary Chart</div>
-      {rows.length === 0 ? (
-        <div className="flex h-[220px] items-center justify-center text-sm font-bold text-[#61706a]">No chart data</div>
-      ) : (
-        <div className="h-[250px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={rows.slice(0, 8)} layout="vertical" margin={{ top: 4, right: 24, left: 8, bottom: 4 }}>
-              <CartesianGrid stroke="#dce5dc" strokeDasharray="3 5" horizontal={false} />
-              <XAxis type="number" tick={{ fill: '#1f2a2d', fontSize: 10, fontWeight: 800 }} allowDecimals={false} />
-              <YAxis type="category" dataKey="label" width={118} tick={{ fill: '#1f2a2d', fontSize: 10, fontWeight: 800 }} interval={0} />
-              <Tooltip />
-              <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                {rows.slice(0, 8).map((row, index) => (
-                  <Cell key={row.label} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function PointList({ title, items }: { title: string; items: string[] }) {
-
-  const cleaned = items
-    .map((item) => String(item ?? '').replace(/^\s*\d+[.)]\s*/, '').trim())
-    .filter(Boolean);
-
-  if (cleaned.length === 0) {
-    return (
-      <div className="border border-dashed border-[#cfd8ce] bg-white p-4">
-        <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[#61706a]">{title}</div>
-        <p className="mt-2 text-sm font-semibold text-[#61706a]">No signal returned for this section.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="border border-[#cfd8ce] bg-white p-4">
-      <div className="text-[11px] font-black uppercase tracking-[0.14em] text-[#007073]">{title}</div>
-      <ul className="mt-3 space-y-2">
-        {cleaned.slice(0, 6).map((item, index) => (
-          <li key={`${item}-${index}`} className="grid grid-cols-[1.6rem_minmax(0,1fr)] gap-2 text-sm font-semibold leading-6 text-[#263033]">
-            <span className="text-right font-black text-[#d9911e]">{index + 1}.</span>
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function InsightPanel({ loading, error, insight }: { loading: boolean; error: string | null; insight: InsightResponse | null }) {
-  if (loading) return <LoadingState label="Building AI insight..." />;
-  if (error) return <ErrorState message={error} />;
-  if (!insight) return null;
-
-  const features = Array.isArray(insight.features) ? insight.features : [];
-  return (
-    <div className="space-y-4">
-      {features.map((feature) => (
-        <FeatureInsightCard key={feature.key} feature={feature} />
-      ))}
-    </div>
-  );
-}
-
-function FeatureInsightCard({ feature }: { feature: FeatureResult }) {
-  return (
-    <div className="border border-[#cfd8ce] bg-white p-4 shadow-[0_2px_10px_rgba(15,23,42,0.12)]">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h3 className="text-[16px] font-black text-[#1f2a2d]">{feature.label}</h3>
-          {feature.summary ? (
-            <p className="mt-1 text-sm font-semibold leading-6 text-[#61706a]">{feature.summary}</p>
-          ) : null}
-        </div>
-      </div>
-      <FeatureVisual visual={feature.visual} />
-      <div className="mt-4 grid gap-4 xl:grid-cols-2">
-        <PointList title="Endpoint Signal" items={feature.chartSignal || []} />
-        {}
-        <PointList title="Recommended Action" items={feature.recommendations || []} />
-      </div>
-    </div>
-  );
-}
-
-function FeatureVisual({ visual }: { visual?: FeatureResult['visual'] }) {
-  if (!visual?.rows?.length) return null;
-
-  const rows = visual.rows
-    .filter((row) => {
-      const label = String(row.label ?? '').trim();
-      if (!label || label.toLowerCase() === 'unknown') return false;
-      const v = Number(row.value ?? row.score ?? 0);
-      return Number.isFinite(v) && v > 0;
-    })
-    .slice(0, 8);
-  if (rows.length === 0) return null;
-
-  if (visual.type === 'bar' || visual.type === 'forecast') {
-    return (
-      <div className="mt-4 h-[300px] border border-[#d7ded2] bg-[#fbfdf8] p-3">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={rows} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-            <CartesianGrid stroke="#dce5dc" strokeDasharray="3 5" vertical={false} />
-            <XAxis dataKey="label" tick={{ fill: '#1f2a2d', fontSize: 10, fontWeight: 800 }} interval={0} />
-            <YAxis tick={{ fill: '#1f2a2d', fontSize: 10, fontWeight: 800 }} allowDecimals={false} />
-            <Tooltip />
-            <Bar dataKey="value" fill="#007073" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-4 grid gap-3 lg:grid-cols-[0.44fr_0.56fr]">
-      <div className="h-[260px] border border-[#d7ded2] bg-[#fbfdf8] p-3">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            {}
-            <Pie
-              data={rows}
-              dataKey="value"
-              nameKey="label"
-              outerRadius={92}
-              label={({ name, percent }) => `${name} ${Math.round((percent ?? 0) * 100)}%`}
-            >
-              {rows.map((row, index) => (
-                <Cell key={row.label} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-              ))}
-            </Pie>
-            <Tooltip formatter={(value: number) => value.toLocaleString('en-US')} />
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-      <DataTable title="AI Insight Table" rows={rows.map((row) => ({ label: row.label, value: row.value ?? row.score ?? '-', note: row.secondary }))} />
-    </div>
   );
 }

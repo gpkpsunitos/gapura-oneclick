@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Filter, MapPin, AlertCircle } from 'lucide-react';
 import { ReportDetailView, type StatusUpdateDetails } from './ReportDetailView';
@@ -98,7 +99,7 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                         <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] group-focus-within:text-[var(--brand-primary)] transition-colors" size={18} />
                         <input
                             type="text"
-                            placeholder="Cari laporan..."
+                            placeholder="Search reports..."
                             className="w-full bg-white/60 border border-white/40 rounded-xl pl-12 pr-4 h-12 text-sm font-medium placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/20 focus:border-[var(--brand-primary)]/50 transition-all shadow-sm focus:shadow-md"
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
@@ -116,7 +117,7 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                                     : "bg-white/50 text-[var(--text-secondary)] hover:bg-white hover:shadow-md hover:-translate-y-0.5"
                             )}
                         >
-                            Semua
+                            All
                         </button>
                         {Object.entries(STATUS_CONFIG).map(([key, config]) => (
                             <button
@@ -141,7 +142,7 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                     {loading ? (
                         <div className="p-8 text-center text-[var(--text-muted)] flex flex-col items-center justify-center h-full">
                             <div className="animate-spin w-8 h-8 border-2 border-[var(--brand-primary)] border-t-transparent rounded-full mb-4" />
-                            <p className="text-sm font-medium animate-pulse">Memuat data laporan...</p>
+                            <p className="text-sm font-medium animate-pulse">Loading report data...</p>
                         </div>
                     ) : filteredReports.length === 0 ? (
                         <div className="h-full flex flex-col items-center justify-center p-8 text-center opacity-60">
@@ -234,7 +235,7 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                     <div className="absolute inset-0 bg-white/50 backdrop-blur-sm z-50 flex items-center justify-center">
                          <div className="flex flex-col items-center gap-3">
                             <div className="animate-spin w-8 h-8 border-3 border-[var(--brand-primary)] border-t-transparent rounded-full" />
-                            <p className="text-xs font-bold text-[var(--brand-primary)] animate-pulse">Memuat detail...</p>
+                            <p className="text-xs font-bold text-[var(--brand-primary)] animate-pulse">Loading detail...</p>
                          </div>
                     </div>
                 )}
@@ -250,7 +251,7 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
             </div>
 
             {}
-            {selectedId && (
+            {selectedId && typeof document !== 'undefined' && createPortal(
                 <div className="lg:hidden fixed inset-0 z-50 bg-white overflow-y-auto">
                     <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-md border-b border-gray-100 px-4 py-3 flex items-center gap-3">
                         <button
@@ -264,13 +265,13 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
                         </button>
                         <h2 className="text-sm font-bold text-gray-900 truncate">
-                            {(displayReport?.report || displayReport?.title || 'Detail Laporan')}
+                            {(displayReport?.report || displayReport?.title || 'Report Detail')}
                         </h2>
                     </div>
                     {loadingDetail ? (
                         <div className="flex flex-col items-center justify-center p-12 gap-3">
                             <div className="animate-spin w-8 h-8 border-2 border-[var(--brand-primary)] border-t-transparent rounded-full" />
-                            <p className="text-xs font-medium text-[var(--text-muted)]">Memuat detail...</p>
+                            <p className="text-xs font-medium text-[var(--text-muted)]">Loading detail...</p>
                         </div>
                     ) : (
                         <ReportDetailView
@@ -283,7 +284,8 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
                             currentUserStationId={currentUserStationId}
                         />
                     )}
-                </div>
+                </div>,
+                document.body,
             )}
         </div>
     );

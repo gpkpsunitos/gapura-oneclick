@@ -38,7 +38,7 @@ export default function PWAUpdatePrompt({
             type="button"
             onClick={onDismiss}
             className="rounded-lg p-1 text-emerald-700/60 transition-colors hover:bg-emerald-50 hover:text-emerald-800"
-            aria-label="Tutup notifikasi update"
+            aria-label="Close update notification"
           >
             <X className="h-4 w-4" />
           </button>
@@ -51,7 +51,7 @@ export default function PWAUpdatePrompt({
           className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
         >
           <RefreshCw className={`h-4 w-4 ${updating ? 'animate-spin' : ''}`} />
-          {updating ? 'Memuat ulang...' : 'Muat ulang sekarang'}
+          {updating ? 'Reloading...' : 'Muat ulang sekarang'}
         </button>
       </div>
     </div>

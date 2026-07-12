@@ -102,7 +102,7 @@ export function ReportsTableSection({
     },
     {
       key: 'station',
-      header: 'Bandara',
+      header: 'Station',
       priority: 'low',
       accessor: (report) => (
         <span className="text-sm text-[var(--text-secondary)]">
@@ -113,7 +113,7 @@ export function ReportsTableSection({
     },
     {
       key: 'date',
-      header: 'Tanggal',
+      header: 'Date',
       priority: 'low',
       accessor: (report) => (
         <span className="text-sm text-[var(--text-muted)]">
@@ -138,8 +138,8 @@ export function ReportsTableSection({
 
   return (
     <PresentationSlide
-      title="Laporan Hari Ini"
-      subtitle={`${todayCases.length} laporan hari ini`}
+      title="Today's Reports"
+      subtitle={`${todayCases.length} report${todayCases.length === 1 ? '' : 's'} today`}
       icon={FileText}
       className="animate-fade-in-up"
       style={{ animationDelay: '200ms' }}
@@ -151,7 +151,7 @@ export function ReportsTableSection({
           actions={actions}
           keyExtractor={(report) => report.id}
           onRowClick={onViewReport}
-          emptyMessage="Tidak ada laporan hari ini"
+          emptyMessage="No reports today"
           cardBreakpoint={768}
           className="border-0 rounded-none"
         />

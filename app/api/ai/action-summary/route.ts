@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySession } from '@/lib/auth-utils';
-import { cookies } from 'next/headers';
+import { requireElevatedAISession } from '@/lib/ai-route-helpers';
 import { resolveCachedAI } from '@/lib/ai-route-cache';
 
 export const dynamic = 'force-dynamic';
@@ -8,10 +7,7 @@ export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
-
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-    const session = token ? await verifySession(token) : null;
+    const session = await requireElevatedAISession();
 
     if (!session) {
       return NextResponse.json(

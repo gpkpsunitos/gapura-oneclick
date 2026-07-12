@@ -282,13 +282,13 @@ export function ActionSummaryCard({
         </div>
         <div className="flex items-center gap-2">
           <span className="px-2 py-1 rounded-full bg-teal-100 text-teal-700 text-[10px] font-black uppercase tracking-wider">
-            Per Laporan
+            Per Report
           </span>
           <div className="px-2 py-1 rounded-lg bg-gray-100 text-gray-700">
             <span className="text-sm font-black">
               {overallSummary?.totalRecords?.toLocaleString("id-ID")}
             </span>
-            <span className="ml-1 text-[10px] font-medium">Laporan</span>
+            <span className="ml-1 text-[10px] font-medium">Reports</span>
           </div>
         </div>
       </div>

@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
     const body: InsightRequest = await request.json();
 
     if (!body.tiles || body.tiles.length === 0) {
-      return NextResponse.json({ error: 'Tidak ada data tile' }, { status: 400 });
+      return NextResponse.json({ error: 'No data tile' }, { status: 400 });
     }
 
     const prompt = buildInsightsPrompt(body);

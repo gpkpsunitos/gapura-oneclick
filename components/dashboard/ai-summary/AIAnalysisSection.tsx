@@ -217,8 +217,8 @@ function buildPredictiveInsights(signals: SingleIssueSignal[]): PredictiveInsigh
     .filter((signal) => signal.id !== "analyze")
     .map((signal) => {
       const fallbackRows = signal.status === "error"
-        ? [{ label: "Status", value: signal.error || "Belum tersedia" }]
-        : [{ label: "Hasil", value: compactValue(signal.data) || "Belum ada detail" }];
+        ? [{ label: "Status", value: signal.error || "Not yet available" }]
+        : [{ label: "Hasil", value: compactValue(signal.data) || "No detail yet" }];
 
       if (signal.status === "error") {
         const titles: Record<string, string> = {
@@ -231,7 +231,7 @@ function buildPredictiveInsights(signals: SingleIssueSignal[]): PredictiveInsigh
         };
         return {
           key: signal.id,
-          title: titles[signal.id] || "Insight Tambahan",
+          title: titles[signal.id] || "Additional Insight",
           tone: "amber" as const,
           rows: fallbackRows,
         };
@@ -296,7 +296,7 @@ function buildPredictiveInsights(signals: SingleIssueSignal[]): PredictiveInsigh
           return { key: signal.id, title: "Insight Root Cause", tone: "slate", rows: rows.length ? rows : fallbackRows };
         }
         default:
-          return { key: signal.id, title: "Insight Tambahan", tone: "slate", rows: fallbackRows };
+          return { key: signal.id, title: "Additional Insight", tone: "slate", rows: fallbackRows };
       }
     });
 }
