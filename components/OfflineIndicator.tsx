@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { WifiOff, Wifi, CloudOff, RefreshCw } from 'lucide-react';
 import { PWA_QUEUE_EVENT } from '@/lib/pwa/constants';
 import { refreshOfflineQueueSummary } from '@/lib/pwa/offline-queue';
@@ -47,7 +46,7 @@ export default function OfflineIndicator() {
       try {
         const summary = await refreshOfflineQueueSummary();
         setQueueSummary(summary);
-      } catch (error) {
+      } catch {
       }
     };
 
@@ -74,15 +73,12 @@ export default function OfflineIndicator() {
   const pendingActions = queueSummary.queued + queueSummary.failed + queueSummary.syncing;
 
   return (
-    <AnimatePresence>
+    <>
       {}
       {!isOnline && (
-        <motion.div
+        <div
           key="offline-banner"
-          initial={{ y: -100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -100, opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-[100] bg-amber-500 text-white shadow-lg"
+          className="fixed top-0 left-0 right-0 z-[100] bg-amber-500 text-white shadow-lg animate-in fade-in slide-in-from-top-4 duration-300"
         >
           <div className="container mx-auto px-4 py-2">
             <div className="flex items-center justify-center gap-2 text-sm font-medium">
@@ -95,17 +91,14 @@ export default function OfflineIndicator() {
               )}
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {}
       {showReconnected && (
-        <motion.div
+        <div
           key="reconnected-banner"
-          initial={{ y: -100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -100, opacity: 0 }}
-          className="fixed top-0 left-0 right-0 z-[100] bg-emerald-500 text-white shadow-lg"
+          className="fixed top-0 left-0 right-0 z-[100] bg-emerald-500 text-white shadow-lg animate-in fade-in slide-in-from-top-4 duration-300"
         >
           <div className="container mx-auto px-4 py-2">
             <div className="flex items-center justify-center gap-2 text-sm font-medium">
@@ -116,17 +109,14 @@ export default function OfflineIndicator() {
               )}
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
 
       {}
       {!isOnline && (
-        <motion.div
+        <div
           key="offline-fab"
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          exit={{ scale: 0 }}
-          className="fixed bottom-20 right-4 z-50"
+          className="fixed bottom-20 right-4 z-50 animate-in zoom-in duration-300"
         >
           <div className="bg-amber-500 text-white p-3 rounded-full shadow-lg">
             <CloudOff className="w-6 h-6" />
@@ -136,8 +126,8 @@ export default function OfflineIndicator() {
               {pendingActions}
             </div>
           )}
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

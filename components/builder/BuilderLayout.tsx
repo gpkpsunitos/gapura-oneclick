@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { Compass, LayoutGrid, Save, RotateCcw, Sparkles, Plus, Loader2, MousePointerClick, Play, BarChart3, Check } from 'lucide-react';
 import { useQueryBuilder } from '@/lib/hooks/useQueryBuilder';
 import { useQueryExecution } from '@/lib/hooks/useQueryExecution';
@@ -9,13 +10,22 @@ import { useDashboardState } from '@/lib/hooks/useDashboardState';
 import { FieldSidebar } from './FieldSidebar';
 import { QueryPanel } from './QueryPanel';
 import { ResultsPanel } from './ResultsPanel';
-import { ChartPreview } from './ChartPreview';
 import { ChartConfigPanel } from './ChartConfigPanel';
-import { DashboardComposer } from './DashboardComposer';
-import { SaveDashboardModal } from './SaveDashboardModal';
 import type { ChartVisualization, QueryResult, FieldDef, AggregateFunction, ChartType, QueryDefinition, TileLayout, QueryFilter } from '@/types/builder';
 import { useAIDashboard } from '@/lib/hooks/useAIDashboard';
 import { cn } from '@/lib/utils';
+
+const ChartPreview = dynamic(
+  () => import('./ChartPreview').then((module) => module.ChartPreview),
+  { loading: () => <div className="min-h-64 animate-pulse rounded-xl bg-[var(--surface-2)]" /> }
+);
+const DashboardComposer = dynamic(
+  () => import('./DashboardComposer').then((module) => module.DashboardComposer),
+  { loading: () => <div className="min-h-96 animate-pulse rounded-xl bg-[var(--surface-2)]" /> }
+);
+const SaveDashboardModal = dynamic(
+  () => import('./SaveDashboardModal').then((module) => module.SaveDashboardModal)
+);
 
 type Mode = 'explore' | 'dashboard';
 

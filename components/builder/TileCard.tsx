@@ -2,9 +2,14 @@
 'use client';
 
 import { Pencil, Trash2, Eye } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import type { DashboardTile, QueryResult } from '@/types/builder';
-import { ChartPreview } from './ChartPreview';
+
+const ChartPreview = dynamic(
+  () => import('./ChartPreview').then((module) => module.ChartPreview),
+  { loading: () => <div className="h-full min-h-36 animate-pulse rounded-lg bg-slate-100" /> }
+);
 
 interface TileCardProps {
   tile: DashboardTile;

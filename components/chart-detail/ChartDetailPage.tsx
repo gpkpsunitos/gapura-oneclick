@@ -2,17 +2,35 @@
 
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, X, Loader2 } from 'lucide-react';
-import { saveAs } from 'file-saver';
-import { Download, FileText, Link as LinkIcon, Check, Share2 } from 'lucide-react';
+import dynamic from 'next/dynamic';
+import {
+  ArrowLeft,
+  Check,
+  Download,
+  FileText,
+  Link as LinkIcon,
+  Loader2,
+  Share2,
+  X,
+} from 'lucide-react';
 import type { DashboardTile, QueryResult } from '@/types/builder';
 import { EnlargedChart } from './EnlargedChart';
-import { InvestigativeTable } from './InvestigativeTable';
-import { SupportingCharts } from './SupportingCharts';
 import { ViewMode, Normalization } from './GlobalControlBar';
 import { generateAnalyticalCharts, fetchAnalyticalChartData } from '@/lib/chart-detail-generator';
 import type { AnalyticalChart } from '@/lib/chart-detail-generator';
 import { MapPin, Plane, Layers, Crosshair, Target } from 'lucide-react';
+
+const InvestigativeTable = dynamic(
+  () => import('./InvestigativeTable').then((module) => module.InvestigativeTable),
+  { loading: () => <div className="h-40 animate-pulse bg-slate-100" /> }
+);
+const SupportingCharts = dynamic(
+  () => import('./SupportingCharts').then((module) => module.SupportingCharts),
+  { loading: () => <div className="h-64 animate-pulse rounded-xl bg-slate-100" /> }
+);
+
+const INITIAL_DETAIL_ROW_LIMIT = 5_000;
+const EXPORT_ROW_LIMIT = 100_000;
 
 interface ChartDetailData {
   tile: DashboardTile;
@@ -66,8 +84,11 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
   const [fullData, setFullData] = useState<QueryResult | null>(null);
   const [copied, setCopied] = useState(false);
   const [loadingTile, setLoadingTile] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
+  const supportingRef = useRef<HTMLDivElement>(null);
+  const [supportingVisible, setSupportingVisible] = useState(false);
 
   const [viewMode] = useState<ViewMode>('values');
   const [normalization] = useState<Normalization>('none');
@@ -83,7 +104,10 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
     return generateAnalyticalCharts(data.tile, displayResult);
   }, [data, fullData]);
 
-  const fetchFullData = useCallback(async (tile: DashboardTile): Promise<QueryResult> => {
+  const fetchTileData = useCallback(async (
+    tile: DashboardTile,
+    limit = INITIAL_DETAIL_ROW_LIMIT,
+  ): Promise<QueryResult> => {
     try {
 
       const normalizedQuery = {
@@ -93,7 +117,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
         filters: tile.query.filters || [],
         joins: tile.query.joins || [],
         sorts: tile.query.sorts || [],
-        limit: 100000
+        limit
       };
 
       const response = await fetch('/api/dashboards/query', {
@@ -117,7 +141,10 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
   const handleDownloadImage = async () => {
     if (chartRef.current) {
       try {
-        const { toPng } = await import('html-to-image');
+        const [{ toPng }, { saveAs }] = await Promise.all([
+          import('html-to-image'),
+          import('file-saver'),
+        ]);
         const dataUrl = await toPng(chartRef.current, { cacheBust: true, backgroundColor: '#ffffff' });
         saveAs(dataUrl, `${data?.tile.visualization.title || 'chart'}.png`);
       } catch (err) {
@@ -126,21 +153,30 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
     }
   };
 
-  const handleExportCSV = () => {
-    const displayData = fullData || data?.result;
-    if (!displayData) return;
+  const handleExportCSV = async () => {
+    if (!data || exporting) return;
+    setExporting(true);
+    try {
+      const [exportData, { saveAs }] = await Promise.all([
+        fetchTileData(data.tile, EXPORT_ROW_LIMIT),
+        import('file-saver'),
+      ]);
+      const headers = exportData.columns.join(',');
+      const rows = exportData.rows.map((row) =>
+        exportData.columns.map((column) => {
+          const cell = row[column];
+          return typeof cell === 'string' && cell.includes(',')
+            ? '"' + cell.replaceAll('"', '""') + '"'
+            : cell;
+        }).join(',')
+      ).join('\n');
 
-    const headers = displayData.columns.join(',');
-    const rows = displayData.rows.map(row => 
-      displayData.columns.map(col => {
-        const cell = row[col];
-        return typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell;
-      }).join(',')
-    ).join('\n');
-
-    const csvContent = `${headers}\n${rows}`;
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    saveAs(blob, `${data?.tile.visualization.title || 'data'}.csv`);
+      const csvContent = headers + '\n' + rows;
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      saveAs(blob, (data.tile.visualization.title || 'data') + '.csv');
+    } finally {
+      setExporting(false);
+    }
   };
 
   const handleCopyLink = () => {
@@ -198,13 +234,14 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
           layout: tile.layout || { w: 6, h: 4 }
         };
 
-        const result = await fetchFullData(dashboardTile);
+        const result = await fetchTileData(dashboardTile);
 
         setData({
           tile: dashboardTile,
           result: result,
           dashboardId: tile.custom_dashboards?.id
         });
+        setFullData(result);
       } catch (err) {
         console.error('Failed to load public chart:', err);
         setFetchError(tileId);
@@ -215,16 +252,37 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
     };
 
     loadTileData();
-  }, [router, isPublic, fetchFullData, loadingTile, data?.tile.id, fetchError]); 
+  }, [router, isPublic, fetchTileData, loadingTile, data?.tile.id, fetchError]);
 
   useEffect(() => {
     if (data && !fullData) {
-      fetchFullData(data.tile).then(setFullData);
+      fetchTileData(data.tile).then(setFullData);
     }
-  }, [data, fullData, fetchFullData]);
+  }, [data, fullData, fetchTileData]);
 
   useEffect(() => {
-    if (!chartDefs || chartDefs.charts.length === 0 || analyticalCharts.length > 0) return;
+    const element = supportingRef.current;
+    if (!element || supportingVisible) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setSupportingVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '400px 0px' }
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [supportingVisible]);
+
+  useEffect(() => {
+    if (
+      !supportingVisible
+      || !chartDefs
+      || chartDefs.charts.length === 0
+      || analyticalCharts.length > 0
+    ) return;
 
     setAnalyticalCharts(chartDefs.charts);
     setAnalyticalDataMap(chartDefs.dataMap);
@@ -235,7 +293,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
         setAnalyticalDataMap(fullMap);
       })
       .finally(() => setAnalyticalLoading(false));
-  }, [chartDefs, analyticalCharts.length]);
+  }, [chartDefs, analyticalCharts.length, supportingVisible]);
 
   const handleSharePublic = () => {
     if (!data?.tile.id) return;
@@ -310,10 +368,11 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
               </button>
               <button
                 onClick={handleExportCSV}
+                disabled={exporting}
                 className="p-2 hover:bg-[#f5f5f5] rounded-full transition-colors text-[#666]"
                 title="Export CSV"
               >
-                <FileText size={20} />
+                {exporting ? <Loader2 size={20} className="animate-spin" /> : <FileText size={20} />}
               </button>
               <button
                 onClick={handleDownloadImage}
@@ -360,12 +419,14 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
           <ContextRibbon query={tile.query} />
 
           {}
-          <EnlargedChart 
-            tile={tile} 
-            result={displayData}
-            viewMode={viewMode}
-            normalization={normalization}
-          />
+          <div ref={chartRef}>
+            <EnlargedChart
+              tile={tile}
+              result={displayData}
+              viewMode={viewMode}
+              normalization={normalization}
+            />
+          </div>
 
         {analyticalLoading && (
           <div className="flex justify-center p-12">
@@ -375,19 +436,21 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
 
 
         {}
-        <div className="space-y-6 pt-4 border-t border-gray-100">
+        <div ref={supportingRef} className="space-y-6 pt-4 border-t border-gray-100">
           <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
             <span className="w-1 h-6 bg-indigo-500 rounded-full"></span>
             Detailed Breakdown
           </h3>
-          <SupportingCharts 
-            charts={analyticalCharts} 
-            dataMap={analyticalDataMap}
-            loading={analyticalLoading} 
-            source="system"
-            viewMode={viewMode}
-            normalization={normalization}
-          />
+          {supportingVisible && (
+            <SupportingCharts
+              charts={analyticalCharts}
+              dataMap={analyticalDataMap}
+              loading={analyticalLoading}
+              source="system"
+              viewMode={viewMode}
+              normalization={normalization}
+            />
+          )}
         </div>
 
         {}

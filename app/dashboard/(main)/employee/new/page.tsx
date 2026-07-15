@@ -24,7 +24,6 @@ export default function NewReportPage() {
   return (
     <div className="w-full">
       <style dangerouslySetInnerHTML={{ __html: `
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
         .cr-page { font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #101013; }
         .cr-tabs {
           display: inline-flex; gap: 4px;

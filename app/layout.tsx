@@ -3,9 +3,6 @@ import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 
-import Providers from '@/components/Providers';
-import PerformanceTelemetry from '@/components/PerformanceTelemetry';
-
 const plusJakartaSans = Plus_Jakarta_Sans({
     subsets: ['latin'],
     display: 'swap',
@@ -99,10 +96,7 @@ export default function RootLayout({
     return (
         <html lang="id" className={`${plusJakartaSans.variable} ${jetbrainsMono.variable}`}>
             <body>
-                <Providers>
-                    {children}
-                </Providers>
-                <PerformanceTelemetry />
+                {children}
             </body>
         </html>
     );

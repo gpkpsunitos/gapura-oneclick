@@ -1,6 +1,6 @@
 
 import Image from 'next/image';
-import LoginFormLoader from '@/components/auth/LoginFormLoader';
+import LoginForm from '@/components/auth/LoginForm';
 
 export default function LoginPage() {
     return (
@@ -26,20 +26,19 @@ export default function LoginPage() {
                         width={180}
                         height={68}
                         className="object-contain brightness-0 invert h-auto w-[140px] xl:w-[180px]"
-                        priority
                     />
                 </div>
 
                 <div className="relative z-10 flex-1 min-h-0 flex flex-col gap-2 mt-4">
                     <div className="relative flex-[3] min-h-0 overflow-hidden rounded-2xl shadow-2xl ring-1 ring-white/20">
                         <Image
-                            src="/login-collage-1.png"
+                            src="/login-collage-1.webp"
                             alt="Petugas JOUMPA melayani penumpang di terminal"
                             fill
                             sizes="(max-width: 1023px) 0px, 50vw"
                             className="object-cover"
-                            quality={80}
-                            priority
+                            quality={70}
+                            fetchPriority="high"
                             loading="eager"
                         />
                     </div>
@@ -47,7 +46,7 @@ export default function LoginPage() {
                     <div className="flex gap-2 flex-[2] min-h-0">
                         <div className="relative flex-[1536] basis-0 overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/20">
                             <Image
-                                src="/login-collage-2.png"
+                                src="/login-collage-2.webp"
                                 alt="Aktivitas ground handling pesawat"
                                 fill
                                 sizes="(max-width: 1023px) 0px, 25vw"
@@ -57,7 +56,7 @@ export default function LoginPage() {
 
                         <div className="relative flex-[1333] basis-0 overflow-hidden rounded-2xl shadow-xl ring-1 ring-white/20">
                             <Image
-                                src="/login-collage-3.jpg"
+                                src="/login-collage-3.webp"
                                 alt="Kendaraan ground support Gapura di apron"
                                 fill
                                 sizes="(max-width: 1023px) 0px, 25vw"
@@ -103,7 +102,7 @@ export default function LoginPage() {
                         <p className="text-gray-500 mt-1.5 sm:mt-2 text-sm sm:text-base">Sign in to your OneClick platform</p>
                     </div>
 
-                    <LoginFormLoader />
+                    <LoginForm />
                 </div>
             </div>
         </div>

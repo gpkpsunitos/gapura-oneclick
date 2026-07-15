@@ -2,7 +2,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Download, X, Smartphone, Share, ExternalLink } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {
@@ -207,13 +206,10 @@ export default function PWAInstallPrompt() {
   if (isInstalled) return null;
 
   return (
-    <AnimatePresence>
+    <>
       {showPrompt && !expanded && (
-        <motion.div
-          initial={{ opacity: 0, y: 40, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 40, scale: 0.9 }}
-          className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 pl-3 pr-2 py-2.5 text-white shadow-xl"
+        <div
+          className="fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 pl-3 pr-2 py-2.5 text-white shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-300"
         >
           <button
             type="button"
@@ -231,15 +227,12 @@ export default function PWAInstallPrompt() {
           >
             <X className="w-3.5 h-3.5" />
           </button>
-        </motion.div>
+        </div>
       )}
 
       {showPrompt && expanded && (
-        <motion.div
-          initial={{ opacity: 0, y: 100 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 100 }}
-          className="fixed bottom-4 left-4 right-4 z-50 sm:left-auto sm:right-4 sm:max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto"
+        <div
+          className="fixed bottom-4 left-4 right-4 z-50 sm:left-auto sm:right-4 sm:max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto animate-in fade-in slide-in-from-bottom-8 duration-300"
         >
           <div className="bg-white rounded-2xl shadow-2xl border border-emerald-100 overflow-hidden">
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 p-4 text-white">
@@ -348,8 +341,8 @@ export default function PWAInstallPrompt() {
               </button>
             </div>
           </div>
-        </motion.div>
+        </div>
       )}
-    </AnimatePresence>
+    </>
   );
 }
