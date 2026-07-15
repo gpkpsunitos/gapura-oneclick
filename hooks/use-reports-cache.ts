@@ -82,15 +82,20 @@ export function useReportsData(url: string = '/api/reports', options?: SWRConfig
   );
 
   useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled || data) return;
       const local = localStorage.getItem(STORAGE_KEY_WITH_URL);
-      if (local && !data) {
+      if (local) {
         try {
-           const parsed = JSON.parse(local);
-           mutate(parsed.data, false);
-           if (parsed.timestamp) setLastUpdated(parsed.timestamp);
-        } catch(e) {}
+          const parsed = JSON.parse(local) as { data?: Report[]; timestamp?: number };
+          if (Array.isArray(parsed.data)) void mutate(parsed.data, false);
+          if (parsed.timestamp) setLastUpdated(parsed.timestamp);
+        } catch {}
       }
-  }, [url]);
+    });
+    return () => { cancelled = true; };
+  }, [STORAGE_KEY_WITH_URL, data, mutate]);
 
   useEffect(() => {
     const handleOnline = () => setIsOffline(false);

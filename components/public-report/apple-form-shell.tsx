@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -147,13 +147,6 @@ export function StepFooter({
 }
 
 export function InlineShell({ ariaLabel, children }: { ariaLabel: string; children: React.ReactNode }) {
-  useEffect(() => {
-    const el = document.createElement('link');
-    el.rel = 'stylesheet';
-    el.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';
-    document.head.appendChild(el);
-    return () => { el.remove(); };
-  }, []);
   return (
     <div className="jm-inline" role="region" aria-label={ariaLabel}>
       <style dangerouslySetInnerHTML={{ __html: FORM_CSS }} />
@@ -162,17 +155,14 @@ export function InlineShell({ ariaLabel, children }: { ariaLabel: string; childr
   );
 }
 
+const subscribeToClient = () => () => {};
+
 export function FormShell({ onClose, ariaLabel, wide, children }: { onClose: () => void; ariaLabel: string; wide?: boolean; children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(subscribeToClient, () => true, () => false);
   useEffect(() => {
-    setMounted(true);
-    const el = document.createElement('link');
-    el.rel = 'stylesheet';
-    el.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap';
-    document.head.appendChild(el);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    return () => { el.remove(); document.body.style.overflow = prev; };
+    return () => { document.body.style.overflow = prev; };
   }, []);
 
   if (!mounted) return null;
@@ -208,7 +198,7 @@ export const FORM_CSS = `
   --teal: #0f7c7c;
   --teal-soft: rgba(15,124,124,0.10);
   --red: #d0342c;
-  --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font: var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   font-family: var(--font);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;

@@ -25,10 +25,10 @@ export function ReportDetailModal({
 }: ReportDetailModalProps) {
   const effectiveIsOpen = isOpen ?? !!initialReport;
   const [fullReport, setFullReport] = useState<Report | null>(null);
-  const [fastComments, setFastComments] = useState<Report['comments'] | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); return () => setMounted(false); }, []);
+  const [fastComments, setFastComments] = useState<{
+    reportId: string;
+    comments: Report['comments'];
+  } | null>(null);
 
   const reportId = initialReport?.id;
 
@@ -38,7 +38,7 @@ export function ReportDetailModal({
     if (!reportId) return;
     try {
       const res = await fetch(`/api/reports/${reportId}/comments`);
-      if (res.ok) setFastComments(await res.json());
+      if (res.ok) setFastComments({ reportId, comments: await res.json() });
     } catch { /* ignore */ }
   };
 
@@ -53,13 +53,15 @@ export function ReportDetailModal({
   };
 
   useEffect(() => {
-    if (!effectiveIsOpen || !initialReport) { setFullReport(null); setFastComments(null); return; }
+    if (!effectiveIsOpen || !initialReport) return;
     let alive = true;
     // Fast comments first (instant), full report in parallel (may wait on Sheets).
     (async () => {
       try {
         const res = await fetch(`/api/reports/${initialReport.id}/comments`);
-        if (alive && res.ok) setFastComments(await res.json());
+        if (alive && res.ok) {
+          setFastComments({ reportId: initialReport.id, comments: await res.json() });
+        }
       } catch { /* ignore */ }
     })();
     (async () => {
@@ -85,12 +87,15 @@ export function ReportDetailModal({
     }).catch(() => {});
   }, [effectiveIsOpen, reportId]);
 
-  if (!effectiveIsOpen || !initialReport || !mounted) return null;
+  if (!effectiveIsOpen || !initialReport) return null;
 
-  const base = fullReport || initialReport;
+  const base = fullReport?.id === initialReport.id ? fullReport : initialReport;
+  const currentComments = fastComments?.reportId === initialReport.id
+    ? fastComments.comments
+    : null;
   // Prefer the fast comments; fall back to whatever the full report carried.
-  const displayReport: Report = fastComments
-    ? { ...base, comments: fastComments }
+  const displayReport: Report = currentComments
+    ? { ...base, comments: currentComments }
     : base;
 
   const handleStatus = onUpdateStatus
