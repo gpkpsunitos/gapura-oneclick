@@ -13,6 +13,7 @@ import { CommentNotificationBell } from '@/components/dashboard/CommentNotificat
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { performOptimisticLogout } from '@/lib/auth/client-logout';
 import { useStaticData } from '@/lib/swr';
+import { isSidebarNavItemActive } from '@/lib/sidebar-nav-active';
 
 declare global {
     interface Window {
@@ -106,16 +107,12 @@ const NavContent = memo(function NavContent({
                         <div className="relative pl-2.5 ml-1 border-l border-dashed border-gray-200 space-y-0.5 md:space-y-1">
                             {group.items.map((link, index) => {
                                 const isExternal = link.external || /^https?:\/\//.test(link.href);
-                                let isActive = !isExternal && pathname === link.href;
-                                const isReportsViewBase = !isExternal
-                                    && (pathname === '/dashboard/op' || pathname === '/dashboard/ocs' || pathname === '/dashboard/os')
-                                    && searchParams.get('view') === 'reports';
-                                if (!isActive && isReportsViewBase && link.href === `${pathname}/reports`) {
-                                    isActive = true;
-                                }
-                                if (isActive && isReportsViewBase && link.href === pathname) {
-                                    isActive = false;
-                                }
+                                const isActive = !isExternal && isSidebarNavItemActive({
+                                    href: link.href,
+                                    pathname,
+                                    reportsViewSelected: searchParams.get('view') === 'reports',
+                                    siblingItems: group.items,
+                                });
                                 const Icon = link.icon;
                                 const itemKey = `${group.title}:${link.label}:${link.href}:${index}`;
                                 if (link.comingSoon) {
