@@ -99,8 +99,8 @@ export function ReportDetailModal({
     : base;
 
   const handleStatus = onUpdateStatus
-    ? async (id: string, status: string) => {
-        await onUpdateStatus(id, status);
+    ? async (id: string, status: string, notes?: string, evidenceUrl?: string, details?: StatusUpdateDetails) => {
+        await onUpdateStatus(id, status, notes, evidenceUrl, details);
         await refetchReport();
         onRefresh?.();
       }

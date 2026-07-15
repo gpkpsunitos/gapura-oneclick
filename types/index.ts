@@ -180,6 +180,8 @@ export interface Report {
 
     source_sheet?: string;
 
+    source_spreadsheet_id?: string;
+
     sheet_id?: string;
 
     source_fingerprint?: string;

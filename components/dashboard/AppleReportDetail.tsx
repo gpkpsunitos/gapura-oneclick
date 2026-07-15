@@ -5,13 +5,20 @@ import { ImageOff, MessageSquare, RotateCcw } from 'lucide-react';
 import { AREA_LABELS } from '@/lib/constants/incident-areas';
 import { FormShell, Section } from '@/components/public-report/apple-form-shell';
 import { CommentInput } from '@/components/dashboard/reports/CommentInput';
+import { CloseReportDialog, type CloseReportValues } from '@/components/dashboard/CloseReportDialog';
 import { getEvidencePreviewUrl } from '@/lib/evidence-url';
 import type { Report } from '@/types';
 
 interface Props {
   report: Report;
   onClose: () => void;
-  onUpdateStatus?: (id: string, status: string) => void | Promise<void>;
+  onUpdateStatus?: (
+    id: string,
+    status: string,
+    notes?: string,
+    evidenceUrl?: string,
+    details?: CloseReportValues,
+  ) => void | Promise<void>;
   onRefresh?: () => void | Promise<void>;
 }
 
@@ -323,13 +330,12 @@ export function JoumpaBody({ report }: { report: Report }) {
 
 export function AppleReportDetail({ report, onClose, onUpdateStatus, onRefresh }: Props) {
   const isJoumpa = detectJoumpa(report);
-  const [updating, setUpdating] = useState(false);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
   const nextStatus = report.status === 'CLOSED' ? null : 'CLOSED';
 
-  const handleAdvance = async () => {
-    if (!onUpdateStatus || !nextStatus || updating) return;
-    setUpdating(true);
-    try { await onUpdateStatus(report.id, nextStatus); } finally { setUpdating(false); }
+  const handleCloseReport = async (values: CloseReportValues) => {
+    if (!onUpdateStatus || !nextStatus) return;
+    await onUpdateStatus(report.id, nextStatus, values.finalRemarks, undefined, values);
   };
 
   const airline = report.airlines || report.airline || '';
@@ -370,15 +376,19 @@ export function AppleReportDetail({ report, onClose, onUpdateStatus, onRefresh }
           <div className="jm-footer">
             <button
               type="button"
-              onClick={handleAdvance}
-              disabled={updating}
-              className={updating ? 'jm-submit jm-submit--close jm-submit--disabled' : 'jm-submit jm-submit--close'}
+              onClick={() => setShowCloseDialog(true)}
+              className="jm-submit jm-submit--close"
             >
-              {updating ? 'Updating…' : `Mark as ${nextStatus}`}
+              {`Mark as ${nextStatus}`}
             </button>
           </div>
         )}
       </div>
+      <CloseReportDialog
+        open={showCloseDialog}
+        onClose={() => setShowCloseDialog(false)}
+        onSubmit={handleCloseReport}
+      />
     </FormShell>
   );
 }

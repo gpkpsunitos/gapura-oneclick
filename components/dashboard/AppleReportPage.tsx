@@ -9,6 +9,7 @@ import { InlineShell, Section } from '@/components/public-report/apple-form-shel
 import {
   detectJoumpa, IrregularityBody, JoumpaBody, FeedbackThread, StatusBadge, SeverityBadge,
 } from '@/components/dashboard/AppleReportDetail';
+import { CloseReportDialog, type CloseReportValues } from '@/components/dashboard/CloseReportDialog';
 import type { Report } from '@/types';
 
 interface Props {
@@ -114,7 +115,7 @@ export function AppleReportPage({ reportId, backTo, divisionColor = '#0f7c7c', d
   const [comments, setComments] = useState<Report['comments'] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [updating, setUpdating] = useState(false);
+  const [showCloseDialog, setShowCloseDialog] = useState(false);
 
   const fetchComments = useCallback(async () => {
     try {
@@ -153,17 +154,22 @@ export function AppleReportPage({ reportId, backTo, divisionColor = '#0f7c7c', d
     return () => { supabase.removeChannel(channel); };
   }, [reportId, fetchComments, fetchReport]);
 
-  const handleStatus = useCallback(async (id: string, status: string) => {
-    setUpdating(true);
-    try {
-      const res = await fetch('/api/admin/reports', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reportId: id, status }),
-      });
-      if (res.ok) await fetchReport();
-      else alert('Gagal mengubah status');
-    } catch { alert('Terjadi kesalahan sistem'); }
-    finally { setUpdating(false); }
+  const handleStatus = useCallback(async (id: string, status: string, values: CloseReportValues) => {
+    const res = await fetch('/api/admin/reports', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        reportId: id,
+        status,
+        notes: values.finalRemarks,
+        kps_remarks: values.finalRemarks,
+        final_remarks: values.finalRemarks,
+        remarks_by: values.remarksBy,
+      }),
+    });
+    const payload = await res.json().catch(() => null);
+    if (!res.ok) throw new Error(payload?.error || 'Failed to close report');
+    await fetchReport();
   }, [fetchReport]);
 
   const display = useMemo<Report | null>(
@@ -234,12 +240,10 @@ export function AppleReportPage({ reportId, backTo, divisionColor = '#0f7c7c', d
                 <div className="jm-page__actions">
                   <button
                     type="button"
-                    onClick={() => handleStatus(r.id, nextStatus)}
-                    disabled={updating}
+                    onClick={() => setShowCloseDialog(true)}
                     className="jm-submit jm-submit--close"
-                    style={{ opacity: updating ? 0.6 : 1 }}
                   >
-                    {updating ? 'Updating…' : `Mark as ${nextStatus}`}
+                    {`Mark as ${nextStatus}`}
                   </button>
                 </div>
               )}
@@ -249,6 +253,12 @@ export function AppleReportPage({ reportId, backTo, divisionColor = '#0f7c7c', d
             </aside>
           </div>
         </InlineShell>
+        <CloseReportDialog
+          open={showCloseDialog}
+          onClose={() => setShowCloseDialog(false)}
+          onSubmit={(values) => handleStatus(r.id, nextStatus!, values)}
+          accentColor={divisionColor}
+        />
       </div>
     </div>
   );

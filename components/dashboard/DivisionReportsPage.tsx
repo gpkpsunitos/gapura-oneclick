@@ -96,25 +96,23 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
   }), [filteredReports]);
 
   const handleUpdateStatus = async (reportId: string, status: string, notes?: string, evidenceUrl?: string, details?: StatusUpdateDetails) => {
-    try {
-      const res = await fetch(`/api/reports/${reportId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          status,
-          action_taken: notes,
-          evidence_urls: evidenceUrl ? [evidenceUrl] : undefined,
-          kps_remarks: details?.finalRemarks,
-          final_remarks: details?.finalRemarks,
-          remarks_by: details?.remarksBy,
-        })
-      });
-      if (!res.ok) throw new Error('Failed to update status');
-      await handleRefresh();
-    } catch (error) {
-      console.error('Error updating status:', error);
-      alert('Failed to update report status');
+    const res = await fetch(`/api/reports/${reportId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status,
+        action_taken: notes,
+        evidence_urls: evidenceUrl ? [evidenceUrl] : undefined,
+        kps_remarks: details?.finalRemarks,
+        final_remarks: details?.finalRemarks,
+        remarks_by: details?.remarksBy,
+      })
+    });
+    if (!res.ok) {
+      const errorPayload = await res.json().catch(() => null);
+      throw new Error(errorPayload?.error || 'Failed to update report status');
     }
+    await handleRefresh();
   };
 
   const Icon = config.icon;

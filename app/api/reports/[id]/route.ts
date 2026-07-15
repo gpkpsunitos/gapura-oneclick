@@ -8,6 +8,9 @@ import { persistReportMetadata } from '@/lib/report-persistence';
 import { notifyReportClosedEmail, notifyStatusChange } from '@/lib/notifications';
 import { linkEvidenceFilesToReport, normalizeEvidenceFileIds } from '@/lib/evidence-files';
 import { canChangeReportStatus } from '@/lib/constants/report-status';
+import { JOUMPA_SHEET_ID, JOUMPA_SHEET_NAME } from '@/lib/joumpa/mapping';
+import { isJoumpaReportSource } from '@/lib/joumpa/status-update';
+import { JoumpaSyncService } from '@/lib/services/joumpa-sync-service';
 
 function normalizeAccessValue(value: unknown): string {
     return String(value || '').trim().toLowerCase();
@@ -289,7 +292,28 @@ export async function PATCH(
             }
         }
 
-        const updatedReport = await reportsService.updateReport(id, updates);
+        const isJoumpaStatusUpdate = isStatusRemarksPatch && isJoumpaReportSource(
+            existingReport,
+            JOUMPA_SHEET_ID,
+            JOUMPA_SHEET_NAME,
+        );
+
+        let updatedReport;
+        try {
+            updatedReport = isJoumpaStatusUpdate
+                ? await JoumpaSyncService.updateReport(id, {
+                    status: updates.status,
+                    action_taken: updates.action_taken,
+                    kps_remarks: updates.kps_remarks,
+                    remarks_by: updates.remarks_by,
+                })
+                : await reportsService.updateReport(id, updates);
+        } catch (updateError) {
+            const message = isJoumpaStatusUpdate && updateError instanceof Error
+                ? updateError.message
+                : 'Gagal mengupdate laporan';
+            return NextResponse.json({ error: message }, { status: 502 });
+        }
 
         if (!updatedReport) {
             if (isSafeEditedWordPatch) {
@@ -348,7 +372,7 @@ export async function PATCH(
                     user_id: payload.id,
                     content: statusMsg,
                     is_system_message: true,
-                    sheet_id: updatedReport.original_id || id
+                    sheet_id: updatedReport.original_id || updatedReport.sheet_id || id
                 });
             } catch (statusErr) {
                 console.warn('[Status] Failed to create system comment:', statusErr);
@@ -366,11 +390,13 @@ export async function PATCH(
             });
         }
 
-        await persistReportMetadata(updatedReport, {
-            userId: updatedReport.user_id || payload.id,
-        }).catch((syncErr) => {
-            console.warn('[Supabase] PATCH sync error:', syncErr);
-        });
+        if (!isJoumpaStatusUpdate) {
+            await persistReportMetadata(updatedReport, {
+                userId: updatedReport.user_id || payload.id,
+            }).catch((syncErr) => {
+                console.warn('[Supabase] PATCH sync error:', syncErr);
+            });
+        }
 
         if (evidence_file_ids !== undefined) {
             await linkEvidenceFilesToReport({

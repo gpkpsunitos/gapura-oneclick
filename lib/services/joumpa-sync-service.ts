@@ -14,6 +14,7 @@ import {
   type JoumpaFormInput,
   type JoumpaRow,
 } from '@/lib/joumpa/mapping';
+import { buildJoumpaStatusUpdate, type JoumpaStatusUpdateInput } from '@/lib/joumpa/status-update';
 
 const UPSERT_BATCH = 100;
 const DELETE_BATCH = 500;
@@ -181,6 +182,87 @@ export class JoumpaSyncService {
       }
     }
     return pushed;
+  }
+
+  static async updateReport(id: string, input: JoumpaStatusUpdateInput): Promise<JoumpaRow | null> {
+    const safeId = `"${id.replace(/"/g, '""')}"`;
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    const filter = isUuid
+      ? `id.eq.${safeId},sheet_id.eq.${safeId}`
+      : `sheet_id.eq.${safeId}`;
+
+    const { data: rows, error: lookupError } = await supabaseAdmin
+      .from('joumpa_reports_sync')
+      .select('*')
+      .or(filter)
+      .limit(1);
+
+    if (lookupError) {
+      throw new Error(`Failed to load JOUMPA report: ${lookupError.message}`);
+    }
+    if (!rows || rows.length === 0) return null;
+
+    const currentRow = rows[0] as JoumpaRow;
+    const rowNumber = Number(currentRow.row_number)
+      || Number(String(currentRow.sheet_id || '').match(/!row_(\d+)$/)?.[1]);
+    if (!rowNumber) {
+      throw new Error('JOUMPA report row number is missing');
+    }
+
+    const update = buildJoumpaStatusUpdate(input);
+    if (Object.keys(update).length === 0) {
+      throw new Error('No supported JOUMPA status fields were supplied');
+    }
+
+    const sheets = await getGoogleSheets();
+    const headerRes = await sheets.spreadsheets.values.get({
+      spreadsheetId: JOUMPA_SHEET_ID,
+      range: `'${JOUMPA_SHEET_NAME}'!1:1`,
+    });
+    const headers = ((headerRes.data.values?.[0] || []) as string[]).map((header) => clean(header));
+    const columnMap = buildColumnMap(headers);
+    const mergedRow = { ...currentRow, ...update };
+    const sheetValues = buildSheetRowValues(headers, mergedRow);
+    const sheetFields = ['status', 'action_taken', 'final_remarks', 'remarks_by'] as const;
+    const batchData = sheetFields.flatMap((field) => {
+      if (!(field in update)) return [];
+      const columnIndex = columnMap[field];
+      if (columnIndex === undefined) return [];
+      return [{
+        range: `'${JOUMPA_SHEET_NAME}'!${columnLetter(columnIndex)}${rowNumber}`,
+        values: [[sheetValues[columnIndex]]],
+      }];
+    });
+
+    if (batchData.length > 0) {
+      try {
+        await sheets.spreadsheets.values.batchUpdate({
+          spreadsheetId: JOUMPA_SHEET_ID,
+          requestBody: {
+            data: batchData,
+            valueInputOption: 'RAW',
+          },
+        });
+      } catch (error) {
+        console.error('[JoumpaSync] status sheet update failed:', error);
+        throw new Error('Failed to update the JOUMPA source sheet');
+      }
+    }
+
+    const syncedAt = new Date().toISOString();
+    const { data: updatedRow, error: updateError } = await supabaseAdmin
+      .from('joumpa_reports_sync')
+      .update({ ...update, synced_at: syncedAt })
+      .eq('id', currentRow.id)
+      .select('*')
+      .single();
+
+    if (updateError || !updatedRow) {
+      console.error('[JoumpaSync] status Supabase update failed:', updateError);
+      throw new Error('JOUMPA status was saved to Google Sheets, but Supabase synchronization failed');
+    }
+
+    return updatedRow as JoumpaRow;
   }
 
   // Create a JOUMPA report: append to the sheet (source of truth backup),
