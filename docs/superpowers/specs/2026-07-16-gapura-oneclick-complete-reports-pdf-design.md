@@ -13,7 +13,7 @@ The selected direction is Option A: structured detail sections for every report.
 - Use `Gapura Oneclick - Internal operational document` in the footer.
 - Retain the existing A4 landscape format.
 - Use a restrained Gapura green accent, white page surface, dark text, light section backgrounds, and semantic status/severity badges.
-- Repeat the compact brand header and footer on every generated page.
+- Repeat the compact brand header and footer on every generated page. Paint an explicit white page background before drawing content so PDF renderers never expose transparent page regions as black.
 
 ## Root Cause Being Corrected
 
@@ -91,7 +91,7 @@ Any remaining approved operational keys that are populated but are not covered b
 
 ## Logo Loading and Failure Behavior
 
-The client-side exporter loads `/logo.png`, converts it to a data URL, preserves its aspect ratio, and passes it to jsPDF. If the image cannot be loaded, the export still succeeds with a text-only `Gapura Oneclick` brand header. A logo failure must not discard the user's PDF.
+The client-side exporter loads `/logo.png`, flattens transparency onto white, resizes it to a PDF-appropriate source resolution, converts it to a JPEG data URL, preserves its aspect ratio, and passes it to jsPDF for every page. If the image cannot be loaded, the export still succeeds with the text-only `Gapura Oneclick` brand header. A logo failure must not discard the user's PDF.
 
 ## Component Boundaries
 
@@ -131,4 +131,3 @@ No export-modal behavior, filtering logic, Excel export, DOCX export, API route,
 - Embedding evidence image binaries in the PDF; the export provides labeled clickable links.
 - Including private technical IDs or sync diagnostics in the operational document.
 - Modifying the Excel or DOCX design in this change.
-
