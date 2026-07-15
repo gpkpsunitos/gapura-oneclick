@@ -3,7 +3,7 @@
 import { useState, useMemo, useCallback, memo, type MouseEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  FileText, MapPin, Plane,
+  FileText, Plane,
   ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ArrowUp, ArrowDown,
   Loader2, CalendarDays, UserRound, Building2, GitBranch, Download,
@@ -121,21 +121,6 @@ function getStatusTone(status: ReportStatus) {
   }
   return { bg: cfg.bgColor, text: cfg.color, accent: cfg.color };
 }
-
-const StatusCell = memo(function StatusCell({ status }: { status: ReportStatus }) {
-  const cfg = STATUS_CONFIG[status] || STATUS_CONFIG.OPEN;
-  const Icon = cfg.icon;
-  const tone = getStatusTone(status);
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wide whitespace-nowrap"
-      style={{ backgroundColor: tone.bg, color: tone.text }}
-    >
-      <Icon size={10} strokeWidth={2.5} />
-      {cfg.label}
-    </span>
-  );
-});
 
 const ClassificationSeverityCell = memo(function ClassificationSeverityCell({ report }: { report: Report }) {
   const classification = resolveCaseClassification(report);
@@ -257,7 +242,9 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
     event.stopPropagation();
     setDownloadingReportId(report.id);
     try {
-      await exportSingleReportToDocx(report);
+      const response = await fetch(`/api/reports/${encodeURIComponent(report.id)}`);
+      const fullReport = response.ok ? await response.json() as Report : report;
+      await exportSingleReportToDocx(fullReport);
     } finally {
       setDownloadingReportId(null);
     }
@@ -408,7 +395,6 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
           const sourceTag = resolveAreaTag(report);
           const flightNumber = cleanDisplayValue(report.flight_number);
           const route = cleanDisplayValue(report.route);
-          const headline = [report.status, station !== '-' ? station : '', flightNumber, route].filter(Boolean).join(' - ');
           const statusTone = getStatusTone(report.status as ReportStatus);
           const isUpdatingStatus = updatingStatusReportId === report.id;
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { type Report } from "@/types";
-import { generateWord } from "@/lib/utils/document-generator";
 
 export interface ReportExportFilters {
   startDate: string;
@@ -377,6 +376,7 @@ function evidenceLinks(report: Report): string[] {
 }
 
 export async function exportSingleReportToDocx(report: Report): Promise<void> {
+  const { generateWord } = await import("@/lib/utils/document-generator");
   const reference = cleanReportValue(report.reference_number) || report.id.slice(0, 8).toUpperCase();
   const flight = cleanReportValue(report.flight_number);
   const links = evidenceLinks(report);

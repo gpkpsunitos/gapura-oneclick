@@ -50,7 +50,10 @@ export async function GET(request: Request) {
         const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        const reports = await reportsService.getReports({ source: 'sync' });
+        const reports = await reportsService.getReports({
+            source: 'sync',
+            projection: 'adminStats',
+        });
 
         let filteredReports = reports;
         if (dateFrom || dateTo) {

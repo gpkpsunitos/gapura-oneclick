@@ -22,7 +22,7 @@ export default async function ManagerAllReportsPage() {
 
     let initialReports;
     try {
-        const all = await reportsService.getReports({ source: 'sync' });
+        const all = await reportsService.getReports({ source: 'sync', projection: 'list' });
         initialReports = all.filter((r) => {
             const code = (r.stations?.code || r.branch || r.station_code || '').toString().toUpperCase();
             return code === stationCode;

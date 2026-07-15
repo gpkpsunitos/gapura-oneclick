@@ -15,19 +15,17 @@ export default async function OPDashboard() {
 
   const stationCode = payload?.id ? await getStationLock(payload.id, payload.role ?? '') : null;
 
-  try {
-    const all = await reportsService.getReports({ source: 'sync' });
-    if (stationCode) {
+  if (stationCode) {
+    try {
+      const all = await reportsService.getReports({ source: 'sync', projection: 'list' });
       initialReports = all.filter((r) => {
         const code = (r.stations?.code || r.branch || r.station_code || '').toString().toUpperCase();
         return code === stationCode;
       });
       lockedBranches = [stationCode];
-    } else {
-      initialReports = all;
+    } catch {
+      initialReports = [];
     }
-  } catch {
-    initialReports = undefined;
   }
 
   return <OPDashboardClient initialReports={initialReports} lockedBranches={lockedBranches} />;

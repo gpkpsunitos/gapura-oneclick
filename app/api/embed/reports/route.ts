@@ -11,33 +11,6 @@ interface FilterParams {
   station?: string;
 }
 
-const EMBED_REPORT_FIELDS = [
-  'id',
-  'title',
-  'status',
-  'severity',
-  'airline',
-  'airlines',
-  'main_category',
-  'category',
-  'irregularity_complain_category',
-  'area',
-  'branch',
-  'reporting_branch',
-  'station_code',
-  'hub',
-  'terminal_area_category',
-  'apron_area_category',
-  'general_category',
-  'case_classification',
-  'target_division',
-  'date_of_event',
-  'incident_date',
-  'created_at',
-  'sla_deadline',
-  'source_sheet',
-];
-
 function sameValue(actual: unknown, expected: string) {
   return String(actual || '').trim() === expected;
 }
@@ -60,7 +33,7 @@ export async function GET(request: NextRequest) {
     const rangeDays = range === '30d' ? 30 : 7;
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - rangeDays);
-    const sheetsReports = await reportsService.getReports({
+    const sheetsReports = await reportsService.getProjectedReports('embed', {
       source: 'sync',
       filters: {
         dateFrom: startDate.toISOString(),
@@ -68,7 +41,6 @@ export async function GET(request: NextRequest) {
         area: filters.area,
         branch: filters.station,
       },
-      fields: EMBED_REPORT_FIELDS,
     });
 
     const filteredReports = sheetsReports.filter((report) => {

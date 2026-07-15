@@ -47,7 +47,7 @@ export async function GET(request: Request) {
         const sourceParam = searchParams.get('source');
         const source: 'sheets' | 'sync' = sourceParam === 'sheets' ? 'sheets' : 'sync';
 
-        const allReports = await reportsService.getReports({ source });
+        const allReports = await reportsService.getReports({ source, projection: 'analytics' });
 
         let filteredReports = allReports;
         let dateFrom: Date | null = null;

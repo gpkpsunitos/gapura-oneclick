@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       ? fieldsParam.split(',').filter(f => ALLOWED_FIELDS[f] || ALLOWED_FIELDS[f.trim()])
       : Object.keys(ALLOWED_FIELDS);
 
-    const reports = await reportsService.getReports();
+    const reports = await reportsService.getProjectedReports('filterOptions');
 
     const results: Record<string, string[]> = {};
 

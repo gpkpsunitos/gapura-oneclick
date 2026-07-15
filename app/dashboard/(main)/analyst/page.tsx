@@ -2,7 +2,6 @@ import { cookies } from 'next/headers';
 import { readSessionPayload } from '@/lib/auth-utils';
 import { OCSDivisionDashboardClientLoader } from '@/components/dashboard/ocs/OCSDivisionDashboardClientLoader';
 import { DivisionAnalystDashboard } from '@/components/dashboard/DivisionAnalystDashboard';
-import { reportsService } from '@/lib/services/reports-service';
 import { DIVISIONS } from '@/lib/constants/divisions';
 
 export const revalidate = 60;
@@ -16,12 +15,5 @@ export default async function AnalystPage() {
         return <OCSDivisionDashboardClientLoader division={DIVISIONS.OCS} />;
     }
 
-    let initialReports;
-    try {
-        initialReports = await reportsService.getReports({ source: 'sync' });
-    } catch {
-        initialReports = undefined;
-    }
-
-    return <DivisionAnalystDashboard division={DIVISIONS.ANALYST} initialReports={initialReports} />;
+    return <DivisionAnalystDashboard division={DIVISIONS.ANALYST} />;
 }

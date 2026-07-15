@@ -12,31 +12,6 @@ export const revalidate = 0;
 export const runtime = 'nodejs';
 export const fetchCache = 'force-no-store';
 
-interface RefCache<T> { data: T; ts: number }
-const REF_CACHE_TTL = 1000 * 60 * 10;
-let stationsCache: RefCache<Array<{ id: string; code: string; name: string }>> | null = null;
-let usersCache: RefCache<Array<{ id: string; full_name: string; email: string }>> | null = null;
-
-async function getCachedStations() {
-  if (stationsCache && Date.now() - stationsCache.ts < REF_CACHE_TTL) {
-    return stationsCache.data;
-  }
-  const { data } = await supabaseAdmin.from('stations').select('id, code, name');
-  const result = data ?? [];
-  stationsCache = { data: result, ts: Date.now() };
-  return result;
-}
-
-async function getCachedUsers() {
-  if (usersCache && Date.now() - usersCache.ts < REF_CACHE_TTL) {
-    return usersCache.data;
-  }
-  const { data } = await supabaseAdmin.from('users').select('id, full_name, email');
-  const result = data ?? [];
-  usersCache = { data: result, ts: Date.now() };
-  return result;
-}
-
 function normalizeStationValue(value: unknown): string {
   return String(value || '').trim().toUpperCase();
 }
@@ -52,7 +27,6 @@ function statusToAction(status: unknown): string | null {
 }
 
 export async function GET(request: Request) {
-    const startTime = Date.now();
     try {
         const cookieStore = await cookies();
         const token = cookieStore.get('session')?.value;
@@ -60,6 +34,12 @@ export async function GET(request: Request) {
 
         if (!payload) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+        const role = String(payload.role || '').trim().toUpperCase();
+
+        // Reject branch staff before touching the company-wide report table.
+        if (isBranchRole(role) && role !== 'MANAGER_CABANG') {
+            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
         const { searchParams } = new URL(request.url);
@@ -69,19 +49,14 @@ export async function GET(request: Request) {
         const from = searchParams.get('from');
         const to = searchParams.get('to');
         const sourceParam = searchParams.get('source');
+        const includeDetails = searchParams.get('detail') === '1';
 
         const source: 'sheets' | 'sync' = sourceParam === 'sheets' ? 'sheets' : 'sync';
         const allReports = await reportsService.getReports({
             source,
+            projection: includeDetails ? undefined : 'list',
             filters: status && status !== 'all' ? { status } : undefined,
         });
-        const role = String(payload.role || '').trim().toUpperCase();
-
-        // Company-wide report data is for admin/analyst/divisional roles.
-        // Branch staff below manager level must not see other stations' data.
-        if (isBranchRole(role) && role !== 'MANAGER_CABANG') {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
 
         const managerStationValues = new Set<string>();
 
@@ -133,6 +108,7 @@ export async function GET(request: Request) {
             if (filterByStation && r.station_id !== station && r.branch !== station) return false;
             if (filterBySearch && !(
                 r.title?.toLowerCase().includes(q!) ||
+                r.report?.toLowerCase().includes(q!) ||
                 r.description?.toLowerCase().includes(q!) ||
                 r.id?.toLowerCase().includes(q!)
             )) return false;
@@ -140,8 +116,6 @@ export async function GET(request: Request) {
             if (filterByTo && new Date(r.created_at).getTime() > toMs) return false;
             return true;
         });
-
-        const duration = Date.now() - startTime;
 
         return NextResponse.json(filteredData, {
             headers: { 'Cache-Control': 'private, no-store, max-age=0' },

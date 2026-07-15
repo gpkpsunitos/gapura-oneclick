@@ -2,7 +2,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
-import { normalizeDivisionCode, reportsService, type ReportQueryFilters } from '@/lib/services/reports-service';
+import {
+  normalizeDivisionCode,
+  parseReportSyncFields,
+  reportsService,
+  type ReportQueryFilters,
+} from '@/lib/services/reports-service';
 import { applyReportsRbacFilter } from '@/lib/reports-rbac';
 
 export async function GET(request: NextRequest) {
@@ -38,7 +43,15 @@ export async function GET(request: NextRequest) {
     };
 
     const fieldsParam = searchParams.get('fields');
-    const fields = fieldsParam ? fieldsParam.split(',') : undefined;
+    const parsedFields = fieldsParam
+      ? parseReportSyncFields(fieldsParam.split(','))
+      : null;
+    if (parsedFields?.invalid.length) {
+      return NextResponse.json(
+        { error: 'Invalid report fields', fields: parsedFields.invalid },
+        { status: 400 }
+      );
+    }
 
     const sourceParam = searchParams.get('source');
     const source: 'sheets' | 'sync' = sourceParam === 'sheets' ? 'sheets' : 'sync';
@@ -46,7 +59,8 @@ export async function GET(request: NextRequest) {
     const allReports = await reportsService.getReports({
       refresh,
       filters,
-      fields,
+      fields: parsedFields?.fields,
+      projection: parsedFields ? undefined : 'list',
       source,
     });
 

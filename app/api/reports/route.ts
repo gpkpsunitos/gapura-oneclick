@@ -3,7 +3,7 @@ import { after, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { REPORT_STATUS } from '@/lib/constants/report-status';
-import { reportsService } from '@/lib/services/reports-service';
+import { parseReportSyncFields, reportsService } from '@/lib/services/reports-service';
 import { notifyNewRecordEmail, notifyNewReport } from '@/lib/notifications';
 import { persistReportMetadata } from '@/lib/report-persistence';
 import { supabaseAdmin } from '@/lib/supabase-admin';
@@ -68,9 +68,14 @@ function decodeCursor(cursor: string | null): { createdAt: string; id: string } 
     try {
         const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
         if (!parsed?.createdAt || !parsed?.id) return null;
+        const createdAt = new Date(String(parsed.createdAt));
+        const id = String(parsed.id);
+        if (Number.isNaN(createdAt.getTime()) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
+            return null;
+        }
         return {
-            createdAt: String(parsed.createdAt),
-            id: String(parsed.id),
+            createdAt: createdAt.toISOString(),
+            id,
         };
     } catch {
         return null;
@@ -111,9 +116,19 @@ export async function GET(request: Request) {
         const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '50', 10), 1), 200);
         const cursor = decodeCursor(url.searchParams.get('cursor'));
         const fieldsParam = url.searchParams.get('fields');
-        const requestedFields = fieldsParam
+        const rawRequestedFields = fieldsParam
             ? fieldsParam.split(',').map((field) => field.trim()).filter(Boolean)
             : [...DEFAULT_REPORT_SUMMARY_FIELDS];
+        const parsedFields = parseReportSyncFields(rawRequestedFields);
+        if (parsedFields.invalid.length > 0) {
+            return NextResponse.json(
+                { error: 'Invalid report fields', fields: parsedFields.invalid },
+                { status: 400 }
+            );
+        }
+        const requestedFields = Array.from(
+            new Set([...parsedFields.fields, 'id', 'created_at'] as const)
+        );
 
         const userStationId = payload.station_id;
 
@@ -126,7 +141,7 @@ export async function GET(request: Request) {
 
         if (bypassFiltering) {
             const reports = await reportsService.getReports({
-                fields: requestedFields as unknown as string[],
+                fields: requestedFields,
                 source: 'sync',
             });
             return NextResponse.json(reports, {
@@ -165,7 +180,11 @@ export async function GET(request: Request) {
             }
 
             if (cursor) {
-                query = query.lt('created_at', cursor.createdAt);
+                query = query.or(
+                    'created_at.lt.' + cursor.createdAt
+                    + ',and(created_at.eq.' + cursor.createdAt
+                    + ',id.lt.' + cursor.id + ')'
+                );
             }
 
             const { data: rows, error } = await query.limit(limit + 1);

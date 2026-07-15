@@ -112,11 +112,10 @@ export async function GET(request: NextRequest) {
 
     const field = fieldMap[type] || 'airline';
 
-    const reports = await reportsService.getReports({
+    const reports = await reportsService.getProjectedReports('analytics', {
       filters: {
         dateFrom: startDate.toISOString()
       },
-      fields: ['id', 'created_at', 'incident_date', 'date_of_event', 'airline', 'airlines', 'main_category', 'general_category', 'status', 'severity', 'area', 'priority', 'target_division', 'station_code', 'branch']
     });
 
     const typedReports: ReportRow[] = reports.map(r => ({

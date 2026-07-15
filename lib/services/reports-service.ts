@@ -1,20 +1,15 @@
 import 'server-only';
 import { getGoogleSheets } from '@/lib/google-sheets';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import type { Report, ReportStatus, UserRole, Station, Unit, Position, IncidentType } from '@/types';
+import type { Report, Station, Unit, Position, IncidentType } from '@/types';
 import { calculateSlaDeadline } from '@/lib/constants/report-status';
-import { v4 as uuidv4, v5 as uuidv5 } from 'uuid';
+import { v5 as uuidv5 } from 'uuid';
 
 import { buildReportFingerprint } from '@/lib/report-fingerprint';
 import { escapeSpreadsheetCell } from '@/lib/security/sanitize';
 import {
-  isCargoReport,
-  isGseServiceReport,
-  isJoumpaServiceReport,
   resolveCaseClassification,
   resolveReportCategory,
-  resolveReportAirline,
-  resolveReportBranch,
   resolveReportSeverity,
   resolveReportStatus,
   resolveRootCause,
@@ -46,10 +41,6 @@ function setCache(key: string, data: unknown): void {
     if (oldest) ttlCache.delete(oldest);
   }
   ttlCache.set(key, { data, ts: Date.now() });
-}
-
-function invalidateLocalCache(key: string): void {
-  ttlCache.delete(key);
 }
 
 export function getCacheStats() {
@@ -229,7 +220,6 @@ const WRITE_MAPPING: Record<string, string> = {
 
 const CACHE_KEY_ALL_REPORTS = 'reports:all:v3';
 const CACHE_TTL = 1000 * 60 * 5;
-const VALID_DIVISIONS = ['OP', 'OS', 'HT', 'HC'] as const;
 const GSE_KEYWORDS = [
   'gse',
   'ground support equipment',
@@ -251,7 +241,7 @@ const GSE_KEYWORDS = [
   'uld',
 ];
 
-export type SupportedDivision = typeof VALID_DIVISIONS[number];
+export type SupportedDivision = 'OP' | 'OS' | 'HT' | 'HC';
 
 export interface ReportQueryFilters {
   dateFrom?: string;
@@ -265,6 +255,257 @@ export interface ReportQueryFilters {
   targetDivision?: string;
   gseOnly?: boolean;
   status?: string;
+}
+
+export const REPORT_SYNC_FIELDS = [
+  'id',
+  'user_id',
+  'title',
+  'description',
+  'location',
+  'reporter_email',
+  'evidence_url',
+  'evidence_urls',
+  'evidence_file_ids',
+  'evidence_submission_id',
+  'status',
+  'severity',
+  'severity_level',
+  'priority',
+  'flight_number',
+  'aircraft_reg',
+  'gse_number',
+  'gse_name',
+  'station_id',
+  'category',
+  'main_category',
+  'source_sheet',
+  'sheet_id',
+  'source_fingerprint',
+  'original_id',
+  'row_number',
+  'created_at',
+  'updated_at',
+  'resolved_at',
+  'sla_deadline',
+  'incident_date',
+  'reporting_branch',
+  'hub',
+  'route',
+  'branch',
+  'station_code',
+  'reporter_name',
+  'date_of_event',
+  'specific_location',
+  'airlines',
+  'airline',
+  'jenis_maskapai',
+  'reference_number',
+  'root_caused',
+  'root_cause',
+  'action_taken',
+  'immediate_action',
+  'kps_remarks',
+  'remarks_by',
+  'preventive_action',
+  'remarks_gapura_kps',
+  'area',
+  'terminal_area_category',
+  'apron_area_category',
+  'general_category',
+  'report',
+  'service_business_type',
+  'remarks_case',
+  'gse_available_requirement',
+  'gse_requirement',
+  'gse_motorized',
+  'gse_non_motorized',
+  'category_case_gse',
+  'category_case_cargo',
+  'category_case_joumpa',
+  'case_cgo',
+  'supporting_evidence',
+  'case_category',
+  'case_classification',
+  'irregularity_complain_category',
+  'identification_of_root',
+  'kode_cabang',
+  'kode_hub',
+  'maskapai_lookup',
+  'primary_tag',
+  'target_division',
+] as const;
+
+export type ReportSyncField = typeof REPORT_SYNC_FIELDS[number];
+
+export const REPORT_PROJECTIONS = {
+  list: [
+    'id',
+    'location',
+    'status',
+    'severity',
+    'severity_level',
+    'flight_number',
+    'station_id',
+    'category',
+    'main_category',
+    'source_sheet',
+    'created_at',
+    'resolved_at',
+    'incident_date',
+    'reporting_branch',
+    'hub',
+    'kode_hub',
+    'route',
+    'branch',
+    'station_code',
+    'reporter_name',
+    'date_of_event',
+    'airlines',
+    'area',
+    'terminal_area_category',
+    'apron_area_category',
+    'general_category',
+    'service_business_type',
+    'case_classification',
+    'irregularity_complain_category',
+    'category_case_gse',
+    'category_case_cargo',
+    'category_case_joumpa',
+    'case_cgo',
+    'primary_tag',
+    'report',
+    'kode_cabang',
+    'reference_number',
+    'kps_remarks',
+  ],
+  analytics: [
+    'id',
+    'user_id',
+    'reporter_email',
+    'status',
+    'severity',
+    'priority',
+    'station_id',
+    'source_sheet',
+    'created_at',
+    'date_of_event',
+    'incident_date',
+    'branch',
+    'reporting_branch',
+    'station_code',
+    'hub',
+    'kode_hub',
+    'airline',
+    'airlines',
+    'maskapai_lookup',
+    'area',
+    'terminal_area_category',
+    'apron_area_category',
+    'general_category',
+    'main_category',
+    'category',
+    'irregularity_complain_category',
+    'target_division',
+    'identification_of_root',
+    'root_caused',
+    'root_cause',
+    'remarks_case',
+    'category_case_gse',
+    'category_case_cargo',
+  ],
+  filterOptions: [
+    'id',
+    'hub',
+    'branch',
+    'reporting_branch',
+    'station_code',
+    'airline',
+    'airlines',
+    'main_category',
+    'category',
+    'area',
+    'target_division',
+    'severity',
+    'status',
+    'jenis_maskapai',
+    'date_of_event',
+    'created_at',
+  ],
+  embed: [
+    'id',
+    'title',
+    'status',
+    'severity',
+    'airline',
+    'airlines',
+    'main_category',
+    'category',
+    'irregularity_complain_category',
+    'area',
+    'branch',
+    'reporting_branch',
+    'station_code',
+    'hub',
+    'terminal_area_category',
+    'apron_area_category',
+    'general_category',
+    'case_classification',
+    'target_division',
+    'date_of_event',
+    'incident_date',
+    'created_at',
+    'sla_deadline',
+    'source_sheet',
+  ],
+  adminStats: [
+    'id',
+    'title',
+    'description',
+    'report',
+    'primary_tag',
+    'location',
+    'station_code',
+    'branch',
+    'status',
+    'severity',
+    'priority',
+    'sla_deadline',
+    'reporter_name',
+    'created_at',
+    'date_of_event',
+  ],
+} as const satisfies Record<string, readonly ReportSyncField[]>;
+
+export type ReportProjectionName = keyof typeof REPORT_PROJECTIONS;
+export type ProjectedReport<P extends ReportProjectionName> = Pick<
+  Report,
+  'id' | typeof REPORT_PROJECTIONS[P][number]
+>;
+
+const REPORT_SYNC_FIELD_SET = new Set<string>(REPORT_SYNC_FIELDS);
+
+export function isReportSyncField(value: string): value is ReportSyncField {
+  return REPORT_SYNC_FIELD_SET.has(value);
+}
+
+export function parseReportSyncFields(values: readonly string[]): {
+  fields: ReportSyncField[];
+  invalid: string[];
+} {
+  const normalized = Array.from(new Set(values.map((value) => value.trim()).filter(Boolean)));
+  return {
+    fields: normalized.filter(isReportSyncField),
+    invalid: normalized.filter((value) => !isReportSyncField(value)),
+  };
+}
+
+interface GetReportsOptions {
+  refresh?: boolean;
+  filters?: ReportQueryFilters;
+  fields?: readonly ReportSyncField[];
+  projection?: ReportProjectionName;
+  source?: 'auto' | 'sheets' | 'sync';
 }
 
 const MonthMap: Record<string, number> = {
@@ -965,13 +1206,11 @@ export class ReportsService {
     return entry ? entry.ts : Date.now();
   }
 
-  async getReports(options?: {
-    refresh?: boolean;
-    filters?: ReportQueryFilters;
-    fields?: string[];
-    source?: 'auto' | 'sheets' | 'sync';
-  }): Promise<Report[]> {
-    const { refresh, filters, fields, source = 'auto' } = options || {};
+  async getReports(options?: GetReportsOptions): Promise<Report[]> {
+    const { filters, source = 'auto' } = options || {};
+    const fields = options?.projection
+      ? REPORT_PROJECTIONS[options.projection]
+      : options?.fields;
 
     let selectedReports: Report[] = [];
 
@@ -983,7 +1222,7 @@ export class ReportsService {
         selectedReports = [];
       }
     } else {
-      selectedReports = await this.fetchReportsFromSync(filters);
+      selectedReports = await this.fetchReportsFromSync(filters, fields);
     }
 
     const filteredReports = selectedReports.filter(report => {
@@ -1042,20 +1281,24 @@ export class ReportsService {
       return dateB - dateA;
     });
 
-    const finalReports = fields && fields.length > 0 
-      ? filteredReports.map(r => {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const projected: any = {};
-          fields.forEach(f => {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            if (r[f] !== undefined) projected[f] = r[f];
+    const finalReports = fields && fields.length > 0
+      ? filteredReports.map((report) => {
+          const projected: Record<string, unknown> = { id: report.id };
+          fields.forEach((field) => {
+            if (report[field] !== undefined) projected[field] = report[field];
           });
-          projected.id = r.id;
           return projected as Report;
         })
       : filteredReports;
     return finalReports;
+  }
+
+  async getProjectedReports<P extends ReportProjectionName>(
+    projection: P,
+    options?: Omit<GetReportsOptions, 'fields' | 'projection'>,
+  ): Promise<Array<ProjectedReport<P>>> {
+    const reports = await this.getReports({ ...options, projection });
+    return reports as Array<ProjectedReport<P>>;
   }
 
   public async fetchSheetsReports(): Promise<Report[]> {
@@ -1096,26 +1339,87 @@ export class ReportsService {
     return allReports;
   }
 
-  private async fetchReportsFromSync(filters?: ReportQueryFilters): Promise<Report[]> {
+  private async fetchReportsFromSync(
+    filters?: ReportQueryFilters,
+    fields?: readonly ReportSyncField[],
+  ): Promise<Report[]> {
     try {
+      const requiredFields = new Set<ReportSyncField>([
+        'id',
+        'date_of_event',
+        'incident_date',
+        'created_at',
+        'status',
+        'severity',
+        'priority',
+        'station_id',
+      ]);
+      fields?.forEach((field) => requiredFields.add(field));
+
+      if (filters?.hub) requiredFields.add('hub');
+      if (filters?.branch) {
+        requiredFields.add('branch');
+        requiredFields.add('reporting_branch');
+        requiredFields.add('station_code');
+      }
+      if (filters?.area) {
+        requiredFields.add('area');
+        requiredFields.add('terminal_area_category');
+        requiredFields.add('apron_area_category');
+        requiredFields.add('general_category');
+      }
+      if (filters?.airlines) requiredFields.add('airlines');
+      if (filters?.sourceSheet) requiredFields.add('source_sheet');
+      if (filters?.targetDivision || filters?.esklasiRegex) {
+        requiredFields.add('target_division');
+      }
+      if (filters?.gseOnly) {
+        [
+          'service_business_type',
+          'remarks_case',
+          'gse_available_requirement',
+          'gse_requirement',
+          'gse_motorized',
+          'gse_non_motorized',
+          'category_case_gse',
+          'case_category',
+          'main_category',
+          'category',
+          'description',
+          'report',
+        ].forEach((field) => requiredFields.add(field as ReportSyncField));
+      }
+
+      const selectFields = fields && fields.length > 0
+        ? Array.from(requiredFields).join(',')
+        : '*';
+
       const buildQuery = () => {
         let q = supabaseAdmin
           .from('ground_handling_irregularity_report')
-          .select('*')
+          .select(selectFields)
           .order('date_of_event', { ascending: false });
         if (filters?.hub && filters.hub !== 'all') q = q.eq('hub', filters.hub);
         if (filters?.branch && filters.branch !== 'all') q = q.eq('branch', filters.branch);
         if (filters?.area && filters.area !== 'all') q = q.eq('area', filters.area);
         if (filters?.airlines && filters.airlines !== 'all') q = q.eq('airlines', filters.airlines);
         if (filters?.dateFrom) q = q.gte('date_of_event', filters.dateFrom);
-        if (filters?.dateTo) q = q.lte('date_of_event', filters.dateTo);
+        if (filters?.dateTo) {
+          const dateTo = /^\d{4}-\d{2}-\d{2}$/.test(filters.dateTo)
+            ? filters.dateTo + 'T23:59:59.999Z'
+            : filters.dateTo;
+          q = q.lte('date_of_event', dateTo);
+        }
         if (filters?.sourceSheet) q = q.eq('source_sheet', filters.sourceSheet);
         if (filters?.status && filters.status !== 'all') q = q.eq('status', filters.status);
+        const targetDivision = normalizeDivisionCode(filters?.targetDivision);
+        if (targetDivision) {
+          q = q.eq('target_division', targetDivision);
+        }
         return q;
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const allReports: any[] = [];
+      const allReports: Record<string, unknown>[] = [];
       const batchSize = 1000;
       let offset = 0;
       let hasMore = true;
@@ -1131,7 +1435,7 @@ export class ReportsService {
         if (!data || data.length === 0) {
           hasMore = false;
         } else {
-          allReports.push(...data);
+          allReports.push(...(data as unknown as Record<string, unknown>[]));
           hasMore = data.length === batchSize;
           offset += batchSize;
         }
@@ -1142,20 +1446,19 @@ export class ReportsService {
       }
 
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return allReports.map((row: any) => syncEscalationDivisionAliases({
+      return allReports.map((row) => syncEscalationDivisionAliases({
         ...row,
-        id: row.id,
-        sheet_id: row.sheet_id,
-        source_fingerprint: row.source_fingerprint || buildReportFingerprint(row),
-        evidence_urls: row.evidence_urls || (row.evidence_url ? [row.evidence_url] : []),
+        id: String(row.id || ''),
+        evidence_urls: row.evidence_urls || (row.evidence_url ? [row.evidence_url] : undefined),
         status: row.status || 'OPEN',
-        severity: row.severity || 'low',
+        severity: row.severity || 'LOW',
         priority: row.priority || 'low',
         date_of_event: row.date_of_event || row.incident_date || row.created_at,
         created_at: row.created_at || new Date().toISOString(),
-        stations: row.station_id ? { code: row.station_id, name: row.station_id } : undefined,
-      })) as Report[];
+        stations: row.station_id
+          ? { code: String(row.station_id), name: String(row.station_id) }
+          : undefined,
+      } as Partial<Report>)) as Report[];
     } catch (error) {
       console.error('[ReportsService] reports_sync fetch exception:', error);
       return [];
@@ -1748,7 +2051,10 @@ export class ReportsService {
     dateFrom?: string;
     dateTo?: string;
   } = {}): Promise<{ severity: string; count: number }[]> {
-    const all = await this.getReports({ filters });
+    const all = await this.getReports({
+      filters,
+      fields: ['id', 'severity'],
+    });
 
     const map = new Map<string, number>();
     all.forEach((r) => {

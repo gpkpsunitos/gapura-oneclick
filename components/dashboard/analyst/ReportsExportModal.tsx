@@ -80,6 +80,7 @@ function SelectField({
 export function ReportsExportModal({ open, reports, onClose }: ReportsExportModalProps) {
   const [filters, setFilters] = useState<ReportExportFilters>(DEFAULT_REPORT_EXPORT_FILTERS);
   const [exporting, setExporting] = useState<ExportFormat | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [joumpaReports, setJoumpaReports] = useState<Report[]>([]);
   const [joumpaLoading, setJoumpaLoading] = useState(false);
 
@@ -132,10 +133,26 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
 
   const handleExport = async (format: ExportFormat) => {
     setExporting(format);
+    setExportError(null);
     try {
-      if (format === "excel") await exportReportsToExcel(filteredReports, filters);
-      if (format === "pdf") await exportReportsToPdf(filteredReports, filters);
-      if (format === "docx") await exportReportsToDocx(filteredReports, filters);
+      let reportsToExport = filteredReports;
+      if (!isJoumpa) {
+        const response = await fetch("/api/admin/reports?detail=1");
+        if (!response.ok) throw new Error("Unable to load full report details for export.");
+        const payload = await response.json();
+        const fullReports = Array.isArray(payload)
+          ? payload as Report[]
+          : Array.isArray(payload?.data)
+            ? payload.data as Report[]
+            : [];
+        reportsToExport = filterReportsForExport(fullReports, filters);
+      }
+
+      if (format === "excel") await exportReportsToExcel(reportsToExport, filters);
+      if (format === "pdf") await exportReportsToPdf(reportsToExport, filters);
+      if (format === "docx") await exportReportsToDocx(reportsToExport, filters);
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : "Export failed. Please try again.");
     } finally {
       setExporting(null);
     }
@@ -253,6 +270,11 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
         </div>
 
         <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-white px-6 py-5 sm:flex-row sm:justify-end">
+          {exportError && (
+            <p role="alert" className="mr-auto self-center text-sm font-semibold text-red-600">
+              {exportError}
+            </p>
+          )}
           {[
             { format: "excel" as const, label: "Export Excel", icon: FileSpreadsheet, className: "bg-emerald-700 hover:bg-emerald-800" },
             { format: "pdf" as const, label: "Export PDF", icon: FileText, className: "bg-teal-700 hover:bg-teal-800" },

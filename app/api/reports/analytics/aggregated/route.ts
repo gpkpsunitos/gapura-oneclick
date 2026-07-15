@@ -47,6 +47,7 @@ export async function GET(request: NextRequest) {
     const allReports = await reportsService.getReports({
       refresh,
       filters,
+      projection: 'analytics',
       source: 'sync',
     });
 

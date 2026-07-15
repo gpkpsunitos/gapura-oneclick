@@ -1,25 +1,11 @@
 "use client";
 
-async function fetchData() {
-  const [reportsRes, analyticsRes, dbRes] = await Promise.all([
-    fetch('/api/admin/reports'),
-    fetch('/api/admin/analytics'),
-    fetch('/api/dashboards'),
-  ]);
-  const [reports, analytics, dashboards] = await Promise.all([
-    reportsRes.json(),
-    analyticsRes.json(),
-    dbRes.json(),
-  ]);
-  return { reports, analytics, dashboards };
-}
-
 import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { useData } from '@/lib/swr';
-import { RefreshCw, Loader2, Search, Filter, ChevronDown, ChevronUp, AlertTriangle, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { ChevronUp, Link as LinkIcon } from 'lucide-react';
 
 import { ResponsiveHeader } from '@/components/dashboard/analyst/ResponsiveHeader';
 import { ReportFilterBar } from '@/components/dashboard/analyst/ReportFilterBar';
@@ -110,9 +96,10 @@ const DashboardLinkModals = dynamic(
   { ssr: false }
 );
 
-import { AnalystCharts } from '@/components/dashboard/analyst/ChartSection';
-
-import { ChartSection } from '@/components/dashboard/analyst/ChartSection';
+const ChartSection = dynamic(
+  () => import('@/components/dashboard/analyst/ChartSection').then((mod) => mod.ChartSection),
+  { ssr: false }
+);
 
 interface DivisionAnalystDashboardProps {
   division: DivisionConfig;
@@ -216,7 +203,6 @@ export function DivisionAnalystDashboard({
   const isDashboardView = view === 'dashboard';
 
   const [refreshing, setRefreshing] = useState(false);
-  const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
   const [showReportsExportModal, setShowReportsExportModal] = useState(false);
   const [dateRange, setDateRange] = useState<'all' | 'week' | 'month' | { from: string; to: string }>('all');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -264,7 +250,10 @@ export function DivisionAnalystDashboard({
     (url) => fetch(url).then(res => res.json()).then((json) => Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : []),
     { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: initialReports }
   );
-  const reports = isScopeLocked ? (initialReports ?? []) : (swrReports ?? []);
+  const reports = useMemo(
+    () => isScopeLocked ? (initialReports ?? []) : (swrReports ?? []),
+    [initialReports, isScopeLocked, swrReports]
+  );
   const reportsLoading = isScopeLocked ? false : swrLoading;
 
   const { data: analytics = null, isLoading: analyticsLoading, mutate: mutateAnalytics } = useSWR<AnalyticsData>(
@@ -405,7 +394,7 @@ export function DivisionAnalystDashboard({
     }
 
     return result;
-  }, [reports, dateRange, globalFilters, division.code]);
+  }, [reports, dateRange, globalFilters, lockedBranches]);
   const listFilterOptions = useMemo(() => {
     const uniqueSorted = (values: string[]) => Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
     return {
@@ -723,7 +712,7 @@ export function DivisionAnalystDashboard({
             onFilterClick={division.code === 'OCS' || division.code === 'ANALYST' ? () => setShowFilterModal(true) : undefined}
             onExportExcel={exportToExcel}
             onExportPDF={exportToPDF}
-            exporting={exporting}
+            exporting={null}
             divisionDashboardActions={undefined}
             onSwitchDivision={() => router.push('/dashboard/eskalasi/select')}
             variant={isExecutiveDivision && !isScopeLocked ? 'op-executive' : 'default'}
@@ -918,47 +907,55 @@ export function DivisionAnalystDashboard({
           </div>
         )}
 
-        <DashboardLinkModals
-          showOS={showOSDashboardModal}
-          osLink={osDashboardLink}
-          onOsLinkChange={setOsDashboardLink}
-          onCloseOS={() => setShowOSDashboardModal(false)}
-          onSaveOS={() => {
-            try { localStorage.setItem('os_dashboard_link', osDashboardLink); } catch {}
-            setShowOSDashboardModal(false);
-          }}
-          onResetOS={() => {
-            const saved = typeof window !== 'undefined' ? localStorage.getItem('os_dashboard_link') : null;
-            setOsDashboardLink(saved || getLinkUrl(externalLinks, 'os-dashboard-analyst'));
-          }}
-        />
+        {showOSDashboardModal && (
+          <DashboardLinkModals
+            showOS
+            osLink={osDashboardLink}
+            onOsLinkChange={setOsDashboardLink}
+            onCloseOS={() => setShowOSDashboardModal(false)}
+            onSaveOS={() => {
+              try { localStorage.setItem('os_dashboard_link', osDashboardLink); } catch {}
+              setShowOSDashboardModal(false);
+            }}
+            onResetOS={() => {
+              const saved = typeof window !== 'undefined' ? localStorage.getItem('os_dashboard_link') : null;
+              setOsDashboardLink(saved || getLinkUrl(externalLinks, 'os-dashboard-analyst'));
+            }}
+          />
+        )}
 
-        <ReportDetailModal
-          isOpen={!!selectedReport}
-          onClose={() => setSelectedReport(null)}
-          report={selectedReport}
-          userRole={`DIVISI_${division.code}` as UserRole}
-          onUpdateStatus={handleUpdateStatus}
-          onRefresh={refreshData}
-        />
+        {selectedReport && (
+          <ReportDetailModal
+            isOpen
+            onClose={() => setSelectedReport(null)}
+            report={selectedReport}
+            userRole={`DIVISI_${division.code}` as UserRole}
+            onUpdateStatus={handleUpdateStatus}
+            onRefresh={refreshData}
+          />
+        )}
 
-        <CustomerFeedbackFilterModal
-          isOpen={showFilterModal}
-          onClose={() => setShowFilterModal(false)}
-          onApply={handleApplyFilter}
-          loading={filterLoading}
-          availableHubs={availableOptions.hubs}
-          availableBranches={availableOptions.branches}
-          availableAirlines={availableOptions.airlines}
-          availableCategories={availableOptions.categories}
-          existingFolders={existingFolders}
-        />
+        {showFilterModal && (
+          <CustomerFeedbackFilterModal
+            isOpen
+            onClose={() => setShowFilterModal(false)}
+            onApply={handleApplyFilter}
+            loading={filterLoading}
+            availableHubs={availableOptions.hubs}
+            availableBranches={availableOptions.branches}
+            availableAirlines={availableOptions.airlines}
+            availableCategories={availableOptions.categories}
+            existingFolders={existingFolders}
+          />
+        )}
 
-        <ReportsExportModal
-          open={showReportsExportModal}
-          reports={filteredReports.length > 0 ? filteredReports : reports}
-          onClose={() => setShowReportsExportModal(false)}
-        />
+        {showReportsExportModal && (
+          <ReportsExportModal
+            open
+            reports={filteredReports.length > 0 ? filteredReports : reports}
+            onClose={() => setShowReportsExportModal(false)}
+          />
+        )}
 
         <DrilldownRenderer />
 
