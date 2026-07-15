@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useDeferredValue } from 'react';
 import {
   Search, Filter, ChevronDown,
   AlertTriangle, RefreshCw, LucideIcon, Building2
@@ -65,8 +65,12 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
     setRefreshing(false);
   };
 
+  // Defer list refiltering so the keystroke paints first (INP), then the
+  // table catches up.
+  const deferredSearch = useDeferredValue(search);
+
   const filteredReports = useMemo(() => {
-    const lowerSearch = search.toLowerCase();
+    const lowerSearch = deferredSearch.toLowerCase();
 
     return allReports.filter(report => {
       if (filter !== 'all' && report.status !== filter) return false;
@@ -83,7 +87,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
         (report.reference_number || '').toLowerCase().includes(lowerSearch) ||
         (report.flight_number || '').toLowerCase().includes(lowerSearch);
     });
-  }, [allReports, filter, severityFilter, search]);
+  }, [allReports, filter, severityFilter, deferredSearch]);
 
   const stats = useMemo(() => ({
     total: filteredReports.length,

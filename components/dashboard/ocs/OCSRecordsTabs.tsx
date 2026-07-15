@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import useSWR from 'swr';
@@ -204,6 +204,9 @@ export default function OCSRecordsTabs() {
   const activeFilterCount = (dateFrom ? 1 : 0) + (dateTo ? 1 : 0) + Object.values(colFilters).filter((v) => v.trim()).length;
   const clearFilters = () => { setDateFrom(''); setDateTo(''); setColFilters({}); };
 
+  // Defer refiltering so search keystrokes paint before the table recomputes.
+  const deferredSearch = useDeferredValue(search);
+
   const rows = useMemo(() => {
     let base = isCategorized ? records.filter((r) => (r.pic || 'ground_handling') === category) : records;
     if (dateFrom) base = base.filter((r) => !r.event_date || r.event_date >= dateFrom);
@@ -212,7 +215,7 @@ export default function OCSRecordsTabs() {
       const v = val.trim().toLowerCase();
       if (v) base = base.filter((r) => String(r[key] ?? '').toLowerCase().includes(v));
     }
-    const s = search.trim().toLowerCase();
+    const s = deferredSearch.trim().toLowerCase();
     const filtered = s
       ? base.filter((r) => tab.cols.some((c) => String(r[c.key] ?? '').toLowerCase().includes(s)))
       : base;
@@ -220,7 +223,7 @@ export default function OCSRecordsTabs() {
       const cmp = String(a[sortKey] ?? '').localeCompare(String(b[sortKey] ?? ''));
       return sortDir === 'asc' ? cmp : -cmp;
     });
-  }, [records, search, sortKey, sortDir, tab.cols, isCategorized, category, dateFrom, dateTo, colFilters]);
+  }, [records, deferredSearch, sortKey, sortDir, tab.cols, isCategorized, category, dateFrom, dateTo, colFilters]);
 
   const toggleSort = (key: string) => {
     if (sortKey === key) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));

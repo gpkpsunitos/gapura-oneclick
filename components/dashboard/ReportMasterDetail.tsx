@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Search, Filter, MapPin, AlertCircle } from 'lucide-react';
@@ -67,9 +67,13 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
         if (onRefresh) onRefresh();
     };
 
+    // Defer refiltering so search keystrokes paint before the list recomputes.
+    const deferredSearchTerm = useDeferredValue(searchTerm);
+
     const filteredReports = reports.filter(r => {
-        const matchesSearch = r.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                              (r.flight_number && r.flight_number.toLowerCase().includes(searchTerm.toLowerCase()));
+        const query = deferredSearchTerm.toLowerCase();
+        const matchesSearch = r.title.toLowerCase().includes(query) ||
+                              (r.flight_number && r.flight_number.toLowerCase().includes(query));
         const matchesFilter = activeFilter === 'ALL' || r.status === activeFilter;
         return matchesSearch && matchesFilter;
     });

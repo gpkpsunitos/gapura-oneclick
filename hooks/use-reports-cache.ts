@@ -3,14 +3,8 @@ import useSWR, { SWRConfiguration } from 'swr';
 import { Report } from '@/types';
 import { useEffect, useState } from 'react';
 import { buildPwaScopedStorageKey } from '@/lib/pwa/client-state';
-import { useReportsStoreOptional } from '@/components/providers/ReportsStoreProvider';
 
 const STORAGE_KEY = 'reports-cache-v3';
-
-interface CacheData {
-  data: Report[];
-  timestamp: number;
-}
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -25,36 +19,43 @@ const fetcher = async (url: string) => {
   return [];
 };
 
-interface UseReportsOptions extends SWRConfiguration {
-  useStore?: boolean;
-}
+// Persist off the render/interaction path: serializing megabytes of reports
+// into localStorage is synchronous and would otherwise land right when the
+// page becomes interactive.
+function persistWhenIdle(key: string, data: Report[]) {
+  const write = () => {
+    const serialized = JSON.stringify({ data, timestamp: Date.now() });
+    try {
+      localStorage.setItem(key, serialized);
+    } catch {
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+          const k = localStorage.key(i);
+          if (k && k.includes(STORAGE_KEY)) localStorage.removeItem(k);
+        }
+        localStorage.setItem(key, serialized);
+      } catch {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[use-reports-cache] localStorage full; skipping persist');
+        }
+      }
+    }
+  };
 
-export function useReportsData(url: string = '/api/reports', options?: UseReportsOptions) {
-  const { useStore = false, ...swrOptions } = options || {};
-  const store = useReportsStoreOptional();
-  const swrResult = useReportsDataSWR(url, swrOptions);
-
-  if (useStore && store) {
-    return {
-      reports: store.reports,
-      isLoading: store.isLoading,
-      isError: undefined,
-      isValidating: false,
-      isOffline: false,
-      refresh: store.refresh,
-      lastUpdated: store.lastUpdated,
-    };
+  if (typeof requestIdleCallback === 'function') {
+    requestIdleCallback(write, { timeout: 5000 });
+  } else {
+    setTimeout(write, 500);
   }
-
-  return swrResult;
 }
 
-function useReportsDataSWR(url: string, options?: SWRConfiguration) {
+export function useReportsData(url: string = '/api/reports', options?: SWRConfiguration) {
   const STORAGE_KEY_WITH_URL =
     typeof window !== 'undefined'
       ? buildPwaScopedStorageKey(`${STORAGE_KEY}:${url}`)
       : `${STORAGE_KEY}:${url}`;
   const [isOffline, setIsOffline] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
 
   const { data, error, isLoading, mutate, isValidating } = useSWR<Report[]>(
     url,
@@ -65,29 +66,8 @@ function useReportsDataSWR(url: string, options?: SWRConfiguration) {
       dedupingInterval: 1000 * 60,
       onSuccess: (newData) => {
         if (typeof window !== 'undefined') {
-          try {
-            localStorage.setItem(STORAGE_KEY_WITH_URL, JSON.stringify({
-              data: newData,
-              timestamp: Date.now()
-            }));
-          } catch (err) {
-
-            try {
-              localStorage.removeItem(STORAGE_KEY_WITH_URL);
-              for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-                const k = localStorage.key(i);
-                if (k && k.includes(STORAGE_KEY)) localStorage.removeItem(k);
-              }
-              localStorage.setItem(STORAGE_KEY_WITH_URL, JSON.stringify({
-                data: newData,
-                timestamp: Date.now()
-              }));
-            } catch {
-              if (process.env.NODE_ENV !== 'production') {
-                console.warn('[use-reports-cache] localStorage full; skipping persist', err);
-              }
-            }
-          }
+          setLastUpdated(Date.now());
+          persistWhenIdle(STORAGE_KEY_WITH_URL, newData);
           setIsOffline(false);
         }
       },
@@ -106,7 +86,8 @@ function useReportsDataSWR(url: string, options?: SWRConfiguration) {
       if (local && !data) {
         try {
            const parsed = JSON.parse(local);
-           mutate(parsed.data, false); 
+           mutate(parsed.data, false);
+           if (parsed.timestamp) setLastUpdated(parsed.timestamp);
         } catch(e) {}
       }
   }, [url]);
@@ -131,17 +112,6 @@ function useReportsDataSWR(url: string, options?: SWRConfiguration) {
     isValidating,
     isOffline,
     refresh: () => mutate(),
-    lastUpdated: readCachedTimestamp(STORAGE_KEY_WITH_URL),
+    lastUpdated,
   };
-}
-
-// ponytail: guarded parse — a corrupt localStorage value would otherwise throw
-// during render (line 135 was raw, unlike the try/catch at the hydrate effect).
-function readCachedTimestamp(key: string): number | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    return JSON.parse(localStorage.getItem(key) || 'null')?.timestamp || null;
-  } catch {
-    return null;
-  }
 }

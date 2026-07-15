@@ -1,0 +1,209 @@
+SECTIONS: 34
+
+[Section 1] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=False footer_linked_to_previous=False
+  different_first_page=True odd_even_headers=None
+
+[Section 2] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 3] start_type=CONTINUOUS (0) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 4] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 5] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=False
+  different_first_page=False odd_even_headers=None
+
+[Section 6] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=False footer_linked_to_previous=False
+  different_first_page=False odd_even_headers=None
+
+[Section 7] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=False footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 8] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 9] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 10] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 11] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 12] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 13] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 14] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 15] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 16] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=False footer_linked_to_previous=False
+  different_first_page=True odd_even_headers=None
+
+[Section 17] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=False footer_linked_to_previous=False
+  different_first_page=True odd_even_headers=None
+
+[Section 18] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=False footer_linked_to_previous=False
+  different_first_page=True odd_even_headers=None
+
+[Section 19] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 20] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 21] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 22] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 23] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 24] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 25] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 26] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 27] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 28] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 29] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 30] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 31] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=True
+  different_first_page=False odd_even_headers=None
+
+[Section 32] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=True footer_linked_to_previous=False
+  different_first_page=False odd_even_headers=None
+
+[Section 33] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=False footer_linked_to_previous=False
+  different_first_page=True odd_even_headers=None
+
+[Section 34] start_type=NEW_PAGE (2) orientation=PORTRAIT (0)
+  page_size(in): 8.27 x 11.69
+  margins(in): L=1.57 R=0.98 T=1.18 B=0.98
+  header_linked_to_previous=False footer_linked_to_previous=False
+  different_first_page=True odd_even_headers=None
+
+REMINDER
+- If you change orientation mid-document, Word typically creates a new section.
+- If headers/footers look wrong, check 'Link to Previous' per section.

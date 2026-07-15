@@ -1,0 +1,72 @@
+digraph UseCaseSystem {
+  graph [rankdir=TB, bgcolor="white", fontname="Times New Roman", fontsize=17,
+         nodesep=0.30, ranksep=0.46, splines=polyline, pad=0.12,
+         size="7,8.4!", ratio=fill];
+  node [fontname="Times New Roman", fontsize=10];
+  edge [fontname="Times New Roman", fontsize=8, color="#444444", arrowsize=0.65];
+
+  staff [shape=box, style="rounded", label="STAFF_CABANG"];
+  manager [shape=box, style="rounded", label="MANAGER_CABANG"];
+  division [shape=box, style="rounded", label="DIVISI_OCS · DIVISI_OS · DIVISI_OP\nDIVISI_OT · DIVISI_UQ · DIVISI_HC · DIVISI_HT"];
+  escalation [shape=box, style="rounded", label="DIVISI_ESKALASI"];
+  analyst [shape=box, style="rounded", label="ANALYST"];
+  admin [shape=box, style="rounded", label="SUPER_ADMIN"];
+  branch [shape=box, style="rounded,dashed", label="Pengguna Cabang"];
+  monitor [shape=box, style="rounded,dashed", label="Pemantau Berwenang"];
+  authenticated [shape=box, style="rounded,dashed", label="Pengguna Terautentikasi"];
+
+  {rank=same; staff; manager; division;}
+  {rank=same; escalation; analyst; admin;}
+  {rank=same; branch; monitor; authenticated;}
+
+  staff -> branch [arrowhead=empty, label="generalisasi"];
+  manager -> branch [arrowhead=empty];
+  division -> monitor [arrowhead=empty];
+  escalation -> monitor [arrowhead=empty];
+  analyst -> monitor [arrowhead=empty];
+  admin -> monitor [arrowhead=empty];
+  branch -> authenticated [arrowhead=empty];
+  monitor -> authenticated [arrowhead=empty];
+
+  subgraph cluster_system {
+    label="Gapura IRRS"; color="#222222"; penwidth=1.3; style="rounded";
+    auth [shape=ellipse, label="Autentikasi dan keluar"];
+    assistant [shape=ellipse, label="Bertanya pada asisten virtual\ndan meninjau evidence"];
+    view [shape=ellipse, label="Melihat laporan\nsesuai cakupan"];
+    create [shape=ellipse, label="Mengajukan laporan\ndan mengunggah bukti"];
+    follow [shape=ellipse, label="Memberi tanggapan dan\nmemperbarui status"];
+    approve [shape=ellipse, label="Menyetujui akun staf"];
+    dashboard [shape=ellipse, label="Melihat dashboard dan\nanalitik prediktif"];
+    export [shape=ellipse, label="Mengekspor data"];
+    switch [shape=ellipse, label="Beralih ruang kerja divisi"];
+    users [shape=ellipse, label="Mengelola pengguna\ndan data master"];
+    audit [shape=ellipse, label="Memantau audit, sesi,\ndan keamanan"];
+    automated [shape=ellipse, label="Validasi · penyimpanan · sinkronisasi\nanalitik ML · retrieval RAG"];
+    {rank=same; auth; assistant; view;}
+    {rank=same; create; follow; approve;}
+    {rank=same; dashboard; export; switch;}
+    {rank=same; users; audit; automated;}
+  }
+
+  authenticated -> auth [dir=none];
+  authenticated -> assistant [dir=none];
+  branch -> view [dir=none];
+  monitor -> view [dir=none];
+  staff -> create [dir=none];
+  manager -> follow [dir=none];
+  manager -> approve [dir=none];
+  manager -> dashboard [dir=none];
+  manager -> export [dir=none];
+  monitor -> dashboard [dir=none];
+  monitor -> export [dir=none];
+  analyst -> follow [dir=none];
+  escalation -> switch [dir=none];
+  admin -> users [dir=none];
+  admin -> audit [dir=none];
+
+  create -> automated [style=dashed, label="<<include>>"];
+  view -> automated [style=dashed, label="<<include>>"];
+  follow -> automated [style=dashed, label="<<include>>"];
+  dashboard -> automated [style=dashed, label="<<include>>"];
+  assistant -> automated [style=dashed, label="<<include>>"];
+}

@@ -1,0 +1,24 @@
+digraph LRS {
+  graph [rankdir=TB, bgcolor="white", fontname="Times New Roman", fontsize=17, splines=ortho, nodesep=0.35, ranksep=0.65];
+  node [shape=record, fontname="Times New Roman", fontsize=10, style="rounded"];
+  edge [fontname="Times New Roman", fontsize=9, arrowsize=0.7];
+  stations [label="{STATIONS|PK id\lUQ code\lname\l}"];
+  users [label="{USERS|PK id\lFK station_id\lUQ email\lpassword\lfull_name\lrole\lstatus\l}"];
+  reports [label="{REPORTS|PK id\lFK user_id\lsheet_id\ldescription\lstatus\lstation_id\ltarget_division\levidence_urls\l}"];
+  irr [label="{IRREGULARITY_REPORT|PK id\lFK user_id\lUQ sheet_id\lsource_fingerprint\ldate_of_event\lbranch\lairline\larea\lcategory\lreport\lstatus\ltarget_division\l}"];
+  comments [label="{REPORT_COMMENTS|PK id\lFK user_id\lreport_id\lcontent\lattachments\l}"];
+  sessions [label="{SECURITY_SESSIONS|PK id\lFK user_id\lUQ session_id\lexpires_at\lis_revoked\l}"];
+  audit [label="{AUDIT_LOGS|PK id\lFK actor_id\laction\lentity_type\lentity_id\lcreated_at\l}"];
+  aiaudit [label="{AI_AUDIT_LOGS|PK id\lFK user_id\lfeature\lmodel\lstatus\lexecution_time_ms\l}"];
+  cache [label="{AI_CACHE_ENTRIES|PK cache_key\linsights\lmetadata\lcreated_at\l}"];
+  stations -> users [label="1:N"];
+  users -> reports [label="1:N"];
+  users -> irr [label="1:N"];
+  users -> comments [label="1:N"];
+  users -> sessions [label="1:N"];
+  users -> audit [label="1:N"];
+  users -> aiaudit [label="1:N"];
+  reports -> comments [label="1:N"];
+  reports -> irr [style=dashed, label="0..1"];
+  cache -> aiaudit [style=dotted, dir=none];
+}

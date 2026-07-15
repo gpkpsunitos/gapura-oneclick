@@ -2,7 +2,6 @@
 import { Suspense } from 'react';
 import { DashboardFrame } from '@/components/layout/DashboardFrame';
 import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWorkspaceSkeleton';
-import { ReportsStoreProvider } from '@/components/providers/ReportsStoreProvider';
 import { cookies } from 'next/headers';
 import { readSessionPayload, verifySession } from '@/lib/auth-utils';
 import { redirect } from 'next/navigation';
@@ -35,12 +34,10 @@ export default async function MainDashboardLayout({
 
     return (
         <DashboardFrame role={payload.role as string} division={(payload.division as string) || null}>
-            <ReportsStoreProvider userId={payload.id as string}>
-                <Suspense fallback={<DashboardSkeleton />}>
-                    {token && <SessionGuard token={token} />}
-                    {children}
-                </Suspense>
-            </ReportsStoreProvider>
+            <Suspense fallback={<DashboardSkeleton />}>
+                {token && <SessionGuard token={token} />}
+                {children}
+            </Suspense>
         </DashboardFrame>
     );
 }

@@ -381,7 +381,7 @@ export function InvestigativeTable({
                 </td>
               </tr>
             ) : (
-              <AnimatePresence mode="popLayout">
+              <>
                 {paginatedData.map((row, idx) => {
                   const absoluteIdx = (safeCurrentPage - 1) * rowsPerPage + idx;
                   const isExpanded = expandedRowId === absoluteIdx;
@@ -390,14 +390,12 @@ export function InvestigativeTable({
 
                   return (
                     <Fragment key={absoluteIdx}>
-                      <motion.tr 
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: idx * 0.015, ease: [0.19, 1, 0.22, 1] }}
+                      <tr
+                        style={{ animationDelay: `${Math.min(idx * 15, 300)}ms` }}
                         onClick={() => toggleRow(absoluteIdx)}
                         className={`
-                          group/tr cursor-pointer transition-colors duration-300
-                          ${isExpanded ? 'bg-[var(--brand-primary)]/5 sticky top-[69px] z-30 shadow-[0_8px_32px_rgba(0,0,0,0.05)] backdrop-blur-xl border-t border-[var(--brand-primary)]/20' : 'hover:bg-[var(--surface-2)]/40'}
+                          tr-enter group/tr cursor-pointer transition-colors duration-300
+                          ${isExpanded ? 'bg-[var(--surface-1)] sticky top-[69px] z-30 shadow-[0_8px_32px_rgba(0,0,0,0.05)] border-t border-[var(--brand-primary)]/20' : 'hover:bg-[var(--surface-2)]/40'}
                         `}
                       >
                         <td className="px-6 py-4 text-center w-12 border-b border-transparent">
@@ -467,7 +465,7 @@ export function InvestigativeTable({
                             </div>
                           </td>
                         )}
-                      </motion.tr>
+                      </tr>
 
                       {}
                       <AnimatePresence>
@@ -573,7 +571,7 @@ export function InvestigativeTable({
                     </Fragment>
                   );
                 })}
-              </AnimatePresence>
+              </>
             )}
           </tbody>
         </table>

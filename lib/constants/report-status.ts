@@ -234,13 +234,18 @@ export function normalizeStatus(status: unknown): ReportStatus {
     return 'OPEN';
 }
 
+const STATUS_CHANGE_BLOCKED_ROLES = new Set(['STAFF_CABANG', 'MANAGER_CABANG']);
+
+export function canChangeReportStatus(userRole: string | null | undefined): boolean {
+    const normalizedRole = String(userRole || '').trim().toUpperCase();
+    return Boolean(normalizedRole) && !STATUS_CHANGE_BLOCKED_ROLES.has(normalizedRole);
+}
+
 export function getAllowedTransitions(
     currentStatus: string | ReportStatus,
     userRole: string
 ): ReportStatus[] {
-    const isAnalyst = userRole === 'ANALYST' || userRole === 'SUPER_ADMIN';
-
-    if (!isAnalyst) return [];
+    if (!canChangeReportStatus(userRole)) return [];
 
     const normalized = normalizeStatus(currentStatus);
 
@@ -264,18 +269,18 @@ export function canPerformAction(
     currentStatus: string | ReportStatus,
     userRole: string
 ): boolean {
-    const isAnalyst = userRole === 'ANALYST' || userRole === 'SUPER_ADMIN';
+    const canChangeStatus = canChangeReportStatus(userRole);
     const normalized = normalizeStatus(currentStatus);
 
     switch (action) {
         case 'update_progress':
-            return isAnalyst && normalized === 'OPEN';
+            return canChangeStatus && normalized === 'OPEN';
 
         case 'close':
-            return isAnalyst && (normalized === 'OPEN' || normalized === 'ON PROGRESS');
+            return canChangeStatus && (normalized === 'OPEN' || normalized === 'ON PROGRESS');
 
         case 'reopen':
-            return isAnalyst && normalized === 'CLOSED';
+            return canChangeStatus && normalized === 'CLOSED';
 
         case 'comment':
             return true;

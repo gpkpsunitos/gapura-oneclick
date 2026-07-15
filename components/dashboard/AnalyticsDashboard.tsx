@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useDeferredValue } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {
@@ -141,6 +141,9 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
         run();
     }, []);
 
+    // Defer refiltering so search keystrokes paint before the list recomputes.
+    const deferredSearchQuery = useDeferredValue(searchQuery);
+
     const filteredReportsList = useMemo(() => {
         let result = reports;
 
@@ -180,8 +183,8 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
             return d >= cutoffDate && d <= endDate;
         });
 
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
+        if (deferredSearchQuery) {
+            const query = deferredSearchQuery.toLowerCase();
             result = result.filter(r => 
                 (r.report || r.title || '').toLowerCase().includes(query) ||
                 (r.airlines || r.airline || '').toLowerCase().includes(query) ||
@@ -210,7 +213,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
         }
 
         return result;
-    }, [reports, dateRange, searchQuery, globalFilters]);
+    }, [reports, dateRange, deferredSearchQuery, globalFilters]);
 
     const comparisonData = useMemo(() => {
         return calculateComparisonData(filteredReportsList);

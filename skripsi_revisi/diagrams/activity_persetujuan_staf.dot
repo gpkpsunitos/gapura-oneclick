@@ -1,0 +1,12 @@
+digraph ActivityApproval {
+  graph [rankdir=TB, bgcolor="white", fontname="Times New Roman", fontsize=17, splines=ortho, nodesep=0.3, ranksep=0.38];
+  node [shape=box, style="rounded", fontname="Times New Roman", fontsize=12];
+  edge [fontname="Times New Roman", fontsize=10, arrowsize=0.7];
+  start [shape=circle, label="", width=0.18, style=filled, fillcolor=black]; finish [shape=doublecircle, label="", width=0.2, style=filled, fillcolor=black];
+  super [shape=diamond, label="SUPER_ADMIN?"]; allowed [shape=diamond, label="Berwenang dan\nakun pending?"];
+  subgraph cluster_actor { label="MANAGER_CABANG / SUPER_ADMIN"; color="#888888"; list [label="Buka daftar akun pending"]; pick [label="Pilih STAFF_CABANG"]; request [label="Kirim persetujuan"]; success [label="Lihat status active"]; denied [label="Lihat pesan penolakan"]; }
+  subgraph cluster_api { label="API Administrasi"; color="#888888"; validate [label="Validasi sesi, aktor, dan target"]; cross [label="Izinkan lintas stasiun"]; compare [label="Bandingkan station_id manager dan staf"]; }
+  subgraph cluster_db { label="PostgreSQL dan Audit"; color="#888888"; update [label="Ubah status menjadi active"]; log [label="Catat aktor, aksi, dan target"]; }
+  start -> list -> pick -> request -> validate -> super; super -> cross [label="Ya"]; super -> compare [label="Tidak"]; cross -> allowed; compare -> allowed;
+  allowed -> update [label="Ya"]; update -> log -> success -> finish; allowed -> denied [label="Tidak"]; denied -> finish;
+}

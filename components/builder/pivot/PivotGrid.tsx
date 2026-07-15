@@ -102,7 +102,7 @@ export function PivotGrid({
                         ))}
 
                         {}
-                         <th className="px-6 py-4 text-right border-b border-[var(--surface-border)] border-l border-[var(--surface-border)] sticky right-0 z-40 min-w-[120px] bg-[var(--surface-0)]/90 backdrop-blur-md">
+                         <th className="px-6 py-4 text-right border-b border-[var(--surface-border)] border-l border-[var(--surface-border)] sticky right-0 z-40 min-w-[120px] bg-[var(--surface-0)]">
                             <button
                               onClick={() => handleSort('total')}
                               className="flex items-center justify-end gap-1 w-full group transition-all"
@@ -166,7 +166,7 @@ export function PivotGrid({
                     </AnimatePresence>
 
                     {}
-                    <tr className="sticky bottom-0 z-30 bg-[var(--surface-50)]/90 backdrop-blur-md border-t border-[var(--surface-border)] shadow-[0_-8px_20px_-8px_rgba(0,0,0,0.08)]">
+                    <tr className="sticky bottom-0 z-30 bg-[var(--surface-50)] border-t border-[var(--surface-border)] shadow-[0_-8px_20px_-8px_rgba(0,0,0,0.08)]">
                         <td className="px-6 py-4 text-[10px] font-black text-[var(--surface-900)] uppercase tracking-[0.2em] sticky left-0 z-40 bg-[var(--surface-50)] shadow-sm">
                             Grand Total
                         </td>

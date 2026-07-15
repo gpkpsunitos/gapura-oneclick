@@ -1,20 +1,10 @@
 
-import { REPORT_STATUS, type ReportStatus } from '@/lib/constants/report-status';
-import type { UserRole } from '@/types';
+import { REPORT_STATUS, canChangeReportStatus, type ReportStatus } from '@/lib/constants/report-status';
 
-const TRANSITION_RULES: Partial<Record<ReportStatus, Partial<Record<UserRole, ReportStatus[]>>>> = {
-    OPEN: {
-        ANALYST: ['ON PROGRESS', 'CLOSED'],
-        SUPER_ADMIN: ['ON PROGRESS', 'CLOSED'],
-    },
-    'ON PROGRESS': {
-        ANALYST: ['CLOSED'],
-        SUPER_ADMIN: ['CLOSED'],
-    },
-    CLOSED: {
-        ANALYST: ['OPEN'],
-        SUPER_ADMIN: ['OPEN'],
-    },
+const TRANSITION_RULES: Record<ReportStatus, ReportStatus[]> = {
+    OPEN: ['ON PROGRESS', 'CLOSED'],
+    'ON PROGRESS': ['CLOSED'],
+    CLOSED: ['OPEN'],
 };
 
 export const ACTION_TO_STATUS: Record<string, ReportStatus> = {
@@ -42,26 +32,31 @@ export function validateStatusTransition(
         };
     }
 
-    if (!Object.values(REPORT_STATUS).includes(currentStatus as ReportStatus)) {
+    const normalizedCurrentStatus = String(currentStatus || '')
+        .trim()
+        .toUpperCase()
+        .replace(/_/g, ' ') || REPORT_STATUS.OPEN;
+
+    if (!Object.values(REPORT_STATUS).includes(normalizedCurrentStatus as ReportStatus)) {
         return {
             valid: false,
             error: `Invalid current status: ${currentStatus}`
         };
     }
 
-    const allowedForRole = TRANSITION_RULES[currentStatus as ReportStatus]?.[userRole as UserRole];
-
-    if (!allowedForRole || allowedForRole.length === 0) {
+    if (!canChangeReportStatus(userRole)) {
         return {
             valid: false,
-            error: `Role ${userRole} cannot perform any actions on status ${currentStatus}`
+            error: `Role ${userRole} cannot change report status`
         };
     }
+
+    const allowedForRole = TRANSITION_RULES[normalizedCurrentStatus as ReportStatus];
 
     if (!allowedForRole.includes(targetStatus)) {
         return {
             valid: false,
-            error: `Cannot transition from ${currentStatus} to ${targetStatus} with role ${userRole}. Allowed: ${allowedForRole.join(', ')}`
+            error: `Cannot transition from ${normalizedCurrentStatus} to ${targetStatus} with role ${userRole}. Allowed: ${allowedForRole.join(', ')}`
         };
     }
 

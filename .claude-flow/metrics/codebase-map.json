@@ -1,0 +1,11 @@
+{
+  "timestamp": "2026-07-15T14:54:16.458Z",
+  "projectRoot": "/Users/nrzngr/Desktop/gapura-irrs2",
+  "structure": {
+    "hasPackageJson": true,
+    "hasTsConfig": true,
+    "hasClaudeConfig": true,
+    "hasClaudeFlow": true
+  },
+  "scannedAt": 1784127256458
+}

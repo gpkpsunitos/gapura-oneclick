@@ -1,0 +1,46 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 14
+actor "Analis/Divisi" as User
+boundary "Halaman Analisis" as UI
+control "Next.js AI API" as API
+collections "AI Cache/Audit" as Cache
+control "FastAPI ML Service" as ML
+database "Google Sheets" as Sheets
+control "Preprocessor" as Prep
+control "Tri-vote Ensemble" as Ensemble
+control "Forecast/STL/Risk" as Analytics
+
+User -> UI : pilih filter dan jalankan analisis
+UI -> API : permintaan + sesi + cakupan
+API -> API : validasi peran dan filter
+API -> Cache : cari hasil yang masih berlaku
+alt cache valid
+  Cache --> API : last-good result
+else perlu inferensi baru
+  API -> ML : request analisis + API key
+  ML -> Sheets : ambil data/snapshot
+  alt Sheets tersedia
+    Sheets --> ML : data operasional
+  else Sheets gagal
+    ML -> ML : gunakan snapshot terakhir
+  end
+  ML -> Prep : bersihkan, deduplikasi, deteksi skema
+  Prep --> ML : fitur serve-shape + deret waktu
+  par klasifikasi teks
+    ML -> Ensemble : probabilitas 3 kanal
+    Ensemble -> Ensemble : blend bobot OOF + Platt calibration
+    Ensemble -> Ensemble : abstain jika confidence < 0,35 atau OOD
+    Ensemble --> ML : label/UNCERTAIN + kandidat
+  else analitik numerik
+    ML -> Analytics : Holt-Winters, STL, risk scoring
+    Analytics --> ML : forecast, seasonality, peringkat risiko
+  end
+  ML --> API : hasil + status/fallback metadata
+  API -> Cache : simpan hasil dan audit
+end
+API --> UI : respons analitik
+UI --> User : tampilkan hasil untuk ditinjau
+@enduml

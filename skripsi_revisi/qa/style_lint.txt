@@ -1,0 +1,15 @@
+[style_lint] direct run-formatting runs: 2247
+[style_lint] direct paragraph-formatting paragraphs: 1303
+[style_lint] top fonts by char count: Times New Roman(1461), Courier New(712), Cambria Math(359)
+[style_lint] heading-like paragraphs not using Heading styles (first 10):
+  - #9: style='Normal' text='SKRIPSI'
+  - #14: style='Normal' text='MELISA ZAHARA (19252358)'
+  - #15: style='Normal' text='MUHAMMAD RIDZKI NUGRAHA (19259145)'
+  - #20: style='Normal' text='PROGRAM STUDI SISTEM INFORMASI'
+  - #21: style='Normal' text='FAKULTAS TEKNIK DAN INFORMATIKA'
+  - #22: style='Normal' text='UNIVERSITAS BINA SARANA INFORMATIKA'
+  - #23: style='Normal' text='JAKARTA
+2026'
+  - #49: style='Body Text' text='Melisa Zahara'
+  - #93: style='Body Text' text='(Wina Yusnaeni, M.Kom.)'
+  - #109: style='Body Text' text='(Wina Yusnaeni, M.Kom.)'

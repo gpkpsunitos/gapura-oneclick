@@ -1,0 +1,67 @@
+digraph Architecture {
+  graph [rankdir=TB, bgcolor="white", fontname="Times New Roman", fontsize=17,
+         splines=ortho, nodesep=0.28, ranksep=0.48, pad=0.12, size="10,5.3!", ratio=fill];
+  node [shape=box, style="rounded", fontname="Times New Roman", fontsize=10,
+        margin="0.10,0.06"];
+  edge [fontname="Times New Roman", fontsize=8, arrowsize=0.65];
+
+  user [label="Pengguna sesuai RBAC"];
+  pwa [label="Next.js PWA\nUI per role · manifest · service worker"];
+
+  subgraph cluster_app {
+    label="Aplikasi Gapura IRRS (Next.js)"; color="#555555";
+    api [label="API Routes / Controller"];
+    sec [label="Sesi · RBAC · validasi · rate limit · audit"];
+    reports [label="Reports & Sync Service"];
+    mlproxy [label="AI Orchestrator\ncache / last-good result"];
+    ragproxy [label="Virtual Assistant Proxy\nkuota akun · proxy secret · streaming"];
+    api -> sec;
+    sec -> reports;
+    sec -> mlproxy;
+    sec -> ragproxy;
+  }
+
+  subgraph cluster_data {
+    label="Data Transaksional"; color="#777777";
+    auth [label="Supabase Auth / Session"];
+    pg [shape=cylinder, label="PostgreSQL\nSystem of Record"];
+    storage [shape=cylinder, label="Supabase Storage\nBukti laporan"];
+    sheets [shape=cylinder, label="Google Sheets\nMirror operasional"];
+  }
+
+  subgraph cluster_ml {
+    label="Layanan ML FastAPI"; color="#777777";
+    mlfetch [label="Snapshot · deteksi skema · prapemrosesan"];
+    classify [label="Tri-vote classification\nTF-IDF + embedding"];
+    forecast [label="Holt-Winters · STL"];
+    risk [label="Risk scoring deterministik"];
+  }
+
+  subgraph cluster_rag {
+    label="Gapura RAG FastAPI (fitur pendukung)"; color="#777777";
+    ingest [label="PDF ingestion · chunking"];
+    embed [label="Embedding multilingual"];
+    vector [shape=cylinder, label="Pinecone Vector Store"];
+    retrieve [label="Retrieval · reranking · evidence"];
+    generate [label="OpenRouter LLM\nJawaban + sumber/halaman"];
+    ingest -> embed -> vector;
+    vector -> retrieve -> generate;
+  }
+
+  user -> pwa [label="HTTPS"];
+  pwa -> api [label="REST/JSON"];
+  sec -> auth;
+  reports -> pg [label="write-first"];
+  reports -> storage [label="bukti"];
+  reports -> sheets [label="sinkronisasi"];
+  mlproxy -> mlfetch [label="X-API-Key"];
+  mlfetch -> sheets [label="baca snapshot"];
+  mlfetch -> classify;
+  mlfetch -> forecast;
+  mlfetch -> risk;
+  classify -> mlproxy [label="label / confidence / UNCERTAIN"];
+  forecast -> mlproxy [label="forecast / seasonality"];
+  risk -> mlproxy [label="peringkat risiko"];
+  ragproxy -> retrieve [label="X-Gapura-Proxy-Secret"];
+  generate -> ragproxy [label="stream + evidence"];
+}

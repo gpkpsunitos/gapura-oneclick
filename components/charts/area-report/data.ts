@@ -82,13 +82,7 @@ export interface BranchAreaPareto {
   cumulativePercent: number;
 }
 
-export interface SeverityDistribution {
-  name: string;
-  critical: number;
-  high: number;
-  medium: number;
-  low: number;
-}
+export type { SeverityDistribution } from "../shared-types";
 
 export interface AggregatedAreaData {
   areaData: AreaSummary[];

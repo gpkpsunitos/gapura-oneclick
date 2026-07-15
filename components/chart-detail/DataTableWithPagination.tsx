@@ -5,7 +5,6 @@ import { Search, ChevronLeft, ChevronRight, FileText, LayoutList } from 'lucide-
 import type { QueryResult } from '@/types/builder';
 import { formatDisplayValue } from '@/lib/chart-utils';
 import { sanitizeTableCell } from '@/lib/security/sanitize';
-import { motion, AnimatePresence } from 'framer-motion';
 
 interface DataTableWithPaginationProps {
   data: QueryResult;
@@ -117,11 +116,8 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
   };
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.19, 1, 0.22, 1] }}
-      className={`flex flex-col h-full overflow-hidden relative group/fulltable isolate ${
+    <div
+      className={`block-enter flex flex-col h-full overflow-hidden relative group/fulltable isolate ${
         variant === 'minimal'
           ? 'bg-white/40 backdrop-blur-3xl rounded-[32px] border border-white/60 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.06)] ring-1 ring-black/[0.03]'
           : 'bg-[var(--surface-1)] backdrop-blur-3xl rounded-3xl border border-[var(--surface-2)] shadow-spatial-md'
@@ -242,7 +238,7 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
                 </td>
               </tr>
             ) : (
-              <AnimatePresence mode="popLayout">
+              <>
                 {paginatedRows.map((row, idx) => {
                   const isGrandTotal = Object.values(row).some(v => String(v).toLowerCase().includes('grand total') || String(v).toLowerCase() === 'total');
                   const firstCol = uniqueColumns[0];
@@ -250,17 +246,15 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
                   const isRepeated = !searchTerm && !isGrandTotal && (!sortColumn || sortColumn === firstCol) && prevRow && String(row[firstCol]) === String(prevRow[firstCol]);
 
                   return (
-                    <motion.tr
+                    <tr
                       key={idx}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.015, ease: [0.19, 1, 0.22, 1] }}
+                      style={{ animationDelay: `${Math.min(idx * 15, 300)}ms` }}
                       className={`
-                        group/tr transition-colors duration-300
+                        tr-enter group/tr transition-colors duration-300
                         ${isGrandTotal 
                             ? (variant === 'minimal' 
                                 ? 'bg-slate-50 font-black text-slate-900 sticky bottom-0 z-10 border-t border-slate-200 shadow-[0_-8px_24px_rgba(0,0,0,0.02)]' 
-                                : 'bg-[var(--brand-primary)]/5 font-black text-[var(--text-primary)] sticky bottom-0 z-10 border-t border-[var(--brand-primary)]/20 shadow-[0_-8px_24px_rgba(0,0,0,0.05)] backdrop-blur-2xl') 
+                                : 'bg-[var(--surface-1)] font-black text-[var(--text-primary)] sticky bottom-0 z-10 border-t border-[var(--brand-primary)]/20 shadow-[0_-8px_24px_rgba(0,0,0,0.05)]')
                             : (variant === 'minimal' ? 'hover:bg-white/60' : 'hover:bg-[var(--surface-2)]/40')}
                         ${onRowClick ? 'cursor-pointer' : ''}
                       `}
@@ -351,10 +345,10 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
                           </td>
                         );
                       })}
-                    </motion.tr>
+                    </tr>
                   );
                 })}
-              </AnimatePresence>
+              </>
             )}
           </tbody>
         </table>
@@ -428,6 +422,6 @@ export function DataTableWithPagination({ data, title, isLoading, rowsPerPage = 
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

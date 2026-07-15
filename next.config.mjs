@@ -6,6 +6,10 @@ const nextConfig = {
     poweredByHeader: false,
     compress: true,
 
+    // Auto-memoization: kills cascade re-renders in the large client
+    // components (wizard/tab monoliths) without manual memo() work.
+    reactCompiler: true,
+
     experimental: {
         optimizePackageImports: [
             'lucide-react',

@@ -1,0 +1,30 @@
+@startuml
+skinparam monochrome true
+skinparam shadowing false
+skinparam defaultFontName "Times New Roman"
+skinparam defaultFontSize 15
+actor "MANAGER_CABANG / SUPER_ADMIN" as Approver
+boundary "Halaman Pengguna" as UI
+control "POST /api/admin/users/approve-staff" as API
+control "Authorization Service" as AUTHZ
+database "Supabase PostgreSQL" as DB
+collections "Audit Log" as Audit
+
+Approver -> UI : pilih akun pending
+UI -> API : userId + sesi
+API -> AUTHZ : validasi aktor dan target
+AUTHZ -> DB : SELECT aktor, target, station_id, status
+DB --> AUTHZ : data aktor dan staf
+alt SUPER_ADMIN atau manager satu stasiun; target STAFF_CABANG pending
+  AUTHZ --> API : diizinkan
+  API -> DB : UPDATE users SET status='active'
+  DB --> API : akun diperbarui
+  API -> Audit : catat persetujuan
+  API --> UI : 200 berhasil
+  UI --> Approver : status active
+else tidak berwenang/target tidak valid
+  AUTHZ --> API : ditolak
+  API --> UI : 403/400
+  UI --> Approver : pesan penolakan
+end
+@enduml

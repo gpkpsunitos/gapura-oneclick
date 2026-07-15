@@ -81,13 +81,7 @@ const CORE_FIELDS = [
   'station_id'
 ];
 
-export interface SeverityDistribution {
-  name: string;
-  critical: number;
-  high: number;
-  medium: number;
-  low: number;
-}
+export type { SeverityDistribution } from "../shared-types";
 const INVALID_CAUSE_VALUES = ['#n/a', 'unknown', 'nil', '-', '', 'null', 'none', 'na', 'n/a', 'tidak ada', 'belum diketahui'];
 const INVALID_AIRLINE_VALUES = ['unknown', 'nil', '-', '', 'null', 'none', 'na', 'n/a', '#n/a'];
 

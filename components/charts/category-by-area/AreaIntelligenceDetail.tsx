@@ -319,7 +319,7 @@ function HeatmapTable({ matrix }: { matrix: HeatmapMatrix }) {
         <table className="w-full text-sm border-separate border-spacing-0">
           <thead>
             <tr className="bg-[var(--surface-0)]/50 backdrop-blur-md">
-              <th className="px-4 py-4 text-left text-[10px] font-black text-[var(--surface-500)] uppercase tracking-widest border-b border-[var(--surface-border)] sticky left-0 z-20 bg-[var(--surface-0)]/90 backdrop-blur-md">BRANCH / SECTOR</th>
+              <th className="px-4 py-4 text-left text-[10px] font-black text-[var(--surface-500)] uppercase tracking-widest border-b border-[var(--surface-border)] sticky left-0 z-20 bg-[var(--surface-0)]">BRANCH / SECTOR</th>
               {matrix.cols.map(col => (
                 <th key={col} className="px-4 py-4 text-center text-[10px] font-black text-[var(--surface-500)] uppercase tracking-widest border-b border-[var(--surface-border)] whitespace-nowrap min-w-[100px]">
                   {col}
@@ -331,7 +331,7 @@ function HeatmapTable({ matrix }: { matrix: HeatmapMatrix }) {
           <tbody className="divide-y divide-[var(--surface-100)]">
             {matrix.rows.map((row, rIdx) => (
               <tr key={row} className="group/row">
-                <td className="px-4 py-4 text-[10px] font-black text-[var(--surface-900)] tracking-tight uppercase border-r border-[var(--surface-border)] sticky left-0 z-10 bg-[var(--surface-0)]/90 backdrop-blur-md group-hover/row:bg-[var(--brand-primary)]/[0.02] transition-colors">
+                <td className="px-4 py-4 text-[10px] font-black text-[var(--surface-900)] tracking-tight uppercase border-r border-[var(--surface-border)] sticky left-0 z-10 bg-[var(--surface-0)] group-hover/row:bg-[var(--brand-primary)]/[0.02] transition-colors">
                   {row}
                 </td>
                 {matrix.cols.map(col => {
@@ -354,7 +354,7 @@ function HeatmapTable({ matrix }: { matrix: HeatmapMatrix }) {
             ))}
             {}
             <tr className="bg-[var(--surface-50)]/50">
-              <td className="px-4 py-4 text-[10px] font-black text-[var(--brand-primary)] uppercase tracking-widest border-t border-[var(--surface-border)] sticky left-0 z-10 bg-[var(--surface-50)]/90 backdrop-blur-md">
+              <td className="px-4 py-4 text-[10px] font-black text-[var(--brand-primary)] uppercase tracking-widest border-t border-[var(--surface-border)] sticky left-0 z-10 bg-[var(--surface-50)]">
                 TOTALS
               </td>
               {matrix.cols.map(col => (

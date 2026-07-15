@@ -7,6 +7,7 @@ import { reportsService } from '@/lib/services/reports-service';
 import { persistReportMetadata } from '@/lib/report-persistence';
 import { notifyReportClosedEmail, notifyStatusChange } from '@/lib/notifications';
 import { linkEvidenceFilesToReport, normalizeEvidenceFileIds } from '@/lib/evidence-files';
+import { canChangeReportStatus } from '@/lib/constants/report-status';
 
 function normalizeAccessValue(value: unknown): string {
     return String(value || '').trim().toLowerCase();
@@ -195,6 +196,13 @@ export async function PATCH(
             final_remarks,
             remarks_by,
         } = body;
+
+        if (status !== undefined && !canChangeReportStatus(payload.role as string)) {
+            return NextResponse.json(
+                { error: `Role ${payload.role} tidak diizinkan mengubah status laporan` },
+                { status: 403 }
+            );
+        }
 
         const updates: Record<string, unknown> = {};
 

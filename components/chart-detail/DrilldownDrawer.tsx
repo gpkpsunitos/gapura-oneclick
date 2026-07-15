@@ -177,7 +177,11 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
         setStatusForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], loading: false, success: true } }));
         setTimeout(() => setShowStatusForm(prev => ({ ...prev, [rowKey]: false })), 1800);
       } else {
-        setStatusForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], loading: false, error: 'Failed to update status. Try again.' } }));
+        const payload = await res.json().catch(() => null) as { error?: unknown } | null;
+        const apiError = typeof payload?.error === 'string' && payload.error.trim()
+          ? payload.error.trim()
+          : 'Failed to update status. Try again.';
+        setStatusForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], loading: false, error: apiError } }));
       }
     } catch {
       setStatusForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], loading: false, error: 'Connection error.' } }));
@@ -503,7 +507,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                             {areaCategoryItems.map((item) => {
                               const tone = getAreaChipTone(item.label);
                               return (
-                                <span key={item.label} className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12px] ${tone.wrap}`}>
+                                <span key={item.label} className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12px] ${tone.wrap}`}>
                                   <span className={`font-black text-[10px] uppercase tracking-wide ${tone.label}`}>{item.label}</span>
                                   <span className={`font-bold ${tone.value}`}>{item.value}</span>
                                 </span>

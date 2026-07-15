@@ -9,6 +9,13 @@
       "autoPort": false
     },
     {
+      "name": "prod",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "start"],
+      "port": 3000,
+      "autoPort": false
+    },
+    {
       "name": "dev-alt",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--", "-p", "3457"],

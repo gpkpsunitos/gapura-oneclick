@@ -1,0 +1,16 @@
+digraph ActivityLogin {
+  graph [rankdir=TB, bgcolor="white", fontname="Times New Roman", fontsize=17, splines=ortho, nodesep=0.3, ranksep=0.35];
+  node [shape=box, style="rounded", fontname="Times New Roman", fontsize=12, margin="0.12,0.08"];
+  edge [fontname="Times New Roman", fontsize=10, arrowsize=0.7];
+  start [shape=circle, label="", width=0.18, style=filled, fillcolor=black];
+  finish [shape=doublecircle, label="", width=0.2, style=filled, fillcolor=black];
+  valid [shape=diamond, label="Kredensial\nvalid?"];
+  active [shape=diamond, label="Akun\naktif?"];
+  subgraph cluster_user { label="Pengguna"; color="#888888"; open [label="Buka halaman login"]; input [label="Isi surel dan kata sandi"]; submit [label="Kirim formulir"]; dashboard [label="Lihat dashboard"]; error [label="Lihat pesan kesalahan"]; }
+  subgraph cluster_api { label="API Autentikasi"; color="#888888"; format [label="Validasi format masukan"]; verify [label="Cari pengguna dan verifikasi hash"]; role [label="Periksa status dan peran"]; reject [label="Tolak akses secara aman"]; }
+  subgraph cluster_system { label="Sesi dan Audit"; color="#888888"; session [label="Buat sesi dan token"]; logok [label="Catat login berhasil"]; logfail [label="Catat login gagal"]; redirect [label="Tentukan halaman sesuai peran"]; }
+  start -> open -> input -> submit -> format -> verify -> valid;
+  valid -> role [label="Ya"]; valid -> logfail [label="Tidak"]; logfail -> reject -> error -> finish;
+  role -> active; active -> session [label="Ya"]; active -> reject [label="Tidak"];
+  session -> logok -> redirect -> dashboard -> finish;
+}

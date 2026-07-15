@@ -1,0 +1,24 @@
+digraph ERD {
+  graph [rankdir=LR, bgcolor="white", fontname="Times New Roman", fontsize=17, splines=ortho, nodesep=0.45, ranksep=0.85];
+  node [shape=plain, fontname="Times New Roman", fontsize=10];
+  edge [fontname="Times New Roman", fontsize=9, arrowsize=0.7];
+  stations [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E8E8E8"><B>stations</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id : TEXT<BR ALIGN="LEFT"/><B>UQ</B> code : TEXT<BR ALIGN="LEFT"/>name : TEXT</TD></TR></TABLE>>];
+  users [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E8E8E8"><B>users</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id : UUID<BR ALIGN="LEFT"/><B>FK</B> station_id : TEXT<BR ALIGN="LEFT"/><B>UQ</B> email : TEXT<BR ALIGN="LEFT"/>password : TEXT<BR ALIGN="LEFT"/>full_name : TEXT<BR ALIGN="LEFT"/>role : TEXT<BR ALIGN="LEFT"/>status : TEXT</TD></TR></TABLE>>];
+  reports [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E8E8E8"><B>reports</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id : UUID<BR ALIGN="LEFT"/><B>FK</B> user_id : UUID<BR ALIGN="LEFT"/>sheet_id : TEXT<BR ALIGN="LEFT"/>description : TEXT<BR ALIGN="LEFT"/>status : TEXT<BR ALIGN="LEFT"/>station_id : TEXT<BR ALIGN="LEFT"/>target_division : TEXT<BR ALIGN="LEFT"/>evidence_urls : TEXT[]</TD></TR></TABLE>>];
+  irr [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E8E8E8"><B>ground_handling_irregularity_report</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id : UUID<BR ALIGN="LEFT"/><B>FK</B> user_id : UUID<BR ALIGN="LEFT"/><B>UQ</B> sheet_id : TEXT<BR ALIGN="LEFT"/>source_fingerprint : TEXT<BR ALIGN="LEFT"/>date_of_event : DATE<BR ALIGN="LEFT"/>branch, airline, area : TEXT<BR ALIGN="LEFT"/>category, report, status : TEXT<BR ALIGN="LEFT"/>target_division : TEXT<BR ALIGN="LEFT"/>synced_at : TIMESTAMPTZ</TD></TR></TABLE>>];
+  comments [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E8E8E8"><B>report_comments</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id : UUID<BR ALIGN="LEFT"/>report_id : TEXT<BR ALIGN="LEFT"/><B>FK</B> user_id : UUID<BR ALIGN="LEFT"/>content : TEXT<BR ALIGN="LEFT"/>attachments : JSONB</TD></TR></TABLE>>];
+  sessions [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E8E8E8"><B>security_sessions</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id : UUID<BR ALIGN="LEFT"/><B>FK</B> user_id : UUID<BR ALIGN="LEFT"/><B>UQ</B> session_id : TEXT<BR ALIGN="LEFT"/>is_revoked : BOOLEAN<BR ALIGN="LEFT"/>expires_at : TIMESTAMPTZ</TD></TR></TABLE>>];
+  audit [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E8E8E8"><B>audit_logs</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id : UUID<BR ALIGN="LEFT"/><B>FK</B> actor_id : UUID<BR ALIGN="LEFT"/>action : TEXT<BR ALIGN="LEFT"/>entity_type, entity_id : TEXT<BR ALIGN="LEFT"/>created_at : TIMESTAMPTZ</TD></TR></TABLE>>];
+  aiaudit [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E8E8E8"><B>ai_audit_logs</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> id : UUID<BR ALIGN="LEFT"/><B>FK</B> user_id : UUID<BR ALIGN="LEFT"/>feature, model, status : TEXT<BR ALIGN="LEFT"/>execution_time_ms : INTEGER</TD></TR></TABLE>>];
+  cache [label=<<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="5"><TR><TD BGCOLOR="#E8E8E8"><B>ai_cache_entries</B></TD></TR><TR><TD ALIGN="LEFT"><B>PK</B> cache_key : TEXT<BR ALIGN="LEFT"/>insights, metadata : JSONB<BR ALIGN="LEFT"/>created_at : TIMESTAMPTZ</TD></TR></TABLE>>];
+  stations -> users [label="1 : N"];
+  users -> reports [label="1 : N"];
+  users -> irr [label="1 : N"];
+  users -> comments [label="1 : N"];
+  users -> sessions [label="1 : N"];
+  users -> audit [label="1 : N"];
+  users -> aiaudit [label="1 : N"];
+  reports -> comments [label="1 : N"];
+  reports -> irr [style=dashed, label="metadata/mirror"];
+  cache -> aiaudit [style=dotted, dir=none, label="hasil analitik"];
+}

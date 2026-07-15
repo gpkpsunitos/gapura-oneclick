@@ -482,10 +482,4 @@ export async function fetchCategoryKPIs(filters: BaseFilters = {}): Promise<Cate
   };
 }
 
-export interface SeverityDistribution {
-  name: string;
-  critical: number;
-  high: number;
-  medium: number;
-  low: number;
-}
+export type { SeverityDistribution } from "../shared-types";

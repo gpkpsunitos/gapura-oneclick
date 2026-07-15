@@ -1,0 +1,171 @@
+{
+  "input": "/Users/nrzngr/Documents/revisi_skripsi_v5.docx",
+  "fonts_by_char_count": {
+    "Courier New": 712,
+    "Cambria Math": 386
+  },
+  "direct_run_formatting_runs": 2741,
+  "direct_paragraph_formatting_paragraphs": 1313,
+  "heading_like_paragraphs_not_heading_style": [
+    {
+      "para_index": 9,
+      "text": "SKRIPSI",
+      "style": "Normal"
+    },
+    {
+      "para_index": 14,
+      "text": "MELISA ZAHARA (19252358)",
+      "style": "Normal"
+    },
+    {
+      "para_index": 15,
+      "text": "MUHAMMAD RIDZKI NUGRAHA (19259145)",
+      "style": "Normal"
+    },
+    {
+      "para_index": 20,
+      "text": "PROGRAM STUDI SISTEM INFORMASI",
+      "style": "Normal"
+    },
+    {
+      "para_index": 21,
+      "text": "FAKULTAS TEKNIK DAN INFORMATIKA",
+      "style": "Normal"
+    },
+    {
+      "para_index": 22,
+      "text": "UNIVERSITAS BINA SARANA INFORMATIKA",
+      "style": "Normal"
+    },
+    {
+      "para_index": 23,
+      "text": "JAKARTA\n2026",
+      "style": "Normal"
+    },
+    {
+      "para_index": 49,
+      "text": "Melisa Zahara",
+      "style": "Body Text"
+    },
+    {
+      "para_index": 93,
+      "text": "(Wina Yusnaeni, M.Kom.)",
+      "style": "Body Text"
+    },
+    {
+      "para_index": 109,
+      "text": "(Wina Yusnaeni, M.Kom.)",
+      "style": "Body Text"
+    },
+    {
+      "para_index": 127,
+      "text": "(Desy Setyorini, SS, MM)",
+      "style": "Body Text"
+    },
+    {
+      "para_index": 143,
+      "text": "(Desy Setyorini, SS, MM)",
+      "style": "Body Text"
+    },
+    {
+      "para_index": 227,
+      "text": "Daftar Simbol Matematis",
+      "style": "Body Text"
+    },
+    {
+      "para_index": 230,
+      "text": "Daftar Simbol Use Case Diagram",
+      "style": "Body Text"
+    },
+    {
+      "para_index": 233,
+      "text": "Daftar Simbol Activity Diagram",
+      "style": "Body Text"
+    },
+    {
+      "para_index": 236,
+      "text": "Daftar Simbol Sequence Diagram",
+      "style": "Body Text"
+    },
+    {
+      "para_index": 239,
+      "text": "Daftar Simbol Class Diagram",
+      "style": "Body Text"
+    },
+    {
+      "para_index": 271,
+      "text": "Tabel III. 6. Hasil Evaluasi Awal Model Analitik\t39",
+      "style": "table of figures"
+    },
+    {
+      "para_index": 287,
+      "text": "Analisa Masalah",
+      "style": "List Paragraph"
+    },
+    {
+      "para_index": 292,
+      "text": "Solusi yang Diusulkan",
+      "style": "List Paragraph"
+    }
+  ],
+  "examples": {
+    "direct_paragraph_formatting": [
+      {
+        "para_index": 1,
+        "text": "RANCANG BANGUN SISTEM PELAPORAN IRREGULARITY GROUND HANDLING BERBASIS ARSITEKTUR MIKROLAYANAN DENGAN\nANALITIK PREDIKTIF ",
+        "style": "Normal"
+      },
+      {
+        "para_index": 6,
+        "text": "",
+        "style": "Body Text"
+      },
+      {
+        "para_index": 8,
+        "text": "",
+        "style": "Body Text"
+      },
+      {
+        "para_index": 9,
+        "text": "SKRIPSI",
+        "style": "Normal"
+      },
+      {
+        "para_index": 10,
+        "text": "",
+        "style": "Body Text"
+      }
+    ],
+    "direct_run_formatting": [
+      {
+        "para_index": 1,
+        "run_text": "RANCANG BANGUN SISTEM PELAPORAN IRREGULARITY GROUND HANDLING BERBASIS ARSITEKTUR",
+        "style": "Normal"
+      },
+      {
+        "para_index": 2,
+        "run_text": "HALAMAN JUDUL",
+        "style": "Heading 1"
+      },
+      {
+        "para_index": 9,
+        "run_text": "SKRIPSI",
+        "style": "Normal"
+      },
+      {
+        "para_index": 14,
+        "run_text": "MELISA ZAHARA (19252358)",
+        "style": "Normal"
+      },
+      {
+        "para_index": 15,
+        "run_text": "MUHAMMAD",
+        "style": "Normal"
+      }
+    ]
+  },
+  "notes": [
+    "Direct formatting is not always wrong, but it often causes inconsistent output when templates change.",
+    "Heading-like paragraphs not using Heading styles can break TOC and accessibility."
+  ]
+}

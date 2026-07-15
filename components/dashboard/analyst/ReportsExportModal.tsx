@@ -143,8 +143,8 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-950/55 p-4 backdrop-blur-sm">
-      <div className="max-h-[92vh] w-full max-w-[min(1120px,calc(100vw-32px))] overflow-hidden rounded-[28px] bg-white shadow-2xl">
-        <div className="flex items-start justify-between gap-6 border-b border-slate-200 px-6 py-6">
+      <div className="flex max-h-[92vh] w-full max-w-[min(1120px,calc(100vw-32px))] flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl">
+        <div className="flex shrink-0 items-start justify-between gap-6 border-b border-slate-200 px-6 py-6">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.24em] text-amber-600">Export All Reports</p>
             <h2 className="mt-2 text-3xl font-black tracking-tight text-teal-800">Select export scope</h2>
@@ -160,7 +160,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
           </button>
         </div>
 
-        <div className="max-h-[calc(92vh-190px)] overflow-y-auto bg-[#fbfcf8] px-6 py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-[#fbfcf8] px-6 py-6">
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {/* Date range */}
             <label className="flex flex-col gap-2">
@@ -252,7 +252,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
           </div>
         </div>
 
-        <div className="flex flex-col gap-3 border-t border-slate-200 bg-white px-6 py-5 sm:flex-row sm:justify-end">
+        <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-white px-6 py-5 sm:flex-row sm:justify-end">
           {[
             { format: "excel" as const, label: "Export Excel", icon: FileSpreadsheet, className: "bg-emerald-700 hover:bg-emerald-800" },
             { format: "pdf" as const, label: "Export PDF", icon: FileText, className: "bg-teal-700 hover:bg-teal-800" },

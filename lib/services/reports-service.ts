@@ -1368,11 +1368,16 @@ export class ReportsService {
               const liveData = await this.fetchLiveFromSheet(originalId);
               if (liveData) {
 
+                  const resolvedStatus = String(liveData.status || '').trim()
+                      || String(dbRow.status || '').trim()
+                      || 'OPEN';
+
                   return syncEscalationDivisionAliases({
                       ...dbRow,
                       ...liveData,
                       id: dbRow.id,
                       sheet_id: originalId,
+                      status: resolvedStatus,
                       source_fingerprint: dbRow.source_fingerprint || buildReportFingerprint(dbRow),
                   } as Report);
               }

@@ -46,12 +46,12 @@ export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ 
 
         const computeTotals = (y: number) => {
             const group = yearGroups[y] || {};
-            return Object.values(group).reduce((acc, curr) => ({
-                total: acc.total + curr.total,
-                irregularity: acc.irregularity + curr.irregularity,
-                complaint: acc.complaint + curr.complaint,
-                compliment: acc.compliment + curr.compliment,
-            }), { total: 0, irregularity: 0, complaint: 0, compliment: 0 });
+            return Object.values(group).reduce((acc, curr) => {
+                const irregularity = acc.irregularity + curr.irregularity;
+                const complaint = acc.complaint + curr.complaint;
+                const compliment = acc.compliment + curr.compliment;
+                return { total: irregularity + complaint + compliment, irregularity, complaint, compliment };
+            }, { total: 0, irregularity: 0, complaint: 0, compliment: 0 });
         };
 
         const latestTotals = computeTotals(latestYear);
@@ -95,10 +95,10 @@ export const ExecutiveSummaryTables: React.FC<ExecutiveSummaryTablesProps> = ({ 
                         <tbody className="divide-y divide-slate-200/60">
                             {monthsOrder.map((month, idx) => {
                                 const row = group[month];
-                                const total = row?.total || 0;
                                 const irr = row?.irregularity || 0;
                                 const comp = row?.complaint || 0;
                                 const compl = row?.compliment || 0;
+                                const total = irr + comp + compl;
 
                                 return (
                                     <motion.tr 
