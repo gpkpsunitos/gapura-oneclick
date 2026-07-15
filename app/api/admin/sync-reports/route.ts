@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(status, {
       headers: {
-        'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
+        'Cache-Control': 'private, no-store, max-age=0',
       },
     });
 

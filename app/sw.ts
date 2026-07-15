@@ -1,7 +1,6 @@
 
 import type { PrecacheEntry, SerwistGlobalConfig } from "serwist";
 import {
-  CacheFirst,
   ExpirationPlugin,
   NetworkFirst,
   Serwist,
@@ -9,11 +8,9 @@ import {
 } from "serwist";
 import {
   PWA_CACHEABLE_PAGE_ROUTES,
-  PWA_DOCUMENT_PATH_MATCHERS,
   PWA_DYNAMIC_CACHE_PREFIXES,
   PWA_QUEUE_EVENT,
   PWA_SYNC_TAG,
-  PWA_READONLY_API_PATHS,
 } from "@/lib/pwa/constants";
 import {
   EMPTY_OFFLINE_QUEUE_SUMMARY,
@@ -29,6 +26,22 @@ declare global {
 }
 
 declare const self: ServiceWorkerGlobalScope;
+
+const LEGACY_PROTECTED_CACHE_NAMES = [
+  "gapura-pages",
+  "gapura-readonly-apis",
+  "gapura-documents",
+] as const;
+
+function sameOriginNotificationPath(value: string | undefined): string {
+  try {
+    const url = new URL(value || "/", self.location.origin);
+    if (url.origin !== self.location.origin) return "/";
+    return url.pathname + url.search + url.hash;
+  } catch {
+    return "/";
+  }
+}
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
@@ -47,7 +60,7 @@ const serwist = new Serwist({
         request.mode === "navigate" &&
         PWA_CACHEABLE_PAGE_ROUTES.includes(url.pathname),
       handler: new NetworkFirst({
-        cacheName: "gapura-pages",
+        cacheName: "gapura-pages-v2",
         networkTimeoutSeconds: 3,
         plugins: [
           new ExpirationPlugin({
@@ -60,25 +73,11 @@ const serwist = new Serwist({
     {
       matcher: /\/_next\/image\?url=.+$/i,
       handler: new StaleWhileRevalidate({
-        cacheName: "gapura-next-image",
+        cacheName: "gapura-next-image-v2",
         plugins: [
           new ExpirationPlugin({
             maxEntries: 64,
             maxAgeSeconds: 7 * 24 * 60 * 60,
-          }),
-        ],
-      }),
-    },
-    {
-      matcher: ({ sameOrigin, url }) =>
-        sameOrigin && PWA_READONLY_API_PATHS.includes(url.pathname),
-      handler: new NetworkFirst({
-        cacheName: "gapura-readonly-apis",
-        networkTimeoutSeconds: 4,
-        plugins: [
-          new ExpirationPlugin({
-            maxEntries: 8,
-            maxAgeSeconds: 24 * 60 * 60,
           }),
         ],
       }),
@@ -95,7 +94,7 @@ const serwist = new Serwist({
         );
       },
       handler: new StaleWhileRevalidate({
-        cacheName: "gapura-images",
+        cacheName: "gapura-images-v2",
         plugins: [
           new ExpirationPlugin({
             maxEntries: 96,
@@ -104,32 +103,16 @@ const serwist = new Serwist({
         ],
       }),
     },
-    {
-      matcher: ({ request, url }) => {
-        if (request.method !== "GET") {
-          return false;
-        }
-
-        return (
-          request.destination === "document" ||
-          /\.(?:pdf|doc|docx|xls|xlsx|ppt|pptx)$/i.test(url.pathname) ||
-          PWA_DOCUMENT_PATH_MATCHERS.some((matcher) => url.pathname.includes(matcher))
-        );
-      },
-      handler: new CacheFirst({
-        cacheName: "gapura-documents",
-        plugins: [
-          new ExpirationPlugin({
-            maxEntries: 64,
-            maxAgeSeconds: 14 * 24 * 60 * 60,
-          }),
-        ],
-      }),
-    },
   ],
 });
 
 serwist.addEventListeners();
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    Promise.all(LEGACY_PROTECTED_CACHE_NAMES.map((cacheName) => caches.delete(cacheName)))
+  );
+});
 
 self.addEventListener("message", (event) => {
   if (event.data?.type === "SKIP_WAITING") {
@@ -164,19 +147,22 @@ self.addEventListener("sync", (event) => {
 self.addEventListener("push", (event) => {
   if (!event.data) return;
   const data = event.data.json() as { title?: string; body?: string; url?: string };
+  const notificationPath = sameOriginNotificationPath(data.url);
   event.waitUntil(
     self.registration.showNotification(data.title ?? "OneClick", {
       body: data.body,
       icon: "/icons/pwa-192.png",
       badge: "/icons/pwa-192-maskable.png",
-      data: { url: data.url ?? "/" },
+      data: { url: notificationPath },
     })
   );
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url: string = (event.notification.data as { url?: string })?.url ?? "/";
+  const url = sameOriginNotificationPath(
+    (event.notification.data as { url?: string })?.url
+  );
   event.waitUntil(
     self.clients
       .matchAll({ type: "window", includeUncontrolled: true })

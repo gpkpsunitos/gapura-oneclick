@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     }, {
       headers: {
 
-        'Cache-Control': 'private, max-age=300, stale-while-revalidate=600',
+        'Cache-Control': 'private, no-store, max-age=0',
       }
     });
 

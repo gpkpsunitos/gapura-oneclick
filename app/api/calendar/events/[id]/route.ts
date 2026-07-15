@@ -73,7 +73,7 @@ export async function GET(
     };
 
     return NextResponse.json(event, {
-        headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+        headers: { 'Cache-Control': 'private, no-store, max-age=0' },
     });
   } catch (error) {
     console.error('[CALENDAR_API] Error in GET /api/calendar/events/[id]:', error);

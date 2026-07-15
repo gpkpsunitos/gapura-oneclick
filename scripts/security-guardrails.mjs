@@ -45,6 +45,21 @@ const checks = [
       '!scripts/security-guardrails.mjs',
     ],
   },
+  {
+    name: 'Public caching in protected API routes',
+    command: [
+      'rg',
+      '-n',
+      'Cache-Control.*public|CDN-Cache-Control.*public',
+      'app/api',
+      '-g',
+      '!app/api/embed/**',
+      '-g',
+      '!app/api/master-data/**',
+      '-g',
+      '!app/api/dashboards/route.ts',
+    ],
+  },
 ];
 
 let hasFailure = false;

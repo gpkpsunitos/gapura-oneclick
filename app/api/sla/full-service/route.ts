@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
         bagHandling: filteredBag,
         debrief: filteredDebrief,
       },
-      { headers: { 'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300' } }
+      { headers: { 'Cache-Control': 'private, no-store, max-age=0' } }
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Internal error';

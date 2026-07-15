@@ -108,7 +108,7 @@ export async function GET(
     return new Response(new Uint8Array(file), {
       status: 200,
       headers: {
-        'Cache-Control': 'private, max-age=300',
+        'Cache-Control': 'private, no-store, max-age=0',
         'Content-Disposition': `inline; filename="${filename}"`,
         'Content-Length': String(file.length),
         'Content-Type': evidence.mime_type || 'application/octet-stream',

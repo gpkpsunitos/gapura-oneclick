@@ -192,7 +192,7 @@ export async function GET(request: Request) {
             statusData,
             trendData,
         }, {
-            headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=120' },
+            headers: { 'Cache-Control': 'private, no-store, max-age=0' },
         });
 
     } catch (error) {

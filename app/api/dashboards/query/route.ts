@@ -47,8 +47,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result, {
       headers: {
-        'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
-        'CDN-Cache-Control': 'public, s-maxage=120, stale-while-revalidate=300',
+        'Cache-Control': 'private, no-store, max-age=0',
       }
     });
   } catch (err) {

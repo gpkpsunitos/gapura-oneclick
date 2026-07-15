@@ -309,7 +309,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(synced, {
           headers: {
             // Per-session RBAC-filtered data must never be cached in a shared/CDN cache.
-            'Cache-Control': ownerEmail ? 'private, no-store' : 'public, s-maxage=120, stale-while-revalidate=300',
+            'Cache-Control': 'private, no-store, max-age=0',
           },
         });
       }
@@ -344,7 +344,7 @@ export async function GET(request: NextRequest) {
       {
         headers: {
           // Per-session RBAC-filtered data must never be cached in a shared/CDN cache.
-          'Cache-Control': ownerEmail ? 'private, no-store' : 'public, s-maxage=120, stale-while-revalidate=300',
+          'Cache-Control': 'private, no-store, max-age=0',
         },
       }
     );

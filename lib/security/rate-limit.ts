@@ -44,37 +44,35 @@ export async function checkDbRateLimit(
     windowMs: number = 60_000,
 ): Promise<RateLimitResult> {
     const { supabaseAdmin } = await import('@/lib/supabase-admin');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const db = supabaseAdmin.from('rate_limits') as any;
-    const now = new Date();
+    const normalizedLimit = Math.max(1, Math.floor(limit));
+    const normalizedWindowMs = Math.max(1_000, Math.floor(windowMs));
+    const fallbackResetAt = Date.now() + normalizedWindowMs;
 
-    await db.delete().lt('reset_at', now.toISOString());
-
-    const { data, error } = await db.select('id, count, reset_at').eq('key', key).single();
+    const { data, error } = await supabaseAdmin
+        .rpc('consume_rate_limit', {
+            p_key: key.slice(0, 512),
+            p_limit: normalizedLimit,
+            p_reset_at: new Date(fallbackResetAt).toISOString(),
+        })
+        .single();
 
     if (error || !data) {
-
-        const resetAt = new Date(now.getTime() + windowMs);
-        await db.insert({ key, count: 1, reset_at: resetAt.toISOString() });
-        return { success: true, remaining: limit - 1, resetAt: resetAt.getTime() };
+        console.error('[Rate Limit] Atomic RPC failed:', error?.message || 'empty response');
+        return { success: false, remaining: 0, resetAt: fallbackResetAt };
     }
 
-    const resetAt = new Date(data.reset_at as string);
-    if (now.getTime() > resetAt.getTime()) {
+    const result = data as {
+        allowed: boolean;
+        remaining: number;
+        reset_at: string;
+    };
+    const resetAt = new Date(result.reset_at).getTime();
 
-        const newResetAt = new Date(now.getTime() + windowMs);
-        await db.update({ count: 1, reset_at: newResetAt.toISOString() }).eq('id', data.id);
-        return { success: true, remaining: limit - 1, resetAt: newResetAt.getTime() };
-    }
-
-    const newCount = (data.count as number) + 1;
-    await db.update({ count: newCount }).eq('id', data.id);
-
-    if (newCount > limit) {
-        return { success: false, remaining: 0, resetAt: resetAt.getTime() };
-    }
-
-    return { success: true, remaining: limit - newCount, resetAt: resetAt.getTime() };
+    return {
+        success: result.allowed === true,
+        remaining: Math.max(0, Number(result.remaining) || 0),
+        resetAt: Number.isFinite(resetAt) ? resetAt : fallbackResetAt,
+    };
 }
 
 export function timingSafeStringEqual(provided: string | null | undefined, expected: string): boolean {

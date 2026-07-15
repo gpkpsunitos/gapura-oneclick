@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
       stale: result.stale,
     }, {
       headers: {
-        'Cache-Control': bypassCache ? 'no-store' : 'public, s-maxage=60, stale-while-revalidate=300',
+        'Cache-Control': 'private, no-store, max-age=0',
       },
     });
   } catch (error) {

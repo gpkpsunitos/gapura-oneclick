@@ -104,45 +104,9 @@ const nextConfig = {
             ],
         },
         {
-            source: "/api/dashboards/filter-options",
-            headers: [
-                { key: "Cache-Control", value: "public, s-maxage=300, stale-while-revalidate=600" },
-            ],
-        },
-        {
             source: "/api/master-data",
             headers: [
                 { key: "Cache-Control", value: "public, s-maxage=300, stale-while-revalidate=600" },
-            ],
-        },
-        {
-            source: "/api/reports/sync",
-            headers: [
-                { key: "Cache-Control", value: "private, s-maxage=300, stale-while-revalidate=600" },
-            ],
-        },
-        {
-            source: "/api/reports/analytics",
-            headers: [
-                { key: "Cache-Control", value: "public, s-maxage=300, stale-while-revalidate=600" },
-            ],
-        },
-        {
-            source: "/api/wsn",
-            headers: [
-                { key: "Cache-Control", value: "public, s-maxage=180, stale-while-revalidate=300" },
-            ],
-        },
-        {
-            source: "/api/sla/:path*",
-            headers: [
-                { key: "Cache-Control", value: "public, s-maxage=180, stale-while-revalidate=300" },
-            ],
-        },
-        {
-            source: "/api/joumpa",
-            headers: [
-                { key: "Cache-Control", value: "public, s-maxage=180, stale-while-revalidate=300" },
             ],
         },
         {

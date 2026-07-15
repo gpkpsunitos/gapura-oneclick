@@ -6,6 +6,19 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { getPublicDashboardPageData } from '@/lib/public-dashboard-data';
 import type { DashboardScopeFilters } from '@/lib/dashboard-query-scope';
 
+const PUBLIC_DASHBOARD_CACHE_HEADERS = {
+  'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=300',
+  'CDN-Cache-Control': 'public, s-maxage=180, stale-while-revalidate=300',
+} as const;
+
+const PRIVATE_DASHBOARD_CACHE_HEADERS = {
+  'Cache-Control': 'private, no-store, max-age=0',
+} as const;
+
+function isRestrictedDashboardSlug(slug: string | null | undefined): boolean {
+  return String(slug || '').toLowerCase().includes('customer-feedback');
+}
+
 interface DashboardConfig {
 
   dateRange?: string;
@@ -58,7 +71,8 @@ export async function GET(request: NextRequest) {
     const allowCF = role === 'ANALYST' || role === 'SUPER_ADMIN' || (role === 'DIVISI_OS' || role === 'DIVISI_OCS');
 
     if (slug) {
-      if (slug.toLowerCase().includes('customer-feedback') && !allowCF) {
+      const restrictedDashboard = isRestrictedDashboardSlug(slug);
+      if (restrictedDashboard && !allowCF) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
 
@@ -88,10 +102,9 @@ export async function GET(request: NextRequest) {
           });
 
           return NextResponse.json(payload, {
-            headers: {
-              'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=600',
-              'CDN-Cache-Control': 'public, s-maxage=180, stale-while-revalidate=600',
-            },
+            headers: restrictedDashboard
+              ? PRIVATE_DASHBOARD_CACHE_HEADERS
+              : PUBLIC_DASHBOARD_CACHE_HEADERS,
           });
         } catch (fetchError) {
           if (fetchError instanceof Error && fetchError.message === 'FORBIDDEN_CUSTOMER_FEEDBACK') {
@@ -133,10 +146,9 @@ export async function GET(request: NextRequest) {
       }
 
       return NextResponse.json(dashboard, {
-        headers: {
-          'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=300',
-          'CDN-Cache-Control': 'public, s-maxage=180, stale-while-revalidate=300',
-        },
+        headers: restrictedDashboard
+          ? PRIVATE_DASHBOARD_CACHE_HEADERS
+          : PUBLIC_DASHBOARD_CACHE_HEADERS,
       });
     }
 
@@ -181,15 +193,18 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ error: 'Tile not found' }, { status: 404 });
         }
 
-        const isPublic = (chart as { custom_dashboards?: { is_public?: boolean } } | null)?.custom_dashboards?.is_public;
+        const chartDashboard = (chart as {
+          custom_dashboards?: { is_public?: boolean; slug?: string };
+        } | null)?.custom_dashboards;
+        const isPublic = chartDashboard?.is_public;
         if (!isPublic) {
           return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
         }
 
         return NextResponse.json(chart, {
-          headers: {
-            'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=300',
-          }
+          headers: isRestrictedDashboardSlug(chartDashboard?.slug)
+            ? PRIVATE_DASHBOARD_CACHE_HEADERS
+            : PUBLIC_DASHBOARD_CACHE_HEADERS,
         });
     }
 
@@ -206,10 +221,9 @@ export async function GET(request: NextRequest) {
     const filtered = allowCF ? dashboards : (dashboards || []).filter(d => !String(d.slug || '').toLowerCase().includes('customer-feedback'));
 
     return NextResponse.json({ dashboards: filtered }, {
-      headers: {
-        'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=300',
-        'CDN-Cache-Control': 'public, s-maxage=180, stale-while-revalidate=300',
-      },
+      headers: allowCF
+        ? PRIVATE_DASHBOARD_CACHE_HEADERS
+        : PUBLIC_DASHBOARD_CACHE_HEADERS,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal error';

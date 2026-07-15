@@ -140,6 +140,6 @@ export async function GET(request: Request) {
         isDemo,
         timestamp: new Date().toISOString()
     }, {
-        headers: { 'Cache-Control': 'private, max-age=30, stale-while-revalidate=60' },
+        headers: { 'Cache-Control': 'private, no-store, max-age=0' },
     });
 }

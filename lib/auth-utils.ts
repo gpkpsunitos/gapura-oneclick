@@ -3,6 +3,7 @@ import 'server-only';
 import { SessionPayload } from '@/types';
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
+import { cache } from 'react';
 
 const SECRET_KEY = process.env.JWT_SECRET;
 if (!SECRET_KEY) {
@@ -14,7 +15,9 @@ export const DEFAULT_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24;
 export const ESCALATION_SESSION_MAX_AGE_SECONDS = 60 * 60 * 8;
 export const SWITCHED_DIVISION_SESSION_MAX_AGE_SECONDS = 60 * 60 * 2;
 
-const SESSION_CACHE_TTL_MS = 15 * 60 * 1000;
+// Cross-request authorization state is deliberately short-lived. React cache
+// below removes duplicate work inside one request without extending revocation.
+const SESSION_CACHE_TTL_MS = 30 * 1000;
 const sessionCache = new Map<string, { payload: SessionPayload; expiresAt: number; cacheTime: number }>();
 
 function getCachedSession(sid: string): SessionPayload | null {
@@ -81,7 +84,7 @@ export async function signSession(
         .sign(key);
 }
 
-export async function verifySession(token: string): Promise<SessionPayload | null> {
+async function verifySessionUncached(token: string): Promise<SessionPayload | null> {
     try {
         let session = await readSessionPayload(token);
         if (!session) {
@@ -100,7 +103,7 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
                         .eq('session_id', session.sid)
                         .then();
                 }
-                return session;
+                return cached;
             }
 
             // Single query: join users via security_sessions.user_id to avoid a second round-trip
@@ -190,7 +193,7 @@ export async function verifySession(token: string): Promise<SessionPayload | nul
     }
 }
 
-export async function readSessionPayload(token: string): Promise<SessionPayload | null> {
+async function readSessionPayloadUncached(token: string): Promise<SessionPayload | null> {
     try {
         const { payload } = await jwtVerify(token, key, {
             algorithms: ['HS256'],
@@ -202,6 +205,9 @@ export async function readSessionPayload(token: string): Promise<SessionPayload 
         return null;
     }
 }
+
+export const readSessionPayload = cache(readSessionPayloadUncached);
+export const verifySession = cache(verifySessionUncached);
 
 export async function registerSession(
     userId: string,

@@ -1,37 +1,43 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Globe, Clock, Fingerprint } from 'lucide-react';
-import { SecurityEvent } from '@/types/security';
-import { supabase } from '@/lib/supabase';
+import type { SecurityEvent } from '@/types/security';
 import { PrettyPayload } from './PrettyPayload';
 
 export function LiveSecurityFeed({ className }: { className?: string }) {
     const [events, setEvents] = useState<SecurityEvent[]>([]);
 
     useEffect(() => {
+        const controller = new AbortController();
+        let timer: ReturnType<typeof setTimeout> | undefined;
 
-        async function fetchLastEvents() {
-            const { data } = await supabase
-                .from('security_events')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(10);
-            if (data) setEvents(data);
+        async function fetchLastEvents(): Promise<void> {
+            try {
+                const response = await fetch('/api/security/events', {
+                    cache: 'no-store',
+                    signal: controller.signal,
+                });
+                if (response.ok) {
+                    const payload = await response.json() as { events?: SecurityEvent[] };
+                    setEvents(payload.events || []);
+                }
+            } catch (error) {
+                if (!controller.signal.aborted) {
+                    console.error('[Security Feed] Poll failed:', error);
+                }
+            } finally {
+                if (!controller.signal.aborted) {
+                    timer = setTimeout(fetchLastEvents, 10_000);
+                }
+            }
         }
-        fetchLastEvents();
 
-        const channel = supabase
-            .channel('live-feed')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'security_events' }, (payload) => {
-                const newEvent = payload.new as SecurityEvent;
-                setEvents(prev => [newEvent, ...prev].slice(0, 10));
-            })
-            .subscribe();
+        void fetchLastEvents();
 
         return () => {
-            supabase.removeChannel(channel);
+            controller.abort();
+            if (timer) clearTimeout(timer);
         };
     }, []);
 
@@ -57,20 +63,10 @@ export function LiveSecurityFeed({ className }: { className?: string }) {
                 {}
                 <div className="absolute inset-0 pointer-events-none opacity-[0.03] mix-blend-overlay bg-[url('https://grainy-gradients.vercel.app/noise.svg')]" />
 
-                <AnimatePresence initial={false} mode="popLayout">
-                    {events.map((event) => (
-                        <motion.div
+                {events.map((event) => (
+                        <div
                             key={event.created_at + event.id}
-                            layout
-                            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                            animate={{ 
-                                opacity: 1, 
-                                y: 0, 
-                                scale: 1,
-                                transition: { type: 'spring', stiffness: 400, damping: 30 }
-                            }}
-                            exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
-                            className="relative group overflow-hidden"
+                            className="relative group overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300"
                         >
                             <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                             <div className="relative bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl p-4 flex items-start gap-4 transition-all duration-300 group-hover:bg-white/[0.07] group-hover:border-white/20 group-hover:translate-x-1">
@@ -115,9 +111,8 @@ export function LiveSecurityFeed({ className }: { className?: string }) {
                                     </div>
                                 </div>
                             </div>
-                        </motion.div>
+                        </div>
                     ))}
-                </AnimatePresence>
             </div>
         </div>
     );

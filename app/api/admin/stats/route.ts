@@ -164,8 +164,7 @@ export async function GET(request: Request) {
             topLocations,
         }, {
             headers: {
-                'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=300',
-                'CDN-Cache-Control': 'public, s-maxage=180, stale-while-revalidate=300',
+                'Cache-Control': 'private, no-store, max-age=0',
             },
         });
     } catch (error) {

@@ -63,7 +63,7 @@ export async function GET() {
         };
 
         return NextResponse.json(response, {
-            headers: { 'Cache-Control': 'private, max-age=60, stale-while-revalidate=120' },
+            headers: { 'Cache-Control': 'private, no-store, max-age=0' },
         });
     } catch (error) {
         console.error('Error in /api/auth/me:', error);

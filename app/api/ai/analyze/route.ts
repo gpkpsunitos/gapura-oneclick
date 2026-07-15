@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
         cached: result.cached,
         generatedAt: result.generatedAt,
       },
-      { headers: { 'Cache-Control': 'private, max-age=0' } },
+      { headers: { 'Cache-Control': 'private, no-store, max-age=0' } },
     );
   } catch (error) {
     return aiUnavailableResponse(error);

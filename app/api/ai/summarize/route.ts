@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
       stale: result.stale,
     }, {
       headers: {
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        'Cache-Control': 'private, no-store, max-age=0',
       },
     });
   } catch (error) {

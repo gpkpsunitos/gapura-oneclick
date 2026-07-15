@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({ distribution }, {
-      headers: { 'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=300' },
+      headers: { 'Cache-Control': 'private, no-store, max-age=0' },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Internal error';

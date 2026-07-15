@@ -1599,7 +1599,7 @@ export async function POST(req: NextRequest) {
       caveats: [],
     }, {
       headers: {
-        'Cache-Control': 'private, max-age=60',
+        'Cache-Control': 'private, no-store, max-age=0',
       },
     });
   } catch (error) {

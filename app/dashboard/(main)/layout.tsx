@@ -1,22 +1,8 @@
 
-import { Suspense } from 'react';
 import { DashboardFrame } from '@/components/layout/DashboardFrame';
-import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWorkspaceSkeleton';
 import { cookies } from 'next/headers';
-import { readSessionPayload, verifySession } from '@/lib/auth-utils';
+import { verifySession } from '@/lib/auth-utils';
 import { redirect } from 'next/navigation';
-
-function DashboardSkeleton() {
-    return <DashboardWorkspaceSkeleton title="Opening workspace" subtitle="Staging the dashboard shell before interactive modules hydrate." />;
-}
-
-async function SessionGuard({ token }: { token: string }) {
-    const session = await verifySession(token);
-    if (!session) {
-        redirect('/auth/login');
-    }
-    return null;
-}
 
 export default async function MainDashboardLayout({
     children,
@@ -26,18 +12,15 @@ export default async function MainDashboardLayout({
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
 
-    const payload = token ? await readSessionPayload(token) : null;
+    const session = token ? await verifySession(token) : null;
 
-    if (!payload) {
+    if (!session) {
         redirect('/auth/login');
     }
 
     return (
-        <DashboardFrame role={payload.role as string} division={(payload.division as string) || null}>
-            <Suspense fallback={<DashboardSkeleton />}>
-                {token && <SessionGuard token={token} />}
-                {children}
-            </Suspense>
+        <DashboardFrame role={session.role as string} division={(session.division as string) || null}>
+            {children}
         </DashboardFrame>
     );
 }

@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
       },
       // private: response is behind session auth, so shared/CDN caches must not
       // store it and serve it to unauthenticated clients.
-      { headers: { 'Cache-Control': 'private, max-age=300, stale-while-revalidate=600' } },
+      { headers: { 'Cache-Control': 'private, no-store, max-age=0' } },
     );
   } catch (error) {
     return aiUnavailableResponse(error);

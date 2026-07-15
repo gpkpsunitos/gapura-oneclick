@@ -33,7 +33,7 @@ export async function GET() {
         cached: result.cached,
         generatedAt: result.generatedAt,
       },
-      { headers: { 'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600' } },
+      { headers: { 'Cache-Control': 'private, no-store, max-age=0' } },
     );
   } catch (error) {
     return aiUnavailableResponse(error);

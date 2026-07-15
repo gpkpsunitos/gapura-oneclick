@@ -131,7 +131,7 @@ export async function GET(request: Request) {
             });
             return NextResponse.json(reports, {
                 headers: {
-                    'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+                    'Cache-Control': 'private, no-store, max-age=0',
                     'Vary': 'Cookie'
                 }
             });
@@ -190,7 +190,7 @@ export async function GET(request: Request) {
                 },
             }, {
                 headers: {
-                    'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+                    'Cache-Control': 'private, no-store, max-age=0',
                     'Vary': 'Cookie'
                 }
             });

@@ -34,7 +34,7 @@ export async function GET() {
         }));
 
         return NextResponse.json({ sessions: safeSessions }, {
-            headers: { 'Cache-Control': 'private, max-age=15, stale-while-revalidate=30' },
+            headers: { 'Cache-Control': 'private, no-store, max-age=0' },
         });
     } catch (err) {
         console.error('Fetch sessions failed:', err);

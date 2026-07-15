@@ -89,7 +89,7 @@ export async function GET(request: Request) {
             const stationId = String(payload.station_id || '').trim();
             if (!stationId) {
                 return NextResponse.json([], {
-                    headers: { 'Cache-Control': 'private, no-cache' },
+                    headers: { 'Cache-Control': 'private, no-store, max-age=0' },
                 });
             }
 
@@ -144,7 +144,7 @@ export async function GET(request: Request) {
         const duration = Date.now() - startTime;
 
         return NextResponse.json(filteredData, {
-            headers: { 'Cache-Control': 'private, no-cache' },
+            headers: { 'Cache-Control': 'private, no-store, max-age=0' },
         });
     } catch (error) {
         console.error('Error fetching reports:', error);
