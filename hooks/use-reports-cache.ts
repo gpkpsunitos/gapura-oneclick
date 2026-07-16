@@ -21,6 +21,8 @@ const snapshotCache = new Map<string, { raw: string | null; value: PersistedRepo
 interface UseReportsDataOptions {
   initialPage?: ReportPage<Report> | null;
   revalidateOnMount?: boolean;
+  /** When false, no network requests are made (used to gate by active view). */
+  enabled?: boolean;
 }
 
 async function fetchReportPage(url: string): Promise<ReportPage<Report>> {
@@ -115,10 +117,12 @@ export function useReportsData(
   );
   const fallbackPage = options.initialPage || persisted?.page || null;
 
+  const enabled = options.enabled ?? true;
   const getKey = useCallback((pageIndex: number, previousPage: ReportPage<Report> | null) => {
+    if (!enabled) return null;
     if (previousPage && !previousPage.pagination.hasMore) return null;
     return withReportCursor(url, pageIndex === 0 ? null : previousPage?.pagination.nextCursor || null);
-  }, [url]);
+  }, [url, enabled]);
 
   const {
     data,

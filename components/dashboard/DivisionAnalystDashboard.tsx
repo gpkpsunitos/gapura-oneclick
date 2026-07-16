@@ -30,7 +30,8 @@ import {
   resolveReportSource,
 } from '@/lib/reports-export';
 import type { Report, AnalyticsData, UserRole } from '@/types';
-import { reportsFromPayload } from '@/lib/report-page';
+import { normalizeReportPage, withReportCursor } from '@/lib/report-page';
+import { useReportsData } from '@/hooks/use-reports-cache';
 import type { DivisionConfig } from '@/components/dashboard/AnalyticsDashboard';
 import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWorkspaceSkeleton';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
@@ -177,6 +178,24 @@ const DeferredChartRegion = memo(function DeferredChartRegion({
   );
 });
 
+// Dashboard summary/KPIs need every ground report, not just the first page.
+// Loop the cursor API (100/page) until exhausted. DB is small, so this is cheap.
+async function fetchAllAdminReports(): Promise<Report[]> {
+  const all: Report[] = [];
+  let cursor: string | null = null;
+  for (let guard = 0; guard < 500; guard += 1) {
+    const res = await fetch(withReportCursor('/api/admin/reports', cursor, 100), {
+      credentials: 'include',
+    });
+    if (!res.ok) throw new Error(`Failed to fetch reports (${res.status})`);
+    const page = normalizeReportPage<Report>(await res.json());
+    all.push(...page.reports);
+    if (!page.pagination.hasMore || !page.pagination.nextCursor) break;
+    cursor = page.pagination.nextCursor;
+  }
+  return all;
+}
+
 export function DivisionAnalystDashboard({
   division,
   initialReports,
@@ -247,16 +266,31 @@ export function DivisionAnalystDashboard({
     categories: [],
   });
 
+  // Dashboard view loads ALL ground reports (no page cap) for accurate KPIs/summary.
   const { data: swrReports, isLoading: swrLoading, mutate: mutateReports } = useSWR<Report[]>(
-    isScopeLocked ? null : '/api/admin/reports',
-    (url) => fetch(url).then(res => res.json()).then(reportsFromPayload<Report>),
+    isScopeLocked || !isDashboardView ? null : '/api/admin/reports?all=1',
+    fetchAllAdminReports,
     { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: initialReports }
   );
   const reports = useMemo(
-    () => isScopeLocked ? (initialReports ?? []) : (swrReports ?? []),
+    () => isScopeLocked ? (initialReports ?? []) : (swrReports ?? initialReports ?? []),
     [initialReports, isScopeLocked, swrReports]
   );
   const reportsLoading = isScopeLocked ? false : swrLoading;
+
+  // All Reports view uses server-side cursor pagination (50/page, "Load More").
+  const {
+    reports: pagedReports,
+    hasMore: pagedHasMore,
+    isLoadingMore: pagedLoadingMore,
+    isLoading: pagedLoading,
+    loadMore: loadMorePaged,
+    refresh: refreshPaged,
+    updateReport: updatePagedReport,
+  } = useReportsData('/api/admin/reports', {
+    enabled: !isScopeLocked && view === 'reports',
+    initialPage: null,
+  });
 
   const { data: analytics = null, isLoading: analyticsLoading, mutate: mutateAnalytics } = useSWR<AnalyticsData>(
     isDashboardView ? '/api/admin/analytics' : null,
@@ -273,7 +307,7 @@ export function DivisionAnalystDashboard({
     [dashboardsData]
   );
 
-  const loading = reportsLoading || (isDashboardView && analyticsLoading);
+  const loading = reportsLoading || (view === 'reports' && pagedLoading) || (isDashboardView && analyticsLoading);
   const {
     reports: joumpaReports,
     refresh: refreshJoumpaReports,
@@ -286,12 +320,13 @@ export function DivisionAnalystDashboard({
       await Promise.all([
         mutateReports(),
         refreshJoumpaReports(),
+        ...(view === 'reports' ? [refreshPaged()] : []),
         ...(isDashboardView ? [mutateAnalytics()] : []),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [isDashboardView, mutateReports, mutateAnalytics, refreshJoumpaReports]);
+  }, [isDashboardView, view, mutateReports, mutateAnalytics, refreshJoumpaReports, refreshPaged]);
 
   const handleUpdateStatus = useCallback(async (
     reportId: string,
@@ -322,12 +357,13 @@ export function DivisionAnalystDashboard({
     if (updatedReport?.id) {
       await Promise.all([
         mutateReports((current) => mergeReportUpdate(current, updatedReport), false),
+        updatePagedReport(updatedReport.id, updatedReport),
         patchJoumpaReport(updatedReport),
       ]);
     }
 
     await refreshData();
-  }, [mutateReports, patchJoumpaReport, refreshData]);
+  }, [mutateReports, updatePagedReport, patchJoumpaReport, refreshData]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -411,15 +447,17 @@ export function DivisionAnalystDashboard({
 
     return result;
   }, [reports, dateRange, globalFilters, lockedBranches]);
+  // Filter dropdowns reflect the reports currently loaded in the list view.
+  const listFilterSource = isScopeLocked ? filteredReports : pagedReports;
   const listFilterOptions = useMemo(() => {
     const uniqueSorted = (values: string[]) => Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
     return {
-      ...buildReportFilterOptions(filteredReports),
-      hubs: uniqueSorted(filteredReports.map((report) => cleanReportValue(report.hub) || cleanReportValue(report.kode_hub))),
-      categories: uniqueSorted(filteredReports.map((report) => cleanReportValue(report.main_category) || cleanReportValue(report.category) || cleanReportValue(report.irregularity_complain_category))),
-      areas: uniqueSorted(filteredReports.map((report) => cleanReportValue(report.area) || cleanReportValue(report.specific_location))),
+      ...buildReportFilterOptions(listFilterSource),
+      hubs: uniqueSorted(listFilterSource.map((report) => cleanReportValue(report.hub) || cleanReportValue(report.kode_hub))),
+      categories: uniqueSorted(listFilterSource.map((report) => cleanReportValue(report.main_category) || cleanReportValue(report.category) || cleanReportValue(report.irregularity_complain_category))),
+      areas: uniqueSorted(listFilterSource.map((report) => cleanReportValue(report.area) || cleanReportValue(report.specific_location))),
     };
-  }, [filteredReports]);
+  }, [listFilterSource]);
   const resetListFilters = useCallback(() => {
     setListSearch('');
     setDebouncedSearch('');
@@ -440,9 +478,12 @@ export function DivisionAnalystDashboard({
     const allowed = new Set(lockedBranches.map((b) => b.toUpperCase()));
     return joumpaReports.filter((r) => allowed.has((r.stations?.code || r.branch || '').toString().toUpperCase()));
   }, [joumpaReports, lockedBranches]);
+  // Ground reports for the list come from the paginated source (server-side
+  // cursor pagination). Scope-locked users keep their server-provided set.
+  const listGroundReports = isScopeLocked ? filteredReports : pagedReports;
   const listReportsBase = useMemo(
-    () => [...filteredReports, ...scopedJoumpaReports],
-    [filteredReports, scopedJoumpaReports]
+    () => [...listGroundReports, ...scopedJoumpaReports],
+    [listGroundReports, scopedJoumpaReports]
   );
   const listReports = useMemo(() => {
     const s = debouncedSearch.toLowerCase();
@@ -889,6 +930,18 @@ export function DivisionAnalystDashboard({
                 />
               )}
             />
+            {!isScopeLocked && pagedHasMore && (
+              <div className="flex justify-center pt-4">
+                <button
+                  type="button"
+                  onClick={() => { void loadMorePaged(); }}
+                  disabled={pagedLoadingMore}
+                  className="inline-flex items-center gap-2 rounded-2xl border border-[var(--surface-4)] bg-white px-6 py-3 text-sm font-bold text-[var(--text-primary)] shadow-sm transition-all hover:shadow-md hover:bg-[var(--surface-2)] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                >
+                  {pagedLoadingMore ? 'Loading…' : 'Load More Reports'}
+                </button>
+              </div>
+            )}
           </div>
         )}
 

@@ -4,7 +4,6 @@ import { useState, useMemo, useCallback, memo, type MouseEvent, type ReactNode }
 import { createPortal } from 'react-dom';
 import {
   FileText, Plane,
-  ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight,
   ArrowUp, ArrowDown,
   Loader2, CalendarDays, UserRound, Building2, GitBranch, Download,
   PencilLine, Save, X
@@ -51,7 +50,6 @@ function resolveAreaTag(report: Report): AreaTag {
 type SortField = 'created_at' | 'status' | 'severity' | 'report' | 'location' | 'station';
 type SortDir = 'asc' | 'desc';
 
-const PAGE_SIZE_OPTIONS = [25, 50, 100, 200];
 const STATUS_OPTIONS: ReportStatus[] = ['OPEN', 'CLOSED'];
 const REMARKS_BY_DIVISIONS = ['OP', 'UQ', 'OT', 'OS', 'OCS', 'HT', 'HC'] as const;
 
@@ -156,7 +154,6 @@ interface ReportsDetailTableProps {
     details?: StatusUpdateDetails
   ) => Promise<void>;
   loading?: boolean;
-  pageSize?: number;
   emptyTitle?: string;
   emptySubtitle?: string;
   toolbarFilter?: ReactNode;
@@ -168,14 +165,11 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
   onReportClick,
   onStatusUpdate,
   loading,
-  pageSize: initialPageSize,
   emptyTitle = 'No reports found',
   emptySubtitle = 'Coba sesuaikan filter Anda untuk melihat hasil lain.',
   toolbarFilter,
   fullHeight = false,
 }: ReportsDetailTableProps) {
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(initialPageSize ?? 50);
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
@@ -185,7 +179,6 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
   const [statusUpdateSuccess, setStatusUpdateSuccess] = useState<ReportStatus | null>(null);
 
   const handleSort = useCallback((field: SortField) => {
-    setPage(0);
     setSortField(prev => {
       if (prev === field) {
         setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -224,13 +217,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
     return copy;
   }, [reports, sortField, sortDir]);
 
-  const totalPages = Math.ceil(sortedReports.length / pageSize);
-  const pageItems = useMemo(
-    () => sortedReports.slice(page * pageSize, (page + 1) * pageSize),
-    [sortedReports, page, pageSize]
-  );
-  const startIdx = page * pageSize + 1;
-  const endIdx = Math.min((page + 1) * pageSize, sortedReports.length);
+  const pageItems = sortedReports;
 
   const sortOptions: Array<{ field: SortField; label: string }> = [
     { field: 'created_at', label: 'Date' },
@@ -417,7 +404,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
               style={{ borderLeft: `4px solid ${statusTone.accent}` }}
             >
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f8f2df] text-[12px] font-black tabular-nums text-slate-900 ring-1 ring-black/[0.03] sm:h-12 sm:w-12">
-                {page * pageSize + idx + 1}
+                {idx + 1}
               </div>
 
               <div className="min-w-0 flex flex-col gap-2">
@@ -646,63 +633,6 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
         onClose={() => setStatusUpdateSuccess(null)}
       />
 
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-[var(--surface-4)] bg-[var(--surface-0)]">
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] font-medium text-[var(--text-muted)]">
-            {startIdx}&ndash;{endIdx} / {sortedReports.length} records
-          </span>
-          <div className="flex items-center gap-1">
-            <span className="text-[10px] text-[var(--text-muted)]">Per halaman:</span>
-            <select
-              value={pageSize}
-              onChange={e => { setPageSize(Number(e.target.value)); setPage(0); }}
-              className="text-[10px] font-bold bg-[var(--surface-2)] border border-[var(--surface-3)] rounded px-1.5 py-0.5 outline-none"
-            >
-              {PAGE_SIZE_OPTIONS.map(n => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1">
-          <button
-            className="p-1.5 rounded-lg hover:bg-[var(--surface-2)] disabled:opacity-25 transition-colors"
-            disabled={page === 0}
-            onClick={() => setPage(0)}
-            aria-label="First page"
-          >
-            <ChevronsLeft size={14} className="text-[var(--text-muted)]" />
-          </button>
-          <button
-            className="p-1.5 rounded-lg hover:bg-[var(--surface-2)] disabled:opacity-25 transition-colors"
-            disabled={page === 0}
-            onClick={() => setPage(p => p - 1)}
-            aria-label="Previous page"
-          >
-            <ChevronLeft size={14} className="text-[var(--text-muted)]" />
-          </button>
-          <span className="text-[10px] font-bold text-[var(--text-secondary)] tabular-nums px-2">
-            {page + 1} / {totalPages}
-          </span>
-          <button
-            className="p-1.5 rounded-lg hover:bg-[var(--surface-2)] disabled:opacity-25 transition-colors"
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage(p => p + 1)}
-            aria-label="Next page"
-          >
-            <ChevronRight size={14} className="text-[var(--text-muted)]" />
-          </button>
-          <button
-            className="p-1.5 rounded-lg hover:bg-[var(--surface-2)] disabled:opacity-25 transition-colors"
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage(totalPages - 1)}
-            aria-label="Last page"
-          >
-            <ChevronsRight size={14} className="text-[var(--text-muted)]" />
-          </button>
-        </div>
-      </div>
     </div>
   );
 });

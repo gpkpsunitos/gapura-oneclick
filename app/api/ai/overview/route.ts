@@ -35,25 +35,46 @@ export async function GET(req: NextRequest) {
       feature: 'ml-overview',
       scope: { v: 1, bust: bypassCache ? Date.now() : 0 },
       resolver: async () => {
-        const [forecast, branchTrends, subcatTrends, risk, subcatForecast, reportCounts, health] =
-          await Promise.allSettled([
-            mlClient.forecast(14),
-            mlClient.trends('branch', 12),
-            mlClient.trends('subcategory', 12),
-            mlClient.riskScore(),
-            mlClient.forecastByDimension('subcategory', 4),
-            mlClient.reportCounts(4),
-            mlClient.health(),
-          ]);
+        const [
+          forecast,
+          branchTrends, subcatTrends, airlineTrends, categoryTrends,
+          risk,
+          subcatForecast, categoryForecast,
+          reportCounts,
+          caseRecurrence,
+          health,
+          seasonality,
+        ] = await Promise.allSettled([
+          mlClient.forecast(14),
+          mlClient.trends('branch', 12),
+          mlClient.trends('subcategory', 12),
+          mlClient.trends('airline', 12),
+          mlClient.trends('category', 12),
+          mlClient.riskScore(),
+          mlClient.forecastByDimension('subcategory', 4),
+          mlClient.forecastByDimension('category', 4),
+          mlClient.reportCounts(4),
+          mlClient.caseClassificationForecast('case_classification', 4),
+          mlClient.health(),
+          mlClient.seasonality(),
+        ]);
 
         return {
           status: 'ok' as const,
           forecast: settled(forecast),
-          trends: { branch: settled(branchTrends), subcategory: settled(subcatTrends) },
+          trends: {
+            branch: settled(branchTrends),
+            subcategory: settled(subcatTrends),
+            airline: settled(airlineTrends),
+            category: settled(categoryTrends),
+          },
           risk: settled(risk),
           subcategoryForecast: settled(subcatForecast),
+          categoryForecast: settled(categoryForecast),
           reportCounts: settled(reportCounts),
+          caseRecurrence: settled(caseRecurrence),
           health: settled(health),
+          seasonality: settled(seasonality),
         };
       },
     });

@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { RefreshCw, CalendarRange, TrendingUp, ShieldAlert, ArrowUpRight } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, Tooltip, Cell,
 } from 'recharts';
@@ -22,8 +22,10 @@ import { cn } from '@/lib/utils';
 import { buildCacheKey, readClientCache, writeClientCache } from '@/lib/ai/client-cache';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
-  useMLOverview, buildExecutiveSummary, StatTile, ForecastChart, TrendsPanel,
-  RiskLeaderboard, SubcategoryOutlook, ReportCountForecast, riskEntityName, longDate,
+  useMLOverview, buildExecutiveSummary,
+  EditorialSummary, HeroFigures, ForecastChart, SeasonalityPanel,
+  RiskTable, MoversPanel, ReportCountForecast, CategoryOutlook,
+  CaseRecurrencePanel,
 } from '@/components/ai/ml-overview-sections';
 
 // ---------------------------------------------------------------------------
@@ -412,74 +414,42 @@ function InsightTab({
 }) {
   const sentences = useMemo(() => (data ? buildExecutiveSummary(data) : []), [data]);
 
-  const heroStats = useMemo(() => {
-    if (!data) return null;
-    const points = data.forecast?.forecast ?? [];
-    const total14 = points.reduce((sum, point) => sum + (point.predicted_count || 0), 0);
-    const risingCount =
-      (data.trends.branch?.rising?.length ?? 0) + (data.trends.subcategory?.rising?.length ?? 0);
-    const topRisk = data.risk?.rankings?.airline?.[0];
-    return {
-      total14: points.length ? `±${Math.round(total14)}` : '—',
-      avgPerDay: points.length ? (total14 / points.length).toFixed(1) : '—',
-      risingCount: String(risingCount),
-      topRisk: topRisk ? riskEntityName(topRisk) : '—',
-      topRiskCount: topRisk ? `${topRisk.incident_count} reports recorded` : undefined,
-    };
-  }, [data]);
-
   if (loading) {
     return (
-      <div className="space-y-5">
-        <div className="h-36 animate-pulse border border-slate-100 bg-white" />
-        <div className="grid grid-cols-2 gap-4">
-          <div className="h-24 animate-pulse border border-slate-100 bg-white" />
-          <div className="h-24 animate-pulse border border-slate-100 bg-white" />
+      <div className="space-y-4">
+        <div className="rounded-[24px] bg-white/80 ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.10)] h-28 animate-pulse" />
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="rounded-[24px] bg-white/80 ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.10)] h-40 animate-pulse" />
+          ))}
         </div>
-        <div className="h-72 animate-pulse border border-slate-100 bg-white" />
-        <p className="text-center text-[12px] text-slate-400">
-          Loading overall analysis — usually takes less than 15 seconds…
+        <div className="rounded-[24px] bg-white/80 ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.10)] h-72 animate-pulse" />
+        <p className="text-center text-[12px] text-neutral-500 pt-2">
+          Menganalisis pola laporan seluruh stasiun · biasanya &lt; 15 detik
         </p>
       </div>
     );
   }
 
   if (error) return <ErrorCard message={error} onRetry={onRetry} />;
-  if (!data || !heroStats) return null;
+  if (!data) return null;
 
   return (
-    <div className="space-y-5">
-      {/* Executive summary across all data */}
-      <div className="border border-violet-100 bg-gradient-to-br from-violet-50/70 via-white to-white p-6">
-        <h4 className="mb-3 text-[11px] font-bold uppercase leading-relaxed tracking-[0.2em] text-violet-600">
-          Ringkasan Keseluruhan
-        </h4>
-        <ul className="space-y-2.5">
-          {sentences.map((sentence, index) => (
-            <li key={index} className="flex gap-3 text-[13.5px] leading-relaxed text-slate-700">
-              <span className="shrink-0 font-bold tabular-nums text-violet-400">{index + 1}.</span>
-              <span className="break-words">{sentence}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {/* Key numbers */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <StatTile icon={CalendarRange} label="Perkiraan 14 Hari" value={heroStats.total14} hint="total laporan diperkirakan" />
-        <StatTile icon={TrendingUp} label="Rata-rata Harian" value={heroStats.avgPerDay} hint="laporan per hari ke depan" tone="slate" />
-        <StatTile icon={ShieldAlert} label="Perlu Perhatian" value={heroStats.topRisk} hint={heroStats.topRiskCount ?? 'prioritas risiko teratas'} tone="rose" />
-        <StatTile icon={ArrowUpRight} label="Tren Naik" value={heroStats.risingCount} hint="stasiun / kategori sedang meningkat" tone="emerald" />
-      </div>
-
+    <div className="space-y-4 md:space-y-5">
+      {sentences.length > 0 && <EditorialSummary sentences={sentences} />}
+      <HeroFigures data={data} />
       {data.forecast?.forecast?.length ? <ForecastChart forecast={data.forecast} /> : null}
-      <TrendsPanel trends={data.trends} />
-      {data.risk ? <RiskLeaderboard risk={data.risk} /> : null}
-      {data.reportCounts
-        ? <ReportCountForecast reportCounts={data.reportCounts} />
-        : data.subcategoryForecast
-          ? <SubcategoryOutlook outlook={data.subcategoryForecast} />
-          : null}
+      {data.seasonality ? <SeasonalityPanel seasonality={data.seasonality} /> : null}
+      {data.risk ? <RiskTable risk={data.risk} /> : null}
+      <MoversPanel trends={data.trends} />
+      {data.reportCounts ? <ReportCountForecast reportCounts={data.reportCounts} /> : null}
+      {(data.categoryForecast || data.subcategoryForecast) ? (
+        <CategoryOutlook
+          categoryForecast={data.categoryForecast}
+          subcategoryForecast={data.subcategoryForecast}
+        />
+      ) : null}
+      {data.caseRecurrence ? <CaseRecurrencePanel recurrence={data.caseRecurrence} /> : null}
     </div>
   );
 }
@@ -558,10 +528,6 @@ export function SectionAiSummaryInsightButton({ context }: { context: SectionAiC
     else void overview.refresh(true);
   };
 
-  const learnedFrom = overview.data?.health?.row_count
-    ? `Belajar dari ${overview.data.health.row_count.toLocaleString('id-ID')} laporan historis`
-    : null;
-  const retrainedAt = longDate(overview.data?.health?.last_retrain);
 
   return (
     <>
@@ -586,7 +552,6 @@ export function SectionAiSummaryInsightButton({ context }: { context: SectionAiC
                   </SheetTitle>
                   <p className="mt-1 break-words text-[11px] leading-relaxed text-stone-400">
                     AI Summary &amp; Insight
-                    {learnedFrom ? ` · ${learnedFrom}` : ''}
                   </p>
                 </div>
                 <button
@@ -644,22 +609,11 @@ export function SectionAiSummaryInsightButton({ context }: { context: SectionAiC
                 />
               )}
 
-              {/* Honest footer */}
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-[#e7e1d2] pt-4 text-[11px] text-stone-400">
-                {activeTab === 'summary' ? (
-                  <span className="break-words">
-                    All figures are calculated directly from dashboard data — AI only composes the narrative and recommendations.
-                  </span>
-                ) : (
-                  <>
-                    <span>
-                      {retrainedAt ? `Model diperbarui ${retrainedAt}` : 'Model diperbarui otomatis secara berkala'}
-                    </span>
-                    <span className="break-words">
-                      All figures are estimates based on historical data patterns — not exact numbers.
-                    </span>
-                  </>
-                )}
+              {/* Fine print */}
+              <div className="border-t border-black/[0.06] pt-4 text-[11.5px] text-neutral-500 break-words">
+                {activeTab === 'summary'
+                  ? 'Semua angka diambil langsung dari data dashboard yang sedang Anda lihat — AI hanya menyusun narasinya.'
+                  : 'Semua angka adalah estimasi berdasarkan pola laporan historis — bukan angka pasti. Gunakan sebagai panduan, bukan keputusan akhir.'}
               </div>
             </div>
           </div>

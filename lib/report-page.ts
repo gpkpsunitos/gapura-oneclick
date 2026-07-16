@@ -49,11 +49,11 @@ export function resolveReportPageAccess(
   if (role === 'STAFF_CABANG' || role === 'CABANG' || role === 'EMPLOYEE') {
     return scope === 'admin' ? { kind: 'forbidden' } : { kind: 'employee' };
   }
+  // Division/partner roles see all reports company-wide. Automatic scoping by
+  // target_division was removed: that column is unpopulated, so scoping emptied
+  // every division dashboard.
   if (role.startsWith('DIVISI_') || role.startsWith('PARTNER_')) {
-    const division = role.replace(/^(DIVISI_|PARTNER_)/, '');
-    return /^[A-Z0-9_-]{1,32}$/.test(division)
-      ? { kind: 'division', division }
-      : { kind: 'forbidden' };
+    return { kind: 'company' };
   }
   return { kind: 'forbidden' };
 }
