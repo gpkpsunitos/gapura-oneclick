@@ -39,9 +39,6 @@ class LRUCache<T> {
 
 const swrCache = new LRUCache<unknown>(200);
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const stableProvider = () => swrCache as any;
-
 const fetcher = async (url: string) => {
   const res = await fetchWithDemo(url);
   if (!res.ok) throw new Error(`Fetch error: ${res.status}`);
@@ -56,9 +53,9 @@ export function useData<T = unknown>(
 ) {
   return useSWR<T>(url, fetcher, {
     revalidateOnFocus: false,
+    keepPreviousData: true,
     dedupingInterval: 60000,
     ...options,
-    provider: stableProvider,
   });
 }
 
@@ -69,8 +66,8 @@ export function useStaticData<T = unknown>(
   return useSWR<T>(url, fetcher, {
     revalidateOnFocus: false,
     revalidateOnReconnect: false,
+    keepPreviousData: true,
     dedupingInterval: 300000,
     ...options,
-    provider: stableProvider,
   });
 }

@@ -20,6 +20,9 @@ const swrConfig: SWRConfiguration = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     provider: () => swrCache as any,
     revalidateOnFocus: false,
+    // Keep showing the previous result while a new key (e.g. changed filter)
+    // loads, so navigation/filtering never flashes back to a spinner.
+    keepPreviousData: true,
     dedupingInterval: 60000,
     onErrorRetry,
 };

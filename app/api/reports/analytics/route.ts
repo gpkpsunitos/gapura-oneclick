@@ -75,8 +75,11 @@ export async function GET(request: NextRequest) {
       reports
     }, {
       headers: {
-        // Per-session RBAC-filtered data must never be cached in a shared/CDN cache.
-        'Cache-Control': 'private, no-store',
+        // Per-session RBAC-filtered data must never touch a shared/CDN cache, so
+        // keep `private`. A short max-age lets the user's OWN browser reuse the
+        // response across chart re-mounts / quick re-navigation (server already
+        // caches the row set 5 min, so 30s browser reuse is strictly tighter).
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=120',
       }
     });
 

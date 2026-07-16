@@ -4,6 +4,7 @@ import { verifySession } from '@/lib/auth-utils';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { reportsService } from '@/lib/services/reports-service';
 import { REPORT_STATUS } from '@/lib/constants/report-status';
+import { enrichReportsWithComments } from '@/lib/server/report-comments';
 
 export async function GET(request: Request) {
     try {
@@ -112,11 +113,15 @@ export async function GET(request: Request) {
             .slice(0, 5)
             .map(([location, count]) => ({ location, count }));
 
-        const recentReports = [...reports]
+        const recentReportRows = [...reports]
             .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 5)
+            .slice(0, 5);
+        const recentReportsWithComments = await enrichReportsWithComments(recentReportRows);
+        const recentReports = recentReportsWithComments
             .map(r => ({
                 id: r.id,
+                sheet_id: r.sheet_id,
+                original_id: r.original_id,
                 title: r.title || r.description || 'No Title',
                 report: r.report,
                 primary_tag: r.primary_tag,
@@ -127,11 +132,14 @@ export async function GET(request: Request) {
                 priority: r.priority,
                 sla_deadline: r.sla_deadline,
                 users: r.users ? { full_name: r.users.full_name } : (r.reporter_name ? { full_name: r.reporter_name } : null),
-                stations: r.stations ? { code: r.stations.code } : (r.station_code ? { code: r.station_code } : null)
+                stations: r.stations ? { code: r.stations.code } : (r.station_code ? { code: r.station_code } : null),
+                comments: r.comments || [],
             }));
 
-        const { count: pendingUsers } = await supabaseAdmin.from('users').select('id', { count: 'exact', head: true }).eq('status', 'pending');
-        const { count: activeUsers } = await supabaseAdmin.from('users').select('id', { count: 'exact', head: true }).eq('status', 'active');
+        const [{ count: pendingUsers }, { count: activeUsers }] = await Promise.all([
+            supabaseAdmin.from('users').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+            supabaseAdmin.from('users').select('id', { count: 'exact', head: true }).eq('status', 'active'),
+        ]);
 
         const resolutionRate = totalReports ? Math.round((selesai / totalReports) * 100) : 0;
 
@@ -167,7 +175,9 @@ export async function GET(request: Request) {
             topLocations,
         }, {
             headers: {
-                'Cache-Control': 'private, no-store, max-age=0',
+                // `private` keeps per-admin data out of shared caches; a short
+                // max-age makes dashboard re-visits instant from the browser cache.
+                'Cache-Control': 'private, max-age=20, stale-while-revalidate=120',
             },
         });
     } catch (error) {

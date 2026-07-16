@@ -88,8 +88,10 @@ export async function GET(request: NextRequest) {
       data: aggregatedData
     }, {
       headers: {
-        // Per-session RBAC-filtered data must never be cached in a shared/CDN cache.
-        'Cache-Control': 'private, no-store',
+        // `private` keeps RBAC-filtered data out of shared/CDN caches; the short
+        // max-age lets the user's browser reuse pre-aggregated views instantly on
+        // re-navigation without a fresh round-trip.
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=120',
       }
     });
 

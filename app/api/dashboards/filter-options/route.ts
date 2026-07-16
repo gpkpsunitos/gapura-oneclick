@@ -67,7 +67,9 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(results, {
       headers: {
-        'Cache-Control': 'private, no-store, max-age=0',
+        // Filter dropdown values change only when a new branch/airline/etc first
+        // appears — safe to reuse from the user's browser for a few minutes.
+        'Cache-Control': 'private, max-age=300, stale-while-revalidate=600',
       },
     });
   } catch (err) {
