@@ -16,7 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 import {
   useMLOverview, StatTile, ForecastChart, TrendsPanel, RiskLeaderboard,
-  SubcategoryOutlook, riskEntityName, longDate,
+  SubcategoryOutlook, ReportCountForecast, riskEntityName, longDate,
 } from '@/components/ai/ml-overview-sections';
 
 interface DivisionAIReportsDashboardProps {
@@ -173,8 +173,12 @@ export function DivisionAIReportsDashboard({ division = 'OS' }: DivisionAIReport
               {data.risk ? <RiskLeaderboard risk={data.risk} /> : null}
             </div>
 
-            {/* Subcategory outlook */}
-            {data.subcategoryForecast ? <SubcategoryOutlook outlook={data.subcategoryForecast} /> : null}
+            {/* Report-count forecast (station / category / case classification) */}
+            {data.reportCounts
+              ? <ReportCountForecast reportCounts={data.reportCounts} />
+              : data.subcategoryForecast
+                ? <SubcategoryOutlook outlook={data.subcategoryForecast} />
+                : null}
 
             {/* Honest footer */}
             <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-[11px] text-slate-400 border-t border-slate-100 pt-4">

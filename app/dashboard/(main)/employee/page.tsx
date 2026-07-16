@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils';
 import { STATUS_CONFIG, type ReportStatus } from '@/lib/constants/report-status';
 import { ReportDetailModal } from '@/components/dashboard/ReportDetailModal';
 import { Report } from '@/types';
-import { useData } from '@/lib/swr';
+import { useReportsData } from '@/hooks/use-reports-cache';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,12 +37,7 @@ export default function EmployeeDashboard() {
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [exportingId, setExportingId] = useState<string | null>(null);
 
-    const { data: rawData } = useData<Report[] | { reports: Report[] }>('/api/reports');
-    const reports = useMemo(() => {
-        if (Array.isArray(rawData)) return rawData;
-        if (rawData && !Array.isArray(rawData) && Array.isArray(rawData.reports)) return rawData.reports;
-        return [];
-    }, [rawData]);
+    const { reports } = useReportsData('/api/reports');
 
     const greeting = useMemo(() => {
         const hour = new Date().getHours();

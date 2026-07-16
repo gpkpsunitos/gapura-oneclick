@@ -23,7 +23,7 @@ import { buildCacheKey, readClientCache, writeClientCache } from '@/lib/ai/clien
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import {
   useMLOverview, buildExecutiveSummary, StatTile, ForecastChart, TrendsPanel,
-  RiskLeaderboard, SubcategoryOutlook, riskEntityName, longDate,
+  RiskLeaderboard, SubcategoryOutlook, ReportCountForecast, riskEntityName, longDate,
 } from '@/components/ai/ml-overview-sections';
 
 // ---------------------------------------------------------------------------
@@ -475,7 +475,11 @@ function InsightTab({
       {data.forecast?.forecast?.length ? <ForecastChart forecast={data.forecast} /> : null}
       <TrendsPanel trends={data.trends} />
       {data.risk ? <RiskLeaderboard risk={data.risk} /> : null}
-      {data.subcategoryForecast ? <SubcategoryOutlook outlook={data.subcategoryForecast} /> : null}
+      {data.reportCounts
+        ? <ReportCountForecast reportCounts={data.reportCounts} />
+        : data.subcategoryForecast
+          ? <SubcategoryOutlook outlook={data.subcategoryForecast} />
+          : null}
     </div>
   );
 }

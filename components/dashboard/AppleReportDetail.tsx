@@ -135,6 +135,7 @@ function EvidenceGallery({ urls }: { urls: string[] }) {
 
 interface DocumentMetadata {
   available: boolean;
+  source?: 'finalized' | 'generated';
   docx_filename?: string;
   pdf_filename?: string;
 }
@@ -196,7 +197,6 @@ function ReportDocumentDownloads({ reportId, isJoumpa }: { reportId: string; isJ
     }
   };
 
-  const unavailable = metadata?.available === false;
   const controlsDisabled = !metadata?.available || loadingFormat !== null;
 
   return (
@@ -207,7 +207,7 @@ function ReportDocumentDownloads({ reportId, isJoumpa }: { reportId: string; isJ
           className="jm-document-btn jm-document-btn--docx"
           onClick={() => download('docx')}
           disabled={controlsDisabled}
-          aria-label="Download the finalized DOCX document"
+          aria-label="Download the DOCX irregularity report form"
         >
           {loadingFormat === 'docx' ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
           DOCX
@@ -218,7 +218,7 @@ function ReportDocumentDownloads({ reportId, isJoumpa }: { reportId: string; isJ
           className="jm-document-btn jm-document-btn--pdf"
           onClick={() => download('pdf')}
           disabled={controlsDisabled}
-          aria-label="Download the finalized PDF document"
+          aria-label="Download the PDF irregularity report form"
         >
           {loadingFormat === 'pdf' ? <Loader2 size={14} className="animate-spin" /> : <FileType2 size={14} />}
           PDF
@@ -230,8 +230,8 @@ function ReportDocumentDownloads({ reportId, isJoumpa }: { reportId: string; isJ
           ? error
           : metadata === null
             ? 'Checking finalized documents…'
-            : unavailable
-              ? 'Documents not available'
+            : metadata?.source === 'generated'
+              ? 'Formatted from report information'
               : 'Final edited documents'}
       </span>
     </div>

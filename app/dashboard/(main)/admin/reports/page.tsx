@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useDeferredValue, useMemo } from 'react';
 import {
     FileText, Search, Filter, ChevronDown,
     MapPin, AlertTriangle,
@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { STATUS_CONFIG, SEVERITY_CONFIG, ReportStatus } from '@/lib/constants/report-status';
 import { Report } from '@/types';
+import { useReportsData } from '@/hooks/use-reports-cache';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';
 import { type TimePeriod } from '@/components/dashboard/TimePeriodFilter';
 import { ReportDetailModal } from '@/components/dashboard/ReportDetailModal';
@@ -15,13 +16,12 @@ import { type StatusUpdateDetails } from '@/components/dashboard/ReportDetailVie
 import { ReportsDetailTable } from '@/components/dashboard/analyst/ReportsDetailTable';
 
 export default function AdminReportsPage() {
-    const [reports, setReports] = useState<Report[]>([]);
-    const [loading, setLoading] = useState(true);
     const [stationFilter, setStationFilter] = useState('all');
     const [filter, setFilter] = useState('all');
     const [severityFilter, setSeverityFilter] = useState('all');
     const [stations, setStations] = useState<Array<{ id: string; code: string; name: string }>>([]);
     const [search, setSearch] = useState('');
+    const deferredSearch = useDeferredValue(search);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [period, setPeriod] = useState<TimePeriod>(null);
 
@@ -36,24 +36,28 @@ export default function AdminReportsPage() {
         }
     }, []);
 
-    const fetchReports = useCallback(async () => {
-        setLoading(true);
-        try {
-            const queryParams = new URLSearchParams();
-            if (filter !== 'all') queryParams.append('status', filter);
-            if (stationFilter !== 'all') queryParams.append('station', stationFilter);
-            const res = await fetch(`/api/admin/reports?${queryParams.toString()}`);
-            const data = await res.json();
-            setReports(Array.isArray(data) ? data : []);
-        } catch (error) {
-            console.error('Error:', error);
-        } finally {
-            setLoading(false);
-        }
-    }, [filter, stationFilter]);
+    const reportUrl = useMemo(() => {
+        const queryParams = new URLSearchParams();
+        if (filter !== 'all') queryParams.set('status', filter);
+        if (stationFilter !== 'all') queryParams.set('station', stationFilter);
+        if (severityFilter !== 'all') queryParams.set('severity', severityFilter);
+        if (deferredSearch.trim()) queryParams.set('search', deferredSearch.trim());
+        return `/api/admin/reports?${queryParams.toString()}`;
+    }, [deferredSearch, filter, severityFilter, stationFilter]);
+    const {
+        reports,
+        isLoading: loading,
+        isLoadingMore,
+        hasMore,
+        loadMore,
+        refresh: fetchReports,
+        updateReport,
+    } = useReportsData(reportUrl);
 
-    useEffect(() => { fetchReports(); }, [fetchReports]);
-    useEffect(() => { fetchStations(); }, [fetchStations]);
+    useEffect(() => {
+        const timeoutId = setTimeout(fetchStations, 0);
+        return () => clearTimeout(timeoutId);
+    }, [fetchStations]);
 
     const handleUpdateStatus = async (reportId: string, status: string, notes?: string, evidenceUrl?: string, details?: StatusUpdateDetails) => {
         const res = await fetch(`/api/reports/${reportId}`, {
@@ -74,6 +78,7 @@ export default function AdminReportsPage() {
             throw new Error(errorPayload?.error || 'Failed to update status');
         }
 
+        await updateReport(reportId, { status: status as Report['status'] });
         await fetchReports();
     };
 
@@ -180,6 +185,18 @@ export default function AdminReportsPage() {
                         loading={loading}
                         fullHeight
                     />
+                )}
+                {hasMore && !loading && (
+                    <div className="flex justify-center border-t border-[var(--surface-3)] p-5">
+                        <button
+                            type="button"
+                            onClick={() => void loadMore()}
+                            disabled={isLoadingMore}
+                            className="rounded-full border border-slate-200 bg-white px-6 py-3 text-xs font-black uppercase tracking-wider text-slate-700 transition hover:border-emerald-300 hover:text-emerald-700 disabled:cursor-wait disabled:opacity-60"
+                        >
+                            {isLoadingMore ? 'Loading reports…' : 'Load more reports'}
+                        </button>
+                    </div>
                 )}
             </div>
 

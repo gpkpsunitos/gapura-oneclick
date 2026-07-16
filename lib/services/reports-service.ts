@@ -19,6 +19,8 @@ export const IRRS_NAMESPACE_UUID = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
 interface CacheEntry { data: unknown; ts: number }
 const ttlCache = new Map<string, CacheEntry>();
+const inflightReportFetches = new Map<string, Promise<Report[]>>();
+let reportCacheEpoch = 0;
 const MAX_CACHE_ENTRIES = 100;
 let cacheHits = 0;
 let cacheMisses = 0;
@@ -341,43 +343,30 @@ export type ReportSyncField = typeof REPORT_SYNC_FIELDS[number];
 export const REPORT_PROJECTIONS = {
   list: [
     'id',
+    'sheet_id',
+    'original_id',
+    'title',
     'location',
     'status',
     'severity',
-    'severity_level',
     'flight_number',
     'station_id',
-    'category',
     'main_category',
     'source_sheet',
     'created_at',
-    'resolved_at',
-    'incident_date',
-    'reporting_branch',
     'hub',
-    'kode_hub',
-    'route',
     'branch',
     'station_code',
     'reporter_name',
     'date_of_event',
     'airlines',
     'area',
-    'terminal_area_category',
-    'apron_area_category',
-    'general_category',
     'service_business_type',
     'case_classification',
     'irregularity_complain_category',
-    'category_case_gse',
-    'category_case_cargo',
-    'category_case_joumpa',
-    'case_cgo',
     'primary_tag',
-    'report',
     'kode_cabang',
     'reference_number',
-    'kps_remarks',
   ],
   analytics: [
     'id',
@@ -460,6 +449,8 @@ export const REPORT_PROJECTIONS = {
   ],
   adminStats: [
     'id',
+    'sheet_id',
+    'original_id',
     'title',
     'description',
     'report',
@@ -1195,6 +1186,7 @@ export class ReportsService {
   }
 
   public invalidateCache() {
+    reportCacheEpoch += 1;
     const keys = Array.from(ttlCache.keys());
     keys.forEach((k) => {
       if (k.startsWith(CACHE_KEY_ALL_REPORTS)) ttlCache.delete(k);
@@ -1211,6 +1203,18 @@ export class ReportsService {
     const fields = options?.projection
       ? REPORT_PROJECTIONS[options.projection]
       : options?.fields;
+    const normalizedFilterEntries = Object.entries(filters || {})
+      .filter(([, value]) => (
+        value !== undefined
+        && value !== null
+        && value !== false
+        && value !== ''
+        && value !== 'all'
+      ))
+      .sort(([left], [right]) => left.localeCompare(right));
+    const canUseProjectionCache = source !== 'sheets' && !options?.refresh;
+    const projectionCacheKey = `${CACHE_KEY_ALL_REPORTS}:${fields?.join(',') || 'full'}:${JSON.stringify(normalizedFilterEntries)}`;
+    const cacheEpochAtStart = reportCacheEpoch;
 
     let selectedReports: Report[] = [];
 
@@ -1222,7 +1226,28 @@ export class ReportsService {
         selectedReports = [];
       }
     } else {
-      selectedReports = await this.fetchReportsFromSync(filters, fields);
+      const cachedReports = canUseProjectionCache
+        ? getCache<Report[]>(projectionCacheKey, CACHE_TTL)
+        : null;
+      if (cachedReports) {
+        selectedReports = cachedReports.map((report) => ({ ...report }));
+      } else {
+        let inflight = inflightReportFetches.get(projectionCacheKey);
+        if (!inflight) {
+          inflight = this.fetchReportsFromSync(filters, fields);
+          inflightReportFetches.set(projectionCacheKey, inflight);
+        }
+        try {
+          selectedReports = await inflight;
+        } finally {
+          if (inflightReportFetches.get(projectionCacheKey) === inflight) {
+            inflightReportFetches.delete(projectionCacheKey);
+          }
+        }
+        if (canUseProjectionCache && cacheEpochAtStart === reportCacheEpoch) {
+          setCache(projectionCacheKey, selectedReports.map((report) => ({ ...report })));
+        }
+      }
     }
 
     const filteredReports = selectedReports.filter(report => {

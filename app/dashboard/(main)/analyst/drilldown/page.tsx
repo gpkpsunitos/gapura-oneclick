@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { type Report } from '@/types';
+import { reportsFromPayload } from '@/lib/report-page';
 import { DrilldownDetailView } from '@/components/dashboard/DrilldownDetailView';
 
 const TITLE_MAP: Record<string, string> = {
@@ -28,10 +29,25 @@ export default function AnalystDrilldownPage() {
         const fetchReports = async () => {
             setLoading(true);
             try {
-                const res = await fetch('/api/admin/reports');
+                const params = new URLSearchParams();
+                if (type === 'category') params.set('category', value);
+                if (type === 'station') params.set('station', value);
+                if (type === 'status') params.set('status', value);
+                if (type === 'airline') params.set('airline', value);
+                if (type === 'area') params.set('area', value);
+                if (type === 'severity' && value !== 'all') params.set('severity', value);
+
+                if (period !== 'all') {
+                    const daysBack = period === 'week' ? 7 : period === 'month' ? 30 : 0;
+                    if (daysBack > 0) {
+                        params.set('from', new Date(Date.now() - daysBack * 86_400_000).toISOString());
+                        params.set('to', new Date().toISOString());
+                    }
+                }
+
+                const res = await fetch(`/api/admin/reports?${params.toString()}`);
                 if (res.ok) {
-                    const data = await res.json();
-                    setAllReports(Array.isArray(data) ? data : []);
+                    setAllReports(reportsFromPayload<Report>(await res.json()));
                 }
             } catch (err) {
                 console.error('Failed to fetch drilldown data:', err);
@@ -40,7 +56,7 @@ export default function AnalystDrilldownPage() {
             }
         };
         fetchReports();
-    }, []);
+    }, [period, type, value]);
 
     const filteredReports = useMemo(() => {
 

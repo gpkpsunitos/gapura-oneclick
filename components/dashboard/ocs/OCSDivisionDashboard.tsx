@@ -1,19 +1,5 @@
 "use client";
 
-async function fetchData() {
-  const [reportsRes, analyticsRes, dbRes] = await Promise.all([
-    fetch('/api/admin/reports'),
-    fetch('/api/admin/analytics'),
-    fetch('/api/dashboards'),
-  ]);
-  const [reports, analytics, dashboards] = await Promise.all([
-    reportsRes.json(),
-    analyticsRes.json(),
-    dbRes.json(),
-  ]);
-  return { reports, analytics, dashboards };
-}
-
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -43,6 +29,7 @@ import {
   resolveReportSource,
 } from '@/lib/reports-export';
 import type { Report, AnalyticsData, UserRole } from '@/types';
+import { reportsFromPayload } from '@/lib/report-page';
 import type { DivisionConfig } from '@/components/dashboard/AnalyticsDashboard';
 import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWorkspaceSkeleton';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
@@ -199,7 +186,7 @@ export function OCSDivisionDashboard({
 
   const { data: swrReports, isLoading: swrLoading, mutate: mutateReports } = useSWR<Report[]>(
     isScopeLocked ? null : '/api/admin/reports',
-    (url) => fetch(url).then(res => res.json()).then((json) => Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : []),
+    (url) => fetch(url).then(res => res.json()).then(reportsFromPayload<Report>),
     { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: initialReports }
   );
   const reports = isScopeLocked ? (initialReports ?? []) : (swrReports ?? []);

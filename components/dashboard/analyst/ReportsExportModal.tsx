@@ -21,6 +21,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { type Report } from "@/types";
+import { normalizeReportPage, withReportCursor } from "@/lib/report-page";
 import {
   DEFAULT_REPORT_EXPORT_FILTERS,
   buildReportFilterOptions,
@@ -39,6 +40,24 @@ interface ReportsExportModalProps {
 }
 
 type ExportFormat = "excel" | "pdf" | "docx";
+
+async function fetchAllDetailedReports(): Promise<Report[]> {
+  const reports: Report[] = [];
+  let cursor: string | null = null;
+
+  // Export is the only path allowed to walk the complete collection. Each
+  // request remains bounded so normal dashboard reads never inherit this cost.
+  for (let pageIndex = 0; pageIndex < 100; pageIndex += 1) {
+    const response = await fetch(withReportCursor('/api/admin/reports?detail=1', cursor, 100));
+    if (!response.ok) throw new Error("Unable to load full report details for export.");
+    const page = normalizeReportPage<Report>(await response.json());
+    reports.push(...page.reports);
+    if (!page.pagination.hasMore || !page.pagination.nextCursor) return reports;
+    cursor = page.pagination.nextCursor;
+  }
+
+  throw new Error('Export exceeded the safe pagination limit. Narrow the export filters and try again.');
+}
 
 function SelectField({
   label,
@@ -137,14 +156,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
     try {
       let reportsToExport = filteredReports;
       if (!isJoumpa) {
-        const response = await fetch("/api/admin/reports?detail=1");
-        if (!response.ok) throw new Error("Unable to load full report details for export.");
-        const payload = await response.json();
-        const fullReports = Array.isArray(payload)
-          ? payload as Report[]
-          : Array.isArray(payload?.data)
-            ? payload.data as Report[]
-            : [];
+        const fullReports = await fetchAllDetailedReports();
         reportsToExport = filterReportsForExport(fullReports, filters);
       }
 

@@ -1,122 +1,210 @@
+'use client';
 
-import useSWR, { SWRConfiguration } from 'swr';
-import { Report } from '@/types';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import useSWRInfinite from 'swr/infinite';
+import type { Report } from '@/types';
 import { buildPwaScopedStorageKey } from '@/lib/pwa/client-state';
+import {
+  REPORT_PAGE_CACHE_SCHEMA,
+  REPORT_PAGE_FRESH_MS,
+  isPersistedReportPage,
+  normalizeReportPage,
+  withReportCursor,
+  type PersistedReportPage,
+  type ReportPage,
+} from '@/lib/report-page';
 
-const STORAGE_KEY = 'reports-cache-v3';
+const STORAGE_KEY = 'reports-cache-v5';
+const CACHE_EVENT = 'gapura:reports-cache-updated';
+const snapshotCache = new Map<string, { raw: string | null; value: PersistedReportPage<Report> | null }>();
 
-const fetcher = async (url: string) => {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Failed to fetch reports');
-  const payload = await res.json();
-  if (Array.isArray(payload)) {
-    return payload;
+interface UseReportsDataOptions {
+  initialPage?: ReportPage<Report> | null;
+  revalidateOnMount?: boolean;
+}
+
+async function fetchReportPage(url: string): Promise<ReportPage<Report>> {
+  const response = await fetch(url, { credentials: 'include' });
+  if (!response.ok) throw new Error(`Failed to fetch reports (${response.status})`);
+  return normalizeReportPage<Report>(await response.json());
+}
+
+function subscribeToPersistentCache(onStoreChange: () => void): () => void {
+  if (typeof window === 'undefined') return () => undefined;
+  window.addEventListener('storage', onStoreChange);
+  window.addEventListener(CACHE_EVENT, onStoreChange);
+  return () => {
+    window.removeEventListener('storage', onStoreChange);
+    window.removeEventListener(CACHE_EVENT, onStoreChange);
+  };
+}
+
+function readPersistentPage(key: string, query: string): PersistedReportPage<Report> | null {
+  if (typeof window === 'undefined') return null;
+  const raw = localStorage.getItem(key);
+  const cached = snapshotCache.get(key);
+  if (cached?.raw === raw) return cached.value;
+
+  let value: PersistedReportPage<Report> | null = null;
+  if (raw) {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      if (isPersistedReportPage<Report>(parsed, query)) {
+        value = {
+          ...parsed,
+          page: {
+            ...parsed.page,
+            meta: { ...parsed.page.meta, source: 'cache' },
+          },
+        };
+      }
+    } catch {
+      localStorage.removeItem(key);
+    }
   }
-  if (payload && Array.isArray(payload.reports)) {
-    return payload.reports;
-  }
-  return [];
-};
 
-// Persist off the render/interaction path: serializing megabytes of reports
-// into localStorage is synchronous and would otherwise land right when the
-// page becomes interactive.
-function persistWhenIdle(key: string, data: Report[]) {
+  snapshotCache.set(key, { raw, value });
+  return value;
+}
+
+function persistWhenIdle(key: string, query: string, page: ReportPage<Report>) {
   const write = () => {
-    const serialized = JSON.stringify({ data, timestamp: Date.now() });
+    const entry: PersistedReportPage<Report> = {
+      schema: REPORT_PAGE_CACHE_SCHEMA,
+      query,
+      timestamp: Date.now(),
+      page,
+    };
+    const serialized = JSON.stringify(entry);
+
     try {
       localStorage.setItem(key, serialized);
+      snapshotCache.set(key, { raw: serialized, value: entry });
+      window.dispatchEvent(new Event(CACHE_EVENT));
     } catch {
       try {
-        for (let i = localStorage.length - 1; i >= 0; i -= 1) {
-          const k = localStorage.key(i);
-          if (k && k.includes(STORAGE_KEY)) localStorage.removeItem(k);
+        for (let index = localStorage.length - 1; index >= 0; index -= 1) {
+          const storageKey = localStorage.key(index);
+          if (storageKey?.includes(STORAGE_KEY)) localStorage.removeItem(storageKey);
         }
         localStorage.setItem(key, serialized);
+        snapshotCache.set(key, { raw: serialized, value: entry });
       } catch {
         if (process.env.NODE_ENV !== 'production') {
-          console.warn('[use-reports-cache] localStorage full; skipping persist');
+          console.warn('[use-reports-cache] localStorage full; skipping report-page persist');
         }
       }
     }
   };
 
-  if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(write, { timeout: 5000 });
-  } else {
-    setTimeout(write, 500);
-  }
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(write, { timeout: 3000 });
+  else setTimeout(write, 250);
 }
 
-export function useReportsData(url: string = '/api/reports', options?: SWRConfiguration) {
-  const STORAGE_KEY_WITH_URL =
-    typeof window !== 'undefined'
-      ? buildPwaScopedStorageKey(`${STORAGE_KEY}:${url}`)
-      : `${STORAGE_KEY}:${url}`;
-  const [isOffline, setIsOffline] = useState(false);
-  const [lastUpdated, setLastUpdated] = useState<number | null>(null);
-
-  const { data, error, isLoading, mutate, isValidating } = useSWR<Report[]>(
-    url,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      dedupingInterval: 1000 * 60,
-      onSuccess: (newData) => {
-        if (typeof window !== 'undefined') {
-          setLastUpdated(Date.now());
-          persistWhenIdle(STORAGE_KEY_WITH_URL, newData);
-          setIsOffline(false);
-        }
-      },
-      onError: (err) => {
-        console.error('SWR Fetch Error:', err);
-        if (!navigator.onLine) {
-          setIsOffline(true);
-        }
-      },
-      ...options
-    }
+export function useReportsData(
+  url = '/api/reports',
+  options: UseReportsDataOptions = {},
+) {
+  const storageKey = typeof window !== 'undefined'
+    ? buildPwaScopedStorageKey(`${STORAGE_KEY}:${url}`)
+    : `${STORAGE_KEY}:${url}`;
+  const persisted = useSyncExternalStore(
+    subscribeToPersistentCache,
+    () => readPersistentPage(storageKey, url),
+    () => null,
   );
+  const fallbackPage = options.initialPage || persisted?.page || null;
+
+  const getKey = useCallback((pageIndex: number, previousPage: ReportPage<Report> | null) => {
+    if (previousPage && !previousPage.pagination.hasMore) return null;
+    return withReportCursor(url, pageIndex === 0 ? null : previousPage?.pagination.nextCursor || null);
+  }, [url]);
+
+  const {
+    data,
+    error,
+    isLoading,
+    isValidating,
+    mutate,
+    setSize,
+    size,
+  } = useSWRInfinite<ReportPage<Report>>(getKey, fetchReportPage, {
+    fallbackData: fallbackPage ? [fallbackPage] : undefined,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: true,
+    revalidateFirstPage: true,
+    revalidateOnMount: options.revalidateOnMount ?? !options.initialPage,
+    dedupingInterval: 60_000,
+    persistSize: false,
+  });
 
   useEffect(() => {
-    let cancelled = false;
-    queueMicrotask(() => {
-      if (cancelled || data) return;
-      const local = localStorage.getItem(STORAGE_KEY_WITH_URL);
-      if (local) {
-        try {
-          const parsed = JSON.parse(local) as { data?: Report[]; timestamp?: number };
-          if (Array.isArray(parsed.data)) void mutate(parsed.data, false);
-          if (parsed.timestamp) setLastUpdated(parsed.timestamp);
-        } catch {}
-      }
-    });
-    return () => { cancelled = true; };
-  }, [STORAGE_KEY_WITH_URL, data, mutate]);
+    if (!persisted?.page || data?.length) return;
+    void mutate([persisted.page], false);
+  }, [data?.length, mutate, persisted]);
 
   useEffect(() => {
-    const handleOnline = () => setIsOffline(false);
-    const handleOffline = () => setIsOffline(true);
+    if (!data?.[0]) return;
+    persistWhenIdle(storageKey, url, data[0]);
+  }, [data, storageKey, url]);
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+  const reports = useMemo(() => {
+    const byId = new Map<string, Report>();
+    for (const page of data || []) {
+      for (const report of page.reports) byId.set(report.id, report);
+    }
+    return Array.from(byId.values());
+  }, [data]);
 
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+  const lastPage = data?.at(-1) || fallbackPage;
+  const hasMore = Boolean(lastPage?.pagination.hasMore);
+  const isLoadingMore = isValidating && size > (data?.length || 0);
+
+  const [isStale, setIsStale] = useState(false);
+  useEffect(() => {
+    const compute = () => {
+      setIsStale(persisted ? Date.now() - persisted.timestamp > REPORT_PAGE_FRESH_MS : false);
     };
-  }, []);
+    const timeoutId = setTimeout(compute, 0);
+    const intervalId = setInterval(compute, 30_000);
+    return () => {
+      clearTimeout(timeoutId);
+      clearInterval(intervalId);
+    };
+  }, [persisted]);
+
+  const updateReport = useCallback((reportId: string, update: Partial<Report>) => {
+    return mutate((pages) => pages?.map((page) => ({
+      ...page,
+      reports: page.reports.map((report) => (
+        report.id === reportId ? { ...report, ...update } : report
+      )),
+    })), false);
+  }, [mutate]);
+
+  useEffect(() => {
+    const handleOnline = () => void mutate();
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [mutate]);
 
   return {
-    reports: data || [],
-    isLoading,
+    reports,
+    pages: data || [],
+    isLoading: isLoading && reports.length === 0,
     isError: error,
     isValidating,
-    isOffline,
-    refresh: () => mutate(),
-    lastUpdated,
+    isLoadingMore,
+    isOffline: typeof navigator !== 'undefined' && !navigator.onLine,
+    hasMore,
+    loadMore: () => hasMore ? setSize((current) => current + 1) : Promise.resolve(),
+    refresh: async () => {
+      await mutate();
+    },
+    updateReport,
+    lastUpdated: data?.[0]?.meta.generatedAt
+      ? new Date(data[0].meta.generatedAt).getTime()
+      : persisted?.timestamp || null,
+    isStale,
   };
 }

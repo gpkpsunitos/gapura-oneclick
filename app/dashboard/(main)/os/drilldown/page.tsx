@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { type Report } from '@/types';
+import { reportsFromPayload } from '@/lib/report-page';
 import { DrilldownDetailView } from '@/components/dashboard/DrilldownDetailView';
 
 const TITLE_MAP: Record<string, string> = {
@@ -22,10 +23,19 @@ export default function OSDrilldownPage() {
         const fetchReports = async () => {
             setLoading(true);
             try {
-                const res = await fetch('/api/admin/reports');
+                const params = new URLSearchParams();
+                if (type === 'status') params.set('status', value);
+                if (type === 'trend_month') {
+                    const monthIndex = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].indexOf(value);
+                    if (monthIndex >= 0) {
+                        const year = new Date().getFullYear();
+                        params.set('from', new Date(Date.UTC(year, monthIndex, 1)).toISOString());
+                        params.set('to', new Date(Date.UTC(year, monthIndex + 1, 0, 23, 59, 59, 999)).toISOString());
+                    }
+                }
+                const res = await fetch(`/api/admin/reports?${params.toString()}`);
                 if (res.ok) {
-                    const data = await res.json();
-                    setAllReports(Array.isArray(data) ? data : []);
+                    setAllReports(reportsFromPayload<Report>(await res.json()));
                 }
             } catch (err) {
                 console.error('Failed to fetch drilldown data:', err);
@@ -34,7 +44,7 @@ export default function OSDrilldownPage() {
             }
         };
         fetchReports();
-    }, []);
+    }, [type, value]);
 
     const filteredReports = useMemo(() => {
         switch (type) {

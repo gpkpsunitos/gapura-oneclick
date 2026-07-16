@@ -3,95 +3,15 @@ import { after, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { REPORT_STATUS } from '@/lib/constants/report-status';
-import { parseReportSyncFields, reportsService } from '@/lib/services/reports-service';
+import { reportsService } from '@/lib/services/reports-service';
 import { notifyNewRecordEmail, notifyNewReport } from '@/lib/notifications';
 import { persistReportMetadata } from '@/lib/report-persistence';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { bumpSyncVersion } from '@/lib/sync-state';
 import { purgeDashboardSnapshots, purgeExpiredDashboardSnapshots } from '@/lib/dashboard-cache';
 import { linkEvidenceFilesToReport, normalizeEvidenceSubmissionId, validateEvidenceForReport } from '@/lib/evidence-files';
-
-const DEFAULT_REPORT_SUMMARY_FIELDS = [
-    'id',
-    'sheet_id',
-    'title',
-    'description',
-    'status',
-    'severity',
-    'priority',
-    'created_at',
-    'updated_at',
-    'date_of_event',
-    'station_id',
-    'station_code',
-    'branch',
-    'hub',
-    'target_division',
-    'reporter_name',
-    'reporter_email',
-    'airlines',
-    'airline',
-    'flight_number',
-    'reference_number',
-    'area',
-    'category',
-    'main_category',
-    'irregularity_complain_category',
-    'evidence_url',
-    'evidence_urls',
-    'airlines',
-    'airline',
-    'flight_number',
-    'aircraft_reg',
-    'jenis_maskapai',
-    'route',
-    'root_caused',
-    'action_taken',
-    'preventive_action',
-    'delay_code',
-    'delay_duration',
-    'case_classification',
-] as const;
-
-type ReportSummaryRow = {
-    id: string | number | null;
-    created_at: string | null;
-    [key: string]: unknown;
-};
-
-function encodeCursor(createdAt: string, id: string): string {
-    return Buffer.from(JSON.stringify({ createdAt, id }), 'utf8').toString('base64url');
-}
-
-function decodeCursor(cursor: string | null): { createdAt: string; id: string } | null {
-    if (!cursor) return null;
-    try {
-        const parsed = JSON.parse(Buffer.from(cursor, 'base64url').toString('utf8'));
-        if (!parsed?.createdAt || !parsed?.id) return null;
-        const createdAt = new Date(String(parsed.createdAt));
-        const id = String(parsed.id);
-        if (Number.isNaN(createdAt.getTime()) || !/^[A-Za-z0-9_-]{1,128}$/.test(id)) {
-            return null;
-        }
-        return {
-            createdAt: createdAt.toISOString(),
-            id,
-        };
-    } catch {
-        return null;
-    }
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function pickReportFields(report: any, fields: readonly string[]) {
-    const picked: Record<string, unknown> = {};
-    for (const field of fields) {
-        if (report[field] !== undefined) {
-            picked[field] = report[field];
-        }
-    }
-    return picked;
-}
+import { parseReportLimit } from '@/lib/report-page';
+import { queryReportPage, ReportPageQueryError } from '@/lib/server/report-page-query';
 
 export async function GET(request: Request) {
     try {
@@ -107,114 +27,39 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Invalid session' }, { status: 401 });
         }
 
-        const role = String(payload.role).trim().toUpperCase();
-        const userEmail = String(payload.email || '').trim().toLowerCase();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const userFullName = String((payload as any).full_name || '').trim().toLowerCase();
         const url = new URL(request.url);
-        const unfiltered = url.searchParams.get('unfiltered') === '1';
-        const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '50', 10), 1), 200);
-        const cursor = decodeCursor(url.searchParams.get('cursor'));
-        const fieldsParam = url.searchParams.get('fields');
-        const rawRequestedFields = fieldsParam
-            ? fieldsParam.split(',').map((field) => field.trim()).filter(Boolean)
-            : [...DEFAULT_REPORT_SUMMARY_FIELDS];
-        const parsedFields = parseReportSyncFields(rawRequestedFields);
-        if (parsedFields.invalid.length > 0) {
-            return NextResponse.json(
-                { error: 'Invalid report fields', fields: parsedFields.invalid },
-                { status: 400 }
-            );
-        }
-        const requestedFields = Array.from(
-            new Set([...parsedFields.fields, 'id', 'created_at'] as const)
-        );
+        const page = await queryReportPage({
+            session: payload,
+            scope: 'standard',
+            limit: parseReportLimit(url.searchParams.get('limit')),
+            cursor: url.searchParams.get('cursor'),
+            filters: {
+                status: url.searchParams.get('status'),
+                station: url.searchParams.get('station'),
+                search: url.searchParams.get('search'),
+                from: url.searchParams.get('from'),
+                to: url.searchParams.get('to'),
+                severity: url.searchParams.get('severity'),
+                hub: url.searchParams.get('hub'),
+                category: url.searchParams.get('category'),
+                airline: url.searchParams.get('airline') || url.searchParams.get('airlines'),
+                area: url.searchParams.get('area'),
+                sourceSheet: url.searchParams.get('sourceSheet'),
+                targetDivision: url.searchParams.get('targetDivision'),
+            },
+        });
 
-        const userStationId = payload.station_id;
-
-        const isDivisionOrPartner = role.startsWith('DIVISI_') || role.startsWith('PARTNER_');
-        const adminBypass = role === 'SUPER_ADMIN' || role === 'ANALYST';
-        // Only SUPER_ADMIN/ANALYST may see company-wide unfiltered data.
-        // Division/partner roles must stay scoped to their own target_division
-        // below, even when unfiltered=1 is passed.
-        const bypassFiltering = unfiltered && adminBypass;
-
-        if (bypassFiltering) {
-            const reports = await reportsService.getReports({
-                fields: requestedFields,
-                source: 'sync',
-            });
-            return NextResponse.json(reports, {
-                headers: {
-                    'Cache-Control': 'private, no-store, max-age=0',
-                    'Vary': 'Cookie'
-                }
-            });
-        } else {
-            let query = supabaseAdmin
-                .from('ground_handling_irregularity_report')
-                .select(requestedFields.join(','))
-                .order('created_at', { ascending: false })
-                .order('id', { ascending: false });
-
-            if (role === 'STAFF_CABANG' || role === 'CABANG' || role === 'EMPLOYEE') {
-                const safeEmail = userEmail ? `"${userEmail.replace(/"/g, '""')}"` : null;
-                const safeName = userFullName ? `"${userFullName.replace(/"/g, '""')}"` : null;
-                const orFilters = [
-                    `user_id.eq.${payload.id}`,
-                    safeEmail ? `reporter_email.eq.${safeEmail}` : null,
-                    safeName ? `reporter_name.eq.${safeName}` : null,
-                ].filter(Boolean).join(',');
-                if (orFilters) {
-                    query = query.or(orFilters);
-                } else {
-                    query = query.eq('user_id', payload.id);
-                }
-            } else if (role === 'MANAGER_CABANG' && userStationId) {
-                query = query.eq('station_id', userStationId);
-            } else if (role === 'MANAGER_CABANG') {
-                query = query.eq('id', '__no-match__');
-            } else if (isDivisionOrPartner) {
-                const division = role.split('_')[1];
-                query = query.eq('target_division', division);
+        return NextResponse.json(page, {
+            headers: {
+                'Cache-Control': 'private, no-store, max-age=0',
+                'Vary': 'Cookie',
+                'Server-Timing': `reports;dur=${page.meta.durationMs || 0}`,
             }
-
-            if (cursor) {
-                query = query.or(
-                    'created_at.lt.' + cursor.createdAt
-                    + ',and(created_at.eq.' + cursor.createdAt
-                    + ',id.lt.' + cursor.id + ')'
-                );
-            }
-
-            const { data: rows, error } = await query.limit(limit + 1);
-            if (error) {
-                throw error;
-            }
-
-            const safeRows = (rows || []) as unknown as ReportSummaryRow[];
-            const hasMore = safeRows.length > limit;
-            const slicedRows = hasMore ? safeRows.slice(0, limit) : safeRows;
-            const reports = slicedRows.map((report) => pickReportFields(report, requestedFields));
-            const nextCursor = hasMore && slicedRows.length > 0
-                ? encodeCursor(String(slicedRows[slicedRows.length - 1].created_at || ''), String(slicedRows[slicedRows.length - 1].id))
-                : null;
-
-            return NextResponse.json({
-                reports,
-                pagination: {
-                    limit,
-                    nextCursor,
-                    hasMore,
-                },
-            }, {
-                headers: {
-                    'Cache-Control': 'private, no-store, max-age=0',
-                    'Vary': 'Cookie'
-                }
-            });
-        }
+        });
     } catch (error) {
+        if (error instanceof ReportPageQueryError) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         console.error('Error fetching reports:', error);
         return NextResponse.json({ error: 'Failed to fetch reports' }, { status: 500 });
     }

@@ -72,28 +72,15 @@ export default function DashboardManagerPage() {
 
     const fetchMetadata = async () => {
         try {
-            const res = await fetch('/api/admin/reports');
+            const res = await fetch('/api/dashboards/filter-options?fields=hub,branch,airlines,main_category');
             if (res.ok) {
-                const reports = await res.json();
-                const hubs = new Set<string>();
-                const branches = new Set<string>();
-                const airlines = new Set<string>();
-                const categories = new Set<string>();
-
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                reports.forEach((r: any) => {
-                    if (r.hub) hubs.add(r.hub);
-                    if (r.stations?.code) branches.add(r.stations.code);
-                    else if (r.branch) branches.add(r.branch);
-                    if (r.airlines || r.airline) airlines.add(r.airlines || r.airline);
-                    if (r.main_category) categories.add(r.main_category);
-                });
+                const options = await res.json() as Record<string, string[]>;
 
                 setMetadata({
-                    hubs: Array.from(hubs).sort(),
-                    branches: Array.from(branches).sort(),
-                    airlines: Array.from(airlines).sort(),
-                    categories: Array.from(categories).sort()
+                    hubs: options.hub || [],
+                    branches: options.branch || [],
+                    airlines: options.airlines || [],
+                    categories: options.main_category || []
                 });
             }
         } catch (err) {

@@ -1,20 +1,16 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { validateStatusTransition, getTimestampFieldForStatus, getUserFieldForStatus } from '@/lib/utils/validate-transition';
 import { reportsService } from '@/lib/services/reports-service';
 import { notifyReportClosedEmail, notifyStatusChange } from '@/lib/notifications';
-import { isBranchRole } from '@/lib/server/workspace-auth';
+import { parseReportLimit } from '@/lib/report-page';
+import { queryReportPage, ReportPageQueryError } from '@/lib/server/report-page-query';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const runtime = 'nodejs';
 export const fetchCache = 'force-no-store';
-
-function normalizeStationValue(value: unknown): string {
-  return String(value || '').trim().toUpperCase();
-}
 
 function statusToAction(status: unknown): string | null {
     const normalized = String(status || '').trim().toUpperCase().replace(/_/g, ' ');
@@ -35,92 +31,42 @@ export async function GET(request: Request) {
         if (!payload) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-        const role = String(payload.role || '').trim().toUpperCase();
-
-        // Reject branch staff before touching the company-wide report table.
-        if (isBranchRole(role) && role !== 'MANAGER_CABANG') {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-        }
-
         const { searchParams } = new URL(request.url);
-        const status = searchParams.get('status');
-        const station = searchParams.get('station');
-        const search = searchParams.get('search');
-        const from = searchParams.get('from');
-        const to = searchParams.get('to');
-        const sourceParam = searchParams.get('source');
         const includeDetails = searchParams.get('detail') === '1';
-
-        const source: 'sheets' | 'sync' = sourceParam === 'sheets' ? 'sheets' : 'sync';
-        const allReports = await reportsService.getReports({
-            source,
-            projection: includeDetails ? undefined : 'list',
-            filters: status && status !== 'all' ? { status } : undefined,
+        const page = await queryReportPage({
+            session: payload,
+            scope: 'admin',
+            limit: parseReportLimit(searchParams.get('limit')),
+            cursor: searchParams.get('cursor'),
+            projection: includeDetails ? 'detail' : 'list',
+            includeComments: !includeDetails,
+            filters: {
+                status: searchParams.get('status'),
+                station: searchParams.get('station'),
+                search: searchParams.get('search'),
+                from: searchParams.get('from'),
+                to: searchParams.get('to'),
+                severity: searchParams.get('severity'),
+                hub: searchParams.get('hub'),
+                category: searchParams.get('category'),
+                airline: searchParams.get('airline') || searchParams.get('airlines'),
+                area: searchParams.get('area'),
+                sourceSheet: searchParams.get('sourceSheet'),
+                targetDivision: searchParams.get('targetDivision'),
+            },
         });
 
-        const managerStationValues = new Set<string>();
-
-        if (role === 'MANAGER_CABANG') {
-            const stationId = String(payload.station_id || '').trim();
-            if (!stationId) {
-                return NextResponse.json([], {
-                    headers: { 'Cache-Control': 'private, no-store, max-age=0' },
-                });
-            }
-
-            managerStationValues.add(normalizeStationValue(stationId));
-            const { data: stationRow } = await supabaseAdmin
-                .from('stations')
-                .select('id, code, name')
-                .eq('id', stationId)
-                .single();
-
-            if (stationRow) {
-                managerStationValues.add(normalizeStationValue(stationRow.id));
-                managerStationValues.add(normalizeStationValue(stationRow.code));
-                managerStationValues.add(normalizeStationValue(stationRow.name));
-            }
-        }
-
-        const filterByStatus = status && status !== 'all';
-        const filterByStation = role !== 'MANAGER_CABANG' && station && station !== 'all';
-        const filterBySearch = !!search;
-        const filterByFrom = !!from;
-        const filterByTo = !!to;
-        const q = search?.toLowerCase();
-        const fromMs = from ? new Date(from).getTime() : 0;
-        const toMs = to ? new Date(to).getTime() : 0;
-
-        const filteredData = allReports.filter(r => {
-            if (filterByStatus && r.status !== status) return false;
-            if (managerStationValues.size > 0) {
-                const reportStationValues = [
-                    r.station_id,
-                    r.station_code,
-                    r.branch,
-                    r.reporting_branch,
-                    r.kode_cabang,
-                    r.stations?.code,
-                    r.stations?.name,
-                ].map(normalizeStationValue).filter(Boolean);
-                if (!reportStationValues.some((value) => managerStationValues.has(value))) return false;
-            }
-            if (filterByStation && r.station_id !== station && r.branch !== station) return false;
-            if (filterBySearch && !(
-                r.title?.toLowerCase().includes(q!) ||
-                r.report?.toLowerCase().includes(q!) ||
-                r.description?.toLowerCase().includes(q!) ||
-                r.id?.toLowerCase().includes(q!)
-            )) return false;
-            if (filterByFrom && new Date(r.created_at).getTime() < fromMs) return false;
-            if (filterByTo && new Date(r.created_at).getTime() > toMs) return false;
-            return true;
-        });
-
-        return NextResponse.json(filteredData, {
-            headers: { 'Cache-Control': 'private, no-store, max-age=0' },
+        return NextResponse.json(page, {
+            headers: {
+                'Cache-Control': 'private, no-store, max-age=0',
+                'Vary': 'Cookie',
+                'Server-Timing': `reports;dur=${page.meta.durationMs || 0}`,
+            },
         });
     } catch (error) {
+        if (error instanceof ReportPageQueryError) {
+            return NextResponse.json({ error: error.message }, { status: error.status });
+        }
         console.error('Error fetching reports:', error);
         return NextResponse.json({ error: 'Failed to load reports' }, { status: 500 });
     }

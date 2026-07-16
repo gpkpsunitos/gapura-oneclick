@@ -30,6 +30,7 @@ import {
   resolveReportSource,
 } from '@/lib/reports-export';
 import type { Report, AnalyticsData, UserRole } from '@/types';
+import { reportsFromPayload } from '@/lib/report-page';
 import type { DivisionConfig } from '@/components/dashboard/AnalyticsDashboard';
 import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWorkspaceSkeleton';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
@@ -248,7 +249,7 @@ export function DivisionAnalystDashboard({
 
   const { data: swrReports, isLoading: swrLoading, mutate: mutateReports } = useSWR<Report[]>(
     isScopeLocked ? null : '/api/admin/reports',
-    (url) => fetch(url).then(res => res.json()).then((json) => Array.isArray(json) ? json : Array.isArray(json?.data) ? json.data : []),
+    (url) => fetch(url).then(res => res.json()).then(reportsFromPayload<Report>),
     { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: initialReports }
   );
   const reports = useMemo(

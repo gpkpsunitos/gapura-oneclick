@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { authorizeReportDocumentRead } from '@/lib/report-document-access';
 import { isReportDocumentType } from '@/lib/report-document-contract';
 import { getReportDocumentBundle } from '@/lib/report-documents-server';
+import { fallbackIrregularityReportFilenames } from '@/lib/irregularity-report-fallback-server';
 
 export async function GET(
   _request: Request,
@@ -20,11 +21,18 @@ export async function GET(
 
     const bundle = await getReportDocumentBundle(reportType, reportId);
     if (!bundle) {
-      return NextResponse.json({ available: false }, { headers: { 'Cache-Control': 'private, no-store' } });
+      const filenames = fallbackIrregularityReportFilenames(access.report, reportId);
+      return NextResponse.json({
+        available: true,
+        source: 'generated',
+        docx_filename: filenames.docx,
+        pdf_filename: filenames.pdf,
+      }, { headers: { 'Cache-Control': 'private, no-store' } });
     }
 
     return NextResponse.json({
       available: true,
+      source: 'finalized',
       revision_id: bundle.revision_id,
       docx_filename: bundle.docx_filename,
       pdf_filename: bundle.pdf_filename,

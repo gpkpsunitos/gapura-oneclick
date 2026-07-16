@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useDeferredValue, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useDeferredValue, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -971,32 +971,12 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
 
 export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovementTabProps) {
   const { openDrilldown, DrilldownRenderer } = useDrilldown();
-  const [liveSheetReports, setLiveSheetReports] = useState<Report[] | null>(null);
-  const [liveSheetError, setLiveSheetError] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
-  useEffect(() => {
-    const controller = new AbortController();
-    async function loadLiveSheetReports() {
-      try {
-        setLiveSheetError(null);
-        const response = await fetch('/api/admin/reports', { cache: 'no-store', signal: controller.signal });
-        if (!response.ok) throw new Error(`Failed to load live Google Sheets reports (${response.status})`);
-        const payload = await response.json();
-        setLiveSheetReports(Array.isArray(payload) ? payload : []);
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        setLiveSheetError(error instanceof Error ? error.message : 'Failed to load live Google Sheets reports');
-        setLiveSheetReports(null);
-      }
-    }
-    loadLiveSheetReports();
-    return () => controller.abort();
-  }, []);
-
-  const baseReports = liveSheetReports ?? reports;
-  const deferredReports = useDeferredValue(baseReports);
+  // The parent already owns the report request. Reusing it removes a duplicate
+  // fetch when this expensive chart tab becomes visible.
+  const deferredReports = useDeferredValue(reports);
 
   const filteredSourceReports = useMemo(
     () => deferredReports.filter((r) => !isCargoReport(r) && !isGseServiceReport(r) && !isJoumpaServiceReport(r)),
@@ -1371,12 +1351,6 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <SectionAiSummaryInsightButton context={sectionAiContext} />
         </div>
       </div>
-
-      {liveSheetError ? (
-        <div className="border border-[color:var(--sr-border)] bg-white px-3 py-2 text-[11px] font-bold text-[color:var(--sr-gold-strong)]">
-          {liveSheetError}. Fallback dataset aktif.
-        </div>
-      ) : null}
 
       {}
       <section>

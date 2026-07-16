@@ -7,6 +7,8 @@ import {
     AlertTriangle, CheckCircle, Clock, BarChart3
 } from 'lucide-react';
 import Link from 'next/link';
+import { reportsFromPayload } from '@/lib/report-page';
+import type { Report } from '@/types';
 
 interface ReportStat {
     total: number;
@@ -27,17 +29,13 @@ export default function EskalasiDashboard() {
             try {
                 setLoading(true);
                 const res = await fetch('/api/admin/reports', { signal });
-                const reports = await res.json();
-                const reportList = Array.isArray(reports) ? reports : [];
+                const reportList = reportsFromPayload<Report>(await res.json());
 
                 setStats({
                     total: reportList.length,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    open: reportList.filter((r: any) => r.status === 'OPEN').length,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    onProgress: reportList.filter((r: any) => r.status === 'ON PROGRESS').length,
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    closed: reportList.filter((r: any) => r.status === 'CLOSED').length,
+                    open: reportList.filter((r) => r.status === 'OPEN').length,
+                    onProgress: reportList.filter((r) => r.status === 'ON PROGRESS').length,
+                    closed: reportList.filter((r) => r.status === 'CLOSED').length,
                 });
             } catch (error) {
                 if (error instanceof DOMException && error.name === 'AbortError') return;

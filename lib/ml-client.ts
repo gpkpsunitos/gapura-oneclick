@@ -145,11 +145,17 @@ export interface DimensionForecastResult {
 
 export interface RiskEntry {
   incident_count: number;
-  open_rate: number;
-  recency_rate: number;
+  /** Mean canonical Severity Level 0..1 (present when the sheet has severity). */
+  severity?: number;
+  /** Recent-vs-previous-30d acceleration, 0..1 (0.5 = flat). */
+  momentum?: number;
+  recency_rate?: number;
+  /** Present only when it carries signal (dropped when ~everything is CLOSED). */
+  open_rate?: number;
+  recent_30d?: number;
   risk_score: number;
   rank: number;
-  [key: string]: string | number; // dynamic group key (airline, branch, area)
+  [key: string]: string | number | undefined; // dynamic group key (airline, branch, …)
 }
 
 export interface RiskScoreResult {
@@ -159,6 +165,69 @@ export interface RiskScoreResult {
     airline?: RiskEntry[];
     branch?: RiskEntry[];
     area?: RiskEntry[];
+    category?: RiskEntry[];
+    subcategory?: RiskEntry[];
+    case_classification?: RiskEntry[];
+  };
+}
+
+// --- Report-count forecast (station / category / case classification) --------
+
+export interface ReportCountPoint {
+  period: string;
+  predicted_count: number;
+  /** Calibrated empirical 80% band. */
+  lower?: number;
+  upper?: number;
+}
+
+export interface ReportCountEntry {
+  entity: string;
+  forecast: ReportCountPoint[];
+  predicted_total: number;
+  expected_per_period: number;
+  /** Share of the dimension total this entity is expected to take (top-down). */
+  recent_share?: number | null;
+  prob_appear_next?: number;
+  recent_avg?: number;
+  historical_total?: number;
+  trend_direction: 'rising' | 'falling' | 'stable';
+  method: string;
+  backtest_wape?: number | null;
+  backtest_folds?: number;
+}
+
+export interface ReportCountDimension {
+  status?: string;
+  dimension: string;
+  column?: string;
+  granularity?: string;
+  /** "top_down" (forecast total, split by share) or "per_entity" (sparse). */
+  strategy?: string;
+  n_periods: number;
+  from_period?: string;
+  to_period?: string;
+  aggregated_tail?: boolean;
+  total_forecast?: {
+    method: string;
+    backtest_wape?: number | null;
+    interval?: string;
+    predicted_total: number;
+    forecast: ReportCountPoint[];
+  } | null;
+  total_backtest_wape?: number | null;
+  median_backtest_wape?: number | null;
+  forecasts: ReportCountEntry[];
+}
+
+export interface ReportCountsResult {
+  status: string;
+  n_periods: number;
+  forecasts: {
+    branch?: ReportCountDimension;
+    category?: ReportCountDimension;
+    case_classification?: ReportCountDimension;
+    [key: string]: ReportCountDimension | undefined;
   };
 }
 
@@ -253,6 +322,23 @@ export const mlClient = {
 
   riskScore(): Promise<RiskScoreResult> {
     return post("/risk-score");
+  },
+
+  /**
+   * Report-count forecast per station / case category / case classification.
+   * Omit `dimension` to get all three. Uses top-down reconciliation (forecast
+   * the stable total, split by share) with calibrated 80% intervals.
+   */
+  reportCounts(nPeriods = 4): Promise<ReportCountsResult> {
+    return post("/analytics/forecast/report-counts", { n_periods: nPeriods });
+  },
+
+  /** Which case classifications recur next + their frequency (sparse-robust). */
+  caseClassificationForecast(
+    dimension: "case_classification" | "subcategory" | "category" = "case_classification",
+    nPeriods = 3,
+  ): Promise<ReportCountDimension> {
+    return post("/analytics/forecast/case-classification", { dimension, n_periods: nPeriods });
   },
 
   /** Push the current column mapping so the ML service uses it on next retrain. */

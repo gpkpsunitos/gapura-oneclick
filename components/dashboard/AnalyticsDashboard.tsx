@@ -13,6 +13,7 @@ import {
 
 import { STATUS_CONFIG, type ReportStatus } from '@/lib/constants/report-status';
 import { type Report, type AnalyticsData, type ComparisonData } from '@/types';
+import { reportsFromPayload } from '@/lib/report-page';
 import { cn } from '@/lib/utils';
 import { ReportDetailModal } from '@/components/dashboard/ReportDetailModal';
 import { calculateComparisonData } from '@/lib/utils/comparison-utils';
@@ -82,8 +83,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
             ]);
 
             if (reportsRes.ok) {
-                const data = await reportsRes.json();
-                setReports(Array.isArray(data) ? data : []);
+                setReports(reportsFromPayload<Report>(await reportsRes.json()));
             }
             if (analyticsRes.ok) {
                 const data = await analyticsRes.json();

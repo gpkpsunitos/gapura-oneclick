@@ -50,7 +50,6 @@ function matchesSeverityFilter(report: Report, filter: string): boolean {
 
 export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
   const endpoint = config.apiEndpoint ?? '/api/admin/reports';
-  const { reports: allReports, isLoading: loading, refresh } = useReportsData(endpoint);
   const lockedBranch = config.lockedBranch?.value ? config.lockedBranch : null;
 
   const [filter, setFilter] = useState('all');
@@ -59,15 +58,35 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Keep keystrokes urgent while the deferred value drives the server query
+  // and the small in-memory refinement of already loaded pages.
+  const deferredSearch = useDeferredValue(search);
+  const reportUrl = useMemo(() => {
+    const [path, rawQuery = ''] = endpoint.split('?', 2);
+    const searchParams = new URLSearchParams(rawQuery);
+    if (filter !== 'all') searchParams.set('status', filter);
+    else searchParams.delete('status');
+    if (severityFilter !== 'all') searchParams.set('severity', severityFilter);
+    else searchParams.delete('severity');
+    if (deferredSearch.trim()) searchParams.set('search', deferredSearch.trim());
+    else searchParams.delete('search');
+    return `${path}?${searchParams.toString()}`;
+  }, [deferredSearch, endpoint, filter, severityFilter]);
+  const {
+    reports: allReports,
+    isLoading: loading,
+    isLoadingMore,
+    hasMore,
+    loadMore,
+    refresh,
+    updateReport,
+  } = useReportsData(reportUrl);
+
   const handleRefresh = async () => {
     setRefreshing(true);
     await refresh();
     setRefreshing(false);
   };
-
-  // Defer list refiltering so the keystroke paints first (INP), then the
-  // table catches up.
-  const deferredSearch = useDeferredValue(search);
 
   const filteredReports = useMemo(() => {
     const lowerSearch = deferredSearch.toLowerCase();
@@ -112,6 +131,7 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
       const errorPayload = await res.json().catch(() => null);
       throw new Error(errorPayload?.error || 'Failed to update report status');
     }
+    await updateReport(reportId, { status: status as Report['status'] });
     await handleRefresh();
   };
 
@@ -276,6 +296,18 @@ export function DivisionReportsPage({ config }: { config: DivisionConfig }) {
           loading={loading}
           fullHeight
         />
+        {hasMore && (
+          <div className="flex justify-center pt-6">
+            <button
+              type="button"
+              onClick={() => void loadMore()}
+              disabled={isLoadingMore}
+              className="rounded-full border border-slate-200 bg-white px-6 py-3 text-xs font-black uppercase tracking-wider text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-700 disabled:cursor-wait disabled:opacity-60"
+            >
+              {isLoadingMore ? 'Loading reports…' : 'Load more reports'}
+            </button>
+          </div>
+        )}
       </main>
 
       {}

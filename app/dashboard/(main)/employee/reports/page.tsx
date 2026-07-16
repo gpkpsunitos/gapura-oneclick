@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { type Report, type UserRole } from '@/types';
+import { reportsFromPayload } from '@/lib/report-page';
 import { ReportMasterDetail } from '@/components/dashboard/ReportMasterDetail';
 
 interface UserSession {
@@ -61,8 +62,7 @@ export default function EmployeeReportsPage() {
         try {
             const res = await fetch('/api/reports');
             if (res.ok) {
-                const data = await res.json();
-                setReports(Array.isArray(data) ? data : (data?.reports || []));
+                setReports(reportsFromPayload<Report>(await res.json()));
             }
         } catch (error) {
             console.error('Failed to fetch reports:', error);

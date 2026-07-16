@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { type Report } from '@/types';
+import { reportsFromPayload } from '@/lib/report-page';
 import { DrilldownDetailView } from '@/components/dashboard/DrilldownDetailView';
 
 const TITLE_MAP: Record<string, Record<string, string>> = {
@@ -65,8 +66,7 @@ export default function AdminDrilldownPage() {
 
                 const res = await fetch(`/api/admin/reports?${params.toString()}`);
                 if (res.ok) {
-                    const data = await res.json();
-                    setReports(Array.isArray(data) ? data : []);
+                    setReports(reportsFromPayload<Report>(await res.json()));
                 }
             } catch (err) {
                 console.error('Failed to fetch drilldown data:', err);

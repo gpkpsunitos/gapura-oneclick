@@ -1,28 +1,31 @@
 import { cookies } from 'next/headers';
-import { readSessionPayload } from '@/lib/auth-utils';
+import { verifySession } from '@/lib/auth-utils';
 import { OSDivisionDashboardClientLoader } from '@/components/dashboard/os/OSDivisionDashboardClientLoader';
 import { DIVISIONS } from '@/lib/constants/divisions';
-import { reportsService } from '@/lib/services/reports-service';
 import { getStationLock } from '@/lib/get-station-lock';
+import { queryReportPage } from '@/lib/server/report-page-query';
+import type { Report } from '@/types';
 
-export const revalidate = 60;
+export const dynamic = 'force-dynamic';
 
 export default async function OSDashboard() {
   const token = (await cookies()).get('session')?.value;
-  const payload = token ? await readSessionPayload(token) : null;
+  const payload = token ? await verifySession(token) : null;
 
-  let initialReports;
+  let initialReports: Report[] | undefined;
   let lockedBranches: string[] | undefined;
 
   const stationCode = payload?.id ? await getStationLock(payload.id, payload.role ?? '') : null;
 
   if (stationCode) {
     try {
-      const all = await reportsService.getReports({ source: 'sync', projection: 'list' });
-      initialReports = all.filter((r) => {
-        const code = (r.stations?.code || r.branch || r.station_code || '').toString().toUpperCase();
-        return code === stationCode;
+      const page = await queryReportPage({
+        session: payload!,
+        scope: 'admin',
+        limit: 50,
+        filters: { station: stationCode },
       });
+      initialReports = Array.from(page.reports) as Report[];
       lockedBranches = [stationCode];
     } catch {
       initialReports = [];

@@ -35,13 +35,14 @@ export async function GET(req: NextRequest) {
       feature: 'ml-overview',
       scope: { v: 1, bust: bypassCache ? Date.now() : 0 },
       resolver: async () => {
-        const [forecast, branchTrends, subcatTrends, risk, subcatForecast, health] =
+        const [forecast, branchTrends, subcatTrends, risk, subcatForecast, reportCounts, health] =
           await Promise.allSettled([
             mlClient.forecast(14),
             mlClient.trends('branch', 12),
             mlClient.trends('subcategory', 12),
             mlClient.riskScore(),
             mlClient.forecastByDimension('subcategory', 4),
+            mlClient.reportCounts(4),
             mlClient.health(),
           ]);
 
@@ -51,6 +52,7 @@ export async function GET(req: NextRequest) {
           trends: { branch: settled(branchTrends), subcategory: settled(subcatTrends) },
           risk: settled(risk),
           subcategoryForecast: settled(subcatForecast),
+          reportCounts: settled(reportCounts),
           health: settled(health),
         };
       },

@@ -8,6 +8,7 @@ import { IRRS_NAMESPACE_UUID, parseDate } from '@/lib/services/reports-service';
 import { JoumpaSyncService } from '@/lib/services/joumpa-sync-service';
 import type { JoumpaFormInput } from '@/lib/joumpa/mapping';
 import type { Report } from '@/types';
+import { enrichReportsWithComments } from '@/lib/server/report-comments';
 
 interface JoumpaRecord {
   timestamp: string;
@@ -279,9 +280,10 @@ async function fetchFromSync(params: URLSearchParams, ownerEmail: string | null)
   const { data, error } = await query;
   if (error) throw error;
   const rows = data || [];
+  const reports = await enrichReportsWithComments(rows.map(rowToReport));
   return {
     records: rows.map(rowToRecord),
-    reports: rows.map(rowToReport),
+    reports,
     total: rows.length,
     source: 'sync',
   };
@@ -338,9 +340,10 @@ export async function GET(request: NextRequest) {
     const filteredReports = filtered
       .map((record) => reportByRecord.get(record))
       .filter((report): report is Report => Boolean(report));
+    const reportsWithComments = await enrichReportsWithComments(filteredReports);
 
     return NextResponse.json(
-      { records: filtered, reports: filteredReports, total: filtered.length, source: 'sheets' },
+      { records: filtered, reports: reportsWithComments, total: filtered.length, source: 'sheets' },
       {
         headers: {
           // Per-session RBAC-filtered data must never be cached in a shared/CDN cache.

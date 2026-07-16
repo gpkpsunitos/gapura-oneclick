@@ -12,7 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Sparkles, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Minus,
-  Plane, Building2, MapPin,
+  Plane, Building2, MapPin, Layers, Tag,
 } from 'lucide-react';
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis,
@@ -23,6 +23,7 @@ import { buildCacheKey, readClientCache, writeClientCache } from '@/lib/ai/clien
 import type {
   ForecastResult, TrendsResult, TrendEntry, RiskScoreResult, RiskEntry,
   DimensionForecastResult, MLHealthResult,
+  ReportCountsResult, ReportCountDimension, ReportCountEntry,
 } from '@/lib/ml-client';
 
 // ---------------------------------------------------------------------------
@@ -35,6 +36,7 @@ export interface MLOverview {
   trends: { branch: TrendsResult | null; subcategory: TrendsResult | null };
   risk: RiskScoreResult | null;
   subcategoryForecast: DimensionForecastResult | null;
+  reportCounts: ReportCountsResult | null;
   health: MLHealthResult | null;
   generatedAt?: string;
 }
@@ -141,23 +143,38 @@ export function buildExecutiveSummary(data: MLOverview): string[] {
 
   const topRisk = data.risk?.rankings?.airline?.[0];
   if (topRisk) {
+    const sev = typeof topRisk.severity === 'number' ? severityLabel(topRisk.severity) : null;
     sentences.push(
-      `${riskEntityName(topRisk)} is the top risk priority with ${topRisk.incident_count} reports recorded.`,
+      `Prioritas perhatian tertinggi: ${riskEntityName(topRisk)} (${topRisk.incident_count} laporan${sev ? `, tingkat keparahan rata-rata ${sev}` : ''}).`,
     );
   }
 
-  const topOutlook = data.subcategoryForecast?.forecasts?.[0];
-  if (topOutlook) {
+  // Prefer the richer, calibrated case-classification outlook when available.
+  const caseOutlook = data.reportCounts?.forecasts?.case_classification?.forecasts
+    ?.filter((entry) => entry.entity.toLowerCase() !== 'other')?.[0];
+  const subOutlook = data.subcategoryForecast?.forecasts?.[0];
+  const outlook = caseOutlook ?? subOutlook;
+  if (outlook) {
+    const kind = caseOutlook ? 'Klasifikasi kasus' : 'Kategori';
     sentences.push(
-      `Kategori "${topOutlook.entity}" diperkirakan paling sering muncul dalam 4 minggu ke depan (±${Math.round(topOutlook.predicted_total)} laporan).`,
+      `${kind} "${outlook.entity}" diperkirakan paling sering muncul ke depan (±${Math.round(outlook.predicted_total)} laporan).`,
     );
   }
 
   if (sentences.length === 0) {
-    sentences.push('Not enough data yet to generate a summary. Try again after the model finishes training.');
+    sentences.push('Data belum cukup untuk membuat ringkasan. Coba lagi setelah model selesai dilatih.');
   }
 
   return sentences;
+}
+
+/** Canonical Severity Level 0..1 → plain Indonesian tier label. */
+export function severityLabel(score: number): string {
+  if (score >= 0.92) return 'Sangat Tinggi';
+  if (score >= 0.78) return 'Tinggi';
+  if (score >= 0.58) return 'Sedang-Tinggi';
+  if (score >= 0.33) return 'Sedang';
+  return 'Rendah';
 }
 
 // ---------------------------------------------------------------------------
@@ -328,32 +345,47 @@ const RISK_TABS = [
   { key: 'airline', label: 'Maskapai', icon: Plane },
   { key: 'branch', label: 'Stasiun', icon: Building2 },
   { key: 'area', label: 'Area', icon: MapPin },
+  { key: 'category', label: 'Kategori', icon: Tag },
+  { key: 'subcategory', label: 'Kategori Area', icon: Layers },
+  { key: 'case_classification', label: 'Klasifikasi Kasus', icon: Tag },
 ] as const;
 
 type RiskTabKey = (typeof RISK_TABS)[number]['key'];
 
+const SEVERITY_TONE = (score: number) =>
+  score >= 0.78 ? 'text-rose-600 bg-rose-50'
+  : score >= 0.58 ? 'text-amber-600 bg-amber-50'
+  : 'text-slate-500 bg-slate-100';
+
 export function RiskLeaderboard({ risk }: { risk: RiskScoreResult }) {
+  // Only show tabs that actually have data (case dims may be absent on some sheets).
+  const tabs = useMemo(
+    () => RISK_TABS.filter((item) => (risk.rankings?.[item.key]?.length ?? 0) > 0),
+    [risk],
+  );
   const [tab, setTab] = useState<RiskTabKey>('airline');
-  const entries = (risk.rankings?.[tab] ?? []).slice(0, 5);
+  const activeTab = tabs.some((t) => t.key === tab) ? tab : (tabs[0]?.key ?? 'airline');
+  const entries = (risk.rankings?.[activeTab] ?? []).slice(0, 5);
   const maxScore = entries[0]?.risk_score || 1;
+  const severityKnown = entries.some((e) => typeof e.severity === 'number');
 
   return (
     <div className="bg-white border border-slate-100 p-6">
-      <div className="flex items-center justify-between gap-4 mb-4">
+      <div className="flex flex-col gap-3 mb-4">
         <div>
           <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.18em]">Prioritas Perhatian</h4>
           <p className="text-[12px] text-slate-400 mt-1">
-            Gabungan jumlah kejadian, kasus yang masih terbuka, dan kejadian terbaru.
+            Gabungan jumlah kejadian, tingkat keparahan, percepatan terbaru (momentum), dan kejadian 30 hari terakhir.
           </p>
         </div>
-        <div className="flex gap-1">
-          {RISK_TABS.map((item) => (
+        <div className="flex flex-wrap gap-1">
+          {tabs.map((item) => (
             <button
               key={item.key}
               onClick={() => setTab(item.key)}
               className={cn(
                 'flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold transition-colors',
-                tab === item.key ? 'bg-violet-600 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100',
+                activeTab === item.key ? 'bg-violet-600 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100',
               )}
             >
               <item.icon size={12} />
@@ -367,26 +399,165 @@ export function RiskLeaderboard({ risk }: { risk: RiskScoreResult }) {
         <p className="text-[13px] text-slate-400 py-6 text-center">Belum ada data peringkat.</p>
       ) : (
         <div className="space-y-3">
-          {entries.map((entry, index) => (
-            <div key={riskEntityName(entry)} className="flex items-center gap-3">
-              <span className="w-5 text-[12px] font-bold text-slate-300 tabular-nums">{index + 1}</span>
-              <div className="flex-1 min-w-0">
+          {entries.map((entry, index) => {
+            const sev = typeof entry.severity === 'number' ? entry.severity : null;
+            return (
+              <div key={riskEntityName(entry)} className="flex items-center gap-3">
+                <span className="w-5 text-[12px] font-bold text-slate-300 tabular-nums">{index + 1}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-[13px] font-semibold text-slate-700 break-words min-w-0">{riskEntityName(entry)}</p>
+                    <span className="shrink-0 flex items-center gap-1.5">
+                      {sev !== null && (
+                        <span className={cn('px-1.5 py-0.5 text-[10px] font-bold', SEVERITY_TONE(sev))}>
+                          {severityLabel(sev)}
+                        </span>
+                      )}
+                      <span className="text-[11px] text-slate-400">{entry.incident_count} laporan</span>
+                    </span>
+                  </div>
+                  <div className="h-1.5 bg-slate-100 mt-1.5 overflow-hidden">
+                    <motion.div
+                      className={cn('h-full', index === 0 ? 'bg-rose-500' : 'bg-violet-400')}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.max(4, (entry.risk_score / maxScore) * 100)}%` }}
+                      transition={{ duration: 0.6, delay: index * 0.05 }}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {severityKnown && (
+        <p className="text-[11px] text-slate-400 mt-4">
+          Label keparahan berasal dari kolom Severity Level (bila terisi); entitas tanpa data ditarik ke rata-rata.
+        </p>
+      )}
+    </div>
+  );
+}
+
+const COUNT_TABS = [
+  { key: 'branch', label: 'Per Stasiun', icon: Building2 },
+  { key: 'category', label: 'Per Kategori', icon: Tag },
+  { key: 'case_classification', label: 'Per Klasifikasi Kasus', icon: Layers },
+] as const;
+
+type CountTabKey = (typeof COUNT_TABS)[number]['key'];
+
+function trendIcon(dir: ReportCountEntry['trend_direction']) {
+  return dir === 'rising' ? TrendingUp : dir === 'falling' ? TrendingDown : Minus;
+}
+
+function entityRange(entry: ReportCountEntry): [number, number] {
+  const lo = entry.forecast.reduce((s, p) => s + (p.lower ?? p.predicted_count), 0);
+  const hi = entry.forecast.reduce((s, p) => s + (p.upper ?? p.predicted_count), 0);
+  return [lo, hi];
+}
+
+/**
+ * Forecast of the NUMBER of future reports, per station / case category /
+ * case classification. Shows the (accurate) dimension total with its calibrated
+ * range, then the entities expected to contribute most. Replaces the older
+ * per-subcategory outlook with the top-down, interval-calibrated engine.
+ */
+export function ReportCountForecast({ reportCounts }: { reportCounts: ReportCountsResult }) {
+  const available = COUNT_TABS.filter((t) => (reportCounts.forecasts?.[t.key]?.forecasts?.length ?? 0) > 0);
+  const [tab, setTab] = useState<CountTabKey>('branch');
+  const activeKey = available.some((t) => t.key === tab) ? tab : (available[0]?.key ?? 'branch');
+  const dim: ReportCountDimension | undefined = reportCounts.forecasts?.[activeKey];
+
+  if (available.length === 0 || !dim) return null;
+
+  const perLabel = dim.granularity === 'monthly' ? 'bulan' : 'minggu';
+  const entries = (dim.forecasts ?? [])
+    .filter((e) => e.entity.toLowerCase() !== 'other')
+    .slice(0, 6);
+  const maxTotal = Math.max(...entries.map((e) => e.predicted_total), 1);
+  const total = dim.total_forecast;
+
+  return (
+    <div className="bg-white border border-slate-100 p-6">
+      <div className="flex flex-col gap-3 mb-4">
+        <div>
+          <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.18em]">
+            Prakiraan Jumlah Laporan — {dim.n_periods} {perLabel} ke depan
+          </h4>
+          <p className="text-[12px] text-slate-400 mt-1">
+            Perkiraan banyaknya laporan baru beserta rentang kemungkinannya (interval 80%).
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {available.map((item) => (
+            <button
+              key={item.key}
+              onClick={() => setTab(item.key)}
+              className={cn(
+                'flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold transition-colors',
+                activeKey === item.key ? 'bg-violet-600 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100',
+              )}
+            >
+              <item.icon size={12} />
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {total && (
+        <div className="bg-violet-50/60 border border-violet-100 px-4 py-3 mb-4">
+          <p className="text-[11px] font-bold text-violet-500 uppercase tracking-widest">Perkiraan total</p>
+          <p className="text-[15px] font-semibold text-slate-800 mt-0.5">
+            ±{Math.round(total.predicted_total)} laporan
+            <span className="text-[12px] font-normal text-slate-400">
+              {' '}(rentang {Math.round(total.forecast.reduce((s, p) => s + (p.lower ?? 0), 0))}–
+              {Math.round(total.forecast.reduce((s, p) => s + (p.upper ?? 0), 0))})
+            </span>
+          </p>
+        </div>
+      )}
+
+      {entries.length === 0 ? (
+        <p className="text-[13px] text-slate-400 py-6 text-center">Belum ada data yang cukup.</p>
+      ) : (
+        <div className="space-y-3.5">
+          {entries.map((entry) => {
+            const DirectionIcon = trendIcon(entry.trend_direction);
+            const [lo, hi] = entityRange(entry);
+            return (
+              <div key={entry.entity}>
                 <div className="flex items-baseline justify-between gap-2">
-                  <p className="text-[13px] font-semibold text-slate-700 break-words">{riskEntityName(entry)}</p>
-                  <p className="text-[11px] text-slate-400 shrink-0">{entry.incident_count} laporan</p>
+                  <p className="text-[13px] font-medium text-slate-700 break-words min-w-0">{entry.entity}</p>
+                  <p className="text-[11px] text-slate-400 shrink-0 flex items-center gap-1">
+                    <DirectionIcon
+                      size={12}
+                      className={cn(
+                        entry.trend_direction === 'rising' && 'text-rose-500',
+                        entry.trend_direction === 'falling' && 'text-emerald-600',
+                        entry.trend_direction === 'stable' && 'text-slate-400',
+                      )}
+                    />
+                    ±{Math.round(entry.predicted_total)}
+                    <span className="text-slate-300">({Math.round(lo)}–{Math.round(hi)})</span>
+                  </p>
                 </div>
                 <div className="h-1.5 bg-slate-100 mt-1.5 overflow-hidden">
-                  <motion.div
-                    className={cn('h-full', index === 0 ? 'bg-rose-500' : 'bg-violet-400')}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${Math.max(4, (entry.risk_score / maxScore) * 100)}%` }}
-                    transition={{ duration: 0.6, delay: index * 0.05 }}
+                  <div
+                    className="h-full bg-indigo-400"
+                    style={{ width: `${Math.max(4, (entry.predicted_total / maxTotal) * 100)}%` }}
                   />
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+      )}
+      {dim.aggregated_tail && (
+        <p className="text-[11px] text-slate-400 mt-4">
+          Klasifikasi kasus yang jarang muncul digabung sebagai “Lainnya” dan tidak ditampilkan di daftar.
+        </p>
       )}
     </div>
   );

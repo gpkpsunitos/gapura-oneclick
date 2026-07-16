@@ -1,21 +1,39 @@
 
-import { saveAs } from 'file-saver';
-import type { Report } from '@/types';
+import { normalizeIrregularityReport } from '@/lib/irregularity-report-form';
 
 export const EDITED_IRREGULARITY_DOCX_MARKER = 'IRREGULARITY_REPORT_EDITED';
 
 interface GenerateWordOptions {
     download?: boolean;
     filename?: string;
+    logoData?: Uint8Array;
 }
 
 interface GeneratePDFOptions {
     download?: boolean;
     filename?: string;
+    logoData?: Uint8Array;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const getWordFilename = (report: any) => `Irregularity_Report_${report.flight_number || 'Ref'}.docx`;
+
+async function saveBlob(blob: Blob, filename: string): Promise<void> {
+    const { saveAs } = await import('file-saver');
+    saveAs(blob, filename);
+}
+
+async function resolveLogoData(provided?: Uint8Array): Promise<Uint8Array | null> {
+    if (provided) return provided;
+    if (typeof window === 'undefined') return null;
+    try {
+        const response = await fetch('/logo.png');
+        if (response.ok) return new Uint8Array(await response.arrayBuffer());
+    } catch (error) {
+        console.error('Failed to load logo', error);
+    }
+    return null;
+}
 
 const normalizeUrlList = (value: unknown): string[] => {
     if (Array.isArray(value)) return value.filter(Boolean).map(String);
@@ -107,7 +125,7 @@ export async function downloadSavedWordOrGenerate(report: any, signatureDataUrl?
 
             if (response.ok) {
                 const blob = await response.blob();
-                saveAs(blob, getWordFilename(report));
+                await saveBlob(blob, getWordFilename(report));
                 return;
             }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -153,102 +171,6 @@ export async function downloadLatestSavedWordOrGenerate(report: any, signatureDa
     await downloadSavedWordOrGenerate(report, signatureDataUrl);
 }
 
-const formatDate = (dateString?: string) => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric'
-    }).toUpperCase();
-};
-
-const getMonthName = (date: Date) => {
-    const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-    return months[date.getMonth()];
-};
-
-const generateRefNo = (report: Report) => {
-    const date = report.date_of_event ? new Date(report.date_of_event) : new Date();
-    const branch = report.branch || report.station_code || 'CGK';
-    const month = getMonthName(date);
-    const year = date.getFullYear();
-
-    return `CABANG ${branch}/LK/       /       / ${month}/${year}`;
-};
-
-const firstValue = (...values: unknown[]) => {
-    for (const value of values) {
-        if (value !== null && value !== undefined && String(value).trim() !== '') {
-            return String(value);
-        }
-    }
-    return '';
-};
-
-const toDateOnlyString = (value: string) => {
-    if (!value) return '';
-    if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return value;
-    return date.toISOString().slice(0, 10);
-};
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const normalizeWordReport = (report: any) => {
-    const eventDate = toDateOnlyString(firstValue(report.incident_date, report.date_of_event, report.created_at));
-    const branch = firstValue(report.branch, report.station_code, report.stations?.code, report.location);
-    const airline = firstValue(report.airline, report.airlines);
-    const category = firstValue(report.main_category, report.category, report.primary_tag);
-    const evidenceUrls = Array.isArray(report.evidence_urls)
-        ? report.evidence_urls.filter(Boolean)
-        : (report.evidence_url ? [report.evidence_url] : []);
-
-    const delay = firstValue(
-        report.delay,
-        (report.delay_code || report.delay_duration)
-            ? `${report.delay_code || '-'} / ${report.delay_duration || '-'}`
-            : ''
-    );
-
-    const officers = Array.isArray(report.officers) && report.officers.length > 0
-        ? report.officers
-        : (report.reporter_name ? [{ name: report.reporter_name, company: 'Gapura Angkasa', function: 'Reporter' }] : []);
-
-    const chronology = Array.isArray(report.chronology) && report.chronology.length > 0
-        ? report.chronology
-        : (firstValue(report.description, report.report) ? [{ time: '', description: firstValue(report.description, report.report) }] : []);
-
-    return {
-        reference_no: firstValue(report.reference_no, generateRefNo({ ...report, date_of_event: eventDate, branch } as Report)),
-        to: firstValue(report.to, airline ? `SQC ${airline} on duty` : ''),
-        from: firstValue(report.from, 'GAPURA OPERATION STAFF'),
-        cc: firstValue(report.cc),
-        subject: firstValue(
-            report.subject,
-            `${[airline, report.flight_number].filter(Boolean).join(' ')}${category ? ` - ${category}` : ''}`,
-            report.title
-        ),
-        attachment: firstValue(report.attachment, evidenceUrls.length ? `${evidenceUrls.length} Files` : ''),
-        incident_date: eventDate,
-        branch,
-        flight_number: firstValue(report.flight_number),
-        aircraft_reg: firstValue(report.aircraft_reg, '-'),
-        route: firstValue(report.route, '-'),
-        std_atd: firstValue(report.std_atd),
-        pax: firstValue(report.pax),
-        bge: firstValue(report.bge),
-        gate_stand: firstValue(report.gate_stand, report.location, '-'),
-        delay,
-        officers,
-        chronology,
-        root_cause: firstValue(report.root_cause, report.root_caused),
-        action_taken: firstValue(report.action_taken),
-        preventive_action: firstValue(report.preventive_action),
-        reporter_name: firstValue(report.reporter_name),
-        reporter_title: firstValue(report.reporter_title, 'Controller Operation Airside'),
-    };
-};
-
 export const generatePDF = async (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     report: any,
@@ -258,44 +180,37 @@ export const generatePDF = async (
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
     const doc = new jsPDF();
+    const docData = normalizeIrregularityReport(report);
 
     const marginX = 14;
     let currentY = 14;
     const pageWidth = doc.internal.pageSize.getWidth();
     const contentWidth = pageWidth - (marginX * 2);
 
-    try {
-        const logoResponse = await fetch('/logo.png');
-        if (logoResponse.ok) {
-            const logoBuffer = await logoResponse.arrayBuffer();
-            doc.addImage(new Uint8Array(logoBuffer), 'PNG', marginX, currentY, 45, 25);
-        }
-    } catch (error) {
-        console.error("Failed to load logo", error);
-    }
+    const logoData = await resolveLogoData(options.logoData);
+    if (logoData) doc.addImage(logoData, 'PNG', marginX, currentY, 45, 25);
 
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
-    doc.text(report.doc_title || 'IRREGULARITY REPORT FORM', marginX + 45, currentY + 12);
+    doc.text(docData.doc_title, pageWidth / 2, currentY + 28, { align: 'center' });
 
-    currentY += 28;
+    currentY += 34;
 
     autoTable(doc, {
         startY: currentY,
         body: [
-            ['REFERENCE NO', ':', report.reference_no || '-'],
-            ['TO', ':', report.to || '-'],
-            ['FROM', ':', report.from || '-'],
-            ['CC', ':', report.cc || '-'],
-            ['SUBJECT', ':', report.subject || '-'],
-            ['ATTACHMENT', ':', report.attachment || '-']
+            ['REFERENCE NO', docData.reference_no || '-'],
+            ['TO', docData.to || '-'],
+            ['FROM', docData.from || '-'],
+            ['CC', docData.cc || ''],
+            ['SUBJECT', docData.subject || ''],
+            ['ATTACHMENT', docData.attachment || '']
         ],
         theme: 'grid',
         styles: { fontSize: 10, cellPadding: 2, font: 'helvetica', lineColor: [0, 0, 0], lineWidth: 0.5 },
         columnStyles: {
             0: { cellWidth: contentWidth * 0.25, fontStyle: 'bold' },
-            1: { cellWidth: contentWidth * 0.05, halign: 'center' },
-            2: { cellWidth: contentWidth * 0.70 }
+            1: { cellWidth: contentWidth * 0.75 }
         },
         margin: { left: marginX, right: marginX }
     });
@@ -312,23 +227,19 @@ export const generatePDF = async (
     autoTable(doc, {
         startY: currentY,
         body: [
-            ['Date Of Occurrence', ':', formatDate(report.incident_date)],
-            ['Branch', ':', report.branch || '-'],
-            ['Flight Number', ':', report.flight_number || '-'],
-            ['Aircraft Registration', ':', report.aircraft_reg || '-'],
-            ['Route', ':', report.route || '-'],
-            ['STD/ATD', ':', report.std_atd || '-'],
-            ['PAX', ':', report.pax || '-'],
-            ['BGE', ':', report.bge || '-'],
-            ['Gate/Parking Stand', ':', report.gate_stand || '-'],
-            ['Delay (Code/Duration)*', ':', report.delay || '-']
+            ['Date Of Occurrence', docData.incident_date || '-', 'STD/ATD', docData.std_atd || ''],
+            ['Branch', docData.branch || '-', 'PAX', docData.pax || ''],
+            ['Flight Number', docData.flight_number || '-', 'BGE', docData.bge || ''],
+            ['Aircraft Registration', docData.aircraft_reg || '-', 'Gate/Parking Stand', docData.gate_stand || '-'],
+            ['Route', docData.route || '-', 'Delay (Code/Duration)*', docData.delay || '-']
         ],
         theme: 'grid',
         styles: { fontSize: 10, cellPadding: 2, font: 'helvetica', lineColor: [0, 0, 0], lineWidth: 0.5 },
         columnStyles: {
-            0: { cellWidth: contentWidth * 0.40, fontStyle: 'bold' },
-            1: { cellWidth: contentWidth * 0.05, halign: 'center' },
-            2: { cellWidth: contentWidth * 0.55 }
+            0: { cellWidth: contentWidth * 0.25, fontStyle: 'bold' },
+            1: { cellWidth: contentWidth * 0.25 },
+            2: { cellWidth: contentWidth * 0.25, fontStyle: 'bold' },
+            3: { cellWidth: contentWidth * 0.25 }
         },
         margin: { left: marginX, right: marginX }
     });
@@ -342,8 +253,7 @@ export const generatePDF = async (
     doc.text('II. OFFICER(S) ON DUTY', marginX, currentY);
     currentY += 4;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const officersData = (report.officers || []).map((o: any, i: number) => [
+    const officersData = docData.officers.map((o, i: number) => [
         (i + 1).toString(),
         o.name || '',
         o.company || '',
@@ -379,8 +289,12 @@ export const generatePDF = async (
     doc.text('III. CHRONOLOGY OF EVENT', marginX, currentY);
     currentY += 4;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const chronologyData = (report.chronology || []).map((c: any) => [
+    if (currentY > doc.internal.pageSize.getHeight() - 70) {
+        doc.addPage();
+        currentY = marginX;
+    }
+
+    const chronologyData = docData.chronology.map((c) => [
         c.time || '',
         c.description || ''
     ]);
@@ -433,9 +347,9 @@ export const generatePDF = async (
         currentY = doc.lastAutoTable.finalY + 8;
     };
 
-    addBoxSection('IV. POTENTIAL/ROOT CAUSE(S)', report.root_cause || '');
-    addBoxSection('V. CORRECTIVE ACTION(S)', report.action_taken || '');
-    addBoxSection('VI. PREVENTIVE ACTION(S)', report.preventive_action || '');
+    addBoxSection('IV. POTENTIAL/ROOT CAUSE(S)', docData.root_cause);
+    addBoxSection('V. CORRECTIVE ACTION(S)', docData.action_taken);
+    addBoxSection('VI. PREVENTIVE ACTION(S)', docData.preventive_action);
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
@@ -453,29 +367,29 @@ export const generatePDF = async (
     doc.setFont('helvetica', 'bold');
     doc.text('Location: ', marginX + 5, startSignatureY + 6);
     doc.setFont('helvetica', 'normal');
-    doc.text(report.branch || '-', marginX + 25, startSignatureY + 6);
+    doc.text(docData.branch || '-', marginX + 25, startSignatureY + 6);
 
     doc.setFont('helvetica', 'bold');
     doc.text('Date of Prepared: ', marginX + (contentWidth / 2) + 5, startSignatureY + 6);
     doc.setFont('helvetica', 'normal');
-    doc.text(formatDate(report.incident_date), marginX + (contentWidth / 2) + 38, startSignatureY + 6);
+    doc.text(docData.incident_date || '-', marginX + (contentWidth / 2) + 38, startSignatureY + 6);
 
     doc.line(marginX, startSignatureY + 15, marginX + contentWidth, startSignatureY + 15);
     doc.line(marginX + (contentWidth / 2), startSignatureY + 15, marginX + (contentWidth / 2), startSignatureY + 50);
 
     doc.text('Prepared by,', marginX + (contentWidth / 4), startSignatureY + 22, { align: 'center' });
-    doc.text(report.reporter_title || 'Controller Operation Airside', marginX + (contentWidth / 4), startSignatureY + 30, { align: 'center' });
+    doc.text(docData.reporter_title, marginX + (contentWidth / 4), startSignatureY + 30, { align: 'center' });
 
     if (signatureDataUrl) {
         doc.addImage(signatureDataUrl, 'PNG', marginX + (contentWidth / 4) - 15, startSignatureY + 31, 30, 10);
     }
 
     doc.setFont('helvetica', 'bold');
-    doc.text(`( ${report.reporter_name || '...................'} )`, marginX + (contentWidth / 4), startSignatureY + 46, { align: 'center' });
+    doc.text(`( ${docData.reporter_name || '...................'} )`, marginX + (contentWidth / 4), startSignatureY + 46, { align: 'center' });
 
     doc.setFont('helvetica', 'normal');
     doc.text('Acknowledge by,', marginX + contentWidth - (contentWidth / 4), startSignatureY + 22, { align: 'center' });
-    doc.text(report.acknowledge_label || 'Manager of Airside Service', marginX + contentWidth - (contentWidth / 4), startSignatureY + 30, { align: 'center' });
+    doc.text(docData.acknowledge_label, marginX + contentWidth - (contentWidth / 4), startSignatureY + 30, { align: 'center' });
 
     doc.setFont('helvetica', 'bold');
     doc.text('( ........................ )', marginX + contentWidth - (contentWidth / 4), startSignatureY + 46, { align: 'center' });
@@ -492,7 +406,7 @@ export const generatePDF = async (
 
     const blob = doc.output('blob');
     if (options.download !== false) {
-        saveAs(blob, options.filename || `Irregularity_Report_${report.flight_number || 'Ref'}.pdf`);
+        await saveBlob(blob, options.filename || `Irregularity_Report_${docData.flight_number || 'Ref'}.pdf`);
     }
     return blob;
 };
@@ -500,7 +414,7 @@ export const generatePDF = async (
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const generateWord = async (report: any, signatureDataUrl?: string | null, options: GenerateWordOptions = {}) => {
     const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, BorderStyle, ImageRun } = await import('docx');
-    const docData = normalizeWordReport(report);
+    const docData = normalizeIrregularityReport(report);
 
     const createBoldText = (text: string) => new TextRun({ text, bold: true });
 
@@ -519,34 +433,29 @@ export const generateWord = async (report: any, signatureDataUrl?: string | null
 
     const titleSection = [];
 
-    try {
-        const imageResponse = await fetch('/logo.png');
-        if (imageResponse.ok) {
-            const imageBuffer = await imageResponse.arrayBuffer();
-            titleSection.push(
-                new Paragraph({
-                    children: [
-                        new ImageRun({
-                            data: imageBuffer,
-                            transformation: {
-                                width: 140,
-                                height: 79,
-                            },
-                            type: 'png'
-                        })
-                    ],
-                    alignment: AlignmentType.LEFT,
-                    spacing: { after: 200 }
-                })
-            );
-        }
-    } catch (error) {
-        console.error("Failed to load logo", error);
+    const logoData = await resolveLogoData(options.logoData);
+    if (logoData) {
+        titleSection.push(
+            new Paragraph({
+                children: [
+                    new ImageRun({
+                        data: logoData,
+                        transformation: {
+                            width: 140,
+                            height: 79,
+                        },
+                        type: 'png'
+                    })
+                ],
+                alignment: AlignmentType.LEFT,
+                spacing: { after: 200 }
+            })
+        );
     }
 
     titleSection.push(
         new Paragraph({
-            children: [new TextRun({ text: report.doc_title || 'IRREGULARITY REPORT FORM', bold: true, color: '111827', size: 32 })],
+            children: [new TextRun({ text: docData.doc_title, bold: true, color: '111827', size: 32 })],
             alignment: AlignmentType.CENTER,
             spacing: { after: 100 }
         })
@@ -858,7 +767,7 @@ export const generateWord = async (report: any, signatureDataUrl?: string | null
                             new Paragraph({ text: "Acknowledge by,", spacing: { after: 50 }, alignment: AlignmentType.CENTER }),
                             new Paragraph({
                                 children: [
-                                    new TextRun({ text: report.acknowledge_label || "Manager of Airside Service", font: "Arial", size: 24 })
+                                    new TextRun({ text: docData.acknowledge_label, font: "Arial", size: 24 })
                                 ],
                                 alignment: AlignmentType.CENTER
                             }),
@@ -943,7 +852,7 @@ export const generateWord = async (report: any, signatureDataUrl?: string | null
 
     const blob = await Packer.toBlob(doc);
     if (options.download !== false) {
-        saveAs(blob, options.filename || getWordFilename(report));
+        await saveBlob(blob, options.filename || getWordFilename(report));
     }
     return blob;
 };

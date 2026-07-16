@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { type Report } from '@/types';
 import { AppleReportDetail } from './AppleReportDetail';
 import type { StatusUpdateDetails } from './ReportDetailView';
+import { buildReportDetailSnapshot, type LoadedReportComments } from '@/lib/report-comment-enrichment';
 
 export type { StatusUpdateDetails } from './ReportDetailView';
 
@@ -25,10 +26,7 @@ export function ReportDetailModal({
 }: ReportDetailModalProps) {
   const effectiveIsOpen = isOpen ?? !!initialReport;
   const [fullReport, setFullReport] = useState<Report | null>(null);
-  const [fastComments, setFastComments] = useState<{
-    reportId: string;
-    comments: Report['comments'];
-  } | null>(null);
+  const [fastComments, setFastComments] = useState<LoadedReportComments | null>(null);
 
   const reportId = initialReport?.id;
 
@@ -89,14 +87,9 @@ export function ReportDetailModal({
 
   if (!effectiveIsOpen || !initialReport) return null;
 
-  const base = fullReport?.id === initialReport.id ? fullReport : initialReport;
-  const currentComments = fastComments?.reportId === initialReport.id
-    ? fastComments.comments
-    : null;
-  // Prefer the fast comments; fall back to whatever the full report carried.
-  const displayReport: Report = currentComments
-    ? { ...base, comments: currentComments }
-    : base;
+  // Preloaded list comments render with the dialog. Background responses only
+  // replace them when they belong to the same report.
+  const displayReport = buildReportDetailSnapshot(initialReport, fullReport, fastComments);
 
   const handleStatus = onUpdateStatus
     ? async (id: string, status: string, notes?: string, evidenceUrl?: string, details?: StatusUpdateDetails) => {
