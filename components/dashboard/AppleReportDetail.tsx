@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { ImageOff, MessageSquare, RotateCcw } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Download, FileText, FileType2, ImageOff, Loader2, MessageSquare, RotateCcw } from 'lucide-react';
 import { AREA_LABELS } from '@/lib/constants/incident-areas';
 import { FormShell, Section } from '@/components/public-report/apple-form-shell';
 import { CommentInput } from '@/components/dashboard/reports/CommentInput';
@@ -129,6 +129,111 @@ function EvidenceGallery({ urls }: { urls: string[] }) {
       {urls.map((url, i) => (
         <EvidenceThumb key={url + i} url={url} index={i} />
       ))}
+    </div>
+  );
+}
+
+interface DocumentMetadata {
+  available: boolean;
+  docx_filename?: string;
+  pdf_filename?: string;
+}
+
+function ReportDocumentDownloads({ reportId, isJoumpa }: { reportId: string; isJoumpa: boolean }) {
+  const reportType = isJoumpa ? 'JOUMPA' : 'IRREGULARITY';
+  const [metadata, setMetadata] = useState<DocumentMetadata | null>(null);
+  const [loadingFormat, setLoadingFormat] = useState<'docx' | 'pdf' | null>(null);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const controller = new AbortController();
+    setMetadata(null);
+    setError('');
+    fetch(`/api/report-documents/${reportType}/${encodeURIComponent(reportId)}`, {
+      cache: 'no-store',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result?.error || 'Failed to load report documents');
+        setMetadata(result as DocumentMetadata);
+      })
+      .catch((fetchError) => {
+        if (fetchError instanceof DOMException && fetchError.name === 'AbortError') return;
+        setError(fetchError instanceof Error ? fetchError.message : 'Failed to load report documents');
+      });
+    return () => controller.abort();
+  }, [reportId, reportType]);
+
+  const download = async (format: 'docx' | 'pdf') => {
+    if (!metadata?.available || loadingFormat) return;
+    setLoadingFormat(format);
+    setError('');
+    try {
+      const response = await fetch(
+        `/api/report-documents/${reportType}/${encodeURIComponent(reportId)}/${format}`,
+        { cache: 'no-store' },
+      );
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result?.error || `Failed to download ${format.toUpperCase()}`);
+      }
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = format === 'docx'
+        ? (metadata.docx_filename || 'report.docx')
+        : (metadata.pdf_filename || 'report.pdf');
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : 'Download failed');
+    } finally {
+      setLoadingFormat(null);
+    }
+  };
+
+  const unavailable = metadata?.available === false;
+  const controlsDisabled = !metadata?.available || loadingFormat !== null;
+
+  return (
+    <div className="jm-documents" aria-live="polite">
+      <div className="jm-documents__actions">
+        <button
+          type="button"
+          className="jm-document-btn jm-document-btn--docx"
+          onClick={() => download('docx')}
+          disabled={controlsDisabled}
+          aria-label="Download the finalized DOCX document"
+        >
+          {loadingFormat === 'docx' ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
+          DOCX
+          <Download size={12} />
+        </button>
+        <button
+          type="button"
+          className="jm-document-btn jm-document-btn--pdf"
+          onClick={() => download('pdf')}
+          disabled={controlsDisabled}
+          aria-label="Download the finalized PDF document"
+        >
+          {loadingFormat === 'pdf' ? <Loader2 size={14} className="animate-spin" /> : <FileType2 size={14} />}
+          PDF
+          <Download size={12} />
+        </button>
+      </div>
+      <span className={error ? 'jm-documents__status jm-documents__status--error' : 'jm-documents__status'}>
+        {error
+          ? error
+          : metadata === null
+            ? 'Checking finalized documents…'
+            : unavailable
+              ? 'Documents not available'
+              : 'Final edited documents'}
+      </span>
     </div>
   );
 }
@@ -362,6 +467,7 @@ export function AppleReportDetail({ report, onClose, onUpdateStatus, onRefresh }
                   <span className="jm-badge">Ref · {report.reference_number}</span>
                 )}
               </div>
+              <ReportDocumentDownloads reportId={report.id} isJoumpa={isJoumpa} />
             </div>
 
             {isJoumpa ? <JoumpaBody report={report} /> : <IrregularityBody report={report} />}

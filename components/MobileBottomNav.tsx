@@ -153,7 +153,10 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
                         <nav className="mx-auto max-w-md pointer-events-auto relative">
                             <div className="absolute inset-0 rounded-[2rem] sm:rounded-[3rem] bg-white shadow-[0_8px_32px_rgba(0,0,0,0.12)] border border-gray-100/50" />
 
-                            <div className="relative flex items-center justify-between px-1 sm:px-2 h-[3.75rem] sm:h-[4.5rem]">
+                            <div
+                                className="relative grid items-center px-1 sm:px-2 h-[3.75rem] sm:h-[4.5rem]"
+                                style={{ gridTemplateColumns: `repeat(${navItems.length}, minmax(0, 1fr))` }}
+                            >
                                 {navItems.map((item, idx) => {
                                     const Icon = item.icon;
                                     const isMatch = item.href !== '#menu' && (pathname === item.href || pathname.startsWith(item.href + '/'));
@@ -166,8 +169,8 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
                                     const isActive = isBestMatch;
                                     if (item.isPrimary) {
                                         return (
-                                            <div key="primary" className="relative -top-2 sm:-top-3 px-1 sm:px-2">
-                                                <button onClick={() => router.push(item.href)} aria-label={item.label || 'Create report'}>
+                                            <div key="primary" className="relative -top-2 sm:-top-3 flex items-center justify-center">
+                                                <button type="button" onClick={() => router.push(item.href)} aria-label={item.label || 'Create report'}>
                                                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#0F172A] flex items-center justify-center text-white shadow-lg border-4 border-white transition-transform active:scale-90">
                                                         <PlusCircle size={24} strokeWidth={2} className="sm:hidden" />
                                                         <PlusCircle size={28} strokeWidth={2} className="hidden sm:block" />
@@ -180,6 +183,7 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
                                     return (
                                         <button
                                             key={item.href + idx}
+                                            type="button"
                                             onClick={() => {
                                                 if (item.href === '#menu') setIsMenuOpen(true);
                                                 else router.push(item.href);

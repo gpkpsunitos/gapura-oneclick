@@ -6,7 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import useSWR from 'swr';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks/use-auth';
-import { Search, Plus, Trash2, Pencil, ExternalLink, X, Loader2, ArrowUpDown, FileSpreadsheet, Download, Filter, ChevronDown } from 'lucide-react';
+import {
+  addAdvancedExcelTable,
+  configureExcelWorkbook,
+  excelDate,
+  excelHyperlink,
+  type ExcelColumnKind,
+} from '@/lib/excel-export-style';
+import { Search, Plus, Trash2, Pencil, ExternalLink, X, Loader2, ArrowUpDown, FileSpreadsheet, Filter, ChevronDown } from 'lucide-react';
 
 type Tab = 'weekly_report' | 'monthly_report' | 'survey_report' | 'reminder' | 'joumpa' | 'joumpa_uplifting' | 'rca';
 type FieldType = 'date' | 'text' | 'multiline' | 'url' | 'select';
@@ -132,24 +139,30 @@ async function exportToExcel(tab: (typeof TABS)[number], rows: OcsRecord[]) {
   const ExcelJS = await import('exceljs');
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet(tab.label);
-
-  ws.columns = tab.cols.map((c) => ({
-    header: c.label,
-    key: c.key,
-    width: c.type === 'multiline' ? 36 : c.type === 'url' ? 20 : 18,
-  }));
-
-  // header style
-  ws.getRow(1).eachCell((cell) => {
-    cell.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } };
-    cell.alignment = { vertical: 'middle', horizontal: 'center' };
-  });
-
-  rows.forEach((r) => {
-    const row: Record<string, string> = {};
-    tab.cols.forEach((c) => { row[c.key] = String(r[c.key] ?? ''); });
-    ws.addRow(row);
+  configureExcelWorkbook(wb, `Gapura Oneclick ${tab.label}`);
+  const kindFor = (type: FieldType): ExcelColumnKind => {
+    if (type === 'date') return 'date';
+    if (type === 'multiline') return 'multiline';
+    if (type === 'url') return 'url';
+    return 'text';
+  };
+  addAdvancedExcelTable({
+    workbook: wb,
+    worksheet: ws,
+    name: `OCS_${tab.id}_Table`,
+    columns: tab.cols.map((column) => ({
+      header: column.label,
+      kind: kindFor(column.type),
+      width: column.type === 'multiline' ? 40 : column.type === 'url' ? 32 : column.type === 'date' ? 15 : 20,
+    })),
+    rows: rows.map((record) => tab.cols.map((column) => {
+      const value = String(record[column.key] ?? '');
+      if (column.type === 'date') return excelDate(value);
+      if (column.type === 'url') return excelHyperlink(value, value || 'Open link');
+      return value;
+    })),
+    freezeRows: 1,
+    emptyMessage: `No ${tab.label.toLowerCase()} records available`,
   });
 
   const buf = await wb.xlsx.writeBuffer();

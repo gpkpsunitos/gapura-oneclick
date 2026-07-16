@@ -19,6 +19,7 @@ import { Report } from '@/types';
 import { cn } from '@/lib/utils';
 import { exportSingleReportToDocx } from '@/lib/reports-export';
 import { resolveAreaType } from '@/lib/report-normalization';
+import { StatusUpdateSuccessDialog } from '@/components/dashboard/StatusUpdateSuccessDialog';
 
 type AreaTag = 'CGO' | 'LANDSIDE' | 'AIRSIDE' | 'GENERAL' | 'GSE' | 'JOUMPA' | 'LANDSIDE & AIRSIDE';
 
@@ -181,6 +182,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
   const [statusEditor, setStatusEditor] = useState<StatusEditorState | null>(null);
   const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
   const [updatingStatusReportId, setUpdatingStatusReportId] = useState<string | null>(null);
+  const [statusUpdateSuccess, setStatusUpdateSuccess] = useState<ReportStatus | null>(null);
 
   const handleSort = useCallback((field: SortField) => {
     setPage(0);
@@ -284,6 +286,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
         remarksBy,
       });
       setStatusEditor(null);
+      setStatusUpdateSuccess(status);
     } catch (error) {
       setStatusUpdateError(error instanceof Error ? error.message : 'Failed to update report status.');
     } finally {
@@ -636,6 +639,12 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
         </div>,
         document.body,
       )}
+
+      <StatusUpdateSuccessDialog
+        open={statusUpdateSuccess !== null}
+        status={statusUpdateSuccess ?? ''}
+        onClose={() => setStatusUpdateSuccess(null)}
+      />
 
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-[var(--surface-4)] bg-[var(--surface-0)]">
         <div className="flex items-center gap-3">

@@ -1,0 +1,44 @@
+import { NextResponse } from 'next/server';
+import { authorizeReportDocumentRead } from '@/lib/report-document-access';
+import { isReportDocumentFormat, isReportDocumentType } from '@/lib/report-document-contract';
+import { downloadReportDocument, getReportDocumentBundle } from '@/lib/report-documents-server';
+
+function attachmentHeader(filename: string): string {
+  const ascii = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
+}
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ reportType: string; reportId: string; format: string }> },
+) {
+  try {
+    const resolved = await params;
+    const reportType = resolved.reportType.toUpperCase();
+    const reportId = decodeURIComponent(resolved.reportId);
+    const format = resolved.format.toLowerCase();
+    if (!isReportDocumentType(reportType) || !isReportDocumentFormat(format)) {
+      return NextResponse.json({ error: 'Invalid report document request' }, { status: 400 });
+    }
+
+    const access = await authorizeReportDocumentRead(reportType, reportId);
+    if (access.ok === false) return NextResponse.json({ error: access.error }, { status: access.status });
+
+    const bundle = await getReportDocumentBundle(reportType, reportId);
+    if (!bundle) return NextResponse.json({ error: 'Documents not available' }, { status: 404 });
+
+    const file = await downloadReportDocument(bundle, format);
+    return new Response(new Uint8Array(file.buffer), {
+      headers: {
+        'Content-Type': file.mimeType,
+        'Content-Length': String(file.buffer.length),
+        'Content-Disposition': attachmentHeader(file.filename),
+        'Cache-Control': 'private, no-store',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    });
+  } catch (error) {
+    console.error('[REPORT_DOCUMENTS_DOWNLOAD]', error);
+    return NextResponse.json({ error: 'Failed to download report document' }, { status: 500 });
+  }
+}

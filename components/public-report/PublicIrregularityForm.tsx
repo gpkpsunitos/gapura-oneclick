@@ -88,6 +88,7 @@ export default function PublicIrregularityForm({
   const [docEdits, setDocEdits] = useState<DocEdits | null>(null);
   const [createdReportId, setCreatedReportId] = useState<string | null>(null);
   const [createdReportData, setCreatedReportData] = useState<unknown>(null);
+  const [documentFinalizationToken, setDocumentFinalizationToken] = useState<string | null>(null);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -300,8 +301,16 @@ export default function PublicIrregularityForm({
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || 'Failed to submit report');
 
-      setCreatedReportId(data?.data?.id ? String(data.data.id) : null);
-      setCreatedReportData(data);
+      const reportId = data?.data?.id || data?.data?.original_id || data?.data?.sheet_id;
+      setCreatedReportId(reportId ? String(reportId) : null);
+      setDocumentFinalizationToken(
+        typeof data?.document_finalization_token === 'string'
+          ? data.document_finalization_token
+          : null,
+      );
+      const createdData = { ...data };
+      delete createdData.document_finalization_token;
+      setCreatedReportData(createdData);
       setDocEdits(buildDocEdits(stationCode, airlineValue));
       setStep(7);
     } catch (err) {
@@ -319,6 +328,7 @@ export default function PublicIrregularityForm({
     setFiles([]);
     setDocEdits(null);
     setCreatedReportId(null);
+    setDocumentFinalizationToken(null);
   };
 
   const body = step === 7 && docEdits ? (
@@ -328,8 +338,9 @@ export default function PublicIrregularityForm({
           docEdits={docEdits}
           setDocEdits={setDocEdits as React.Dispatch<React.SetStateAction<DocEdits>>}
           onFinish={handleFinish}
-          canPersist={mode === 'internal'}
+          reportType="IRREGULARITY"
           reportId={createdReportId}
+          finalizationToken={documentFinalizationToken}
         />
       </div>
     </div>

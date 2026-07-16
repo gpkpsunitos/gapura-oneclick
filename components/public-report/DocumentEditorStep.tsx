@@ -4,20 +4,20 @@ import { useRef, useState } from 'react';
 import { AlertTriangle, CheckCircle, Download, FileText, Loader2, PlusCircle, Trash2 } from 'lucide-react';
 import { SignaturePad, type SignaturePadHandle } from './SignaturePad';
 import {
-  EDITED_IRREGULARITY_DOCX_MARKER,
   generatePDF,
   generateWord,
-  persistEditedWordDocument,
 } from '@/lib/utils/document-generator';
 import type { DocEdits, TextDocEditKey } from './wizard-shared';
+import { finalizeReportDocuments } from '@/lib/report-documents-client';
+import type { ReportDocumentType } from '@/lib/report-document-contract';
 
 interface Props {
   docEdits: DocEdits;
   setDocEdits: React.Dispatch<React.SetStateAction<DocEdits>>;
-  onFinish: () => void;
-  /** Only reports created through the authenticated /api/reports flow can be patched with the saved docx. */
-  canPersist?: boolean;
+  onFinish: () => void | Promise<void>;
+  reportType: ReportDocumentType;
   reportId?: string | null;
+  finalizationToken?: string | null;
 }
 
 const FLIGHT_FIELDS_LEFT: Array<{ label: string; key: TextDocEditKey }> = [
@@ -42,9 +42,17 @@ const NARRATIVE_SECTIONS: Array<{ title: string; key: TextDocEditKey }> = [
   { title: 'VI. PREVENTIVE ACTION(S)', key: 'preventive_action' },
 ];
 
-export default function DocumentEditorStep({ docEdits, setDocEdits, onFinish, canPersist, reportId }: Props) {
+export default function DocumentEditorStep({
+  docEdits,
+  setDocEdits,
+  onFinish,
+  reportType,
+  reportId,
+  finalizationToken,
+}: Props) {
   const signatureRef = useRef<SignaturePadHandle | null>(null);
-  const [exporting, setExporting] = useState<'pdf' | 'word' | null>(null);
+  const finalizingRef = useRef(false);
+  const [exporting, setExporting] = useState<'pdf' | 'word' | 'finish' | null>(null);
   const [error, setError] = useState('');
 
   const set = <K extends TextDocEditKey>(key: K, value: string) => setDocEdits((prev) => ({ ...prev, [key]: value }));
@@ -68,15 +76,37 @@ export default function DocumentEditorStep({ docEdits, setDocEdits, onFinish, ca
       const signature = signatureRef.current?.getSignature() ?? null;
       const prefix = (docEdits.doc_title || 'Report').replace(/[^a-zA-Z0-9]+/g, '_');
       const filename = `${prefix}_${docEdits.flight_number || 'Ref'}.docx`;
-      const blob = await generateWord(docEdits, signature, { filename, download: true });
-
-      if (canPersist && reportId) {
-        const safeId = reportId.replace(/[^a-zA-Z0-9._-]+/g, '_');
-        await persistEditedWordDocument(reportId, blob, `${EDITED_IRREGULARITY_DOCX_MARKER}__${safeId}.docx`);
-      }
+      await generateWord(docEdits, signature, { filename, download: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create Word document.');
     } finally {
+      setExporting(null);
+    }
+  };
+
+  const handleFinish = async () => {
+    if (finalizingRef.current) return;
+    if (!reportId) {
+      setError('The report ID is unavailable. Please keep this window open and try again.');
+      return;
+    }
+
+    finalizingRef.current = true;
+    setExporting('finish');
+    setError('');
+    try {
+      await finalizeReportDocuments({
+        reportId,
+        reportType,
+        editedSnapshot: docEdits,
+        signatureDataUrl: signatureRef.current?.getSignature() ?? null,
+        finalizationToken,
+      });
+      await onFinish();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save final report documents.');
+    } finally {
+      finalizingRef.current = false;
       setExporting(null);
     }
   };
@@ -105,10 +135,10 @@ export default function DocumentEditorStep({ docEdits, setDocEdits, onFinish, ca
             {exporting === 'word' ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
             {exporting === 'word' ? 'Saving Word…' : 'Download Word'}
           </button>
-          <button type="button" onClick={onFinish} disabled={exporting !== null}
+          <button type="button" onClick={handleFinish} disabled={exporting !== null}
             className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-full text-sm font-bold shadow-md hover:bg-emerald-700 transition-all active:scale-95 disabled:opacity-50">
-            <CheckCircle className="w-4 h-4" />
-            Finish
+            {exporting === 'finish' ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+            {exporting === 'finish' ? 'Saving final documents…' : 'Finish'}
           </button>
         </div>
       </div>

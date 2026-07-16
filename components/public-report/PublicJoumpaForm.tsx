@@ -81,6 +81,8 @@ export default function PublicJoumpaForm({
   const [step, setStep] = useState(1);
   const [docEdits, setDocEdits] = useState<DocEdits | null>(null);
   const [createdReportData, setCreatedReportData] = useState<unknown>(null);
+  const [createdReportId, setCreatedReportId] = useState<string | null>(null);
+  const [documentFinalizationToken, setDocumentFinalizationToken] = useState<string | null>(null);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -248,7 +250,15 @@ export default function PublicJoumpaForm({
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d.error || 'Failed to submit JOUMPA report'); }
       const data = await res.json().catch(() => null);
 
-      setCreatedReportData(data);
+      const createdData = { ...(data || {}) };
+      delete createdData.document_finalization_token;
+      setCreatedReportData(createdData);
+      setCreatedReportId(data?.id ? String(data.id) : (data?.sheet_id ? String(data.sheet_id) : null));
+      setDocumentFinalizationToken(
+        typeof data?.document_finalization_token === 'string'
+          ? data.document_finalization_token
+          : null,
+      );
       setDocEdits(buildDocEdits(stationCode, airlinesValue));
       setStep(7);
     } catch (err) {
@@ -265,6 +275,8 @@ export default function PublicJoumpaForm({
     setForm({ ...EMPTY, report_by: defaultReporterName || '', reporter_email: defaultReporterEmail || '' });
     setFiles([]);
     setDocEdits(null);
+    setCreatedReportId(null);
+    setDocumentFinalizationToken(null);
   };
 
   const body = step === 7 && docEdits ? (
@@ -274,6 +286,9 @@ export default function PublicJoumpaForm({
           docEdits={docEdits}
           setDocEdits={setDocEdits as React.Dispatch<React.SetStateAction<DocEdits>>}
           onFinish={handleFinish}
+          reportType="JOUMPA"
+          reportId={createdReportId}
+          finalizationToken={documentFinalizationToken}
         />
       </div>
     </div>

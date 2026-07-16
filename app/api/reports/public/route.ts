@@ -7,6 +7,7 @@ import { checkDbRateLimit, getClientIpFromRequest } from '@/lib/security/rate-li
 import { linkEvidenceFilesToReport, normalizeEvidenceSubmissionId, validateEvidenceForReport } from '@/lib/evidence-files';
 import { findRegisteredUserByEmail } from '@/lib/user-lookup';
 import type { Report } from '@/types';
+import { signReportDocumentToken } from '@/lib/report-document-token';
 
 export async function POST(request: Request) {
   try {
@@ -170,7 +171,18 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ success: true, message: 'Laporan berhasil dikirim', data: newReport }, { status: 201 });
+    const reportId = String(newReport.id || newReport.original_id || newReport.sheet_id || '');
+    const documentFinalizationToken = await signReportDocumentToken({
+      reportId,
+      reportType: 'IRREGULARITY',
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: 'Laporan berhasil dikirim',
+      data: newReport,
+      document_finalization_token: documentFinalizationToken,
+    }, { status: 201 });
   } catch {
     return NextResponse.json({ error: 'Gagal mengirim laporan' }, { status: 500 });
   }

@@ -1,0 +1,92 @@
+<style>
+  .pdf-preview { max-width: 1160px; margin: 0 auto; }
+  .pdf-preview .intro { max-width: 800px; margin-bottom: 26px; }
+  .pages { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:24px; align-items:start; }
+  .page-wrap { padding:18px; border-radius:16px; background:#e8efec; }
+  .paper { aspect-ratio:1.414/1; padding:22px 24px 16px; background:#fff; color:#17202a; border:1px solid #dbe4e1; box-shadow:0 16px 36px rgba(15,23,42,.14); font-family:Arial,sans-serif; overflow:hidden; }
+  .paper-head { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; padding-bottom:10px; border-bottom:2px solid #118172; }
+  .brand { display:flex; align-items:center; gap:7px; min-width:122px; }
+  .brand-mark { position:relative; width:28px; height:36px; }
+  .brand-mark i { position:absolute; left:6px; width:16px; height:16px; border:5px solid #83c960; border-radius:5px; transform:rotate(45deg); }
+  .brand-mark i:first-child { top:1px; }.brand-mark i:last-child { bottom:1px; }
+  .brand-name { font-size:15px; font-weight:800; letter-spacing:-.05em; line-height:.9; }
+  .brand-name small { display:block; margin-top:4px; font-size:4.3px; letter-spacing:.12em; color:#64748b; }
+  .title-block { flex:1; text-align:right; }
+  .title-block h3 { margin:0; font-size:13px; letter-spacing:-.02em; }
+  .title-block p { margin:3px 0 0; font-size:5.8px; color:#64748b; }
+  .doc-strip { display:flex; justify-content:space-between; gap:10px; margin:8px 0; padding:6px 7px; border-radius:4px; background:#f1f7f5; font-size:5.4px; color:#475569; }
+  .report-head { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:7px; }
+  .eyebrow { font-size:5px; font-weight:800; color:#0f766e; letter-spacing:.11em; text-transform:uppercase; }
+  .report-head h4 { margin:2px 0 0; font-size:10px; }
+  .badges { display:flex; gap:4px; }
+  .badge { padding:3px 5px; border-radius:999px; font-size:4.8px; font-weight:800; white-space:nowrap; }
+  .status { background:#e5f5ee; color:#087a55; }.risk { background:#fff0f1; color:#be123c; }
+  .facts { display:grid; grid-template-columns:repeat(4,1fr); border:1px solid #dce5e2; border-radius:5px; overflow:hidden; }
+  .fact { padding:5px 6px; border-right:1px solid #e3eae8; border-bottom:1px solid #e3eae8; min-width:0; }
+  .fact:nth-child(4n) { border-right:0; }.fact:nth-last-child(-n+4) { border-bottom:0; }
+  .fact b,.field b { display:block; margin-bottom:2px; color:#718078; font-size:4.5px; text-transform:uppercase; letter-spacing:.08em; }
+  .fact span { display:block; font-size:5.6px; font-weight:700; overflow-wrap:anywhere; }
+  .section { margin-top:7px; }
+  .section-title { display:flex; align-items:center; gap:5px; margin-bottom:4px; color:#0f766e; font-size:5.3px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+  .section-title::after { content:""; height:1px; flex:1; background:#dbe5e2; }
+  .body-copy { margin:0; font-size:5.5px; line-height:1.5; color:#334155; white-space:pre-line; }
+  .field-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px; }
+  .field { min-height:30px; padding:5px 6px; border-radius:4px; background:#f7f9f8; }
+  .field p { margin:0; font-size:5.1px; line-height:1.42; color:#334155; }
+  .list { margin:0; padding-left:11px; font-size:5.1px; line-height:1.5; color:#334155; }
+  .link { color:#0f766e; text-decoration:underline; overflow-wrap:anywhere; }
+  .comment { margin-top:4px; padding:5px 6px; border-left:2px solid #83c960; background:#f7faf6; }
+  .comment b { font-size:5px; }.comment p { margin:2px 0 0; font-size:5px; color:#475569; }
+  .continuation { margin:6px 0; padding:4px 6px; border:1px dashed #a9bbb5; border-radius:4px; color:#64748b; font-size:5px; text-align:center; }
+  .page-foot { display:flex; justify-content:space-between; margin-top:8px; padding-top:5px; border-top:1px solid #dbe5e2; color:#94a3b8; font-size:4.7px; }
+  .design-note { margin-top:22px; padding:16px 18px; border:1px solid #d4e5df; border-radius:14px; background:#f2faf7; color:#315a50; }
+  .design-note h3 { margin:0 0 6px; font-size:14px; }.design-note p { margin:0; font-size:12px; line-height:1.6; }
+  @media(max-width:900px){.pages{grid-template-columns:1fr}.paper{min-height:530px;aspect-ratio:auto}}
+</style>
+
+<div class="pdf-preview">
+  <div class="intro">
+    <h2>Complete-detail PDF with Gapura branding</h2>
+    <p class="subtitle">Revised direction: every available user-facing field is organized into readable sections. Blank fields are hidden, while long sections continue safely onto the next page.</p>
+  </div>
+
+  <div class="pages">
+    <div class="page-wrap"><div class="paper">
+      <div class="paper-head">
+        <div class="brand"><span class="brand-mark"><i></i><i></i></span><span class="brand-name">Gapura<small>AIRPORT SERVICES</small></span></div>
+        <div class="title-block"><h3>IRRS All Reports Export</h3><p>Complete operational report archive</p></div>
+      </div>
+      <div class="doc-strip"><span>01 Jul 2026 - 16 Jul 2026 · All branches · All airlines</span><b>Report 02 of 24</b></div>
+      <div class="report-head"><div><span class="eyebrow">Incident report · IP302</span><h4>Ringkasan Kejadian</h4></div><div class="badges"><span class="badge status">CLOSED</span><span class="badge risk">HIGH RISK</span></div></div>
+      <div class="facts">
+        <div class="fact"><b>Event date</b><span>12 Jul 2026</span></div><div class="fact"><b>Branch</b><span>CGK</span></div><div class="fact"><b>Airline</b><span>Pelita Air</span></div><div class="fact"><b>Classification</b><span>Baggage</span></div>
+        <div class="fact"><b>Flight</b><span>IP302</span></div><div class="fact"><b>Route</b><span>CGK - KNO</span></div><div class="fact"><b>Aircraft reg.</b><span>PK-PXX</span></div><div class="fact"><b>Location</b><span>Make-up Area</span></div>
+      </div>
+      <div class="section"><div class="section-title">Report narrative</div><p class="body-copy">B. RINGKASAN KEJADIAN
+Terjadi misroute 1 (satu) bagasi seberat 12 kg dengan Tag Number (TN) 3643, yang seharusnya dikirim ke Kualanamu namun secara tidak sengaja terinput dan terkirim ke Pontianak.
+
+C. KRONOLOGIS KEJADIAN
+09.56 LT - Penumpang melakukan proses check-in. Petugas melakukan input bagasi dan memastikan data tujuan penerbangan.</p></div>
+      <div class="section"><div class="section-title">Classification details</div><div class="field-grid"><div class="field"><b>Area / category</b><p>Terminal Area · Baggage Handling</p></div><div class="field"><b>Source / business type</b><p>Manual · Full Service</p></div></div></div>
+      <div class="section"><div class="section-title">Root cause and response</div><div class="field-grid"><div class="field"><b>Root cause</b><p>Input was made against the incorrect booking destination.</p></div><div class="field"><b>Immediate action</b><p>Bag traced, intercepted, and redirected to the correct destination.</p></div></div></div>
+      <div class="continuation">Report IP302 continues on the next page</div>
+      <div class="page-foot"><span>IRRS · Internal operational document</span><span>Page 3 of 19</span></div>
+    </div></div>
+
+    <div class="page-wrap"><div class="paper">
+      <div class="paper-head">
+        <div class="brand"><span class="brand-mark"><i></i><i></i></span><span class="brand-name">Gapura<small>AIRPORT SERVICES</small></span></div>
+        <div class="title-block"><h3>IRRS All Reports Export</h3><p>Report IP302 · Continued</p></div>
+      </div>
+      <div class="doc-strip"><span>Complete detail continuation</span><b>Report 02 of 24</b></div>
+      <div class="section"><div class="section-title">Corrective and preventive action</div><div class="field-grid"><div class="field"><b>Action taken</b><p>Coordinated with baggage handling and destination station. Updated the case status after confirmation.</p></div><div class="field"><b>Preventive action</b><p>Re-brief check-in personnel and require destination verification before baggage-tag confirmation.</p></div><div class="field"><b>Gapura / KPS remarks</b><p>Corrective briefing completed and recorded by the responsible unit.</p></div><div class="field"><b>Partner response</b><p>Airline acknowledged the handling and closure evidence.</p></div></div></div>
+      <div class="section"><div class="section-title">Investigation and validation</div><div class="field-grid"><div class="field"><b>Investigator notes</b><p>Sequence and booking record were reviewed against the operational chronology.</p></div><div class="field"><b>Manager notes</b><p>Case may be closed after preventive action is documented.</p></div><div class="field"><b>Validation notes</b><p>Evidence and response were verified on 14 Jul 2026.</p></div><div class="field"><b>Target division</b><p>Operational Services</p></div></div></div>
+      <div class="section"><div class="section-title">Evidence</div><ul class="list"><li><span class="link">Photo - baggage tag 3643.jpg</span></li><li><span class="link">Partner confirmation.pdf</span></li><li>2 supporting files · clickable links in exported PDF</li></ul></div>
+      <div class="section"><div class="section-title">Comments and activity</div><div class="comment"><b>Andi Pratama · 13 Jul 2026, 10:42</b><p>Please confirm the preventive briefing and attach supporting evidence.</p></div><div class="comment"><b>Siti Rahma · 14 Jul 2026, 08:15</b><p>Briefing evidence uploaded. Case is ready for final validation.</p></div></div>
+      <div class="section"><div class="section-title">Reporter and timeline</div><div class="facts"><div class="fact"><b>Reporter</b><span>Operations Staff</span></div><div class="fact"><b>Email</b><span>staff@gapura.id</span></div><div class="fact"><b>Created</b><span>12 Jul · 10:04</span></div><div class="fact"><b>Updated</b><span>14 Jul · 08:20</span></div><div class="fact"><b>Resolved</b><span>14 Jul · 09:10</span></div><div class="fact"><b>SLA deadline</b><span>15 Jul · 17:00</span></div><div class="fact"><b>Priority</b><span>High</span></div><div class="fact"><b>Source</b><span>Manual</span></div></div></div>
+      <div class="page-foot"><span>IRRS · Internal operational document</span><span>Page 4 of 19</span></div>
+    </div></div>
+  </div>
+
+  <div class="design-note"><h3>Complete, but still readable</h3><p>The exporter will include all populated operational fields, evidence links, comments, and timestamps for every report. Internal database IDs, spreadsheet fingerprints, and sync-only metadata stay out of the designed PDF unless you explicitly request a technical appendix.</p></div>
+</div>

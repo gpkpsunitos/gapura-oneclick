@@ -1,10 +1,15 @@
 
 import { saveAs } from 'file-saver';
-import { Report } from '@/types';
+import type { Report } from '@/types';
 
 export const EDITED_IRREGULARITY_DOCX_MARKER = 'IRREGULARITY_REPORT_EDITED';
 
 interface GenerateWordOptions {
+    download?: boolean;
+    filename?: string;
+}
+
+interface GeneratePDFOptions {
     download?: boolean;
     filename?: string;
 }
@@ -244,8 +249,12 @@ const normalizeWordReport = (report: any) => {
     };
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const generatePDF = async (report: any, signatureDataUrl?: string | null) => {
+export const generatePDF = async (
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    report: any,
+    signatureDataUrl?: string | null,
+    options: GeneratePDFOptions = {},
+) => {
     const { default: jsPDF } = await import('jspdf');
     const { default: autoTable } = await import('jspdf-autotable');
     const doc = new jsPDF();
@@ -481,7 +490,11 @@ export const generatePDF = async (report: any, signatureDataUrl?: string | null)
     doc.setFont('helvetica', 'bold');
     doc.text('F-OP-02', marginX, currentY);
 
-    doc.save(`Irregularity_Report_${report.flight_number || 'Ref'}.pdf`);
+    const blob = doc.output('blob');
+    if (options.download !== false) {
+        saveAs(blob, options.filename || `Irregularity_Report_${report.flight_number || 'Ref'}.pdf`);
+    }
+    return blob;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

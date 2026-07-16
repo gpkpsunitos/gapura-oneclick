@@ -4,6 +4,7 @@ import { linkEvidenceFilesToReport, normalizeEvidenceSubmissionId, validateEvide
 import { JoumpaSyncService } from '@/lib/services/joumpa-sync-service';
 import { findRegisteredUserByEmail } from '@/lib/user-lookup';
 import type { JoumpaFormInput } from '@/lib/joumpa/mapping';
+import { signReportDocumentToken } from '@/lib/report-document-token';
 
 const REQUIRED: Array<keyof JoumpaFormInput> = [
   'date_of_event',
@@ -93,7 +94,17 @@ export async function POST(request: Request) {
       console.error('[Public JOUMPA] Evidence link failed (non-blocking):', linkError);
     }
 
-    return NextResponse.json({ success: true, id: row.id, sheet_id: row.sheet_id }, { status: 201 });
+    const documentFinalizationToken = await signReportDocumentToken({
+      reportId: row.id,
+      reportType: 'JOUMPA',
+    });
+
+    return NextResponse.json({
+      success: true,
+      id: row.id,
+      sheet_id: row.sheet_id,
+      document_finalization_token: documentFinalizationToken,
+    }, { status: 201 });
   } catch (error) {
     console.error('[Public JOUMPA] Create failed:', error);
     return NextResponse.json({ error: 'Gagal mengirim laporan JOUMPA' }, { status: 500 });

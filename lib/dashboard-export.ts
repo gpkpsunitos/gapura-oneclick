@@ -3,6 +3,13 @@
 'use client';
 
 import type { QueryResult } from '@/types/builder';
+import {
+  addAdvancedExcelTable,
+  configureExcelWorkbook,
+  styleExcelSectionHeader,
+  styleExcelTitle,
+  type AdvancedExcelColumn,
+} from '@/lib/excel-export-style';
 
 const GAPURA_GREEN = '6b8e3d';
 const GAPURA_BANNER = '5a7a3a';
@@ -112,118 +119,79 @@ function buildDetailUrl(payload: ExportPayload, tile: TileData): string {
 export async function exportToXlsx(payload: ExportPayload): Promise<void> {
   const exceljs = await import('exceljs');
   const workbook = new exceljs.Workbook();
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const headerStyle: any = {
-    font: { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 },
-    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GAPURA_BANNER } },
-    alignment: { horizontal: 'center', vertical: 'middle' },
-    border: {
-      top: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-      bottom: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-      left: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-      right: { style: 'thin', color: { argb: 'FFCCCCCC' } },
-    },
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const cellBorder: any = {
-    top: { style: 'thin', color: { argb: 'FFE0E0E0' } },
-    bottom: { style: 'thin', color: { argb: 'FFE0E0E0' } },
-    left: { style: 'thin', color: { argb: 'FFE0E0E0' } },
-    right: { style: 'thin', color: { argb: 'FFE0E0E0' } },
-  };
+  configureExcelWorkbook(workbook, `Gapura Oneclick Dashboard - ${payload.dashboardName}`);
 
   for (const page of payload.pages) {
     const safeName = page.name.replace(/[\\/*?[\]]/g, '').slice(0, 31) || 'Sheet';
     const worksheet = workbook.addWorksheet(safeName);
-
-    // Page title
-    const titleRow = worksheet.addRow([`${payload.dashboardName} — ${page.name}`]);
-    titleRow.getCell(1).font = { bold: true, size: 14, color: { argb: 'FF' + GAPURA_GREEN } };
-    
-    // Subtitle
-    if (payload.subtitle) {
-      const subtitleRow = worksheet.addRow([payload.subtitle]);
-      subtitleRow.getCell(1).font = { italic: true, size: 10, color: { argb: 'FF888888' } };
-    }
-
-    worksheet.addRow([]); // Empty separator
+    worksheet.addRow([]);
+    if (payload.subtitle) worksheet.addRow([payload.subtitle]);
+    worksheet.addRow([]);
 
     let maxCols = 1;
 
     for (const tile of page.tiles) {
       const cr = payload.chartsData.get(tile.id);
       if (!cr) continue;
-
-      // Tile title
       const tileTitleRow = worksheet.addRow([tile.title]);
-      tileTitleRow.getCell(1).style = {
-        font: { bold: true, size: 12, color: { argb: 'FFFFFFFF' } },
-        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF' + GAPURA_GREEN } },
-        alignment: { horizontal: 'left' },
-      };
 
       if (cr.queryResult) {
         const cols = cr.queryResult.columns;
         if (cols.length > maxCols) maxCols = cols.length;
-
-        // Header row
-        const headerRow = worksheet.addRow(cols.map(c => formatCol(c)));
-        headerRow.eachCell(cell => { cell.style = headerStyle; });
-
-        // Data rows
         const rows = cr.queryResult.rows as Record<string, unknown>[];
-        for (const row of rows) {
-          const dataRow = worksheet.addRow(cols.map(c => {
-            const val = row[c];
+        const tableColumns: AdvancedExcelColumn[] = cols.map((column) => {
+          const values = rows.map((row) => row[column]).filter((value) => value !== null && value !== '');
+          const isNumeric = values.length > 0 && values.every((value) => Number.isFinite(Number(value)) && typeof value !== 'boolean');
+          return {
+            header: formatCol(column),
+            kind: isNumeric ? 'number' : 'text',
+            maxWidth: isNumeric ? 16 : 32,
+          };
+        });
+        addAdvancedExcelTable({
+          workbook,
+          worksheet,
+          name: `${safeName}_${tile.title}_Table`,
+          startRow: worksheet.rowCount + 1,
+          freezeRows: payload.subtitle ? 3 : 2,
+          columns: tableColumns,
+          rows: rows.map((row) => cols.map((column) => {
+            const val = row[column];
             const numVal = Number(val);
             const isNum = !isNaN(numVal) && val !== null && val !== '' && typeof val !== 'boolean';
-            return isNum ? numVal : (val ?? '');
-          }));
-          dataRow.eachCell((cell, colNumber) => {
-            const isNum = typeof cell.value === 'number';
-            cell.style = {
-              border: cellBorder,
-              alignment: { horizontal: isNum ? 'center' : 'left' },
-              font: { size: 10 },
-            };
-          });
-        }
+            if (isNum) return numVal;
+            if (val instanceof Date || typeof val === 'string' || typeof val === 'boolean') return val;
+            return val === null || val === undefined ? '' : String(val);
+          })),
+          emptyMessage: `No data available for ${tile.title}`,
+        });
       } else if (cr.stats) {
         if (3 > maxCols) maxCols = 3;
-        const headerRow = worksheet.addRow(['Nama', 'Jumlah', 'Persentase']);
-        headerRow.eachCell(cell => { cell.style = headerStyle; });
-
-        for (const item of cr.stats.distribution) {
-          const dataRow = worksheet.addRow([item.name, item.count, `${item.percentage}%`]);
-          dataRow.eachCell((cell, colNumber) => {
-              const isNum = typeof cell.value === 'number';
-              cell.style = {
-                  border: cellBorder,
-                  alignment: { horizontal: isNum ? 'center' : 'left' },
-                  font: { size: 10 },
-              };
-          });
-        }
+        addAdvancedExcelTable({
+          workbook,
+          worksheet,
+          name: `${safeName}_${tile.title}_Distribution`,
+          startRow: worksheet.rowCount + 1,
+          freezeRows: payload.subtitle ? 3 : 2,
+          columns: [
+            { header: 'Name', kind: 'text', width: 28 },
+            { header: 'Count', kind: 'number', width: 14 },
+            { header: 'Percentage', kind: 'percentage', width: 16 },
+          ],
+          rows: cr.stats.distribution.map((item) => [item.name, item.count, item.percentage / 100]),
+          emptyMessage: `No data available for ${tile.title}`,
+        });
       }
-
-      worksheet.addRow([]); // Separator
-      
-      // Merge tile titles across relevant columns
-      const currentLastRow = worksheet.rowCount;
-      const tileTitleRowNum = currentLastRow - (cr.queryResult ? cr.queryResult.rows.length + 2 : (cr.stats ? cr.stats.distribution.length + 2 : 1));
-      // worksheet.mergeCells(tileTitleRowNum, 1, tileTitleRowNum, Math.max(1, cr.queryResult?.columns.length || (cr.stats ? 3 : 1)));
-      // Note: merging in a loop like this can be tricky. Simplified for now.
+      styleExcelSectionHeader(worksheet, tileTitleRow.number, 1, maxCols, tile.title);
+      worksheet.addRow([]);
     }
 
-    // Merge title row across all columns
-    if (maxCols > 1) {
-      worksheet.mergeCells(1, 1, 1, maxCols);
+    styleExcelTitle(worksheet, 1, 1, maxCols, `${payload.dashboardName} - ${page.name}`);
+    if (payload.subtitle) {
+      if (maxCols > 1) worksheet.mergeCells(2, 1, 2, maxCols);
+      worksheet.getCell(2, 1).font = { name: 'Aptos', italic: true, size: 10, color: { argb: 'FF64748B' } };
+      worksheet.getCell(2, 1).alignment = { vertical: 'middle', indent: 1 };
     }
-
-    // Column widths
-    worksheet.columns = Array.from({ length: maxCols }, () => ({ width: 22 }));
   }
 
   const buffer = await workbook.xlsx.writeBuffer();

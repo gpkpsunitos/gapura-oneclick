@@ -11,6 +11,7 @@ import { canChangeReportStatus } from '@/lib/constants/report-status';
 import { JOUMPA_SHEET_ID, JOUMPA_SHEET_NAME } from '@/lib/joumpa/mapping';
 import { isJoumpaReportSource } from '@/lib/joumpa/status-update';
 import { JoumpaSyncService } from '@/lib/services/joumpa-sync-service';
+import { canViewReport } from '@/lib/report-access';
 
 function normalizeAccessValue(value: unknown): string {
     return String(value || '').trim().toLowerCase();
@@ -61,25 +62,8 @@ export async function GET(
             return NextResponse.json({ error: 'Report not found' }, { status: 404 });
         }
 
-        if (payload.role === 'STAFF_CABANG') {
-            const payloadEmail = normalizeAccessValue(payload.email);
-            const payloadName = normalizeAccessValue(payload.full_name);
-            const reportEmail = normalizeAccessValue(report.reporter_email);
-            const reportName = normalizeAccessValue(report.reporter_name);
-            const canAccessOwnReport = Boolean(
-                report.user_id === payload.id ||
-                (payload.station_id && report.station_id === payload.station_id) ||
-                (payloadEmail && reportEmail === payloadEmail) ||
-                (payloadName && reportName === payloadName)
-            );
-
-            if (!canAccessOwnReport) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-            }
-        } else if (payload.role === 'MANAGER_CABANG') {
-            if (report.station_id !== payload.station_id) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-            }
+        if (!canViewReport(payload, report)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
         const commentIds = [id, report.original_id].filter((val): val is string => !!val);

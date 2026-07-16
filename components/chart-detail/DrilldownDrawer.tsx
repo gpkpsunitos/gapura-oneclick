@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { Report } from '@/types';
 import { normalizeSeverityLevel } from '@/lib/constants/report-status';
+import { StatusUpdateSuccessDialog } from '@/components/dashboard/StatusUpdateSuccessDialog';
 
 interface DrilldownDrawerProps {
   isOpen: boolean;
@@ -45,6 +46,8 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
   const [expandedRows, setExpandedRows] = useState<Record<string, boolean>>({});
   const [statusForms, setStatusForms] = useState<Record<string, StatusFormState>>({});
   const [showStatusForm, setShowStatusForm] = useState<Record<string, boolean>>({});
+  const [statusOverrides, setStatusOverrides] = useState<Record<string, string>>({});
+  const [statusUpdateSuccess, setStatusUpdateSuccess] = useState<{ rowKey: string; status: string } | null>(null);
   const [riskFilter, setRiskFilter] = useState<RiskDrawerFilter>('TOP RISK');
 
   const isRiskSelectorDrawer = /top risk/i.test(title) && /high risk/i.test(title);
@@ -73,7 +76,13 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Escape') return;
+      if (statusUpdateSuccess) {
+        setStatusUpdateSuccess(null);
+        setShowStatusForm((previous) => ({ ...previous, [statusUpdateSuccess.rowKey]: false }));
+        return;
+      }
+      onClose();
     };
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -85,7 +94,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
       document.body.style.overflow = '';
       window.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, statusUpdateSuccess]);
 
   const getText = (record: DrawerRecord, keys: string[], fallback = '-'): string => {
     for (const key of keys) {
@@ -175,7 +184,8 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
       });
       if (res.ok) {
         setStatusForms(prev => ({ ...prev, [rowKey]: { ...prev[rowKey], loading: false, success: true } }));
-        setTimeout(() => setShowStatusForm(prev => ({ ...prev, [rowKey]: false })), 1800);
+        setStatusOverrides((previous) => ({ ...previous, [rowKey]: form.status }));
+        setStatusUpdateSuccess({ rowKey, status: form.status });
       } else {
         const payload = await res.json().catch(() => null) as { error?: unknown } | null;
         const apiError = typeof payload?.error === 'string' && payload.error.trim()
@@ -353,7 +363,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                   const eventDate = getText(record, ['date_of_event', 'Date of Event', 'Date_of_Event', 'created_at']);
                   const eventDateLabel = formatDate(eventDate);
                   const hub = getText(record, ['hub', 'HUB', 'kode_hub']);
-                  const status = getText(record, ['status', 'Status']);
+                  const status = statusOverrides[rowKey] ?? getText(record, ['status', 'Status']);
                   const delayCode = getText(record, ['delay_code', 'Delay Code', 'Delay_Code']);
                   const actionTaken = getText(record, ['action_taken', 'Action Taken', 'Action_Taken'], '-');
                   const preventiveAction = getText(record, ['preventive_action', 'Preventive Action', 'Preventive_Action'], '-');
@@ -486,7 +496,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                       {}
                       <div className="p-5">
                         {}
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3 lg:grid-cols-6 mb-4">
+                        <div className="mb-3 grid grid-cols-2 gap-x-6 gap-y-3 sm:grid-cols-3">
                           {[
                             { icon: Plane, label: 'Airline', val: airline },
                             { icon: Route, label: 'Route', val: route },
@@ -500,20 +510,21 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                               <div className="text-sm font-bold text-slate-800 leading-tight break-words">{val}</div>
                             </div>
                           ))}
-                          <div className="col-span-2 sm:col-span-1 lg:col-span-3 flex flex-wrap gap-1.5 items-center">
-                            <span className={`inline-flex items-center rounded-full border px-3 py-1.5 text-[12px] font-bold ${getCategoryChipTone(category)}`}>
-                              {category}
-                            </span>
-                            {areaCategoryItems.map((item) => {
-                              const tone = getAreaChipTone(item.label);
-                              return (
-                                <span key={item.label} className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[12px] ${tone.wrap}`}>
-                                  <span className={`font-black text-[10px] uppercase tracking-wide ${tone.label}`}>{item.label}</span>
-                                  <span className={`font-bold ${tone.value}`}>{item.value}</span>
-                                </span>
-                              );
-                            })}
-                          </div>
+                        </div>
+
+                        <div className="mb-4 flex min-w-0 flex-col gap-1.5">
+                          <span className={`flex w-full min-w-0 items-center whitespace-nowrap rounded-full border px-3 py-1.5 font-bold leading-none ${getCategoryChipTone(category)}`}>
+                            <span className="text-[clamp(10px,1.25vw,12px)]">{category}</span>
+                          </span>
+                          {areaCategoryItems.map((item) => {
+                            const tone = getAreaChipTone(item.label);
+                            return (
+                              <span key={item.label} className={`flex w-full min-w-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 leading-none ${tone.wrap}`}>
+                                <span className={`shrink-0 text-[10px] font-black uppercase tracking-wide ${tone.label}`}>{item.label}</span>
+                                <span className={`min-w-0 text-[clamp(10px,1.25vw,12px)] font-bold ${tone.value}`}>{item.value}</span>
+                              </span>
+                            );
+                          })}
                         </div>
 
                         {}
@@ -625,6 +636,17 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
               </div>
             </div>
           </motion.div>
+
+          <StatusUpdateSuccessDialog
+            open={statusUpdateSuccess !== null}
+            status={statusUpdateSuccess?.status ?? ''}
+            onClose={() => {
+              if (statusUpdateSuccess) {
+                setShowStatusForm((previous) => ({ ...previous, [statusUpdateSuccess.rowKey]: false }));
+              }
+              setStatusUpdateSuccess(null);
+            }}
+          />
         </>
       )}
     </AnimatePresence>,

@@ -42,6 +42,7 @@ import { SignaturePad } from '@/components/public-report/SignaturePad';
 import PublicJoumpaForm from '@/components/public-report/PublicJoumpaForm';
 import PublicIrregularityForm from '@/components/public-report/PublicIrregularityForm';
 import { generatePDF, generateWord } from '@/lib/utils/document-generator';
+import { finalizeReportDocuments } from '@/lib/report-documents-client';
 import { toLocalDateInput } from './apple-form-shell';
 import {
   normalizeFlightNumber,
@@ -133,7 +134,9 @@ export function PublicReportWizard() {
   const [quickAccessSessionId, setQuickAccessSessionId] = useState<string | null>(null);
   const externalLinks = useExternalLinks();
   const [signatureDataUrl, setSignatureDataUrl] = useState<string | null>(null);
-  const [exportLoading, setExportLoading] = useState<'pdf' | 'docx' | null>(null);
+  const finalizingDocumentsRef = useRef(false);
+  const [exportLoading, setExportLoading] = useState<'pdf' | 'docx' | 'finish' | null>(null);
+  const [documentFinalizationToken, setDocumentFinalizationToken] = useState<string | null>(null);
   const [docEdits, setDocEdits] = useState<DocEdits>({
     reference_no: '',
     to: '',
@@ -1000,6 +1003,11 @@ export function PublicReportWizard() {
       if (!res.ok) {
         throw new Error(data?.error || 'Failed to submit report');
       }
+      setDocumentFinalizationToken(
+        typeof data?.document_finalization_token === 'string'
+          ? data.document_finalization_token
+          : null,
+      );
 
       const month = new Date(formData.incident_date).toLocaleDateString('id-ID', { month: 'short' }).toUpperCase();
       const year = new Date(formData.incident_date).getFullYear();
@@ -1094,6 +1102,28 @@ export function PublicReportWizard() {
     }
   };
 
+  const handleFinishDocuments = async () => {
+    if (finalizingDocumentsRef.current || !createdReport?.id) return;
+    finalizingDocumentsRef.current = true;
+    setExportLoading('finish');
+    setError('');
+    try {
+      await finalizeReportDocuments({
+        reportId: String(createdReport.id),
+        reportType: 'IRREGULARITY',
+        editedSnapshot: structuredClone(docEdits),
+        signatureDataUrl,
+        finalizationToken: documentFinalizationToken,
+      });
+      setSuccess(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save final report documents.');
+    } finally {
+      finalizingDocumentsRef.current = false;
+      setExportLoading(null);
+    }
+  };
+
   /**
    * Menyalin teks ke clipboard
    * @param text - Teks yang akan disalin
@@ -1120,6 +1150,7 @@ export function PublicReportWizard() {
     setDuplicateCheckDone(false);
     setUploadToken(null);
     setCreatedReport(null);
+    setDocumentFinalizationToken(null);
     setSubmissionMode('submitted');
     setFormData(initialFormData);
     setDelayChoice('no');
@@ -2463,6 +2494,14 @@ export function PublicReportWizard() {
                         >
                           {exportLoading === 'pdf' ? <Loader2 size={16} className="animate-spin" /> : <span aria-hidden="true">↓</span>}
                           PDF
+                        </PrismButton>
+                        <PrismButton
+                          onClick={handleFinishDocuments}
+                          disabled={exportLoading !== null || !createdReport?.id}
+                          className="bg-emerald-700 text-white px-8 py-3 rounded-2xl text-sm font-bold shadow-spatial-sm active:scale-95 transition-all flex items-center gap-2"
+                        >
+                          {exportLoading === 'finish' ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                          {exportLoading === 'finish' ? 'Saving…' : 'Finish'}
                         </PrismButton>
                       </div>
                     )}

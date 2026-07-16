@@ -28,6 +28,7 @@ import { type StatusUpdateDetails } from '@/components/dashboard/ReportDetailVie
 
 import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
 import { useJoumpaReports } from '@/lib/hooks/useJoumpaReports';
+import { mergeReportUpdate } from '@/lib/report-cache';
 import { getLinkUrl } from '@/lib/external-links';
 import { ReportSourceToggle, matchesReportSource, type ReportSourceValue } from '@/components/dashboard/analyst/ReportSourceToggle';
 import {
@@ -220,18 +221,24 @@ export function OCSDivisionDashboard({
   );
 
   const loading = reportsLoading || (isDashboardView && analyticsLoading);
+  const {
+    reports: joumpaReports,
+    refresh: refreshJoumpaReports,
+    patchReport: patchJoumpaReport,
+  } = useJoumpaReports();
 
   const refreshData = useCallback(async () => {
     setRefreshing(true);
     try {
       await Promise.all([
         mutateReports(),
+        refreshJoumpaReports(),
         ...(isDashboardView ? [mutateAnalytics()] : []),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [isDashboardView, mutateReports, mutateAnalytics]);
+  }, [isDashboardView, mutateReports, mutateAnalytics, refreshJoumpaReports]);
 
   const handleUpdateStatus = useCallback(async (
     reportId: string,
@@ -253,13 +260,21 @@ export function OCSDivisionDashboard({
       }),
     });
 
+    const responsePayload = await res.json().catch(() => null);
     if (!res.ok) {
-      const errorPayload = await res.json().catch(() => null);
-      throw new Error(errorPayload?.error || 'Failed to update report status');
+      throw new Error(responsePayload?.error || 'Failed to update report status');
+    }
+
+    const updatedReport = responsePayload?.data as Report | undefined;
+    if (updatedReport?.id) {
+      await Promise.all([
+        mutateReports((current) => mergeReportUpdate(current, updatedReport), false),
+        patchJoumpaReport(updatedReport),
+      ]);
     }
 
     await refreshData();
-  }, [refreshData]);
+  }, [mutateReports, patchJoumpaReport, refreshData]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -367,7 +382,6 @@ export function OCSDivisionDashboard({
     setListArea('');
     setListSource('all');
   }, []);
-  const joumpaReports = useJoumpaReports();
   const scopedJoumpaReports = useMemo(() => {
     if (!lockedBranches || lockedBranches.length === 0) return joumpaReports;
     const allowed = new Set(lockedBranches.map((b) => b.toUpperCase()));

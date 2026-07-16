@@ -612,6 +612,26 @@ export const FORM_CSS = `
   display: flex; flex-wrap: wrap; gap: 8px;
   margin-top: 14px;
 }
+.jm-documents { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 12px; margin-top: 12px; }
+.jm-documents__actions { display: inline-flex; gap: 7px; }
+.jm-document-btn {
+  min-height: 34px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid var(--line); border-radius: 10px;
+  background: #fff; color: var(--ink);
+  font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform .12s ease, border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.jm-document-btn--docx { color: #1d4ed8; border-color: rgba(37, 99, 235, 0.18); background: rgba(37, 99, 235, 0.045); }
+.jm-document-btn--pdf { color: #b42318; border-color: rgba(180, 35, 24, 0.18); background: rgba(180, 35, 24, 0.045); }
+.jm-document-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 14px -10px currentColor; }
+.jm-document-btn--docx:hover:not(:disabled) { border-color: rgba(37, 99, 235, 0.34); background: rgba(37, 99, 235, 0.075); }
+.jm-document-btn--pdf:hover:not(:disabled) { border-color: rgba(180, 35, 24, 0.34); background: rgba(180, 35, 24, 0.075); }
+.jm-document-btn:disabled { cursor: not-allowed; opacity: 0.38; filter: grayscale(0.35); }
+.jm-documents__status { font-size: 11px; color: var(--mute); }
+.jm-documents__status--error { color: var(--red); }
 .jm-badge {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 6px 12px;

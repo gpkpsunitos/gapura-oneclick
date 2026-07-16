@@ -1,6 +1,12 @@
 
 import { STATUS_CONFIG } from '@/lib/constants/report-status';
 import { type Report } from '@/types';
+import {
+  addAdvancedExcelTable,
+  configureExcelWorkbook,
+  styleExcelSectionHeader,
+  styleExcelTitle,
+} from '@/lib/excel-export-style';
 
 interface AnalyticsSummary {
 
@@ -40,145 +46,160 @@ interface ExportContext {
 export async function exportToExcel(ctx: ExportContext): Promise<void> {
   const exceljs = await import('exceljs');
   const workbook = new exceljs.Workbook();
-  const summarySheet = workbook.addWorksheet('📊 Ringkasan');
-
   const { reports, analytics, dateRange } = ctx;
   const now = new Date();
   const exportDate = now.toLocaleDateString('id-ID', { dateStyle: 'full' });
   const exportTime = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const titleStyle: any = {
-    font: { bold: true, size: 14, color: { argb: 'FF10B981' } },
-    alignment: { horizontal: 'left' }
-  };
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const headerStyle: any = {
-    font: { bold: true, color: { argb: 'FFFFFFFF' } },
-    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF10B981' } },
-    alignment: { horizontal: 'center' }
-  };
-
-  summarySheet.addRow([]);
-  summarySheet.addRow(['', 'LAPORAN ANALITIK OneClick']).getCell(2).style = titleStyle;
-  summarySheet.addRow(['', 'Gapura Angkasa - Incident Report & Resolution System']).getCell(2).font = { bold: true };
-  summarySheet.addRow([]);
-  summarySheet.addRow(['', 'Tanggal Export:', exportDate]);
-  summarySheet.addRow(['', 'Waktu Export:', exportTime]);
   const period = typeof dateRange === 'string' ? dateRange.toUpperCase() : `${dateRange.from} → ${dateRange.to}`;
-  summarySheet.addRow(['', 'Periode:', period]);
-  summarySheet.addRow([]);
-  summarySheet.addRow(['', '═══════════════════════════════════════════════════']);
-  summarySheet.addRow(['', 'RINGKASAN EKSEKUTIF']).getCell(2).font = { bold: true };
-  summarySheet.addRow(['', '═══════════════════════════════════════════════════']);
-  summarySheet.addRow([]);
+  configureExcelWorkbook(workbook, 'Gapura Oneclick Analytics Export');
 
-  const metricsHeader = summarySheet.addRow(['', 'Metrik', 'Nilai', 'Status']);
-  metricsHeader.getCell(2).style = headerStyle;
-  metricsHeader.getCell(3).style = headerStyle;
-  metricsHeader.getCell(4).style = headerStyle;
-
-  summarySheet.addRow(['', 'Total Laporan', analytics?.summary.totalReports || 0, '📊']);
-  summarySheet.addRow(['', 'Laporan Selesai', analytics?.summary.resolvedReports || 0, '✅']);
-  summarySheet.addRow(['', 'Laporan Pending', analytics?.summary.pendingReports || 0, '⏳']);
-  summarySheet.addRow(['', 'Tingkat Resolusi', `${analytics?.summary.avgResolutionRate || 0}%`, analytics?.summary.avgResolutionRate && analytics.summary.avgResolutionRate >= 80 ? '🟢' : '🟡']);
-  summarySheet.addRow(['', 'Kasus High Severity', analytics?.summary.highSeverity || 0, '🔴']);
-  summarySheet.addRow(['', 'SLA Breach', analytics?.summary.slaBreachCount || 0, '⚠️']);
-  summarySheet.addRow([]);
-  summarySheet.addRow(['', '═══════════════════════════════════════════════════']);
-  summarySheet.addRow(['', 'DISTRIBUSI PER DIVISI']).getCell(2).font = { bold: true };
-  summarySheet.addRow(['', '═══════════════════════════════════════════════════']);
-  summarySheet.addRow([]);
-
-  const divHeader = summarySheet.addRow(['', 'Divisi', 'Jumlah Laporan', 'Persentase']);
-  divHeader.getCell(2).style = headerStyle;
-  divHeader.getCell(3).style = headerStyle;
-  divHeader.getCell(4).style = headerStyle;
-
-  if (analytics?.divisionData) {
-    const total = analytics.divisionData.reduce((sum, x) => sum + x.count, 0) || 1;
-    analytics.divisionData.forEach(d => {
-      summarySheet.addRow(['', d.division, d.count, `${Math.round((d.count / total) * 100)}%`]);
+  const summarySheet = workbook.addWorksheet('📊 Ringkasan');
+  styleExcelTitle(summarySheet, 1, 1, 4, 'Gapura Oneclick Analytics Summary');
+  summarySheet.getCell('A2').value = 'Export date';
+  summarySheet.getCell('B2').value = exportDate;
+  summarySheet.getCell('C2').value = 'Export time';
+  summarySheet.getCell('D2').value = exportTime;
+  summarySheet.getCell('A3').value = 'Period';
+  summarySheet.getCell('B3').value = period;
+  summarySheet.mergeCells('B3:D3');
+  for (let rowNumber = 2; rowNumber <= 3; rowNumber += 1) {
+    summarySheet.getRow(rowNumber).eachCell((cell) => {
+      cell.font = { name: 'Aptos', size: 10, color: { argb: 'FF475569' } };
+      cell.alignment = { vertical: 'middle' };
     });
   }
+  styleExcelSectionHeader(summarySheet, 5, 1, 4, 'Executive Summary');
+  const metricRows = [
+    ['Total Reports', analytics?.summary.totalReports || 0, 'Operational volume'],
+    ['Resolved Reports', analytics?.summary.resolvedReports || 0, 'Closed or completed'],
+    ['Pending Reports', analytics?.summary.pendingReports || 0, 'Requires follow-up'],
+    ['Resolution Rate', (analytics?.summary.avgResolutionRate || 0) / 100, 'Completion performance'],
+    ['High Severity Cases', analytics?.summary.highSeverity || 0, 'Priority monitoring'],
+    ['SLA Breaches', analytics?.summary.slaBreachCount || 0, 'Service-level exceptions'],
+  ];
+  addAdvancedExcelTable({
+    workbook,
+    worksheet: summarySheet,
+    name: 'AnalyticsMetricsTable',
+    startRow: 6,
+    freezeRows: 6,
+    columns: [
+      { header: 'Metric', kind: 'text', width: 28 },
+      { header: 'Value', kind: 'number', width: 16 },
+      { header: 'Interpretation', kind: 'text', width: 30 },
+    ],
+    rows: metricRows,
+  });
+  summarySheet.getCell('B10').numFmt = '0.0%';
 
-  summarySheet.addRow([]);
-  summarySheet.addRow(['', '═══════════════════════════════════════════════════']);
-  summarySheet.addRow(['', 'Digenerate oleh OneClick Analytics Engine']);
-  summarySheet.addRow(['', `© ${now.getFullYear()} Gapura Angkasa. All rights reserved.`]);
-
-  summarySheet.getColumn(2).width = 35;
-  summarySheet.getColumn(3).width = 20;
-  summarySheet.getColumn(4).width = 15;
+  const divisionStart = 14;
+  styleExcelSectionHeader(summarySheet, divisionStart, 1, 4, 'Distribution by Division');
+  const divisionData = analytics?.divisionData || [];
+  const divisionTotal = divisionData.reduce((sum, item) => sum + item.count, 0) || 1;
+  addAdvancedExcelTable({
+    workbook,
+    worksheet: summarySheet,
+    name: 'DivisionDistributionTable',
+    startRow: divisionStart + 1,
+    freezeRows: 6,
+    columns: [
+      { header: 'Division', kind: 'text', width: 28 },
+      { header: 'Report Count', kind: 'number', width: 16 },
+      { header: 'Percentage', kind: 'percentage', width: 16 },
+    ],
+    rows: divisionData.map((item) => [item.division, item.count, item.count / divisionTotal]),
+    emptyMessage: 'No division data available',
+  });
 
   const detailSheet = workbook.addWorksheet('📋 Detail Laporan');
-  detailSheet.addRow(['DETAIL LAPORAN - OneClick']).getCell(1).style = titleStyle;
-  detailSheet.addRow(['Total: ' + reports.length + ' laporan | Export: ' + exportDate]);
-  detailSheet.addRow([]);
-
-  const detailHeader = detailSheet.addRow([
-    'No', 'ID Laporan', 'Judul Laporan', 'Status', 'Severity', 'Bandara', 
-    'Nama Bandara', 'Divisi Tujuan', 'Pelapor', 'Lokasi', 'Tanggal Dibuat', 'Waktu'
-  ]);
-  detailHeader.eachCell(cell => { cell.style = headerStyle; });
-
-  reports.forEach((r, idx) => {
-    detailSheet.addRow([
-      idx + 1,
-      r.id.slice(0, 8).toUpperCase(),
-      r.title,
-      STATUS_CONFIG[r.status as keyof typeof STATUS_CONFIG]?.label || r.status,
-      r.severity?.toUpperCase() || '-',
-      r.stations?.code || r.branch || '-',
-      r.stations?.name || '-',
-      r.target_division || '-',
-      r.users?.full_name || '-',
-      r.location || '-',
-      new Date(r.created_at).toLocaleDateString('id-ID'),
-      new Date(r.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
-    ]);
+  styleExcelTitle(detailSheet, 1, 1, 12, 'Gapura Oneclick Report Details');
+  detailSheet.mergeCells('A2:L2');
+  detailSheet.getCell('A2').value = `Total: ${reports.length} reports | Export: ${exportDate}`;
+  detailSheet.getCell('A2').font = { name: 'Aptos', italic: true, size: 9, color: { argb: 'FF64748B' } };
+  detailSheet.getCell('A2').alignment = { indent: 1 };
+  addAdvancedExcelTable({
+    workbook,
+    worksheet: detailSheet,
+    name: 'AnalystReportDetails',
+    startRow: 4,
+    freezeRows: 4,
+    freezeColumns: 2,
+    columns: [
+      { header: 'No', kind: 'number', width: 7 },
+      { header: 'Report ID', kind: 'identifier', width: 14 },
+      { header: 'Report Title', kind: 'multiline', width: 40 },
+      { header: 'Status', kind: 'status', width: 18 },
+      { header: 'Severity', kind: 'severity', width: 14 },
+      { header: 'Station', kind: 'identifier', width: 12 },
+      { header: 'Station Name', kind: 'text', width: 26 },
+      { header: 'Target Division', kind: 'text', width: 18 },
+      { header: 'Reporter', kind: 'text', width: 22 },
+      { header: 'Location', kind: 'text', width: 24 },
+      { header: 'Created Date', kind: 'date', width: 15 },
+      { header: 'Created Time', kind: 'text', width: 13 },
+    ],
+    rows: reports.map((report, index) => {
+      const created = new Date(report.created_at);
+      return [
+        index + 1,
+        report.id.slice(0, 8).toUpperCase(),
+        report.title,
+        STATUS_CONFIG[report.status as keyof typeof STATUS_CONFIG]?.label || report.status,
+        report.severity?.toUpperCase() || '-',
+        report.stations?.code || report.branch || '-',
+        report.stations?.name || '-',
+        report.target_division || '-',
+        report.users?.full_name || '-',
+        report.location || '-',
+        Number.isNaN(created.getTime()) ? report.created_at : created,
+        Number.isNaN(created.getTime()) ? '' : created.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      ];
+    }),
+    emptyMessage: 'No report data available',
   });
-
-  detailSheet.columns = [
-    { width: 5 }, { width: 12 }, { width: 40 }, { width: 18 }, { width: 10 },
-    { width: 8 }, { width: 25 }, { width: 12 }, { width: 20 }, { width: 20 },
-    { width: 14 }, { width: 8 }
-  ];
 
   const performanceSheet = workbook.addWorksheet('📍 Performa Bandara');
-  performanceSheet.addRow(['PERFORMA PER STASIUN']).getCell(1).style = titleStyle;
-  performanceSheet.addRow(['Analisis efisiensi penyelesaian laporan']);
-  performanceSheet.addRow([]);
-
-  const perfHeader = performanceSheet.addRow([
-    'No', 'Kode Bandara', 'Total Laporan', 'Selesai', 'Pending', 'Efisiensi (%)', 'Rating'
-  ]);
-  perfHeader.eachCell(cell => { cell.style = headerStyle; });
-
-  (analytics?.stationData || []).forEach((s, idx) => {
-    const efficiency = Math.round((s.resolved / Math.max(s.total, 1)) * 100);
-    performanceSheet.addRow([
-      idx + 1,
-      s.station,
-      s.total,
-      s.resolved,
-      s.total - s.resolved,
-      `${efficiency}%`,
-      efficiency >= 90 ? '⭐⭐⭐⭐⭐' : efficiency >= 75 ? '⭐⭐⭐⭐' : efficiency >= 60 ? '⭐⭐⭐' : efficiency >= 40 ? '⭐⭐' : '⭐'
-    ]);
+  styleExcelTitle(performanceSheet, 1, 1, 7, 'Gapura Oneclick Station Performance');
+  performanceSheet.mergeCells('A2:G2');
+  performanceSheet.getCell('A2').value = 'Report resolution efficiency by station';
+  performanceSheet.getCell('A2').font = { name: 'Aptos', italic: true, size: 9, color: { argb: 'FF64748B' } };
+  performanceSheet.getCell('A2').alignment = { indent: 1 };
+  addAdvancedExcelTable({
+    workbook,
+    worksheet: performanceSheet,
+    name: 'StationPerformanceTable',
+    startRow: 4,
+    freezeRows: 4,
+    columns: [
+      { header: 'No', kind: 'number', width: 7 },
+      { header: 'Station Code', kind: 'identifier', width: 15 },
+      { header: 'Total Reports', kind: 'number', width: 15 },
+      { header: 'Resolved', kind: 'number', width: 13 },
+      { header: 'Pending', kind: 'number', width: 13 },
+      { header: 'Efficiency', kind: 'percentage', width: 15 },
+      { header: 'Rating', kind: 'text', width: 15 },
+    ],
+    rows: (analytics?.stationData || []).map((station, index) => {
+      const efficiency = station.resolved / Math.max(station.total, 1);
+      return [
+        index + 1,
+        station.station,
+        station.total,
+        station.resolved,
+        station.total - station.resolved,
+        efficiency,
+        efficiency >= 0.9 ? 'Excellent' : efficiency >= 0.75 ? 'Very Good' : efficiency >= 0.6 ? 'Good' : efficiency >= 0.4 ? 'Needs Improvement' : 'Critical',
+      ];
+    }),
+    emptyMessage: 'No station performance data available',
   });
-
-  performanceSheet.columns = [
-    { width: 5 }, { width: 15 }, { width: 14 }, { width: 12 },
-    { width: 12 }, { width: 14 }, { width: 15 }
-  ];
 
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = window.URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
-  const filename = `IRRS-Analytics-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}.xlsx`;
+  const filename = `Gapura-Oneclick-Analytics-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}.xlsx`;
   anchor.download = filename;
   anchor.click();
   window.URL.revokeObjectURL(url);

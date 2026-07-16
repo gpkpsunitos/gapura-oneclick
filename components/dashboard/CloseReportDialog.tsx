@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckCircle2, Loader2, X } from 'lucide-react';
+import { StatusUpdateSuccessDialog } from '@/components/dashboard/StatusUpdateSuccessDialog';
 
 const REMARKS_BY_DIVISIONS = ['OP', 'UQ', 'OT', 'OS', 'OCS', 'HT', 'HC'] as const;
 
@@ -30,6 +31,7 @@ export function CloseReportDialog({
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [completed, setCompleted] = useState(false);
 
   useEffect(() => setMounted(true), []);
 
@@ -40,17 +42,18 @@ export function CloseReportDialog({
       setName('');
       setError('');
       setSubmitting(false);
+      setCompleted(false);
     }
   }, [open]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || completed) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && !submitting) onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose, open, submitting]);
+  }, [completed, onClose, open, submitting]);
 
   if (!mounted || !open) return null;
 
@@ -67,13 +70,26 @@ export function CloseReportDialog({
         finalRemarks: trimmedRemarks,
         remarksBy: `${division} - ${trimmedName}`,
       });
-      onClose();
+      setCompleted(true);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : 'Failed to close report. Please try again.');
     } finally {
       setSubmitting(false);
     }
   };
+
+  if (completed) {
+    return (
+      <StatusUpdateSuccessDialog
+        open
+        status="CLOSED"
+        onClose={() => {
+          setCompleted(false);
+          onClose();
+        }}
+      />
+    );
+  }
 
   return createPortal(
     <div
