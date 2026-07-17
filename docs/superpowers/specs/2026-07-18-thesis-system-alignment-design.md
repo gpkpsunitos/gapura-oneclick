@@ -80,7 +80,7 @@ Unsupported access or security behavior is documented as a limitation instead of
 
 ## Draw.io Diagram Set
 
-The following existing figures are rebuilt as native editable Draw.io diagrams and re-exported for the DOCX:
+The following existing figures are rebuilt as native editable Draw.io diagrams and re-exported for the DOCX. The ERD and LRS use the live `gapura-irrs` Supabase project metadata as their authoritative schema source rather than the stale exported SQL snapshots:
 
 1. Entity Relationship Diagram Sistem;
 2. Logical Record Structure Sistem;
@@ -98,6 +98,18 @@ The following existing figures are rebuilt as native editable Draw.io diagrams a
 OS, OP, HT, UQ, and OT appear as separately named actors where actor-level detail is required and share identical connections. OCS appears separately. HC and Eskalasi do not appear.
 
 The architecture and report-submission diagrams show Google Sheets first, Supabase synchronization second, Google Drive evidence, and the separate Supabase Storage final-document flow. The ERD and LRS use the current application tables and omit invented relationships.
+
+The ERD uses Chen notation:
+
+- entities are rectangles;
+- relationships are diamonds with explicit relationship verbs;
+- attributes are ovals;
+- primary-key attributes are underlined;
+- multivalued or derived attributes use the appropriate Chen treatment only when supported by the schema;
+- cardinality and participation markers are derived from live primary-key, foreign-key, uniqueness, and nullability metadata;
+- only thesis-relevant entities and attributes appear on the main page so the figure remains readable at A4 width.
+
+The LRS uses relational-table notation rather than Chen notation. It displays the corresponding table names, primary keys, selected thesis-relevant columns, foreign keys, and relationship lines from the same live Supabase schema snapshot. A schema inventory comment records the observation date and project reference without exposing credentials or secret keys.
 
 ## Diagram Quality Gate
 
@@ -157,16 +169,17 @@ Verification occurs in this order:
 
 1. Extract and inventory all paragraphs, tables, images, fields, captions, comments, and sections.
 2. Build a claim-to-code traceability list for every corrected section.
-3. Generate and validate all Draw.io sources.
-4. Export and visually inspect every diagram before DOCX insertion.
-5. Apply prose, table, caption, cross-reference, and diagram replacements to a copy.
-6. Add and structurally validate genuine Word comments and anchors.
-7. Update or materialize document fields as needed for deterministic rendering.
-8. Render the complete revised DOCX to page PNGs.
-9. Inspect every rendered page at full size for overflow, overlap, broken tables, misplaced figures, font substitution, and header/footer drift.
-10. Iterate until all pages pass visual review.
-11. Run structural checks for comments, images, headings, sections, tables, and internal placeholders.
-12. Compare the final document against the source to confirm that signed front matter and unrelated content were preserved.
+3. Query the live Supabase metadata read-only for tables, columns, primary keys, foreign keys, uniqueness, and nullability used by the ERD and LRS.
+4. Generate and validate all Draw.io sources, including a Chen-notation audit for the ERD and a key/relationship parity audit for the LRS.
+5. Export and visually inspect every diagram before DOCX insertion.
+6. Apply prose, table, caption, cross-reference, and diagram replacements to a copy.
+7. Add and structurally validate genuine Word comments and anchors.
+8. Update or materialize document fields as needed for deterministic rendering.
+9. Render the complete revised DOCX to page PNGs.
+10. Inspect every rendered page at full size for overflow, overlap, broken tables, misplaced figures, font substitution, and header/footer drift.
+11. Iterate until all pages pass visual review.
+12. Run structural checks for comments, images, headings, sections, tables, and internal placeholders.
+13. Compare the final document against the source to confirm that signed front matter and unrelated content were preserved.
 
 ## Deliverables
 
