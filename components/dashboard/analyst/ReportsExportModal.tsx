@@ -102,6 +102,8 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
   const [exportError, setExportError] = useState<string | null>(null);
   const [joumpaReports, setJoumpaReports] = useState<Report[]>([]);
   const [joumpaLoading, setJoumpaLoading] = useState(false);
+  const [irrsReports, setIrrsReports] = useState<Report[] | null>(null);
+  const [irrsLoading, setIrrsLoading] = useState(false);
 
   const isJoumpa = filters.source === "JOUMPA";
 
@@ -115,7 +117,21 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
       .finally(() => setJoumpaLoading(false));
   }, [isJoumpa, open]);
 
-  const activeReports = isJoumpa ? joumpaReports : reports;
+  // The dashboard's `reports` prop reflects whatever the screen is currently
+  // showing (empty outside the dashboard view). Export must see the complete
+  // set regardless, so fetch it independently once the modal opens.
+  useEffect(() => {
+    if (!open || irrsReports) return;
+    setIrrsLoading(true);
+    fetchAllDetailedReports()
+      .then(setIrrsReports)
+      .catch(() => setIrrsReports(reports))
+      .finally(() => setIrrsLoading(false));
+  }, [open, irrsReports, reports]);
+
+  const irrsActiveReports = irrsReports ?? reports;
+  const activeReports = isJoumpa ? joumpaReports : irrsActiveReports;
+  const activeLoading = isJoumpa ? joumpaLoading : (irrsLoading && !irrsReports);
 
   const options = useMemo(() => {
     const base = buildReportFilterOptions(activeReports);
@@ -126,10 +142,10 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
   // When not JOUMPA, always include JOUMPA in source options from the IRRS reports
   const sourceOptions = useMemo(() => {
     if (isJoumpa) return options.sources;
-    const base = buildReportFilterOptions(reports);
+    const base = buildReportFilterOptions(irrsActiveReports);
     if (!base.sources.includes("JOUMPA")) base.sources.push("JOUMPA");
     return base.sources;
-  }, [isJoumpa, options.sources, reports]);
+  }, [isJoumpa, options.sources, irrsActiveReports]);
 
   const filteredReports = useMemo(() => filterReportsForExport(activeReports, filters), [activeReports, filters]);
   const summary = useMemo(() => reportFilterSummary(filters), [filters]);
@@ -156,7 +172,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
     try {
       let reportsToExport = filteredReports;
       if (!isJoumpa) {
-        const fullReports = await fetchAllDetailedReports();
+        const fullReports = irrsReports ?? await fetchAllDetailedReports();
         reportsToExport = filterReportsForExport(fullReports, filters);
       }
 
@@ -261,8 +277,10 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
 
           <div className="mt-6 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 md:flex-row md:items-center md:justify-between">
             <div>
-              {joumpaLoading ? (
-                <p className="text-sm font-black uppercase tracking-[0.2em] text-teal-800">Loading JOUMPA data…</p>
+              {activeLoading ? (
+                <p className="text-sm font-black uppercase tracking-[0.2em] text-teal-800">
+                  {isJoumpa ? "Loading JOUMPA data…" : "Loading reports…"}
+                </p>
               ) : (
                 <p className="text-sm font-black uppercase tracking-[0.2em] text-teal-800">
                   {filteredReports.length.toLocaleString("en-US")} / {activeReports.length.toLocaleString("en-US")} reports ready to export
@@ -297,7 +315,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
               <Button
                 key={item.format}
                 type="button"
-                disabled={exporting !== null || filteredReports.length === 0 || joumpaLoading}
+                disabled={exporting !== null || filteredReports.length === 0 || activeLoading}
                 onClick={() => handleExport(item.format)}
                 className={cn("h-14 rounded-2xl px-6 text-xs font-black uppercase tracking-[0.18em] text-white", item.className)}
               >

@@ -31,7 +31,7 @@ interface FilterOptionsState {
 interface DynamicFilterHeaderProps {
   onFilterChange: (filters: FilterData) => void;
   initialFilters?: FilterData;
-  variant?: 'default' | 'white';
+  variant?: 'default' | 'white' | 'pill';
 }
 
 export function DynamicFilterHeader({ onFilterChange, initialFilters, variant = 'default' }: DynamicFilterHeaderProps) {
@@ -84,64 +84,72 @@ export function DynamicFilterHeader({ onFilterChange, initialFilters, variant = 
     onFilterChange({ ...(initialFilters || {}), ...partial });
   };
 
+  const isChipStrip = variant === 'pill';
+  const rowClass = isChipStrip
+    ? 'flex flex-nowrap items-center gap-3 w-full overflow-x-auto pb-1 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:flex-wrap md:justify-center md:overflow-visible md:mx-0 md:px-0'
+    : 'flex flex-wrap items-center justify-center gap-3 w-full';
+  const itemClass = isChipStrip
+    ? 'flex-none w-[168px] md:flex-1 md:min-w-[140px] md:max-w-[200px]'
+    : 'flex-1 min-w-[140px] max-w-[200px]';
+
   return (
-    <div className="flex flex-wrap items-center justify-center gap-3 w-full">
-      <div className="flex-1 min-w-[140px] max-w-[200px]">
-        <PrismSelect 
-          options={options.hub} 
-          value={current.hub} 
-          onChange={(v) => mergeAndChange({ hub: v })} 
-          placeholder="HUB" 
+    <div className={rowClass}>
+      <div className={itemClass}>
+        <PrismSelect
+          options={options.hub}
+          value={current.hub}
+          onChange={(v) => mergeAndChange({ hub: v })}
+          placeholder="HUB"
           variant={variant}
           label="HUB Area"
         />
       </div>
-      <div className="flex-1 min-w-[140px] max-w-[200px]">
-        <PrismSelect 
-          options={options.branch} 
-          value={current.branch} 
-          onChange={(v) => mergeAndChange({ branch: v })} 
-          placeholder="Station" 
+      <div className={itemClass}>
+        <PrismSelect
+          options={options.branch}
+          value={current.branch}
+          onChange={(v) => mergeAndChange({ branch: v })}
+          placeholder="Station"
           variant={variant}
           label="Station"
         />
       </div>
-      <div className="flex-1 min-w-[140px] max-w-[200px]">
-        <PrismSelect 
-          options={options.airline_type} 
-          value={current.maskapai} 
-          onChange={(v) => mergeAndChange({ maskapai: v })} 
-          placeholder="Maskapai" 
+      <div className={itemClass}>
+        <PrismSelect
+          options={options.airline_type}
+          value={current.maskapai}
+          onChange={(v) => mergeAndChange({ maskapai: v })}
+          placeholder="Maskapai"
           variant={variant}
           label="Full Service Airlines / LCC Airlines"
         />
       </div>
-      <div className="flex-1 min-w-[140px] max-w-[200px]">
-        <PrismSelect 
-          options={options.airline} 
-          value={current.airline} 
-          onChange={(v) => mergeAndChange({ airline: v })} 
-          placeholder="Airlines" 
+      <div className={itemClass}>
+        <PrismSelect
+          options={options.airline}
+          value={current.airline}
+          onChange={(v) => mergeAndChange({ airline: v })}
+          placeholder="Airlines"
           variant={variant}
           label="Airlines Name"
         />
       </div>
-      <div className="flex-1 min-w-[140px] max-w-[200px]">
-        <PrismSelect 
-          options={options.main_category} 
-          value={current.main_category} 
-          onChange={(v) => mergeAndChange({ main_category: v })} 
-          placeholder="Category" 
+      <div className={itemClass}>
+        <PrismSelect
+          options={options.main_category}
+          value={current.main_category}
+          onChange={(v) => mergeAndChange({ main_category: v })}
+          placeholder="Category"
           variant={variant}
           label="Case Category"
         />
       </div>
-      <div className="flex-1 min-w-[140px] max-w-[200px]">
-        <PrismSelect 
-          options={options.area} 
-          value={current.area} 
-          onChange={(v) => mergeAndChange({ area: v })} 
-          placeholder="Area" 
+      <div className={itemClass}>
+        <PrismSelect
+          options={options.area}
+          value={current.area}
+          onChange={(v) => mergeAndChange({ area: v })}
+          placeholder="Area"
           variant={variant}
           label="Ops. Area"
         />

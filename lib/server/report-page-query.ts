@@ -1,6 +1,5 @@
 import 'server-only';
 
-import { REPORT_PROJECTIONS } from '@/lib/services/reports-service';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { enrichReportsWithComments } from '@/lib/server/report-comments';
 import {
@@ -50,7 +49,13 @@ export class ReportPageQueryError extends Error {
   }
 }
 
-const REPORT_LIST_SELECT = REPORT_PROJECTIONS.list.join(',');
+// Dashboards read a wide, evolving set of fields (cargo category, airline type,
+// evidence fallbacks, …). A hand-maintained projection silently drops any field
+// a chart later starts reading, producing empty tiles. The table is small
+// (~1.2k rows, ~3KB/row, no heavy/blob columns), so selecting every column is
+// cheap and removes that whole class of bug. REPORT_PROJECTIONS.list is kept for
+// leaner API consumers that opt into a narrow shape.
+const REPORT_LIST_SELECT = '*';
 const REPORT_STATION_FIELDS = [
   'station_id',
   'station_code',

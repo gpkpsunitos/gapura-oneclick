@@ -214,9 +214,11 @@ function filterReportsForScope(
   return processQuery(scopedQuery, reports).rows as Record<string, unknown>[];
 }
 
-async function loadReportsOnce(reportsRef: { current: Record<string, unknown>[] | null }) {
+// holds the in-flight promise (not the resolved value) so concurrent callers
+// from a parallel chart loop share one fetch instead of racing duplicate ones
+function loadReportsOnce(reportsRef: { current: Promise<Record<string, unknown>[]> | null }) {
   if (!reportsRef.current) {
-    reportsRef.current = (await reportsService.getReports()) as unknown as Record<string, unknown>[];
+    reportsRef.current = reportsService.getReports() as unknown as Promise<Record<string, unknown>[]>;
   }
   return reportsRef.current;
 }
@@ -310,10 +312,42 @@ export async function getPublicDashboardPageData(options: {
     scope,
   });
 
-  const reportsRef: { current: Record<string, unknown>[] | null } = { current: null };
+  const reportsRef: { current: Promise<Record<string, unknown>[]> | null } = { current: null };
   const chartResults: Record<string, PublicDashboardChartResult> = {};
 
-  for (const chart of chartsToFetch) {
+  let investigativeResult: QueryResult | undefined;
+  const investigativeCacheKey = isCustomerFeedbackDashboard && [1, 4].includes(pageIndex)
+    ? hashCacheKey({ kind: 'investigative', dashboardSlug: slug, pageIndex, range, scope, syncVersion })
+    : null;
+
+  const investigativeTask = investigativeCacheKey
+    ? (async () => {
+        const cached = await readDashboardSnapshot<QueryResult>(investigativeCacheKey, syncVersion);
+        if (cached?.payload) {
+          investigativeResult = cached.payload;
+          return;
+        }
+        const reports = await loadReportsOnce(reportsRef);
+        investigativeResult = processQuery(
+          applyDashboardScopeToQuery(buildInvestigativeQuery(), { filters, dateFrom, dateTo, activePage: pageIndex }),
+          reports,
+        );
+        await writeDashboardSnapshot({
+          cacheKey: investigativeCacheKey,
+          scopeKey,
+          dashboardSlug: slug,
+          tileId: null,
+          payload: investigativeResult,
+          syncVersion,
+          ttlSeconds: 300,
+        });
+      })()
+    : Promise.resolve();
+
+  // each chart's cache read/write is its own Supabase round trip — running
+  // them sequentially with a for-loop stacked up 8-12 round trips per page
+  // switch (the 5s+ delay); Promise.all runs them concurrently instead
+  await Promise.all([investigativeTask, ...chartsToFetch.map(async (chart) => {
     try {
       const cacheKey = hashCacheKey({
         kind: 'tile',
@@ -330,7 +364,7 @@ export async function getPublicDashboardPageData(options: {
       const cached = await readDashboardSnapshot<PublicDashboardChartResult>(cacheKey, syncVersion);
       if (cached?.payload) {
         chartResults[chart.id] = cached.payload;
-        continue;
+        return;
       }
 
       const reports = await loadReportsOnce(reportsRef);
@@ -379,44 +413,7 @@ export async function getPublicDashboardPageData(options: {
         queryResult: { columns: [], rows: [], rowCount: 0, executionTimeMs: 0 },
       };
     }
-  }
-
-  let investigativeResult: QueryResult | undefined;
-  if (isCustomerFeedbackDashboard && [1, 4].includes(pageIndex)) {
-    const cacheKey = hashCacheKey({
-      kind: 'investigative',
-      dashboardSlug: slug,
-      pageIndex,
-      range,
-      scope,
-      syncVersion,
-    });
-    const cached = await readDashboardSnapshot<QueryResult>(cacheKey, syncVersion);
-    if (cached?.payload) {
-      investigativeResult = cached.payload;
-    } else {
-      const reports = await loadReportsOnce(reportsRef);
-      investigativeResult = processQuery(
-        applyDashboardScopeToQuery(buildInvestigativeQuery(), {
-          filters,
-          dateFrom,
-          dateTo,
-          activePage: pageIndex,
-        }),
-        reports,
-      );
-
-      await writeDashboardSnapshot({
-        cacheKey,
-        scopeKey,
-        dashboardSlug: slug,
-        tileId: null,
-        payload: investigativeResult,
-        syncVersion,
-        ttlSeconds: 300,
-      });
-    }
-  }
+  })]);
 
   return {
     dashboard: typedDashboard,

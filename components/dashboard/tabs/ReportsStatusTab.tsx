@@ -354,7 +354,7 @@ function RecordsTable({ rows, title, onRowClick }: { rows: RecordRow[]; title: s
               <th style={{ width: '19%' }} className="!text-left">Case Classification</th>
               <th style={{ width: '9%' }} className="sr-center">Severity</th>
               <th style={{ width: '8%' }} className="sr-center">Status</th>
-              <th style={{ width: '5%' }} className="sr-center">▸</th>
+              <th style={{ width: '7%' }} className="sr-center">Details</th>
             </tr>
           </thead>
           <tbody>
@@ -380,7 +380,15 @@ function RecordsTable({ rows, title, onRowClick }: { rows: RecordRow[]; title: s
                 </td>
                 <td className="sr-center" style={{ padding: '8px 10px', textAlign: 'center' }}><SeverityBadge severity={row.severity} /></td>
                 <td className="sr-center" style={{ padding: '8px 10px', textAlign: 'center' }}><StatusBadge status={row.status} /></td>
-                <td className="sr-center text-[color:var(--sr-text-3)]" style={{ padding: '8px 10px', textAlign: 'center' }}>▸</td>
+                <td className="sr-center" style={{ padding: '8px 10px', textAlign: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); onRowClick(row); }}
+                    className="inline-flex h-6 items-center gap-1 rounded-md bg-[color:var(--sr-accent)] px-2 text-[10px] font-bold uppercase tracking-[0.04em] text-white hover:bg-[color:var(--sr-accent-strong)]"
+                  >
+                    Details
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>

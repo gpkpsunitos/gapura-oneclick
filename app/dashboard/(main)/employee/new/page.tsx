@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/lib/hooks/use-auth';
+import { getReportReturnPath } from '@/lib/permissions';
 import PublicIrregularityForm from '@/components/public-report/PublicIrregularityForm';
 import PublicJoumpaForm from '@/components/public-report/PublicJoumpaForm';
 
@@ -18,7 +20,9 @@ export default function NewReportPage() {
   );
 
   const onSubmitted = () => {
-    router.push('/dashboard/employee');
+    const from = searchParams.get('from');
+    const returnPath = from && from.startsWith('/dashboard/') ? from : getReportReturnPath(user?.role || '');
+    router.push(returnPath);
   };
 
   return (
@@ -56,6 +60,15 @@ export default function NewReportPage() {
       ` }} />
 
       <div className="cr-page mx-auto w-full max-w-3xl px-4 sm:px-6 pt-8 pb-16">
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="mb-4 inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-semibold text-[#6b6b73] hover:bg-black/5 hover:text-[#101013] transition-colors"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back
+        </button>
+
         <div className="flex justify-center mb-8">
           <div className="cr-tabs" role="tablist" aria-label="Report type">
             <button

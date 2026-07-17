@@ -285,19 +285,17 @@ export default function Sidebar({ role, division }: { role: string; division?: s
 
     const isOcsOrOs = role === 'DIVISI_OCS' || role === 'PARTNER_OCS' || role === 'DIVISI_OS' || role === 'PARTNER_OS';
 
-    // ponytail: OCS/OS users keep their Schedule/calendar links only on their own
-    // Customer Service dashboard view; hide them on Operational Monitoring
-    // (/dashboard/op), on their own All Reports list (ground-handling data, not
-    // Customer Service), and on the shared create-report page when it was opened
-    // in ground-handling mode (not ?type=joumpa) — otherwise navigating there
+    // ponytail: OCS/OS users keep their Schedule/calendar links only off Operational
+    // Monitoring (/dashboard/op) and off the shared create-report page when it was
+    // opened in ground-handling mode (not ?type=joumpa) — otherwise navigating there
     // from Operational Monitoring would snap the sidebar back to Customer Service.
-    const isOwnReportsList = pathname === '/dashboard/ocs/reports' || pathname === '/dashboard/os/reports'
-        || ((pathname === '/dashboard/ocs' || pathname === '/dashboard/os') && searchParams.get('view') === 'reports');
+    // Calendar stays visible on their own All Reports list — it's a real nav item,
+    // not something tied to the ground-handling report view.
     const isOnOperationalMonitoring = isOcsOrOs && pathname.startsWith('/dashboard/op');
     const isOnOperationalCreateReport = isOcsOrOs
         && pathname === '/dashboard/employee/new' && searchParams.get('type') !== 'joumpa';
     const isOperationalContext = isOnOperationalMonitoring || isOnOperationalCreateReport;
-    const hideSchedule = isOcsOrOs && (isOperationalContext || isOwnReportsList);
+    const hideSchedule = isOcsOrOs && isOperationalContext;
 
     const groups = useMemo(() => {
         const base = resolveNavGroups(role || '', division);

@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       resolver: async () => {
         const [
           forecast,
-          branchTrends, subcatTrends, airlineTrends, categoryTrends,
+          branchTrends, subcatTrends, airlineTrends, categoryTrends, areaTrends,
           risk,
           subcatForecast, categoryForecast,
           reportCounts,
@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
           mlClient.trends('subcategory', 12),
           mlClient.trends('airline', 12),
           mlClient.trends('category', 12),
+          mlClient.trends('area', 12),
           mlClient.riskScore(),
           mlClient.forecastByDimension('subcategory', 4),
           mlClient.forecastByDimension('category', 4),
@@ -67,6 +68,7 @@ export async function GET(req: NextRequest) {
             subcategory: settled(subcatTrends),
             airline: settled(airlineTrends),
             category: settled(categoryTrends),
+            area: settled(areaTrends),
           },
           risk: settled(risk),
           subcategoryForecast: settled(subcatForecast),

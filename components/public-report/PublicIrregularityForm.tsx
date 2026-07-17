@@ -174,8 +174,7 @@ export default function PublicIrregularityForm({
       token = tokenData.token;
     }
     const station = stations.find((s) => s.id === form.station_id);
-    const urls: string[] = []; const ids: string[] = [];
-    for (const file of files) {
+    const uploadOne = async (file: File) => {
       const compressed = await compressImage(file);
       const fd = new FormData();
       fd.append('file', compressed);
@@ -189,7 +188,11 @@ export default function PublicIrregularityForm({
       const headers: HeadersInit = token ? { 'X-Upload-Token': token } : {};
       const res = await fetch(uploadUrl, { method: 'POST', headers, body: fd });
       if (!res.ok) { const d = await res.json().catch(() => null); throw new Error(d?.error || 'Failed to upload evidence'); }
-      const d = await res.json();
+      return res.json();
+    };
+    const results = await Promise.all(files.map(uploadOne));
+    const urls: string[] = []; const ids: string[] = [];
+    for (const d of results) {
       if (d.url) urls.push(d.url);
       if (d.evidence_file_id || d.evidenceFileId) ids.push(d.evidence_file_id || d.evidenceFileId);
     }

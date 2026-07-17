@@ -14,11 +14,11 @@ interface FeedbackPivotTableProps {
 }
 
 const HEATMAP_SCALE = [
-  { bg: '#E8F5E9', text: '#374151', min: 0.00 },
-  { bg: '#C8E6C9', text: '#1B5E20', min: 0.15 },
-  { bg: '#81C784', text: '#1B5E20', min: 0.40 },
-  { bg: '#43A047', text: '#FFFFFF', min: 0.60 },
-  { bg: '#1B5E20', text: '#FFFFFF', min: 0.80 },
+  { bg: '#F0FDFA', text: '#374151', min: 0.00 },
+  { bg: '#CCFBF1', text: '#134E4A', min: 0.15 },
+  { bg: '#5EEAD4', text: '#134E4A', min: 0.40 },
+  { bg: '#0F766E', text: '#FFFFFF', min: 0.60 },
+  { bg: '#134E4A', text: '#FFFFFF', min: 0.80 },
 ];
 
 function formatAxisLabel(value: string): string {
@@ -131,15 +131,15 @@ export function FeedbackPivotTable({ title, result, rowKey, colKey, valueKey, co
         <span className="sr-only">FeedbackPivotTable Active</span>
         <table className={`w-max min-w-full border-separate ${spacing}`}>
           <thead>
-            <tr className="sticky top-0 bg-white z-20">
+            <tr className="sticky top-0 bg-[var(--cf-teal-tint,#edf7f5)] z-20">
               <th
-                className="sticky left-0 bg-white z-30"
+                className="sticky left-0 bg-[var(--cf-teal-tint,#edf7f5)] z-30"
                 style={{ minWidth: rowLabelWidthPx, width: rowLabelWidthPx, maxWidth: rowLabelWidthPx }}
               />
               {pivotData.cols.map(c => (
                 <th
                   key={c}
-                  className={`p-1.5 ${headerFontSize} font-bold text-gray-400 uppercase tracking-widest text-center ${minColWidth} ${maxColWidth} whitespace-normal break-words leading-tight align-bottom`}
+                  className={`p-1.5 ${headerFontSize} font-black text-[var(--cf-teal,#0f766e)] uppercase tracking-widest text-center ${minColWidth} ${maxColWidth} whitespace-normal break-words leading-tight align-bottom`}
                   title={formatAxisLabel(c)}
                 >
                   {formatAxisLabel(c)}
@@ -151,7 +151,7 @@ export function FeedbackPivotTable({ title, result, rowKey, colKey, valueKey, co
             {pivotData.rows.map(r => (
               <tr key={r}>
                 <td
-                  className={`sticky left-0 bg-white z-10 p-1.5 ${rowLabelFontSize} font-bold text-gray-700 uppercase pr-1 whitespace-normal break-words leading-tight border-r border-gray-50`}
+                  className={`sticky left-0 bg-[var(--cf-canvas,#f6f2e7)] z-10 p-1.5 ${rowLabelFontSize} font-bold text-[var(--cf-ink-2,#57534e)] uppercase pr-1 whitespace-normal break-words leading-tight border-r border-[var(--cf-line-soft,#f0ead9)] rounded-l-lg`}
                   style={{ minWidth: rowLabelWidthPx, width: rowLabelWidthPx, maxWidth: rowLabelWidthPx }}
                   title={formatAxisLabel(r)}
                 >
@@ -163,7 +163,7 @@ export function FeedbackPivotTable({ title, result, rowKey, colKey, valueKey, co
                   return (
                     <td key={c} className={`${cellPad} ${minColWidth}`}>
                       <div
-                        className={`w-full ${cellHeight} flex items-center justify-center rounded text-[${cellFontSize}] font-black transition-all hover:scale-105 hover:shadow-sm cursor-pointer active:scale-95`}
+                        className={`w-full ${cellHeight} flex items-center justify-center rounded-lg text-[${cellFontSize}] font-black transition-all hover:scale-105 hover:shadow-md cursor-pointer active:scale-95`}
                         style={{ backgroundColor: intensity.bg, color: intensity.text, fontSize: compact ? 8 : 10 }}
                         title={`${formatAxisLabel(r)} \u2022 ${formatAxisLabel(c)}: ${val}`}
                         onClick={() => handleCellClick(r, c)}
@@ -193,7 +193,7 @@ export function FeedbackPivotTable({ title, result, rowKey, colKey, valueKey, co
         <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest mr-1">Intensity:</span>
         {HEATMAP_SCALE.map((s, i) => (
           <div key={i} className="flex items-center gap-0.5">
-            <div className={`${legendDotSize} rounded-sm`} style={{ backgroundColor: s.bg }} />
+            <div className={`${legendDotSize} rounded-md`} style={{ backgroundColor: s.bg }} />
           </div>
         ))}
       </div>

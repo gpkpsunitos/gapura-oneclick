@@ -21,7 +21,7 @@ import { exportToExcel as doExportExcel, exportToPDF as doExportPDF } from '@/li
 import { CustomerFeedbackFilterModal } from './analyst/CustomerFeedbackFilterModal';
 import { NoiseTexture } from '@/components/ui/NoiseTexture';
 
-const AnalystCharts = dynamic(() => import('./analyst/OSAnalystCharts'), {
+const AnalystCharts = dynamic(() => import('./analyst/AnalystCharts'), {
     ssr: false,
     loading: () => (
         <div className="min-h-[40vh] flex items-center justify-center">
@@ -618,6 +618,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                         globalFilters={globalFilters}
                         setGlobalFilters={setGlobalFilters}
                         availableOptions={availableOptions}
+                        allReports={reports}
                     />
                 </div>
             </div>

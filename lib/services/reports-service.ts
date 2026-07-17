@@ -340,6 +340,12 @@ export const REPORT_SYNC_FIELDS = [
 
 export type ReportSyncField = typeof REPORT_SYNC_FIELDS[number];
 
+/**
+ * Any selectable column on a Report. Projections/fetches may read columns that
+ * aren't part of the (narrower) sheet-sync field set, so they use this type.
+ */
+export type ReportColumn = keyof Report;
+
 export const REPORT_PROJECTIONS = {
   list: [
     'id',
@@ -362,6 +368,8 @@ export const REPORT_PROJECTIONS = {
     'incident_date',
     'airlines',
     'airline',
+    'jenis_maskapai',
+    'category',
     'area',
     'service_business_type',
     'case_classification',
@@ -376,6 +384,7 @@ export const REPORT_PROJECTIONS = {
     'category_case_gse',
     'category_case_cargo',
     'category_case_joumpa',
+    'supporting_evidence',
     'gse_available_requirement',
     'gse_requirement',
     'gse_motorized',
@@ -392,6 +401,15 @@ export const REPORT_PROJECTIONS = {
     'root_caused',
     'identification_of_root',
     'target_division',
+    'report',
+    'description',
+    'action_taken',
+    'immediate_action',
+    'gapura_kps_action_taken',
+    'preventive_action',
+    'specific_location',
+    'aircraft_reg',
+    'route',
   ],
   analytics: [
     'id',
@@ -491,7 +509,7 @@ export const REPORT_PROJECTIONS = {
     'created_at',
     'date_of_event',
   ],
-} as const satisfies Record<string, readonly ReportSyncField[]>;
+} as const satisfies Record<string, readonly ReportColumn[]>;
 
 export type ReportProjectionName = keyof typeof REPORT_PROJECTIONS;
 export type ProjectedReport<P extends ReportProjectionName> = Pick<
@@ -519,7 +537,7 @@ export function parseReportSyncFields(values: readonly string[]): {
 interface GetReportsOptions {
   refresh?: boolean;
   filters?: ReportQueryFilters;
-  fields?: readonly ReportSyncField[];
+  fields?: readonly ReportColumn[];
   projection?: ReportProjectionName;
   source?: 'auto' | 'sheets' | 'sync';
 }
@@ -1391,10 +1409,10 @@ export class ReportsService {
 
   private async fetchReportsFromSync(
     filters?: ReportQueryFilters,
-    fields?: readonly ReportSyncField[],
+    fields?: readonly ReportColumn[],
   ): Promise<Report[]> {
     try {
-      const requiredFields = new Set<ReportSyncField>([
+      const requiredFields = new Set<ReportColumn>([
         'id',
         'date_of_event',
         'incident_date',
@@ -1437,7 +1455,7 @@ export class ReportsService {
           'category',
           'description',
           'report',
-        ].forEach((field) => requiredFields.add(field as ReportSyncField));
+        ].forEach((field) => requiredFields.add(field as ReportColumn));
       }
 
       const selectFields = fields && fields.length > 0

@@ -1155,3 +1155,197 @@ html {
     min-height: 0;
   }
 }
+
+/* ==========================================================================
+   CUSTOMER FEEDBACK DASHBOARD — "Bento Editorial / Warm Archive"
+   Fully scoped under .cf-root. All tokens namespaced --cf-*. Nothing here
+   changes any other dashboard: unrelated pages never carry .cf-root and never
+   read --cf-* variables. Additive only.
+   ========================================================================== */
+.cf-root {
+  --cf-canvas: #f6f2e7;
+  --cf-canvas-2: #f1ecdd;
+  --cf-card: #fffdf8;
+  --cf-ink: #1c1917;
+  --cf-ink-2: #57534e;
+  --cf-ink-3: #a8a29e;
+  --cf-line: #e9e2d0;
+  --cf-line-soft: #f0ead9;
+
+  --cf-teal: #0f766e;
+  --cf-teal-deep: #134e4a;
+  --cf-teal-ink: #042f2e;
+  --cf-teal-tint: #edf7f5;
+  --cf-teal-tint-2: #d6ece9;
+
+  --cf-amber: #f59e0b;
+  --cf-coral: #ef4444;
+  --cf-lime: #65a30d;
+  --cf-slate: #78716c;
+
+  --cf-shadow-sm: 0 1px 2px rgba(28, 25, 23, 0.04), 0 2px 8px -4px rgba(28, 25, 23, 0.08);
+  --cf-shadow-md: 0 2px 4px rgba(28, 25, 23, 0.05), 0 16px 40px -20px rgba(19, 78, 74, 0.28);
+  --cf-radius: 20px;
+  --cf-radius-lg: 26px;
+
+  background-color: var(--cf-canvas);
+  /* warm paper: faint dot grid + soft vignette, GPU-cheap, fixed */
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(28, 25, 23, 0.045) 1px, transparent 0),
+    radial-gradient(120% 120% at 100% 0%, rgba(15, 118, 110, 0.05) 0%, transparent 45%),
+    radial-gradient(100% 100% at 0% 100%, rgba(245, 158, 11, 0.045) 0%, transparent 40%);
+  background-size: 22px 22px, 100% 100%, 100% 100%;
+  background-attachment: fixed;
+  color: var(--cf-ink);
+  font-family: var(--font-plus-jakarta), system-ui, sans-serif;
+}
+
+/* Editorial display serif — used sparingly for hero numerals + wordmark */
+.cf-root .cf-display {
+  font-family: var(--font-fraunces), Georgia, 'Times New Roman', serif;
+  font-optical-sizing: auto;
+  letter-spacing: -0.02em;
+}
+.cf-root .cf-tabular { font-variant-numeric: tabular-nums; }
+
+/* Numbered editorial eyebrow, e.g. "01 / Report Category" */
+.cf-root .cf-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.24em;
+  color: var(--cf-ink-2);
+}
+.cf-root .cf-eyebrow .cf-eyebrow-idx {
+  font-family: var(--font-fraunces), serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--cf-teal);
+  font-variant-numeric: tabular-nums;
+}
+.cf-root .cf-eyebrow .cf-eyebrow-rule {
+  height: 1px;
+  width: 22px;
+  background: linear-gradient(90deg, var(--cf-teal), transparent);
+}
+
+/* Bento card chrome */
+.cf-root .cf-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--cf-card);
+  border: 1px solid var(--cf-line);
+  border-radius: var(--cf-radius);
+  box-shadow: var(--cf-shadow-sm);
+  overflow: hidden;
+  transition: box-shadow 180ms ease, transform 180ms ease, border-color 180ms ease;
+}
+.cf-root .cf-card:hover {
+  box-shadow: var(--cf-shadow-md);
+  transform: translateY(-2px);
+  border-color: var(--cf-teal-tint-2);
+}
+/* accent spine on the left edge, grows on hover */
+.cf-root .cf-card::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 18px; bottom: 18px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--cf-spine, var(--cf-teal));
+  transform: scaleY(0.5);
+  transform-origin: center;
+  opacity: 0.55;
+  transition: transform 200ms ease, opacity 200ms ease;
+}
+.cf-root .cf-card:hover::before { transform: scaleY(1); opacity: 1; }
+
+.cf-root .cf-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 16px 12px 18px;
+  border-bottom: 1px solid var(--cf-line-soft);
+}
+.cf-root .cf-card-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--cf-ink);
+  margin: 0;
+  line-height: 1.25;
+}
+
+/* pills / buttons */
+.cf-root .cf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 160ms ease;
+  white-space: nowrap;
+}
+.cf-root .cf-btn-primary {
+  background: var(--cf-teal);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(19, 78, 74, 0.25), 0 8px 20px -10px rgba(15, 118, 110, 0.6);
+}
+.cf-root .cf-btn-primary:hover { background: var(--cf-teal-deep); transform: translateY(-1px); }
+.cf-root .cf-btn-primary:active { transform: translateY(0) scale(0.98); }
+.cf-root .cf-btn-ghost {
+  background: var(--cf-card);
+  color: var(--cf-ink-2);
+  border: 1px solid var(--cf-line);
+  box-shadow: var(--cf-shadow-sm);
+}
+.cf-root .cf-btn-ghost:hover { border-color: var(--cf-teal); color: var(--cf-teal); }
+
+/* category chip tints */
+.cf-root .cf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+}
+
+/* --- Fold InvestigativeTable onto the editorial system (scoped) --- */
+.cf-root .sr-table-card {
+  border-radius: var(--cf-radius) !important;
+  border-color: var(--cf-line) !important;
+  background: var(--cf-card) !important;
+  box-shadow: var(--cf-shadow-sm) !important;
+}
+.cf-root .sr-table-caption {
+  background: linear-gradient(180deg, #fffdf8 0%, #faf5ea 100%) !important;
+  border-bottom-color: var(--cf-line) !important;
+  padding: 16px 20px 14px !important;
+}
+.cf-root .sr-table-caption-title .sr-marker,
+.cf-root .sr-table-caption h3 + * .sr-marker { background: var(--cf-teal) !important; box-shadow: none !important; }
+
+/* CF scrollbar tint */
+.cf-root .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--cf-teal-tint-2); }
+.cf-root .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #a7d3cd; }
+
+@media (prefers-reduced-motion: reduce) {
+  .cf-root .cf-card,
+  .cf-root .cf-card::before,
+  .cf-root .cf-btn { transition: none; }
+  .cf-root .cf-card:hover { transform: none; }
+}

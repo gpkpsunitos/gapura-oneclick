@@ -71,10 +71,49 @@ export function ReportMasterDetail({ title, reports, loading, onStatusUpdate, on
     const deferredSearchTerm = useDeferredValue(searchTerm);
 
     const filteredReports = reports.filter(r => {
-        const query = deferredSearchTerm.toLowerCase();
-        const matchesSearch = r.title.toLowerCase().includes(query) ||
-                              (r.flight_number && r.flight_number.toLowerCase().includes(query));
+        const query = deferredSearchTerm.trim().toLowerCase();
         const matchesFilter = activeFilter === 'ALL' || r.status === activeFilter;
+        if (!query) return matchesFilter;
+
+        const dateStrings = [r.created_at, r.incident_date, r.event_date, r.date_of_event]
+            .filter(Boolean)
+            .flatMap((d) => {
+                const parsed = new Date(d as string);
+                const formatted = Number.isNaN(parsed.getTime())
+                    ? []
+                    : [parsed.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })];
+                return [d as string, ...formatted];
+            });
+
+        const searchableFields = [
+            r.title,
+            r.report,
+            r.description,
+            r.flight_number,
+            r.aircraft_reg,
+            r.airline,
+            r.airlines,
+            r.jenis_maskapai,
+            r.category,
+            r.main_category,
+            r.reference_number,
+            r.location,
+            r.specific_location,
+            r.stations?.name,
+            r.stations?.code,
+            r.station_code,
+            r.branch,
+            r.reporting_branch,
+            r.hub,
+            r.route,
+            r.reporter_name,
+            r.reporter_email,
+            ...dateStrings,
+        ];
+
+        const matchesSearch = searchableFields.some(
+            (field) => field && field.toString().toLowerCase().includes(query)
+        );
         return matchesSearch && matchesFilter;
     });
 

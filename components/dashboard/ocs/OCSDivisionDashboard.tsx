@@ -438,6 +438,46 @@ export function OCSDivisionDashboard({
     listSeverity,
     debouncedSearch,
   ]);
+  // ponytail: memoized so this element's reference stays stable across
+  // unrelated re-renders (e.g. opening the detail dialog), letting
+  // ReportsDetailTable's memo() actually skip re-rendering the report list.
+  const reportsToolbarFilter = useMemo(() => (
+    <ReportFilterBar
+      search={listSearch}
+      onSearch={setListSearch}
+      startDate={listStartDate}
+      onStartDate={setListStartDate}
+      endDate={listEndDate}
+      onEndDate={setListEndDate}
+      hub={listHub}
+      onHub={setListHub}
+      branch={listBranch}
+      onBranch={setListBranch}
+      airline={listAirline}
+      onAirline={setListAirline}
+      category={listCategory}
+      onCategory={setListCategory}
+      caseClassification={listCaseClassification}
+      onCaseClassification={setListCaseClassification}
+      area={listArea}
+      onArea={setListArea}
+      status={listFilter}
+      onStatus={setListFilter}
+      severity={listSeverity}
+      onSeverity={setListSeverity}
+      options={listFilterOptions}
+      totalCount={listReportsBase.length}
+      filteredCount={listReports.length}
+      refreshing={refreshing}
+      onRefresh={refreshData}
+      onReset={resetListFilters}
+    />
+  ), [
+    listSearch, listStartDate, listEndDate, listHub, listBranch, listAirline,
+    listCategory, listCaseClassification, listArea, listFilter, listSeverity,
+    listFilterOptions, listReportsBase.length, listReports.length, refreshing,
+    refreshData, resetListFilters,
+  ]);
   const setView = useCallback(
     (nextView: DashboardView) => {
       const basePath = `/dashboard/${division.code.toLowerCase()}`;
@@ -703,38 +743,7 @@ export function OCSDivisionDashboard({
               onStatusUpdate={isScopeLocked ? undefined : handleUpdateStatus}
               loading={loading || refreshing}
               fullHeight
-              toolbarFilter={(
-                <ReportFilterBar
-                  search={listSearch}
-                  onSearch={setListSearch}
-                  startDate={listStartDate}
-                  onStartDate={setListStartDate}
-                  endDate={listEndDate}
-                  onEndDate={setListEndDate}
-                  hub={listHub}
-                  onHub={setListHub}
-                  branch={listBranch}
-                  onBranch={setListBranch}
-                  airline={listAirline}
-                  onAirline={setListAirline}
-                  category={listCategory}
-                  onCategory={setListCategory}
-                  caseClassification={listCaseClassification}
-                  onCaseClassification={setListCaseClassification}
-                  area={listArea}
-                  onArea={setListArea}
-                  status={listFilter}
-                  onStatus={setListFilter}
-                  severity={listSeverity}
-                  onSeverity={setListSeverity}
-                  options={listFilterOptions}
-                  totalCount={listReportsBase.length}
-                  filteredCount={listReports.length}
-                  refreshing={refreshing}
-                  onRefresh={refreshData}
-                  onReset={resetListFilters}
-                />
-              )}
+              toolbarFilter={reportsToolbarFilter}
             />
           </div>
         )}

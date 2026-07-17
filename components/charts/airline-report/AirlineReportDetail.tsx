@@ -1,17 +1,12 @@
 'use client';
 
-import { useEffect, useState, useMemo, Suspense } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
-  fetchAirlineSummary,
-  fetchMonthlyTrendByAirline,
   fetchBranchByAirline,
   fetchRootCauseByAirline,
   fetchAllAirlineReports,
-  fetchCategoryByAirline,
   fetchAreaByAirline,
   fetchRootCausePareto,
-  fetchAirlineKPIs,
-  fetchAirlineCategoryBreakdown,
   fetchAggregatedAirlineReport,
   AirlineSummary,
   TrendDataPoint,
@@ -24,37 +19,28 @@ import {
   AirlineKPIs,
   AirlineCategoryBreakdown,
 } from './data';
-import { fetchRiskSummaryAi, AiRiskSummary } from '@/lib/services/gapura-ai';
-import { HeatmapChart } from '@/components/charts/HeatmapChart';
-import { 
-  BarChart, 
-  CartesianGrid, 
-  XAxis, 
-  YAxis, 
-  Tooltip as RechartsTooltip, 
-  Legend as RechartsLegend, 
-  ResponsiveContainer, 
-  Bar as RechartsBar 
+import {
+  BarChart,
+  CartesianGrid,
+  XAxis,
+  YAxis,
+  Tooltip as RechartsTooltip,
+  Legend as RechartsLegend,
+  ResponsiveContainer,
+  Bar as RechartsBar,
 } from 'recharts';
 import { LineChart, Line as RechartsLine } from 'recharts';
-import { 
-  ArrowUp, 
-  ArrowDown, 
-  Minus, 
-  Download, 
-  Filter, 
-  AlertTriangle, 
-  Zap,
-  Brain 
-} from 'lucide-react';
-import { saveAs } from 'file-saver';
+import { Sparkles } from 'lucide-react';
 import { InvestigativeTable } from '@/components/chart-detail/InvestigativeTable';
-import { DataTableWithPagination } from '@/components/chart-detail/DataTableWithPagination';
-import { AiRootCauseInvestigation } from '../ai-root-cause/AiRootCauseInvestigation';
-import { AirlineAIVisualization } from '@/components/chart-detail/ai/AirlineAIVisualization';
-import { motion } from 'framer-motion';
+import {
+  ReportSection,
+  ReportStatCard,
+  CompactTable,
+  ReportLoading,
+  ReportError,
+  type CompactColumn,
+} from '@/components/chart-detail/ReportDetailKit';
 import type { QueryResult } from '@/types/builder';
-import { sanitizeTableCell } from '@/lib/security/sanitize';
 
 interface FilterParams {
   hub?: string;
@@ -66,168 +52,62 @@ interface FilterParams {
   dateTo?: string;
 }
 
-interface KPICardProps {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  trend?: number;
-  color?: 'green' | 'red' | 'yellow' | 'blue' | 'orange';
-  explanation?: string;
-}
-
-function KPICard({ title, value, subtitle, trend, color = 'blue', explanation }: KPICardProps) {
-  const colorClasses = {
-    green: 'bg-[var(--brand-emerald-50)] border-[oklch(0.9_0.02_160)] text-[var(--brand-emerald-700)] shadow-[0_4px_12px_oklch(0.65_0.18_160/0.05)]',
-    red: 'bg-[oklch(0.98_0.02_25)] border-[oklch(0.9_0.05_25)] text-[oklch(0.45_0.2_25)] shadow-[0_4px_12px_oklch(0.6_0.22_25/0.05)]',
-    yellow: 'bg-[oklch(0.98_0.03_75)] border-[oklch(0.9_0.06_75)] text-[oklch(0.5_0.16_75)] shadow-[0_4px_12px_oklch(0.75_0.16_75/0.05)]',
-    blue: 'bg-[oklch(0.98_0.01_250)] border-[oklch(0.9_0.04_250)] text-[oklch(0.45_0.15_250)] shadow-[0_4px_12px_oklch(0.6_0.15_250/0.05)]',
-    orange: 'bg-[oklch(0.98_0.04_45)] border-[oklch(0.9_0.08_45)] text-[oklch(0.55_0.2_45)] shadow-[0_4px_12px_oklch(0.65_0.25_45/0.05)]',
-  };
-
-  return (
-    <motion.div 
-      whileHover={{ y: -4, scale: 1.01 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className={`relative overflow-hidden p-5 rounded-prism border ${colorClasses[color]} transition-all duration-300 isolate group`}
-    >
-      <div className="absolute inset-0 opacity-[0.03] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }} />
-      <div className="absolute -inset-24 bg-gradient-to-br from-white/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl pointer-events-none" />
-
-      <div className="relative z-10">
-        <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1.5">{title}</div>
-        <div className="text-3xl font-display font-black tracking-tighter leading-none mb-1">{value}</div>
-        {subtitle && <div className="text-xs font-semibold opacity-75 mt-2">{subtitle}</div>}
-        {trend !== undefined && (
-          <div className="flex items-center gap-1.5 text-[11px] font-bold mt-3 opacity-90 bg-white/40 w-fit px-2 py-1 rounded-md backdrop-blur-sm border border-white/20">
-            {trend > 0 ? <ArrowUp size={12} /> : trend < 0 ? <ArrowDown size={12} /> : <Minus size={12} />}
-            <span>{Math.abs(trend).toFixed(1)}% vs Avg</span>
-          </div>
-        )}
-        {explanation && (
-          <div className="text-xs font-medium opacity-70 mt-3 pt-3 border-t border-black/5 leading-relaxed">
-            {explanation}
-          </div>
-        )}
-      </div>
-    </motion.div>
-  );
-}
-
-function AutoInsight({ data }: {
-  data: AirlineSummary[];
-}) {
+function AutoInsight({ data }: { data: AirlineSummary[] }) {
   if (data.length === 0) return null;
 
   const topAirline = data[0];
-  const highRiskAirlines = data.filter(a => a.riskIndex >= 50);
+  const highRiskAirlines = data.filter((a) => a.riskIndex >= 50);
 
   const insightParts: string[] = [];
   if (highRiskAirlines.length > 0) {
-    insightParts.push(`${highRiskAirlines.length} airline${highRiskAirlines.length > 1 ? 's' : ''} flagged as high risk (${highRiskAirlines.map(a => a.airline).join(', ')})`);
+    insightParts.push(
+      `${highRiskAirlines.length} airline${highRiskAirlines.length > 1 ? 's' : ''} flagged as high risk (${highRiskAirlines.map((a) => a.airline).join(', ')})`,
+    );
   }
   insightParts.push(`${topAirline.airline} leads with ${topAirline.total} reports (${topAirline.contribution.toFixed(1)}% share)`);
 
   const mainInsight = `Performance analysis across ${data.length} airlines. ${topAirline.airline} currently shows the highest report volume.`;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.2 }}
-      className="relative overflow-hidden bg-gradient-to-r from-[oklch(0.98_0.03_75)] to-[oklch(0.96_0.04_45)] border border-[oklch(0.9_0.06_75)] rounded-prism p-6 shadow-spatial-sm isolate group"
-    >
-      <div className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }} />
-      <div className="absolute right-0 top-0 w-64 h-64 bg-white/40 blur-3xl -translate-y-1/2 translate-x-1/3 rounded-full pointer-events-none" />
-
-      <div className="relative z-10 flex flex-col sm:flex-row gap-6 items-start">
-        <div className="flex-shrink-0 bg-white/60 p-3 rounded-2xl border border-white shadow-inner-rim">
-          <Zap size={24} className="text-[var(--accent-amber)]" />
+    <div className="cf-card p-4 sm:p-5" style={{ '--cf-spine': 'var(--cf-amber)' } as React.CSSProperties}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#fef3c7] text-[var(--cf-amber)]">
+          <Sparkles size={16} />
         </div>
-        <div>
-          <h3 className="text-xs font-bold uppercase tracking-widest text-[oklch(0.5_0.16_75)] mb-2">Auto-Insight</h3>
-          <p className="text-base font-display font-semibold text-[var(--text-primary)] mb-4 leading-snug text-balance">{mainInsight}</p>
-          <ul className="grid sm:grid-cols-2 gap-3">
+        <div className="min-w-0">
+          <h3 className="cf-eyebrow mb-2">
+            <span>Summary</span>
+            <span className="cf-eyebrow-rule" />
+          </h3>
+          <p className="cf-display mb-3 text-[15px] font-medium leading-snug text-[var(--cf-ink)]">{mainInsight}</p>
+          <ul className="grid gap-2 sm:grid-cols-2">
             {insightParts.map((insight, idx) => (
-              <li key={idx} className="flex items-start gap-2.5 text-sm font-medium text-[var(--text-secondary)] bg-white/40 rounded-lg px-3 py-2 border border-white/50 shadow-sm">
-                <span className="text-[var(--accent-amber)] mt-0.5 animate-pulse">•</span>
+              <li key={idx} className="flex items-start gap-2 rounded-lg border border-[var(--cf-line)] bg-[var(--cf-canvas-2)] px-3 py-2 text-[11px] font-medium leading-relaxed text-[var(--cf-ink-2)]">
+                <span className="mt-0.5 text-[var(--cf-amber)]">•</span>
                 {insight}
               </li>
             ))}
           </ul>
         </div>
       </div>
-    </motion.div>
-  );
-}
-
-function AirlineRankTable({ data }: { data: AirlineSummary[] }) {
-  const getRiskLevel = (riskIndex: number) => {
-    if (riskIndex >= 50) return { label: 'High', color: 'bg-red-500' };
-    if (riskIndex >= 20) return { label: 'Medium', color: 'bg-orange-500' };
-    return { label: 'Low', color: 'bg-green-500' };
-  };
-
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50">
-          <tr>
-            <th className="px-3 py-2 text-left font-semibold text-gray-600">Rank</th>
-            <th className="px-3 py-2 text-left font-semibold text-gray-600">Airline</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600">Total</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600">Irreg.</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600">Complaint</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600">Compliment</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600">Irreg. Rate</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600">Net Sentiment</th>
-            <th className="px-3 py-2 text-center font-semibold text-gray-600">Risk</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.slice(0, 15).map((airline) => {
-            const risk = getRiskLevel(airline.riskIndex);
-            return (
-              <tr key={airline.airline} className="border-t border-gray-100 hover:bg-gray-50">
-                <td className="px-3 py-2 font-bold text-gray-700">#{airline.rank}</td>
-                <td className="px-3 py-2 font-semibold text-gray-900">{airline.airline}</td>
-                <td className="px-3 py-2 text-right font-medium">{airline.total.toLocaleString('id-ID')}</td>
-                <td className="px-3 py-2 text-right text-red-600">{airline.irregularity}</td>
-                <td className="px-3 py-2 text-right text-orange-600">{airline.complaint}</td>
-                <td className="px-3 py-2 text-right text-green-600">{airline.compliment}</td>
-                <td className="px-3 py-2 text-right">{airline.irregularityRate.toFixed(1)}%</td>
-                <td className="px-3 py-2 text-right">{airline.netSentiment > 0 ? '+' : ''}{airline.netSentiment.toFixed(1)}%</td>
-                <td className="px-3 py-2 text-center">
-                  <span className={`px-2 py-0.5 rounded text-xs font-bold text-white ${risk.color}`}>{risk.label}</span>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
     </div>
   );
 }
 
 function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
-  const rechartsData = data.map(d => ({
-    name: d.month,
-    Total: d.total,
-    Irregularity: d.Irregularity,
-    Complaint: d.Complaint,
-  }));
-
+  const rechartsData = data.map((d) => ({ name: d.month, Total: d.total, Irregularity: d.Irregularity, Complaint: d.Complaint }));
   return (
-    <div className="h-[250px]">
+    <div className="h-[220px] sm:h-[260px]">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-          <YAxis tick={{ fontSize: 10 }} />
-          <RechartsTooltip />
+        <LineChart data={rechartsData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+          <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+          <RechartsTooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
           <RechartsLegend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
-          <RechartsLine type="monotone" dataKey="Total" stroke="#3b82f6" strokeWidth={2} dot={false} />
-          <RechartsLine type="monotone" dataKey="Irregularity" stroke="#ef4444" strokeWidth={2} dot={false} />
-          <RechartsLine type="monotone" dataKey="Complaint" stroke="#f97316" strokeWidth={2} dot={false} />
+          <RechartsLine type="monotone" dataKey="Total" stroke="var(--cf-teal)" strokeWidth={2} dot={false} />
+          <RechartsLine type="monotone" dataKey="Irregularity" stroke="var(--cf-coral)" strokeWidth={2} dot={false} />
+          <RechartsLine type="monotone" dataKey="Complaint" stroke="var(--cf-amber)" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -240,23 +120,22 @@ function BranchDistributionChart({ data }: { data: BranchByAirlineData[] }) {
       const existing = acc.get(curr.branch) || 0;
       acc.set(curr.branch, existing + curr.count);
       return acc;
-    }, new Map<string, number>())
-  ).sort((a, b) => b[1] - a[1]).slice(0, 12);
+    }, new Map<string, number>()),
+  )
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
 
-  const rechartsData = topBranches.map(([branch, count]) => ({
-    name: branch,
-    Reports: count,
-  }));
+  const rechartsData = topBranches.map(([branch, count]) => ({ name: branch, Reports: count }));
 
   return (
-    <div className="h-[300px]">
+    <div className="h-[240px] sm:h-[280px]">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
-          <YAxis tick={{ fontSize: 10 }} />
-          <RechartsTooltip />
-          <RechartsBar dataKey="Reports" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+        <BarChart data={rechartsData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+          <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--cf-ink-3)' }} angle={-20} textAnchor="end" height={50} />
+          <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+          <RechartsTooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
+          <RechartsBar dataKey="Reports" fill="var(--cf-teal)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -264,25 +143,19 @@ function BranchDistributionChart({ data }: { data: BranchByAirlineData[] }) {
 }
 
 function CategoryStackedBar({ data }: { data: AirlineCategoryData[] }) {
-  const rechartsData = data.slice(0, 10).map(d => ({
-    name: d.airline,
-    Irregularity: d.Irregularity,
-    Complaint: d.Complaint,
-    Compliment: d.Compliment,
-  }));
-
+  const rechartsData = data.slice(0, 10).map((d) => ({ name: d.airline, Irregularity: d.Irregularity, Complaint: d.Complaint, Compliment: d.Compliment }));
   return (
-    <div className="h-[300px]">
+    <div className="h-[240px] sm:h-[280px]">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
-          <YAxis tick={{ fontSize: 10 }} />
-          <RechartsTooltip />
+        <BarChart data={rechartsData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+          <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--cf-ink-3)' }} angle={-20} textAnchor="end" height={50} />
+          <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+          <RechartsTooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
           <RechartsLegend wrapperStyle={{ fontSize: 10, paddingTop: 5 }} />
-          <RechartsBar dataKey="Irregularity" fill="#ef4444" radius={[4, 4, 0, 0]} />
-          <RechartsBar dataKey="Complaint" fill="#f97316" radius={[4, 4, 0, 0]} />
-          <RechartsBar dataKey="Compliment" fill="#22c55e" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Irregularity" fill="var(--cf-coral)" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Complaint" fill="var(--cf-amber)" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Compliment" fill="var(--cf-lime)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -290,25 +163,19 @@ function CategoryStackedBar({ data }: { data: AirlineCategoryData[] }) {
 }
 
 function Top10AirlinesCategoryChart({ data }: { data: AirlineCategoryBreakdown[] }) {
-  const rechartsData = data.map(d => ({
-    name: d.airline,
-    Irregularity: d.irregularity,
-    Complaint: d.complaint,
-    Compliment: d.compliment,
-  }));
-
+  const rechartsData = data.map((d) => ({ name: d.airline, Irregularity: d.irregularity, Complaint: d.complaint, Compliment: d.compliment }));
   return (
-    <div className="h-[400px]">
+    <div className="h-[280px] sm:h-[360px]">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
-          <YAxis tick={{ fontSize: 10 }} />
-          <RechartsTooltip />
+        <BarChart data={rechartsData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+          <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--cf-ink-3)' }} angle={-20} textAnchor="end" height={50} />
+          <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+          <RechartsTooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
           <RechartsLegend wrapperStyle={{ fontSize: 10, paddingTop: 5 }} />
-          <RechartsBar dataKey="Irregularity" fill="#ef4444" radius={[4, 4, 0, 0]} />
-          <RechartsBar dataKey="Complaint" fill="#f97316" radius={[4, 4, 0, 0]} />
-          <RechartsBar dataKey="Compliment" fill="#22c55e" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Irregularity" fill="var(--cf-coral)" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Complaint" fill="var(--cf-amber)" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Compliment" fill="var(--cf-lime)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -316,168 +183,18 @@ function Top10AirlinesCategoryChart({ data }: { data: AirlineCategoryBreakdown[]
 }
 
 function AreaBreakdownChart({ data }: { data: AreaByAirlineData[] }) {
-  const rechartsData = data.map(d => ({
-    name: d.area,
-    Reports: d.count,
-  }));
-
+  const rechartsData = data.map((d) => ({ name: d.area, Reports: d.count }));
   return (
-    <div className="h-[200px]">
+    <div className="h-[180px] sm:h-[200px]">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-          <YAxis tick={{ fontSize: 10 }} />
-          <RechartsTooltip />
-          <RechartsBar dataKey="Reports" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+        <BarChart data={rechartsData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+          <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+          <RechartsTooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
+          <RechartsBar dataKey="Reports" fill="var(--cf-slate)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
-    </div>
-  );
-}
-
-function DataTable({ data }: { data: AirlineReportRecord[] }) {
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [sortField, setSortField] = useState('Date');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
-
-  if (!data || data.length === 0) {
-    return <div className="p-8 text-center text-gray-500">No data available</div>;
-  }
-
-  const columns = Object.keys(data[0]);
-
-  const filteredData = data
-    .filter(row => {
-      const matchesSearch = search === '' ||
-        columns.some(col => String(row[col]).toLowerCase().includes(search.toLowerCase()));
-      const matchesCategory = categoryFilter === 'all' ||
-        String(row.Category)?.toLowerCase() === categoryFilter.toLowerCase();
-      return matchesSearch && matchesCategory;
-    })
-    .sort((a, b) => {
-      const aVal = a[sortField] as string | number;
-      const bVal = b[sortField] as string | number;
-      if (aVal === bVal) return 0;
-      const cmp = aVal < bVal ? -1 : 1;
-      return sortDir === 'asc' ? cmp : -cmp;
-    });
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDir('desc');
-    }
-    setCurrentPage(1);
-  };
-
-  const handleExportCSV = () => {
-    const headers = columns.join(',');
-    const rows = filteredData.map(row =>
-      columns.map(col => {
-        const cell = row[col];
-        return typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell;
-      }).join(',')
-    ).join('\n');
-    const csv = `${headers}\n${rows}`;
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    saveAs(blob, 'airline-report.csv');
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6b8e3d]"
-          />
-        </div>
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
-        >
-          <option value="all">All Categories</option>
-          <option value="Irregularity">Irregularity</option>
-          <option value="Complaint">Complaint</option>
-          <option value="Compliment">Compliment</option>
-        </select>
-        <button
-          onClick={handleExportCSV}
-          className="flex items-center gap-2 px-4 py-2 bg-[#6b8e3d] text-white rounded-lg text-sm font-medium"
-        >
-          <Download size={16} />
-          Export CSV
-        </button>
-      </div>
-
-      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              {columns.map(col => (
-                <th key={col} onClick={() => handleSort(col)} className="px-4 py-3 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100">
-                  <div className="flex items-center gap-1">
-                    {col}
-                    {sortField === col && <span className="text-[#6b8e3d]">{sortDir === 'asc' ? '↑' : '↓'}</span>}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedData.map((row, idx) => (
-              <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
-                {columns.map(col => (
-                  col === 'Evidence' ? (
-                    <td key={col} className="px-4 py-2.5 text-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeTableCell(row[col]) }} />
-                  ) : (
-                    <td key={col} className="px-4 py-2.5 text-gray-700">{row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'}</td>
-                  )
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {totalPages > 1 && (
-          <div className="p-3 flex items-center justify-between bg-gray-50 border-t">
-            <div className="text-sm text-gray-500">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} rows
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border border-gray-200 rounded disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm border border-gray-200 rounded disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -486,7 +203,7 @@ function ManagementSummary({ data }: { data: AirlineSummary[] }) {
   if (data.length === 0) return null;
 
   const topAirline = data[0];
-  const highRiskCount = data.filter(a => a.riskIndex >= 50).length;
+  const highRiskCount = data.filter((a) => a.riskIndex >= 50).length;
   const totalIrreg = data.reduce((sum, a) => sum + a.irregularity, 0);
   const totalReports = data.reduce((sum, a) => sum + a.total, 0);
   const avgIrregRate = totalReports > 0 ? (totalIrreg / totalReports) * 100 : 0;
@@ -499,34 +216,22 @@ function ManagementSummary({ data }: { data: AirlineSummary[] }) {
   ];
 
   return (
-    <motion.div 
-      whileHover={{ y: -2 }}
-      className="relative overflow-hidden bg-gradient-to-br from-[var(--surface-2)] to-[var(--surface-1)] border border-[oklch(0.92_0.01_250/0.8)] rounded-prism p-6 shadow-spatial-sm isolate group"
-    >
-      <div className="absolute inset-0 opacity-[0.02] mix-blend-overlay pointer-events-none" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")` }} />
-      <h3 className="text-xs font-bold uppercase tracking-widest text-[var(--brand-emerald-600)] mb-4 flex items-center gap-2">
-        <span>✈️</span> Management Summary
-      </h3>
-      <ul className="grid sm:grid-cols-2 gap-4">
-        {insights.map((insight, idx) => (
-          <li key={idx} className="flex items-start gap-3 bg-white/50 backdrop-blur-sm p-3 rounded-lg border border-white shadow-[var(--inner-rim)] transition-colors hover:bg-white/80">
-            <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[var(--brand-emerald-50)] text-[var(--brand-emerald-600)] flex items-center justify-center text-[10px] font-bold">
-              0{idx + 1}
-            </span>
-            <span className="text-sm font-medium text-[var(--text-secondary)] leading-snug">
-              {insight}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </motion.div>
+    <ul className="grid gap-3 sm:grid-cols-2">
+      {insights.map((insight, idx) => (
+        <li key={idx} className="flex items-start gap-3 rounded-xl border border-[var(--cf-line)] bg-[var(--cf-canvas-2)] p-3">
+          <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--cf-teal-tint)] text-[10px] font-bold text-[var(--cf-teal)]">
+            0{idx + 1}
+          </span>
+          <span className="text-[12px] font-medium leading-snug text-[var(--cf-ink-2)]">{insight}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 export default function AirlineReportDetail({ filters = {} }: { filters?: FilterParams }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tableLoading, setTableLoading] = useState(false);
   const [chartData, setChartData] = useState({
     airlineData: [] as AirlineSummary[],
     trendData: [] as TrendDataPoint[],
@@ -537,33 +242,13 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
     areaData: [] as AreaByAirlineData[],
     paretoData: [] as RootCauseParetoData[],
     categoryBreakdown: [] as AirlineCategoryBreakdown[],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    aiRiskHeatmap: [] as any[],
   });
   const [kpis, setKpis] = useState<AirlineKPIs | null>(null);
-  const [aiRiskSummary, setAiRiskSummary] = useState<AiRiskSummary | null>(null);
   const investigativeData: QueryResult = useMemo(() => {
     const rows = chartData.tableData as unknown as Record<string, unknown>[];
     const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
-
-    return {
-      columns,
-      rows,
-      rowCount: rows.length,
-      executionTimeMs: 0,
-    };
+    return { columns, rows, rowCount: rows.length, executionTimeMs: 0 };
   }, [chartData.tableData]);
-  const fullTableData: QueryResult = useMemo(() => {
-    const rows = chartData.airlineData.map(item => ({ ...item })) as unknown as Record<string, unknown>[];
-    const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
-
-    return {
-      columns,
-      rows,
-      rowCount: rows.length,
-      executionTimeMs: 0,
-    };
-  }, [chartData.airlineData]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -577,7 +262,7 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
         const aggregated = await fetchAggregatedAirlineReport(filters as any);
 
         if (aggregated && aggregated.airlineData) {
-          setChartData(prev => ({
+          setChartData((prev) => ({
             ...prev,
             airlineData: aggregated.airlineData,
             trendData: aggregated.trendData || [],
@@ -588,26 +273,6 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
         } else {
           throw new Error('Invalid aggregated airline data');
         }
-
-        fetchRiskSummaryAi(controller.signal).then(riskSummaryRes => {
-          const riskSummaryResult = riskSummaryRes as AiRiskSummary | null;
-          if (riskSummaryResult) {
-            setAiRiskSummary(riskSummaryResult);
-            if (riskSummaryResult.airline_details) {
-              const heatmapData = riskSummaryResult.airline_details.flatMap(a => 
-                Object.entries(a.severity_distribution).map(([sev, count]) => ({
-                  airline: a.name,
-                  severity: sev,
-                  count: count
-                }))
-              );
-              setChartData(prev => ({ ...prev, aiRiskHeatmap: heatmapData }));
-            }
-          }
-        }).catch(err => {
-          if (err.name === 'AbortError') return;
-        });
-
       } catch (err) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         if ((err as any).name === 'AbortError') return;
@@ -621,15 +286,11 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
     }
 
     loadAggregatedData();
-
-    return () => {
-      controller.abort();
-    };
+    return () => controller.abort();
   }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo]);
 
   useEffect(() => {
     async function loadDeferredData() {
-      setTableLoading(true);
       try {
         const [branch, rootCause, table, area, pareto] = await Promise.all([
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -643,215 +304,99 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchRootCausePareto(filters as any),
         ]);
-        setChartData(prev => ({
-          ...prev,
-          branchData: branch,
-          rootCauseData: rootCause,
-          tableData: table,
-          areaData: area,
-          paretoData: pareto,
-        }));
+        setChartData((prev) => ({ ...prev, branchData: branch, rootCauseData: rootCause, tableData: table, areaData: area, paretoData: pareto }));
       } catch (err) {
         console.error('Failed to load deferred airline data:', err);
-      } finally {
-        setTableLoading(false);
       }
     }
 
     loadDeferredData();
   }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo]);
 
-  if (loading) {
-    return (
-      <div className="min-h-[600px] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#6b8e3d]"></div>
-      </div>
-    );
-  }
+  if (loading) return <ReportLoading label="Loading airline report…" />;
+  if (error) return <ReportError message={error} onRetry={() => window.location.reload()} />;
 
-  if (error) {
-    return (
-      <div className="min-h-[400px] flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 mb-2">⚠️ {error}</div>
-          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-[#6b8e3d] text-white rounded-lg text-sm font-medium">Retry</button>
-        </div>
-      </div>
-    );
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalReports = chartData.airlineData.reduce((sum: number, a: any) => sum + a.total, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalIrreg = chartData.airlineData.reduce((sum: number, a: any) => sum + a.irregularity, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalComplaint = chartData.airlineData.reduce((sum: number, a: any) => sum + a.complaint, 0);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const totalCompliment = chartData.airlineData.reduce((sum: number, a: any) => sum + a.compliment, 0);
+  const totalReports = chartData.airlineData.reduce((sum, a) => sum + a.total, 0);
+  const totalIrreg = chartData.airlineData.reduce((sum, a) => sum + a.irregularity, 0);
+  const totalComplaint = chartData.airlineData.reduce((sum, a) => sum + a.complaint, 0);
+  const totalCompliment = chartData.airlineData.reduce((sum, a) => sum + a.compliment, 0);
 
   const overallIrregRate = totalReports > 0 ? (totalIrreg / totalReports) * 100 : 0;
-  const overallNetSentiment = (totalCompliment + totalComplaint) > 0 
-    ? ((totalCompliment - totalComplaint) / (totalCompliment + totalComplaint)) * 100 
-    : 0;
+  const overallNetSentiment = totalCompliment + totalComplaint > 0 ? ((totalCompliment - totalComplaint) / (totalCompliment + totalComplaint)) * 100 : 0;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const avgRiskIndex = chartData.airlineData.length > 0 ? chartData.airlineData.reduce((sum: number, a: any) => sum + a.riskIndex, 0) / chartData.airlineData.length : 0;
+  const rankColumns: CompactColumn<AirlineSummary>[] = [
+    { key: 'rank', label: '#', align: 'left', numeric: true, render: (r) => `#${r.rank}` },
+    { key: 'airline', label: 'Airline' },
+    { key: 'total', label: 'Total', align: 'right', numeric: true, render: (r) => r.total.toLocaleString('id-ID') },
+    { key: 'irregularity', label: 'Irreg.', align: 'right', numeric: true, hideBelow: 'sm' },
+    { key: 'complaint', label: 'Complaint', align: 'right', numeric: true, hideBelow: 'md' },
+    { key: 'compliment', label: 'Compliment', align: 'right', numeric: true, hideBelow: 'md' },
+    { key: 'irregularityRate', label: 'Irreg. Rate', align: 'right', numeric: true, hideBelow: 'lg', render: (r) => `${r.irregularityRate.toFixed(1)}%` },
+    {
+      key: 'riskIndex',
+      label: 'Risk',
+      align: 'center',
+      render: (r) => {
+        const tone = r.riskIndex >= 50 ? { label: 'High', cls: 'bg-[#fee2e2] text-[var(--cf-coral)]' } : r.riskIndex >= 20 ? { label: 'Medium', cls: 'bg-[#fef3c7] text-[var(--cf-amber)]' } : { label: 'Low', cls: 'bg-[#ecfccb] text-[var(--cf-lime)]' };
+        return <span className={`cf-chip ${tone.cls}`}>{tone.label}</span>;
+      },
+    },
+  ];
 
   return (
-    <div className="space-y-8">
-      {}
+    <div className="space-y-6 sm:space-y-8">
       <AutoInsight data={chartData.airlineData} />
 
-      {}
       {kpis && kpis.totalAirlines > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <KPICard title="Total Airlines" value={kpis.totalAirlines} color="blue" explanation="Total maskapai yang terdaftar dalam dataset ini." />
-          <KPICard
-            title="Top Airline"
-            value={kpis.topAirline?.name || '-'}
-            subtitle={`${kpis.topAirline?.count || 0} reports`}
-            color="red"
-            explanation="Maskapai dengan jumlah laporan tertinggi pada periode ini." 
-          />
-          <KPICard
-            title="Best Performer"
-            value={kpis.bestPerformer?.name || '-'}
-            subtitle={`${kpis.bestPerformer?.count || 0} reports`}
-            color="green"
-            explanation="Performa terbaik berdasarkan jumlah laporan terbanyak." 
-          />
-          <KPICard title="Avg Reports/Airline" value={kpis.avgReportsPerAirline || 0} color="yellow" explanation="Rata-rata laporan per maskapai dalam dataset." />
-          <KPICard title="Compliment Ratio" value={`${kpis.complimentRatio || 0}%`} color="green" explanation="Proporsi ulasan positif terhadap total ulasan." />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          <ReportStatCard label="Total Airlines" value={kpis.totalAirlines} tone="teal" />
+          <ReportStatCard label="Top Airline" value={kpis.topAirline?.name || '-'} subtitle={`${kpis.topAirline?.count || 0} reports`} tone="coral" />
+          <ReportStatCard label="Best Performer" value={kpis.bestPerformer?.name || '-'} subtitle={`${kpis.bestPerformer?.count || 0} reports`} tone="lime" />
+          <ReportStatCard label="Avg / Airline" value={kpis.avgReportsPerAirline || 0} tone="amber" />
+          <ReportStatCard label="Compliment Ratio" value={`${kpis.complimentRatio || 0}%`} tone="lime" />
         </div>
       )}
 
-      {}
-      {chartData.categoryBreakdown && (
-        <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-1">Top 10 Airlines - Category Breakdown</h2>
-          <p className="text-xs text-gray-500 mb-4">Stacked distribution of Irregularity, Complaint, and Compliment</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <ReportStatCard label="Overall Irreg. Rate" value={`${overallIrregRate.toFixed(1)}%`} tone={overallIrregRate >= 5 ? 'coral' : 'lime'} />
+        <ReportStatCard label="Overall Net Sentiment" value={`${overallNetSentiment >= 0 ? '+' : ''}${overallNetSentiment.toFixed(1)}%`} tone={overallNetSentiment > 0 ? 'lime' : 'coral'} />
+        <ReportStatCard label="Top Airline" value={chartData.airlineData[0]?.airline || '-'} subtitle={`#1 with ${chartData.airlineData[0]?.total || 0} reports`} tone="teal" />
+      </div>
+
+      {chartData.categoryBreakdown.length > 0 && (
+        <ReportSection index={1} title="Top 10 Airlines — Category Breakdown" subtitle="Stacked distribution of irregularity, complaint, and compliment" tone="teal">
           <Top10AirlinesCategoryChart data={chartData.categoryBreakdown} />
-        </section>
+        </ReportSection>
       )}
 
-      {}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-        <KPICard
-          title="Overall Irreg. Rate"
-          value={`${overallIrregRate.toFixed(1)}%`}
-          color={overallIrregRate >= 5 ? 'red' : 'green'}
-        />
-        <KPICard
-          title="Overall Net Sentiment"
-          value={`${overallNetSentiment >= 0 ? '+' : ''}${overallNetSentiment.toFixed(1)}%`}
-          color={overallNetSentiment > 0 ? 'green' : 'red'}
-        />
-        <KPICard
-          title="Top Airline"
-          value={chartData.airlineData[0]?.airline || '-'}
-          subtitle={`#1 with ${chartData.airlineData[0]?.total || 0} reports`}
-        />
-      </div>
+      <ReportSection index={2} title="Airline Performance Ranking" tone="teal">
+        <CompactTable columns={rankColumns} rows={chartData.airlineData} rowKey="airline" maxRows={15} />
+      </ReportSection>
 
-      {}
-      <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <h2 className="text-lg font-bold text-gray-800 mb-4">Airline Performance Ranking</h2>
-        <AirlineRankTable data={chartData.airlineData} />
-      </section>
-
-      {}
-      <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <h2 className="text-lg font-bold text-gray-800 mb-4">Monthly Trend (Stability Check)</h2>
+      <ReportSection index={3} title="Monthly Trend" subtitle="Stability check across the reporting period" tone="teal">
         <MonthlyTrendChart data={chartData.trendData} />
-      </section>
+      </ReportSection>
 
-      {}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-1">Category Composition by Airline</h2>
-          <p className="text-xs text-gray-500 mb-4">Stacked Irregularity / Complaint / Compliment per airline</p>
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2">
+        <ReportSection index={4} title="Category Composition" subtitle="Irregularity / Complaint / Compliment per airline" tone="amber">
           <CategoryStackedBar data={chartData.categoryData} />
-        </section>
-        <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-1">Station Distribution</h2>
-          <p className="text-xs text-gray-500 mb-4">Are issues systemic or specific to one location?</p>
+        </ReportSection>
+        <ReportSection index={5} title="Station Distribution" subtitle="Are issues systemic or specific to one location?" tone="slate">
           <BranchDistributionChart data={chartData.branchData} />
-        </section>
+        </ReportSection>
       </div>
 
-            {}
-      {chartData.aiRiskHeatmap.length > 0 && (
-        <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <div className="flex items-center gap-2 mb-1">
-            <Brain className="w-5 h-5 text-emerald-600" />
-            <h2 className="text-lg font-bold text-gray-800">AI Risk Heatmap</h2>
-          </div>
-          <p className="text-xs text-gray-500 mb-4">Proactive risk analysis by severity across airlines</p>
-          <div className="h-[400px]">
-            <HeatmapChart 
-              data={chartData.aiRiskHeatmap}
-              xAxis="severity"
-              yAxis="airline"
-              metric="count"
-              showTitle={false}
-            />
-          </div>
-        </section>
-      )}
+      <ReportSection index={6} title="Area Breakdown" tone="slate">
+        <AreaBreakdownChart data={chartData.areaData} />
+      </ReportSection>
 
-      {}
-      <Suspense fallback={<div className="h-[400px] flex items-center justify-center"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#6b8e3d]"></div></div>}>
-        <section className="relative overflow-hidden bg-[var(--surface-1)]/50 backdrop-blur-xl rounded-3xl border border-[var(--surface-2)] p-8 shadow-spatial-md transition-all">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">AI Root Cause Analysis</h2>
-              <p className="text-slate-500 text-sm font-medium">Neural investigation into operational friction points.</p>
-            </div>
-          </div>
-          <AiRootCauseInvestigation source={filters.sourceSheet || "CGO"} />
-        </section>
-      </Suspense>
+      <ReportSection index={7} title="Management Summary" tone="teal">
+        <ManagementSummary data={chartData.airlineData} />
+      </ReportSection>
 
-      {}
-      <Suspense fallback={<div className="h-[300px] bg-gray-50 rounded-xl animate-pulse"></div>}>
-        <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl border border-[var(--surface-2)] shadow-spatial-sm">
-          <AirlineAIVisualization filters={filters.airlines ? [{ field: 'airlines', value: filters.airlines }] : []} />
-        </section>
-      </Suspense>
-
-      {}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Area Breakdown</h2>
-          <AreaBreakdownChart data={chartData.areaData} />
-        </section>
-        <div /> {}
-      </div>
-
-      {}
-      <ManagementSummary data={chartData.airlineData} />
-
-      {}
-      <InvestigativeTable
-        data={investigativeData}
-        title="Investigative Table - Airline Reports"
-        rowsPerPage={5}
-        maxRows={40}
-      />
-
-      {}
-      <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-lg font-bold text-gray-800">Full Data Table</h2>
-        </div>
-        <div className="p-6">
-          <DataTableWithPagination 
-          data={fullTableData} 
-          title="Airline Performance (Main Chart Source)"
-          rowsPerPage={3}
-        />
-        </div>
-      </section>
+      <ReportSection index={8} title="Investigative Table" subtitle="Airline reports — expand a row for full case detail" bodyClassName="p-0">
+        <InvestigativeTable data={investigativeData} title="Airline Reports" rowsPerPage={8} maxRows={40} theme="cf" />
+      </ReportSection>
     </div>
   );
 }

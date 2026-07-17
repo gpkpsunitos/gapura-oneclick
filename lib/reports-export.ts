@@ -2,6 +2,7 @@
 
 import type { Report } from "@/types";
 import type { jsPDF as JsPdfDocument } from "jspdf";
+import type { ExcelColumnKind } from "@/lib/excel-export-style";
 
 export interface ReportExportFilters {
   startDate: string;
@@ -45,9 +46,16 @@ export const DEFAULT_REPORT_EXPORT_FILTERS: ReportExportFilters = {
   search: "",
 };
 
+// eslint-disable-next-line no-control-regex
+const ILLEGAL_XML_CHARS = /[\x00-\x08\x0b\x0c\x0e-\x1f\uD800-\uDFFF\ufffe\uffff]/g;
+
+function stripIllegalXmlChars(text: string): string {
+  return text.replace(ILLEGAL_XML_CHARS, "");
+}
+
 export function cleanReportValue(value: unknown): string {
   if (value === null || value === undefined) return "";
-  const text = String(value).trim();
+  const text = stripIllegalXmlChars(String(value)).trim();
   if (!text || text === "-" || text === "#N/A" || text.toLowerCase() === "null") return "";
   return text;
 }
@@ -112,6 +120,26 @@ export function resolveCustomerType(report: Report): string {
 
 export function resolveJoumpaCategory(report: Report): string {
   return cleanReportValue(report.category_case_joumpa);
+}
+
+export function resolveReportAreaCategory(report: Report): string {
+  return cleanReportValue(report.primary_tag)
+    || cleanReportValue(report.terminal_area_category)
+    || cleanReportValue(report.apron_area_category)
+    || cleanReportValue(report.general_category)
+    || resolveReportArea(report);
+}
+
+export function resolveReportRootCause(report: Report): string {
+  return cleanReportValue(report.root_cause)
+    || cleanReportValue(report.root_caused)
+    || cleanReportValue(report.identification_of_root);
+}
+
+export function resolveReportActionTaken(report: Report): string {
+  return cleanReportValue(report.action_taken)
+    || cleanReportValue(report.immediate_action)
+    || cleanReportValue(report.gapura_kps_action_taken);
 }
 
 function uniqueSorted(values: string[]): string[] {
@@ -217,74 +245,12 @@ function fileSafe(value: string): string {
   return value.replace(/[^a-z0-9-]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "report";
 }
 
-export interface PdfReportField {
-  label: string;
-  value: string;
-}
-
-export interface PdfReportSection {
-  title: string;
-  fields: PdfReportField[];
-}
-
-export interface PdfReportContent {
-  reference: string;
-  title: string;
-  status: string;
-  severity: string;
-  facts: PdfReportField[];
-  sections: PdfReportSection[];
-  evidence: string[];
-  videos: string[];
-  comments: PdfReportField[];
-}
-
-const PDF_INTERNAL_FIELDS = new Set([
-  "id",
-  "user_id",
-  "station_id",
-  "unit_id",
-  "location_id",
-  "incident_type_id",
-  "evidence_file_ids",
-  "evidence_submission_id",
-  "source_spreadsheet_id",
-  "sheet_id",
-  "source_fingerprint",
-  "original_id",
-  "stations",
-  "users",
-  "comments",
-]);
-
-const PDF_PAGE = {
-  marginX: 14,
-  contentTop: 36,
-  contentBottom: 194,
-  footerLineY: 199,
-  footerTextY: 203,
-} as const;
-
-function normalizedComparableValue(value: string): string {
-  return value.toLowerCase().replace(/\s+/g, " ").trim();
-}
-
 function formatPdfFieldValue(value: unknown): string {
   if (typeof value === "boolean") return value ? "Yes" : "No";
   if (Array.isArray(value)) {
     return value.map(cleanReportValue).filter(Boolean).join("\n");
   }
   return cleanReportValue(value);
-}
-
-function humanizeReportKey(key: string): string {
-  return key
-    .replace(/_/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase())
-    .replace(/\bGse\b/g, "GSE")
-    .replace(/\bKps\b/g, "KPS")
-    .replace(/\bJoumpa\b/g, "JOUMPA")
-    .replace(/\bSla\b/g, "SLA");
 }
 
 function pdfSafeText(value: string): string {
@@ -317,209 +283,149 @@ function uniqueReportLinks(values: unknown[]): string[] {
     .filter(Boolean)));
 }
 
-export function buildPdfReportContent(report: Report): PdfReportContent {
-  const consumed = new Set<string>();
-  const seenValues = new Set<string>();
-
-  const take = (label: string, keys: string[], options?: { date?: boolean; dateTime?: boolean; allowDuplicate?: boolean }): PdfReportField | null => {
-    keys.forEach((key) => consumed.add(key));
-    const raw = keys.map((key) => report[key]).find((value) => formatPdfFieldValue(value));
-    const value = options?.dateTime ? formatDateTime(raw) : options?.date ? formatDate(raw) : formatPdfFieldValue(raw);
-    if (!value) return null;
-    const comparable = normalizedComparableValue(value);
-    if (!options?.allowDuplicate && seenValues.has(comparable)) return null;
-    seenValues.add(comparable);
-    return { label, value };
-  };
-  const direct = (label: string, raw: unknown, consumedKeys: string[]): PdfReportField | null => {
-    consumedKeys.forEach((key) => consumed.add(key));
-    const value = formatPdfFieldValue(raw);
-    if (!value) return null;
-    const comparable = normalizedComparableValue(value);
-    if (seenValues.has(comparable)) return null;
-    seenValues.add(comparable);
-    return { label, value };
-  };
-
-  const fields = (...entries: Array<PdfReportField | null>): PdfReportField[] => entries.filter((entry): entry is PdfReportField => Boolean(entry));
-  const reference = cleanReportValue(report.reference_number)
-    || cleanReportValue(report.flight_number)
-    || report.id.slice(0, 8).toUpperCase();
-  const compactTitle = cleanReportValue(report.title)
-    || resolveReportCaseClassification(report)
-    || cleanReportValue(report.flight_number)
-    || "Untitled report";
-
-  const facts = fields(
-    take("Event date", ["date_of_event", "event_date", "incident_date"], { date: true }),
-    direct("Branch", resolveReportBranch(report), ["branch", "reporting_branch", "station_code", "kode_cabang"]),
-    take("Hub", ["hub", "kode_hub"]),
-    direct("Airline", resolveReportAirline(report), ["airlines", "airline", "maskapai_lookup", "jenis_maskapai"]),
-    take("Flight", ["flight_number"]),
-    take("Aircraft registration", ["aircraft_reg"]),
-    take("Route", ["route"]),
-    take("Area", ["area"]),
-    take("Location", ["specific_location", "location"]),
-    take("Airport", ["airport_name", "airport_code", "branch_code"]),
-    direct("Case classification", resolveReportCaseClassification(report), ["case_classification", "case_category", "category", "main_category", "irregularity_complain_category"]),
-    take("Priority", ["priority"]),
-  );
-
-  // The report header already displays these values. Mark every alias consumed so
-  // fallback handling cannot print them again under Additional Information.
-  ["reference_number", "status", "severity", "severity_level", "title", "created_at"].forEach((key) => consumed.add(key));
-  [reference, compactTitle, cleanReportValue(report.status), resolveReportSeverity(report)]
-    .map(normalizedComparableValue)
-    .filter(Boolean)
-    .forEach((value) => seenValues.add(value));
-
-  const sections: PdfReportSection[] = [
-    {
-      title: "Report narrative",
-      fields: fields(
-        take("Report", ["report"]),
-        take("Description", ["description"]),
-        take("Accident / incident", ["accident_incident"]),
-        take("Issue caused", ["issue_caused"]),
-        take("Breakdown caused", ["breakdown_caused"]),
-      ),
-    },
-    {
-      title: "Classification and operational context",
-      fields: fields(
-        take("Terminal area category", ["terminal_area_category"]),
-        take("Apron area category", ["apron_area_category"]),
-        take("General category", ["general_category"]),
-        take("Subcategory note", ["sub_category_note"]),
-        take("Service business type", ["service_business_type"]),
-        take("GSE case category", ["category_case_gse"]),
-        take("Cargo case category", ["category_case_cargo"]),
-        take("JOUMPA case category", ["category_case_joumpa"]),
-        take("Primary tag", ["primary_tag"]),
-        take("Domestic / international", ["dom_inter", "kode_inter"]),
-        take("Delay code", ["delay_code"]),
-        take("Delay duration", ["delay_duration"]),
-        take("Week in month", ["week_in_month"]),
-        take("Local MPA", ["lokal_mpa_lookup"]),
-      ),
-    },
-    {
-      title: "Root cause and response",
-      fields: fields(
-        take("Root cause", ["root_cause", "root_caused", "identification_of_root"]),
-        take("Immediate action", ["immediate_action"]),
-        take("Action taken", ["action_taken"]),
-        take("Gapura / KPS action", ["gapura_kps_action_taken"]),
-        take("Preventive action", ["preventive_action"]),
-        take("KPS remarks", ["kps_remarks", "remarks_gapura_kps"]),
-        take("Remarks by", ["remarks_by"]),
-        take("Case remarks", ["remarks_case"]),
-        take("Final remarks", ["final_remarks"]),
-      ),
-    },
-    {
-      title: "Flight and GSE details",
-      fields: fields(
-        take("Flight related", ["is_flight_related"]),
-        take("GSE related", ["is_gse_related"]),
-        take("GSE number", ["gse_number"]),
-        take("GSE name", ["gse_name"]),
-        take("GSE availability requirement", ["gse_available_requirement"]),
-        take("GSE requirement", ["gse_requirement"]),
-        take("Motorized GSE", ["gse_motorized"]),
-        take("Non-motorized GSE", ["gse_non_motorized"]),
-      ),
-    },
-    {
-      title: "Customer and service details",
-      fields: fields(
-        take("JOUMPA case", ["case_joumpa"]),
-        take("JOUMPA compliment / excellent service", ["joumpa_compliment_report_excellent_service"]),
-        take("JOUMPA customer", ["customer_joumpa"]),
-        take("JOUMPA customer detail", ["detail_customer_joumpa"]),
-        take("Corporate customer", ["corporate"]),
-        take("Corporate profile", ["customer_company_profile_corporate"]),
-        take("Corporate customer detail", ["detail_customer_corporate"]),
-        take("Non-corporate customer", ["non_corporate"]),
-        take("Non-corporate background", ["customer_background_non_corporate"]),
-        take("Non-corporate customer detail", ["detail_customer_non_corporate"]),
-        take("Cargo case", ["case_cgo"]),
-        take("Reservation / scheduling", ["reservation_scheduling"]),
-        take("Passenger assistance / staff performance", ["pax_assistance_staff_service_performance"]),
-        take("Baggage delivery / assistance", ["baggage_delivery_baggage_assistance"]),
-        take("Administration / payment / documentation / marketing", ["administration_payment_documentation_marketing"]),
-        take("Customer satisfaction score", ["customer_satisfaction_score"]),
-        take("Customer satisfaction label", ["customer_satisfaction_label"]),
-      ),
-    },
-    {
-      title: "Investigation and validation",
-      fields: fields(
-        take("Investigator notes", ["investigator_notes"]),
-        take("Manager notes", ["manager_notes"]),
-        take("Partner response", ["partner_response_notes"]),
-        take("Validation notes", ["validation_notes"]),
-        take("Escalation division", ["esklasi_divisi"]),
-        take("Target division", ["target_division"]),
-      ),
-    },
-    {
-      title: "Reporter and timeline",
-      fields: fields(
-        direct("Reporter", cleanReportValue(report.reporter_name) || cleanReportValue(report.users?.full_name), ["reporter_name"]),
-        take("Reporter email", ["reporter_email"]),
-        take("Created", ["created_at"], { dateTime: true }),
-        take("Updated", ["updated_at"], { dateTime: true }),
-        take("Resolved", ["resolved_at"], { dateTime: true }),
-        take("SLA deadline", ["sla_deadline"], { dateTime: true }),
-        take("Source", ["source_sheet"]),
-        take("Source row", ["row_number"]),
-      ),
-    },
-  ].filter((section) => section.fields.length > 0);
-
-  const evidence = uniqueReportLinks([report.evidence_urls, report.evidence_url, report.partner_evidence_urls]);
-  const videos = uniqueReportLinks([report.video_urls, report.video_url]);
-  ["evidence_urls", "evidence_url", "partner_evidence_urls", "video_urls", "video_url"].forEach((key) => consumed.add(key));
-  const supportingEvidence = take("Supporting evidence", ["supporting_evidence"]);
-  if (supportingEvidence) sections.push({ title: "Supporting evidence notes", fields: [supportingEvidence] });
-
-  const comments = (report.comments || []).flatMap((comment, index) => {
-    const author = cleanReportValue(comment.users?.full_name) || "Comment author";
-    const timestamp = formatDateTime(comment.created_at);
-    const attachmentText = uniqueReportLinks(comment.attachments || []).length
-      ? `\nAttachments:\n${uniqueReportLinks(comment.attachments || []).join("\n")}`
-      : "";
-    const value = `${cleanReportValue(comment.content)}${attachmentText}`.trim();
-    return value ? [{ label: `${index + 1}. ${author}${timestamp ? ` - ${timestamp}` : ""}`, value }] : [];
-  });
-
-  const additionalFields: PdfReportField[] = [];
-  Object.entries(report).forEach(([key, rawValue]) => {
-    if (consumed.has(key) || PDF_INTERNAL_FIELDS.has(key) || key.endsWith("_id") || key.endsWith("_ids")) return;
-    if (key.startsWith("source_") && key !== "source_sheet") return;
-    if (typeof rawValue === "object" && !Array.isArray(rawValue)) return;
-    const value = formatPdfFieldValue(rawValue);
-    if (!value) return;
-    const comparable = normalizedComparableValue(value);
-    if (seenValues.has(comparable)) return;
-    seenValues.add(comparable);
-    additionalFields.push({ label: humanizeReportKey(key), value });
-  });
-  if (additionalFields.length) sections.push({ title: "Additional information", fields: additionalFields });
-
-  return {
-    reference,
-    title: compactTitle,
-    status: cleanReportValue(report.status) || "UNKNOWN",
-    severity: resolveReportSeverity(report),
-    facts,
-    sections,
-    evidence,
-    videos,
-    comments,
-  };
+export interface ReportColumn {
+  header: string;
+  kind: ExcelColumnKind;
+  get: (report: Report) => string;
 }
+
+function field(...keys: string[]): (report: Report) => string {
+  return (report: Report) => keys.map((key) => cleanReportValue(report[key])).find(Boolean) || "";
+}
+
+function multilineField(...keys: string[]): (report: Report) => string {
+  return (report: Report) => keys.map((key) => formatPdfFieldValue(report[key])).find(Boolean) || "";
+}
+
+function linksField(...keys: string[]): (report: Report) => string {
+  return (report: Report) => uniqueReportLinks(keys.map((key) => report[key])).join("\n");
+}
+
+// Every column here corresponds to a Google Sheets column (via PROP_TO_HEADER
+// in reports-service.ts). This is the canonical "all columns" list used for
+// the full Excel export; the PDF export picks a curated subset of these.
+export const FULL_REPORT_COLUMNS: ReportColumn[] = [
+  { header: "Reference", kind: "identifier", get: (r) => cleanReportValue(r.reference_number) || r.id },
+  { header: "Date of Event", kind: "date", get: field("date_of_event", "event_date", "incident_date") },
+  { header: "Status", kind: "status", get: field("status") },
+  { header: "Severity", kind: "severity", get: resolveReportSeverity },
+  { header: "Priority", kind: "text", get: field("priority") },
+  { header: "Source", kind: "text", get: resolveReportSource },
+  { header: "Branch", kind: "identifier", get: resolveReportBranch },
+  { header: "Hub", kind: "text", get: field("hub", "kode_hub") },
+  { header: "Airline", kind: "text", get: resolveReportAirline },
+  { header: "Flight Number", kind: "identifier", get: field("flight_number") },
+  { header: "Aircraft Registration", kind: "identifier", get: field("aircraft_reg") },
+  { header: "Route", kind: "identifier", get: field("route") },
+  { header: "Area", kind: "text", get: resolveReportArea },
+  { header: "Area Category", kind: "text", get: resolveReportAreaCategory },
+  { header: "Terminal Area Category", kind: "text", get: field("terminal_area_category") },
+  { header: "Apron Area Category", kind: "text", get: field("apron_area_category") },
+  { header: "General Category", kind: "text", get: field("general_category") },
+  { header: "Location", kind: "text", get: field("specific_location", "location") },
+  { header: "Airport", kind: "text", get: field("airport_name", "airport_code", "branch_code") },
+  { header: "Case Classification", kind: "text", get: resolveReportCaseClassification },
+  { header: "Case Category", kind: "text", get: field("case_category") },
+  { header: "Primary Tag", kind: "text", get: field("primary_tag") },
+  { header: "Sub Category Note", kind: "text", get: field("sub_category_note") },
+  { header: "Service Business Type", kind: "text", get: field("service_business_type") },
+  { header: "Delay Code", kind: "text", get: field("delay_code") },
+  { header: "Delay Duration", kind: "text", get: field("delay_duration") },
+  { header: "Domestic / International", kind: "text", get: field("dom_inter", "kode_inter") },
+  { header: "Week in Month", kind: "text", get: field("week_in_month") },
+  { header: "Local MPA", kind: "text", get: field("lokal_mpa_lookup") },
+  { header: "Report", kind: "multiline", get: reportTitle },
+  { header: "Description", kind: "multiline", get: field("description") },
+  { header: "Accident / Incident", kind: "multiline", get: field("accident_incident") },
+  { header: "Issue Caused", kind: "multiline", get: field("issue_caused") },
+  { header: "Breakdown Caused", kind: "multiline", get: field("breakdown_caused") },
+  { header: "Root Cause", kind: "multiline", get: resolveReportRootCause },
+  { header: "Immediate Action", kind: "multiline", get: field("immediate_action") },
+  { header: "Action Taken", kind: "multiline", get: resolveReportActionTaken },
+  { header: "Gapura / KPS Action Taken", kind: "multiline", get: field("gapura_kps_action_taken") },
+  { header: "Preventive Action", kind: "multiline", get: field("preventive_action") },
+  { header: "KPS Remarks", kind: "multiline", get: field("kps_remarks", "remarks_gapura_kps") },
+  { header: "Remarks By", kind: "text", get: field("remarks_by") },
+  { header: "Case Remarks", kind: "multiline", get: field("remarks_case") },
+  { header: "Final Remarks", kind: "multiline", get: field("final_remarks") },
+  { header: "Flight Related", kind: "text", get: multilineField("is_flight_related") },
+  { header: "GSE Related", kind: "text", get: multilineField("is_gse_related") },
+  { header: "GSE Number", kind: "text", get: field("gse_number") },
+  { header: "GSE Name", kind: "text", get: field("gse_name") },
+  { header: "GSE Availability Requirement", kind: "multiline", get: field("gse_available_requirement") },
+  { header: "GSE Requirement", kind: "multiline", get: field("gse_requirement") },
+  { header: "Motorized GSE", kind: "text", get: field("gse_motorized") },
+  { header: "Non-Motorized GSE", kind: "text", get: field("gse_non_motorized") },
+  { header: "Category Case GSE", kind: "text", get: field("category_case_gse") },
+  { header: "Category Case Cargo", kind: "text", get: field("category_case_cargo") },
+  { header: "JOUMPA Case", kind: "text", get: field("case_joumpa") },
+  { header: "JOUMPA Compliment / Excellent Service", kind: "multiline", get: field("joumpa_compliment_report_excellent_service") },
+  { header: "Category Case JOUMPA", kind: "text", get: resolveJoumpaCategory },
+  { header: "JOUMPA Customer", kind: "text", get: resolveCustomerType },
+  { header: "JOUMPA Customer Detail", kind: "multiline", get: field("detail_customer_joumpa") },
+  { header: "Corporate Customer", kind: "text", get: field("corporate") },
+  { header: "Corporate Profile", kind: "multiline", get: field("customer_company_profile_corporate") },
+  { header: "Corporate Customer Detail", kind: "multiline", get: field("detail_customer_corporate") },
+  { header: "Non-Corporate Customer", kind: "text", get: field("non_corporate") },
+  { header: "Non-Corporate Background", kind: "multiline", get: field("customer_background_non_corporate") },
+  { header: "Non-Corporate Customer Detail", kind: "multiline", get: field("detail_customer_non_corporate") },
+  { header: "Cargo Case", kind: "text", get: field("case_cgo") },
+  { header: "Reservation & Scheduling", kind: "multiline", get: field("reservation_scheduling") },
+  { header: "Pax Assistance / Staff Performance", kind: "multiline", get: field("pax_assistance_staff_service_performance") },
+  { header: "Baggage Delivery & Assistance", kind: "multiline", get: field("baggage_delivery_baggage_assistance") },
+  { header: "Administration, Payment, Documentation & Marketing", kind: "multiline", get: field("administration_payment_documentation_marketing") },
+  { header: "Customer Satisfaction Score", kind: "text", get: field("customer_satisfaction_score") },
+  { header: "Customer Satisfaction Label", kind: "text", get: field("customer_satisfaction_label") },
+  { header: "Investigator Notes", kind: "multiline", get: field("investigator_notes") },
+  { header: "Manager Notes", kind: "multiline", get: field("manager_notes") },
+  { header: "Partner Response Notes", kind: "multiline", get: field("partner_response_notes") },
+  { header: "Validation Notes", kind: "multiline", get: field("validation_notes") },
+  { header: "Escalation Division", kind: "text", get: field("esklasi_divisi") },
+  { header: "Target Division", kind: "text", get: field("target_division") },
+  { header: "Reporter", kind: "text", get: (r) => cleanReportValue(r.reporter_name) || cleanReportValue(r.users?.full_name) },
+  { header: "Reporter Email", kind: "text", get: field("reporter_email") },
+  { header: "Created At", kind: "datetime", get: field("created_at") },
+  { header: "Updated At", kind: "datetime", get: field("updated_at") },
+  { header: "Resolved At", kind: "datetime", get: field("resolved_at") },
+  { header: "SLA Deadline", kind: "datetime", get: field("sla_deadline") },
+  { header: "Source Row", kind: "text", get: field("row_number") },
+  { header: "Supporting Evidence", kind: "multiline", get: field("supporting_evidence") },
+  { header: "Evidence", kind: "url", get: linksField("evidence_urls", "evidence_url", "partner_evidence_urls") },
+  { header: "Video Evidence", kind: "url", get: linksField("video_urls", "video_url") },
+];
+
+// Curated subset for the landscape PDF table export: operational context
+// (when/where/who) plus cause identification and classification, per the
+// station teams' printed-report requirements.
+export const PDF_TABLE_COLUMN_HEADERS = [
+  "Date of Event",
+  "Branch",
+  "Airline",
+  "Flight Number",
+  "Route",
+  "Area Category",
+  "Case Classification",
+  "Severity",
+  "Report",
+  "Root Cause",
+  "Action Taken",
+  "Evidence",
+];
+
+const PDF_TABLE_COLUMN_WIDTHS: Record<string, number> = {
+  "Date of Event": 16,
+  Branch: 14,
+  Airline: 20,
+  "Flight Number": 15,
+  Route: 17,
+  "Area Category": 20,
+  "Case Classification": 24,
+  Severity: 15,
+  Report: 38,
+  "Root Cause": 30,
+  "Action Taken": 30,
+  Evidence: 22,
+};
 
 async function loadPdfLogoDataUrl(): Promise<string | null> {
   if (typeof window === "undefined" || typeof Image === "undefined") return null;
@@ -552,17 +458,14 @@ async function loadPdfLogoDataUrl(): Promise<string | null> {
   }
 }
 
-interface PdfRenderContext {
-  doc: JsPdfDocument;
-  filters: ReportExportFilters;
-  logoDataUrl: string | null;
-  reportCount: number;
-  y: number;
-  currentReportLabel: string;
-}
+const PDF_TABLE_LAYOUT = {
+  marginX: 14,
+  tableStartY: 34,
+  footerLineY: 199,
+  footerTextY: 203,
+} as const;
 
-function drawPdfHeader(context: PdfRenderContext): void {
-  const { doc, filters, logoDataUrl, reportCount } = context;
+function drawPdfTableHeader(doc: JsPdfDocument, filters: ReportExportFilters, logoDataUrl: string | null, reportCount: number): void {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   doc.setFillColor(255, 255, 255);
@@ -570,28 +473,28 @@ function drawPdfHeader(context: PdfRenderContext): void {
   if (logoDataUrl) {
     try {
       const imageFormat = logoDataUrl.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
-      doc.addImage(logoDataUrl, imageFormat, PDF_PAGE.marginX, 5, 32, 18, "gapura-oneclick-logo", "FAST");
+      doc.addImage(logoDataUrl, imageFormat, PDF_TABLE_LAYOUT.marginX, 5, 32, 18, "gapura-oneclick-logo", "FAST");
     } catch {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(14);
       doc.setTextColor(15, 118, 110);
-      doc.text("Gapura Oneclick", PDF_PAGE.marginX, 14);
+      doc.text("Gapura Oneclick", PDF_TABLE_LAYOUT.marginX, 14);
     }
   } else {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
     doc.setTextColor(15, 118, 110);
-    doc.text("Gapura Oneclick", PDF_PAGE.marginX, 14);
+    doc.text("Gapura Oneclick", PDF_TABLE_LAYOUT.marginX, 14);
   }
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(14);
   doc.setTextColor(15, 23, 42);
-  doc.text("Gapura Oneclick All Reports Export", pageWidth - PDF_PAGE.marginX, 11, { align: "right" });
+  doc.text("Gapura Oneclick All Reports Export", pageWidth - PDF_TABLE_LAYOUT.marginX, 11, { align: "right" });
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7.5);
   doc.setTextColor(100, 116, 139);
-  doc.text("Complete operational report archive", pageWidth - PDF_PAGE.marginX, 16, { align: "right" });
+  doc.text("Operational context, cause identification and classification", pageWidth - PDF_TABLE_LAYOUT.marginX, 16, { align: "right" });
 
   const summary = pdfSafeText(reportFilterSummary(filters));
   const summaryLines = doc.splitTextToSize(summary, pageWidth - 110) as string[];
@@ -599,206 +502,51 @@ function drawPdfHeader(context: PdfRenderContext): void {
   doc.text(summaryLines.slice(0, 2), 52, 23);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(15, 118, 110);
-  doc.text(`${reportCount} REPORTS`, pageWidth - PDF_PAGE.marginX, 24, { align: "right" });
+  doc.text(`${reportCount} REPORTS`, pageWidth - PDF_TABLE_LAYOUT.marginX, 24, { align: "right" });
   doc.setDrawColor(15, 118, 110);
   doc.setLineWidth(0.7);
-  doc.line(PDF_PAGE.marginX, 30, pageWidth - PDF_PAGE.marginX, 30);
+  doc.line(PDF_TABLE_LAYOUT.marginX, 30, pageWidth - PDF_TABLE_LAYOUT.marginX, 30);
   doc.setTextColor(15, 23, 42);
 }
 
-function addPdfContinuationPage(context: PdfRenderContext): void {
-  context.doc.addPage();
-  drawPdfHeader(context);
-  context.y = PDF_PAGE.contentTop;
-  if (context.currentReportLabel) {
-    context.doc.setFillColor(241, 247, 245);
-    context.doc.roundedRect(PDF_PAGE.marginX, context.y - 1, context.doc.internal.pageSize.getWidth() - PDF_PAGE.marginX * 2, 7, 1.5, 1.5, "F");
-    context.doc.setFont("helvetica", "bold");
-    context.doc.setFontSize(7);
-    context.doc.setTextColor(15, 118, 110);
-    context.doc.text(`${pdfSafeText(context.currentReportLabel)} - CONTINUED`, PDF_PAGE.marginX + 3, context.y + 3.6);
-    context.doc.setTextColor(15, 23, 42);
-    context.y += 10;
-  }
-}
-
-function ensurePdfSpace(context: PdfRenderContext, requiredHeight: number): void {
-  if (context.y + requiredHeight <= PDF_PAGE.contentBottom) return;
-  addPdfContinuationPage(context);
-}
-
-function drawPdfSectionHeading(context: PdfRenderContext, title: string): void {
-  ensurePdfSpace(context, 8);
-  const { doc } = context;
-  const pageWidth = doc.internal.pageSize.getWidth();
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7.2);
-  doc.setTextColor(15, 118, 110);
-  doc.text(pdfSafeText(title).toUpperCase(), PDF_PAGE.marginX, context.y + 2.5);
-  const textWidth = doc.getTextWidth(pdfSafeText(title).toUpperCase());
-  doc.setDrawColor(219, 229, 226);
-  doc.setLineWidth(0.25);
-  doc.line(PDF_PAGE.marginX + textWidth + 4, context.y + 1.7, pageWidth - PDF_PAGE.marginX, context.y + 1.7);
-  doc.setTextColor(15, 23, 42);
-  context.y += 6;
-}
-
-function drawPdfField(context: PdfRenderContext, sectionTitle: string, field: PdfReportField): void {
-  const { doc } = context;
-  const width = doc.internal.pageSize.getWidth() - PDF_PAGE.marginX * 2;
-  const innerWidth = width - 6;
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  const lines = doc.splitTextToSize(pdfSafeText(field.value), innerWidth) as string[];
-  const lineHeight = 3.8;
-  let offset = 0;
-  let continued = false;
-
-  while (offset < lines.length) {
-    const labelHeight = 4.2;
-    ensurePdfSpace(context, labelHeight + lineHeight + 4);
-    if (continued) drawPdfSectionHeading(context, `${sectionTitle} - continued`);
-    const availableLines = Math.max(1, Math.floor((PDF_PAGE.contentBottom - context.y - labelHeight - 3) / lineHeight));
-    const chunk = lines.slice(offset, offset + availableLines);
-    const blockHeight = labelHeight + chunk.length * lineHeight + 3;
-
-    doc.setFillColor(247, 249, 248);
-    doc.roundedRect(PDF_PAGE.marginX, context.y, width, blockHeight, 1.4, 1.4, "F");
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(6.4);
-    doc.setTextColor(100, 116, 110);
-    doc.text(`${pdfSafeText(field.label)}${continued ? " (continued)" : ""}`.toUpperCase(), PDF_PAGE.marginX + 3, context.y + 3.5);
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(8);
-    doc.setTextColor(51, 65, 85);
-    doc.text(chunk, PDF_PAGE.marginX + 3, context.y + labelHeight + 2.2, { lineHeightFactor: 1.2 });
-    context.y += blockHeight + 2;
-    offset += chunk.length;
-    if (offset < lines.length) {
-      addPdfContinuationPage(context);
-      continued = true;
-    }
-  }
-}
-
-function drawPdfFactGrid(context: PdfRenderContext, facts: PdfReportField[]): void {
-  const { doc } = context;
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const width = pageWidth - PDF_PAGE.marginX * 2;
-  const columns = 4;
-  const cellWidth = width / columns;
-  for (let start = 0; start < facts.length; start += columns) {
-    const row = facts.slice(start, start + columns);
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(7.2);
-    const values = row.map((field) => doc.splitTextToSize(pdfSafeText(field.value), cellWidth - 6) as string[]);
-    const rowHeight = Math.max(12, 8 + Math.max(...values.map((lines) => lines.length)) * 3.2);
-    ensurePdfSpace(context, rowHeight + 2);
-    row.forEach((field, index) => {
-      const x = PDF_PAGE.marginX + index * cellWidth;
-      doc.setFillColor(247, 249, 248);
-      doc.setDrawColor(220, 229, 226);
-      doc.roundedRect(x, context.y, cellWidth - 1.2, rowHeight, 1.2, 1.2, "FD");
-      doc.setFont("helvetica", "bold");
-      doc.setFontSize(5.8);
-      doc.setTextColor(100, 116, 110);
-      doc.text(pdfSafeText(field.label).toUpperCase(), x + 2.5, context.y + 3.8);
-      doc.setFontSize(7.2);
-      doc.setTextColor(15, 23, 42);
-      doc.text(values[index], x + 2.5, context.y + 8, { lineHeightFactor: 1.15 });
-    });
-    context.y += rowHeight + 2;
-  }
-}
-
-function drawPdfLinks(context: PdfRenderContext, title: string, links: string[]): void {
-  if (!links.length) return;
-  drawPdfSectionHeading(context, title);
-  const { doc } = context;
-  const width = doc.internal.pageSize.getWidth() - PDF_PAGE.marginX * 2 - 6;
-  links.forEach((link, index) => {
-    const display = `${index + 1}. ${pdfSafeText(link)}`;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7.2);
-    const lines = doc.splitTextToSize(display, width) as string[];
-    lines.forEach((line) => {
-      ensurePdfSpace(context, 4.2);
-      doc.setTextColor(15, 118, 110);
-      doc.text(line, PDF_PAGE.marginX + 3, context.y + 2.8);
-      const linkWidth = Math.min(width, doc.getTextWidth(line));
-      doc.link(PDF_PAGE.marginX + 3, context.y, linkWidth, 3.6, { url: link });
-      context.y += 3.8;
-    });
-    context.y += 1;
-  });
-  doc.setTextColor(15, 23, 42);
-}
-
-function drawPdfReport(context: PdfRenderContext, content: PdfReportContent, index: number): void {
-  const { doc } = context;
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const reportLabel = `Report ${content.reference}`;
-  const minimumReportStartHeight = 52;
-  if (context.y + minimumReportStartHeight > PDF_PAGE.contentBottom) {
-    context.currentReportLabel = "";
-    addPdfContinuationPage(context);
-  }
-  context.currentReportLabel = reportLabel;
-
-  if (context.y > PDF_PAGE.contentTop + 2) {
-    doc.setDrawColor(203, 213, 210);
-    doc.setLineWidth(0.35);
-    doc.line(PDF_PAGE.marginX, context.y, pageWidth - PDF_PAGE.marginX, context.y);
-    context.y += 5;
-  }
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(7);
-  doc.setTextColor(15, 118, 110);
-  doc.text(`REPORT ${index + 1} OF ${context.reportCount} - ${pdfSafeText(content.reference)}`, PDF_PAGE.marginX, context.y + 3);
-  const stateText = `${pdfSafeText(content.status).toUpperCase()} - ${pdfSafeText(content.severity).toUpperCase()}`;
-  const stateWidth = doc.getTextWidth(stateText) + 8;
-  doc.setFillColor(255, 240, 241);
-  doc.roundedRect(pageWidth - PDF_PAGE.marginX - stateWidth, context.y - 0.5, stateWidth, 6, 3, 3, "F");
-  doc.setTextColor(190, 24, 93);
-  doc.text(stateText, pageWidth - PDF_PAGE.marginX - 4, context.y + 3.2, { align: "right" });
-  context.y += 7;
-
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(15, 23, 42);
-  const titleLines = doc.splitTextToSize(pdfSafeText(content.title), pageWidth - PDF_PAGE.marginX * 2) as string[];
-  doc.text(titleLines, PDF_PAGE.marginX, context.y + 3, { lineHeightFactor: 1.15 });
-  context.y += titleLines.length * 4.5 + 4;
-  drawPdfFactGrid(context, content.facts);
-
-  content.sections.forEach((section) => {
-    drawPdfSectionHeading(context, section.title);
-    section.fields.forEach((field) => drawPdfField(context, section.title, field));
-  });
-  drawPdfLinks(context, "Evidence", content.evidence);
-  drawPdfLinks(context, "Video evidence", content.videos);
-  if (content.comments.length) {
-    drawPdfSectionHeading(context, "Comments and activity");
-    content.comments.forEach((comment) => drawPdfField(context, "Comments and activity", comment));
-  }
-  context.y += 4;
-}
-
-function finalizePdfPages(doc: JsPdfDocument): void {
+function finalizePdfTableFooter(doc: JsPdfDocument): void {
   const pageWidth = doc.internal.pageSize.getWidth();
   const totalPages = doc.getNumberOfPages();
   for (let page = 1; page <= totalPages; page += 1) {
     doc.setPage(page);
     doc.setDrawColor(219, 229, 226);
     doc.setLineWidth(0.25);
-    doc.line(PDF_PAGE.marginX, PDF_PAGE.footerLineY, pageWidth - PDF_PAGE.marginX, PDF_PAGE.footerLineY);
+    doc.line(PDF_TABLE_LAYOUT.marginX, PDF_TABLE_LAYOUT.footerLineY, pageWidth - PDF_TABLE_LAYOUT.marginX, PDF_TABLE_LAYOUT.footerLineY);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(6.5);
     doc.setTextColor(148, 163, 184);
-    doc.text("Gapura Oneclick - Internal operational document", PDF_PAGE.marginX, PDF_PAGE.footerTextY);
-    doc.text(`Page ${page} of ${totalPages}`, pageWidth - PDF_PAGE.marginX, PDF_PAGE.footerTextY, { align: "right" });
+    doc.text("Gapura Oneclick - Internal operational document", PDF_TABLE_LAYOUT.marginX, PDF_TABLE_LAYOUT.footerTextY);
+    doc.text(`Page ${page} of ${totalPages}`, pageWidth - PDF_TABLE_LAYOUT.marginX, PDF_TABLE_LAYOUT.footerTextY, { align: "right" });
   }
+}
+
+function summaryTableCellValue(column: ReportColumn, report: Report): string {
+  const value = column.get(report);
+  if (!value) return "-";
+  if (column.kind === "date") return formatDate(value);
+  if (column.kind === "datetime") return formatDateTime(value);
+  if (column.kind === "url") {
+    const links = value.split("\n").filter(Boolean);
+    return links.length ? `${links.length} file${links.length > 1 ? "s" : ""}` : "-";
+  }
+  return value;
+}
+
+function summaryTableColumns(): ReportColumn[] {
+  return PDF_TABLE_COLUMN_HEADERS.map((header) => {
+    const column = FULL_REPORT_COLUMNS.find((candidate) => candidate.header === header);
+    if (!column) throw new Error(`Unknown summary table column: ${header}`);
+    return column;
+  });
+}
+
+function pdfTableCellValue(column: ReportColumn, report: Report): string {
+  return pdfSafeText(summaryTableCellValue(column, report));
 }
 
 export async function buildReportsPdf(
@@ -806,28 +554,45 @@ export async function buildReportsPdf(
   filters: ReportExportFilters,
   options: { logoDataUrl?: string | null } = {},
 ): Promise<JsPdfDocument> {
-  const { jsPDF } = await import("jspdf");
+  const [{ jsPDF }, { default: autoTable }] = await Promise.all([
+    import("jspdf"),
+    import("jspdf-autotable"),
+  ]);
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4", compress: false });
   const logoDataUrl = options.logoDataUrl === undefined ? await loadPdfLogoDataUrl() : options.logoDataUrl;
-  const context: PdfRenderContext = {
-    doc,
-    filters,
-    logoDataUrl,
-    reportCount: reports.length,
-    y: PDF_PAGE.contentTop,
-    currentReportLabel: "",
-  };
-  drawPdfHeader(context);
 
   if (!reports.length) {
+    drawPdfTableHeader(doc, filters, logoDataUrl, reports.length);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(11);
     doc.setTextColor(100, 116, 139);
-    doc.text("No reports matched the selected export filters.", PDF_PAGE.marginX, context.y + 8);
-  } else {
-    reports.map(buildPdfReportContent).forEach((content, index) => drawPdfReport(context, content, index));
+    doc.text("No reports matched the selected export filters.", PDF_TABLE_LAYOUT.marginX, PDF_TABLE_LAYOUT.tableStartY);
+    return doc;
   }
-  finalizePdfPages(doc);
+
+  const columns = summaryTableColumns();
+
+  autoTable(doc, {
+    head: [["No", ...PDF_TABLE_COLUMN_HEADERS]],
+    body: reports.map((report, index) => [
+      String(index + 1),
+      ...columns.map((column) => pdfTableCellValue(column, report)),
+    ]),
+    startY: PDF_TABLE_LAYOUT.tableStartY,
+    margin: { left: PDF_TABLE_LAYOUT.marginX, right: PDF_TABLE_LAYOUT.marginX, top: PDF_TABLE_LAYOUT.tableStartY, bottom: 16 },
+    styles: { font: "helvetica", fontSize: 7, cellPadding: 1.6, overflow: "linebreak", valign: "top", textColor: [51, 65, 85] },
+    headStyles: { fillColor: [15, 118, 110], textColor: [255, 255, 255], fontStyle: "bold", fontSize: 7.2, halign: "left" },
+    alternateRowStyles: { fillColor: [247, 249, 248] },
+    columnStyles: {
+      0: { cellWidth: 8 },
+      ...Object.fromEntries(
+        PDF_TABLE_COLUMN_HEADERS.map((header, index) => [index + 1, { cellWidth: PDF_TABLE_COLUMN_WIDTHS[header] }]),
+      ),
+    },
+    willDrawPage: () => drawPdfTableHeader(doc, filters, logoDataUrl, reports.length),
+  });
+
+  finalizePdfTableFooter(doc);
   return doc;
 }
 
@@ -836,58 +601,38 @@ export async function exportReportsToExcel(reports: Report[], filters: ReportExp
     import("exceljs"),
     import("@/lib/excel-export-style"),
   ]);
-  const { addAdvancedExcelTable, configureExcelWorkbook, excelHyperlink, styleExcelTitle } = excelStyles;
+  const { addAdvancedExcelTable, configureExcelWorkbook, excelDate, excelHyperlink, styleExcelTitle } = excelStyles;
   const workbook = new exceljs.Workbook();
   const sheet = workbook.addWorksheet("All Reports");
   const now = new Date();
+  const totalColumns = FULL_REPORT_COLUMNS.length + 1;
   configureExcelWorkbook(workbook, "Gapura Oneclick All Reports Export");
-  styleExcelTitle(sheet, 1, 1, 14, "Gapura Oneclick All Reports Export");
-  sheet.mergeCells("A2:N2");
-  sheet.getCell("A2").value = reportFilterSummary(filters);
-  sheet.getCell("A2").font = { name: "Aptos", size: 10, color: { argb: "FF64748B" } };
-  sheet.getCell("A2").alignment = { vertical: "middle", indent: 1 };
-  sheet.mergeCells("A3:N3");
-  sheet.getCell("A3").value = `Generated: ${now.toLocaleString("id-ID")}`;
-  sheet.getCell("A3").font = { name: "Aptos", italic: true, size: 9, color: { argb: "FF64748B" } };
-  sheet.getCell("A3").alignment = { vertical: "middle", indent: 1 };
+  styleExcelTitle(sheet, 1, 1, totalColumns, "Gapura Oneclick All Reports Export");
+  sheet.mergeCells(2, 1, 2, totalColumns);
+  sheet.getCell(2, 1).value = reportFilterSummary(filters);
+  sheet.getCell(2, 1).font = { name: "Aptos", size: 10, color: { argb: "FF64748B" } };
+  sheet.getCell(2, 1).alignment = { vertical: "middle", indent: 1 };
+  sheet.mergeCells(3, 1, 3, totalColumns);
+  sheet.getCell(3, 1).value = `Generated: ${now.toLocaleString("id-ID")}`;
+  sheet.getCell(3, 1).font = { name: "Aptos", italic: true, size: 9, color: { argb: "FF64748B" } };
+  sheet.getCell(3, 1).alignment = { vertical: "middle", indent: 1 };
 
   const columns = [
     { header: "No", kind: "number" as const, width: 7 },
-    { header: "Reference", kind: "identifier" as const, width: 20 },
-    { header: "Date", kind: "date" as const, width: 15 },
-    { header: "Status", kind: "status" as const, width: 15 },
-    { header: "Severity", kind: "severity" as const, width: 15 },
-    { header: "Branch", kind: "identifier" as const, width: 12 },
-    { header: "Airline", kind: "text" as const, width: 20 },
-    { header: "Flight", kind: "identifier" as const, width: 14 },
-    { header: "Route", kind: "identifier" as const, width: 17 },
-    { header: "Case Classification", kind: "text" as const, width: 24 },
-    { header: "Report", kind: "multiline" as const, width: 48 },
-    { header: "Root Cause", kind: "multiline" as const, width: 38 },
-    { header: "Action Taken", kind: "multiline" as const, width: 38 },
-    { header: "Evidence", kind: "url" as const, width: 36 },
+    ...FULL_REPORT_COLUMNS.map((column) => ({ header: column.header, kind: column.kind })),
   ];
-  const rows = reports.map((report, index) => {
-    const evidence = [...(report.evidence_urls || []), report.evidence_url]
-      .map((value) => cleanReportValue(value))
-      .filter((value, valueIndex, values) => value && values.indexOf(value) === valueIndex);
-    return [
-      index + 1,
-      cleanReportValue(report.reference_number) || report.id,
-      reportDateValue(report) ?? "",
-      cleanReportValue(report.status),
-      resolveReportSeverity(report),
-      resolveReportBranch(report),
-      resolveReportAirline(report),
-      cleanReportValue(report.flight_number),
-      cleanReportValue(report.route),
-      resolveReportCaseClassification(report),
-      reportTitle(report),
-      cleanReportValue(report.root_cause) || cleanReportValue(report.root_caused) || cleanReportValue(report.identification_of_root),
-      cleanReportValue(report.action_taken) || cleanReportValue(report.immediate_action),
-      evidence.length ? excelHyperlink(evidence[0], evidence.join("\n")) : "",
-    ];
-  });
+  const rows = reports.map((report, index) => [
+    index + 1,
+    ...FULL_REPORT_COLUMNS.map((column) => {
+      const value = column.get(report);
+      if (column.kind === "date" || column.kind === "datetime") return excelDate(value);
+      if (column.kind === "url") {
+        const links = value.split("\n").filter(Boolean);
+        return links.length ? excelHyperlink(links[0], links.join("\n")) : "";
+      }
+      return value;
+    }),
+  ]);
   addAdvancedExcelTable({
     workbook,
     worksheet: sheet,
@@ -912,41 +657,57 @@ export async function exportReportsToPdf(reports: Report[], filters: ReportExpor
 
 export async function exportReportsToDocx(reports: Report[], filters: ReportExportFilters): Promise<void> {
   const docx = await import("docx");
-  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } = docx;
+  const {
+    Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+    WidthType, BorderStyle, AlignmentType, PageOrientation,
+  } = docx;
 
-  const headerCell = (text: string) => new TableCell({
-    shading: { fill: "047857" },
-    children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: "FFFFFF", size: 18 })] })],
+  const columns = summaryTableColumns();
+  const headerLabels = ["No", ...PDF_TABLE_COLUMN_HEADERS];
+  // Landscape twips (A4, 1in margins each side): 16838 page width - 2 * 1440 margin.
+  const usableWidth = 13960;
+  const noColumnWidth = 500;
+  const columnWidth = Math.floor((usableWidth - noColumnWidth) / columns.length);
+
+  const headerCell = (text: string, width: number) => new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    shading: { fill: "0F766E" },
+    children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: "FFFFFF", size: 15 })] })],
   });
-  const bodyCell = (text: string) => new TableCell({
-    children: [new Paragraph({ children: [new TextRun({ text: text || "-", size: 18 })] })],
+  const bodyCell = (text: string, width: number) => new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    children: [new Paragraph({ children: [new TextRun({ text: text || "-", size: 15 })] })],
   });
 
   const table = new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
+    width: { size: usableWidth, type: WidthType.DXA },
     borders: { top: { style: BorderStyle.SINGLE, size: 1 }, bottom: { style: BorderStyle.SINGLE, size: 1 }, left: { style: BorderStyle.SINGLE, size: 1 }, right: { style: BorderStyle.SINGLE, size: 1 }, insideHorizontal: { style: BorderStyle.SINGLE, size: 1 }, insideVertical: { style: BorderStyle.SINGLE, size: 1 } },
     rows: [
-      new TableRow({ children: ["No", "Date", "Status", "Severity", "Branch", "Flight", "Report"].map(headerCell) }),
+      new TableRow({
+        children: headerLabels.map((label, index) => headerCell(label, index === 0 ? noColumnWidth : columnWidth)),
+      }),
       ...reports.map((report, index) => new TableRow({
+        cantSplit: true,
         children: [
-          String(index + 1),
-          formatDate(reportDateValue(report)?.toISOString()),
-          cleanReportValue(report.status),
-          resolveReportSeverity(report),
-          resolveReportBranch(report),
-          cleanReportValue(report.flight_number),
-          reportTitle(report),
-        ].map(bodyCell),
+          bodyCell(String(index + 1), noColumnWidth),
+          ...columns.map((column) => bodyCell(summaryTableCellValue(column, report), columnWidth)),
+        ],
       })),
     ],
   });
 
   const document = new Document({
     sections: [{
+      properties: {
+        page: {
+          size: { orientation: PageOrientation.LANDSCAPE },
+          margin: { top: 1440, bottom: 1440, left: 1440, right: 1440 },
+        },
+      },
       children: [
-        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "IRRS ALL REPORTS EXPORT", bold: true, size: 28 })] }),
-        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: reportFilterSummary(filters), size: 18 })] }),
-        new Paragraph({ text: "" }),
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "GAPURA ONECLICK ALL REPORTS EXPORT", bold: true, size: 26 })] }),
+        new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: reportFilterSummary(filters), size: 16 })] }),
+        new Paragraph({ text: "", spacing: { after: 100 } }),
         table,
       ],
     }],

@@ -71,7 +71,7 @@ export async function POST(request: Request) {
     let contentType: string;
 
     try {
-      const result = await compressToExactSize(buffer, 5);
+      const result = await compressToExactSize(buffer);
       compressedBuffer = result.buffer;
       contentType = 'image/webp';
     } catch (error) {

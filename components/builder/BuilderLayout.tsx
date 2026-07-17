@@ -3,7 +3,7 @@
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { Compass, LayoutGrid, Save, RotateCcw, Sparkles, Plus, Loader2, MousePointerClick, Play, BarChart3, Check } from 'lucide-react';
+import { Compass, LayoutGrid, Save, RotateCcw, Sparkles, Plus, Loader2, MousePointerClick, Play, BarChart3, Check, PanelLeft, SlidersHorizontal, X, Wand2, ArrowRight } from 'lucide-react';
 import { useQueryBuilder } from '@/lib/hooks/useQueryBuilder';
 import { useQueryExecution } from '@/lib/hooks/useQueryExecution';
 import { useDashboardState } from '@/lib/hooks/useDashboardState';
@@ -95,6 +95,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiFolder, setAiFolder] = useState('');
   const [aiStep, setAiStep] = useState(0);
+  const [mobilePanel, setMobilePanel] = useState<null | 'fields' | 'config'>(null);
 
   const [cfDateFrom, setCfDateFrom] = useState('');
   const [cfDateTo, setCfDateTo] = useState('');
@@ -334,23 +335,23 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
     : null;
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-[var(--surface-0)]">
       {}
-      <div className="flex items-center justify-between px-4 py-3 bg-[var(--surface-1)] border-b border-[var(--surface-4)]">
-        <div className="flex items-center gap-3">
+      <header className="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 bg-[var(--surface-1)]/90 supports-[backdrop-filter]:backdrop-blur border-b border-[var(--surface-4)]">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           {}
-          <div className="flex bg-[var(--surface-2)] rounded-xl p-0.5 border border-[var(--surface-4)]">
+          <div className="flex bg-[var(--surface-2)] rounded-xl p-0.5 border border-[var(--surface-4)] shrink-0">
             <button
               onClick={() => setMode('explore')}
               className={cn(
-                "flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-lg transition-all",
+                "flex items-center gap-1.5 px-2.5 sm:px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
                 mode === 'explore'
                   ? "bg-[var(--brand-primary)] text-white shadow-sm"
                   : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               )}
             >
               <Compass size={16} />
-              Jelajahi Data
+              <span className="hidden sm:inline">Jelajahi Data</span>
             </button>
             <button
               onClick={() => {
@@ -358,46 +359,72 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
                 else setMode('dashboard');
               }}
               className={cn(
-                "flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold rounded-lg transition-all",
+                "flex items-center gap-1.5 px-2.5 sm:px-4 py-2 text-[13px] font-bold rounded-lg transition-all",
                 mode === 'dashboard'
                   ? "bg-[var(--brand-primary)] text-white shadow-sm"
                   : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               )}
             >
               <LayoutGrid size={16} />
-              Susun Dashboard {dash.tiles.length > 0 && `(${dash.tiles.length})`}
+              <span className="hidden sm:inline">Susun Dashboard</span>
+              {dash.tiles.length > 0 && (
+                <span className="inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-black rounded-full bg-white/20 sm:bg-[var(--surface-3)] sm:text-[var(--text-muted)]">
+                  {dash.tiles.length}
+                </span>
+              )}
             </button>
           </div>
 
           {editingTileId && mode === 'explore' && (
-            <span className="px-3 py-1 text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200 rounded-full">
+            <span className="hidden sm:inline-flex px-3 py-1 text-xs font-bold bg-amber-50 text-amber-600 border border-amber-200 rounded-full">
               Sedang mengedit tile
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {}
+          {mode === 'explore' && (
+            <>
+              <button
+                onClick={() => setMobilePanel(p => (p === 'fields' ? null : 'fields'))}
+                className="xl:hidden p-2 text-[var(--text-muted)] hover:text-[var(--brand-primary)] hover:bg-[var(--surface-2)] rounded-lg transition-colors"
+                title="Field data"
+              >
+                <PanelLeft size={16} />
+              </button>
+              {hasResult && (
+                <button
+                  onClick={() => setMobilePanel(p => (p === 'config' ? null : 'config'))}
+                  className="xl:hidden p-2 text-[var(--text-muted)] hover:text-[var(--brand-primary)] hover:bg-[var(--surface-2)] rounded-lg transition-colors"
+                  title="Atur grafik"
+                >
+                  <SlidersHorizontal size={16} />
+                </button>
+              )}
+            </>
+          )}
           {mode === 'explore' && !editingTileId && hasResult && (
             <button
               onClick={addCurrentAsTile}
-              className="flex items-center gap-1.5 px-3 py-2 text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-[13px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
             >
               <Plus size={14} />
-              Add to Dashboard
+              <span className="hidden sm:inline">Add to Dashboard</span>
             </button>
           )}
           {editingTileId && mode === 'explore' && (
             <button
               onClick={handleSaveTileEdit}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 text-[13px] font-bold bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
             >
               <Save size={14} />
-              Simpan Perubahan
+              <span className="hidden sm:inline">Simpan Perubahan</span>
             </button>
           )}
           {mode === 'explore' && (
             <button
-              onClick={() => { qb.reset(); qe.clear(); setVisualization({ ...defaultVisualization }); setEditingTileId(null); setShowWelcome(true); }}
+              onClick={() => { qb.reset(); qe.clear(); setVisualization({ ...defaultVisualization }); setEditingTileId(null); setShowWelcome(true); setMobilePanel(null); }}
               className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)] rounded-lg transition-colors"
               title="Mulai Ulang"
             >
@@ -407,20 +434,35 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
           {mode === 'dashboard' && dash.tiles.length > 0 && (
             <button
               onClick={() => setShowSaveModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold bg-[var(--brand-primary)] text-white rounded-lg hover:opacity-90 shadow-sm transition-all"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2 text-[13px] font-bold bg-[var(--brand-primary)] text-white rounded-lg hover:opacity-90 shadow-sm transition-all"
             >
               <Save size={14} />
-              Simpan Dashboard
+              <span className="hidden sm:inline">Simpan Dashboard</span>
             </button>
           )}
         </div>
-      </div>
+      </header>
 
       {}
       {mode === 'explore' ? (
-        <div className="flex flex-1 overflow-hidden">
+        <div className="relative flex flex-1 overflow-hidden">
           {}
-          <div className="w-[300px] shrink-0 overflow-hidden">
+          {mobilePanel && (
+            <div
+              onClick={() => setMobilePanel(null)}
+              className="xl:hidden fixed inset-0 z-30 bg-black/30 backdrop-blur-[1px] animate-fade-in"
+            />
+          )}
+
+          {}
+          <div
+            className={cn(
+              "z-40 w-[85%] max-w-[320px] shrink-0 overflow-hidden bg-[var(--surface-1)] shadow-2xl transition-transform duration-300 ease-out",
+              "fixed inset-y-0 left-0",
+              "xl:static xl:z-auto xl:w-[300px] xl:max-w-none xl:translate-x-0 xl:shadow-none",
+              mobilePanel === 'fields' ? "translate-x-0" : "-translate-x-full"
+            )}
+          >
             <FieldSidebar
               source={qb.query.source}
               activeJoins={qb.query.joins.map(j => j.joinKey)}
@@ -431,9 +473,9 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
           </div>
 
           {}
-          <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
             {}
-            <div className="border-b border-[var(--surface-4)] max-h-[45%] overflow-auto">
+            <div className="border-b border-[var(--surface-4)] max-h-[45%] overflow-auto bg-[var(--surface-1)]">
               <QueryPanel
                 query={qb.query}
                 availableFields={qb.availableFields}
@@ -454,160 +496,160 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
             {}
             <div className="flex-1 overflow-hidden">
               {showWelcome && !hasQuery ? (
-
-                <div className="flex items-center justify-center h-full p-8 overflow-auto">
-                  <div className="w-full max-w-4xl animate-fade-in-up">
+                <div className="h-full overflow-auto custom-scrollbar p-4 sm:p-6 lg:p-8">
+                  <div className="w-full max-w-5xl mx-auto animate-fade-in-up">
                     {}
-                    <div className="relative p-[1px] rounded-2xl bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 mb-5 shadow-lg shadow-purple-500/10">
-                      {}
-                      <Sparkles size={12} className="absolute -top-1 -right-1 text-purple-400 animate-sparkle-pulse" style={{ animationDelay: '0.5s' }} />
-                      <div className="bg-[var(--surface-1)] rounded-2xl p-5">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Sparkles size={16} className="text-purple-500 animate-sparkle-pulse" />
-                          <span className="text-sm font-bold text-[var(--text-primary)]">Buat Dashboard dengan AI</span>
-                        </div>
-                        <textarea
-                          value={aiPrompt}
-                          onChange={(e) => { setAiPrompt(e.target.value); ai.clearError(); }}
-                          onKeyDown={(e) => {
-                            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAIGenerate();
-                            }
-                          }}
-                          placeholder="Contoh: Buatkan dashboard laporan compliment bulan Januari 2026..."
-                          className="w-full h-20 px-3 py-2.5 text-sm bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
-                          disabled={ai.loading}
-                        />
-
-                        <div className="mt-3">
-                          <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider block mb-1">Simpan di Folder (Opsional)</label>
-                          <input
-                            type="text"
-                            value={aiFolder}
-                            onChange={(e) => setAiFolder(e.target.value)}
-                            placeholder="Contoh: AI Dashboards"
-                            className="w-full px-3 py-2 text-xs bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
-                            disabled={ai.loading}
-                          />
-                        </div>
-
-                        {}
-                        {!ai.loading && (
-                          <div className="flex flex-wrap gap-1.5 mt-2">
-                            {PROMPT_SUGGESTIONS.map(s => (
-                              <button
-                                key={s.label}
-                                onClick={() => { setAiPrompt(s.prompt); ai.clearError(); }}
-                                className="px-3 py-1.5 text-[11px] font-medium bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-full text-[var(--text-secondary)] hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50 transition-all"
-                              >
-                                {s.label}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-
-                        {}
-                        {ai.loading && (
-                          <div className="mt-3 space-y-2">
-                            {AI_STEPS.map((step, idx) => (
-                              <div key={idx} className="flex items-center gap-2.5">
-                                {idx < aiStep ? (
-                                  <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
-                                    <Check size={12} className="text-emerald-600" />
-                                  </div>
-                                ) : idx === aiStep ? (
-                                  <div className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
-                                    <Loader2 size={12} className="text-purple-600 animate-spin" />
-                                  </div>
-                                ) : (
-                                  <div className="w-5 h-5 rounded-full bg-[var(--surface-3)] shrink-0" />
-                                )}
-                                <span className={cn(
-                                  "text-xs transition-colors",
-                                  idx < aiStep ? "text-emerald-600 font-medium" :
-                                  idx === aiStep ? "text-purple-600 font-bold" :
-                                  "text-[var(--text-muted)]"
-                                )}>
-                                  {step.label}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        {ai.error && (
-                          <p className="mt-2 text-xs text-red-500 text-left">{ai.error}</p>
-                        )}
-                        {!ai.loading && (
-                          <div className="flex items-center justify-between mt-3">
-                            <span className="text-[10px] text-[var(--text-muted)]">Ctrl+Enter untuk generate</span>
-                            <button
-                              onClick={handleAIGenerate}
-                              disabled={!aiPrompt.trim()}
-                              className={cn(
-                                "flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all",
-                                !aiPrompt.trim()
-                                  ? "bg-[var(--surface-3)] text-[var(--text-muted)] cursor-not-allowed"
-                                  : "bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:shadow-lg hover:shadow-purple-500/25"
-                              )}
-                            >
-                              <Sparkles size={14} />
-                              Buat dengan AI
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                    <div className="mb-6">
+                      <h1 className="text-xl sm:text-2xl font-black text-[var(--text-primary)] tracking-tight">Bangun Dashboard</h1>
+                      <p className="text-sm text-[var(--text-muted)] mt-1">Mulai dari AI, pakai template, atau susun manual dari data mentah.</p>
                     </div>
 
                     {}
-                    <div className="p-[1px] rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 mb-5 shadow-lg shadow-emerald-500/10">
-                      <div className="bg-[var(--surface-1)] rounded-2xl p-5">
-                        <div className="flex items-center gap-2 mb-3">
-                          <BarChart3 size={16} className="text-emerald-600" />
-                          <span className="text-sm font-bold text-[var(--text-primary)]">Customer Feedback Dashboard</span>
-                          <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">Template</span>
-                        </div>
-                        <p className="text-xs text-[var(--text-secondary)] mb-3">
-                          Generate dashboard 5 halaman (Case Category, Detail Category, Detail Report, CGO Case Category, CGO Detail Report) dengan layout tetap sesuai standar.
-                        </p>
-                        <div className="flex items-end gap-3">
-                          <div className="flex-1">
-                            <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Dari</label>
-                            <input
-                              type="date"
-                              value={cfDateFrom}
-                              onChange={(e) => setCfDateFrom(e.target.value)}
-                              className="w-full mt-1 px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 text-[var(--text-primary)]"
-                              disabled={ai.loading}
-                            />
+                    <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 sm:gap-5">
+                      {}
+                      <div className="lg:col-span-3 relative overflow-hidden rounded-3xl border border-[var(--surface-4)] bg-[var(--surface-1)] shadow-sm">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+                        <div className="p-5 sm:p-6">
+                          <div className="flex items-center gap-2.5 mb-4">
+                            <div className="flex items-center justify-center w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-500 text-white shadow-md shadow-purple-500/25">
+                              <Wand2 size={17} />
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-[var(--text-primary)] leading-tight">Buat dengan AI</p>
+                              <p className="text-[11px] text-[var(--text-muted)]">Deskripsikan, AI merancang seluruh dashboard.</p>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Sampai</label>
-                            <input
-                              type="date"
-                              value={cfDateTo}
-                              onChange={(e) => setCfDateTo(e.target.value)}
-                              className="w-full mt-1 px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 text-[var(--text-primary)]"
-                              disabled={ai.loading}
-                            />
-                          </div>
-                          <div className="flex-1">
-                            <label className="text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Folder</label>
+
+                          <textarea
+                            value={aiPrompt}
+                            onChange={(e) => { setAiPrompt(e.target.value); ai.clearError(); }}
+                            onKeyDown={(e) => {
+                              if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                                e.preventDefault();
+                                handleAIGenerate();
+                              }
+                            }}
+                            placeholder="Contoh: Buatkan dashboard laporan compliment bulan Januari 2026 dengan trend bulanan, distribusi kategori, dan top 10 maskapai..."
+                            className="w-full h-24 px-3.5 py-3 text-sm bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
+                            disabled={ai.loading}
+                          />
+
+                          {!ai.loading && (
+                            <div className="flex flex-wrap gap-1.5 mt-3">
+                              {PROMPT_SUGGESTIONS.map(s => (
+                                <button
+                                  key={s.label}
+                                  onClick={() => { setAiPrompt(s.prompt); ai.clearError(); }}
+                                  className="px-3 py-1.5 text-[11px] font-semibold bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-full text-[var(--text-secondary)] hover:border-purple-300 hover:text-purple-600 hover:bg-purple-50 transition-all"
+                                >
+                                  {s.label}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="mt-3">
                             <input
                               type="text"
-                              value={cfFolder}
-                              onChange={(e) => setCfFolder(e.target.value)}
-                              placeholder="Folder..."
-                              className="w-full mt-1 px-3 py-2 text-sm bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 text-[var(--text-primary)]"
+                              value={aiFolder}
+                              onChange={(e) => setAiFolder(e.target.value)}
+                              placeholder="Simpan di folder (opsional)…"
+                              className="w-full px-3.5 py-2.5 text-xs bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]"
                               disabled={ai.loading}
                             />
+                          </div>
+
+                          {ai.loading && (
+                            <div className="mt-4 space-y-2.5">
+                              {AI_STEPS.map((step, idx) => (
+                                <div key={idx} className="flex items-center gap-2.5">
+                                  {idx < aiStep ? (
+                                    <div className="w-5 h-5 rounded-full bg-emerald-100 flex items-center justify-center shrink-0">
+                                      <Check size={12} className="text-emerald-600" />
+                                    </div>
+                                  ) : idx === aiStep ? (
+                                    <div className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
+                                      <Loader2 size={12} className="text-purple-600 animate-spin" />
+                                    </div>
+                                  ) : (
+                                    <div className="w-5 h-5 rounded-full bg-[var(--surface-3)] shrink-0" />
+                                  )}
+                                  <span className={cn(
+                                    "text-xs transition-colors",
+                                    idx < aiStep ? "text-emerald-600 font-medium" :
+                                    idx === aiStep ? "text-purple-600 font-bold" :
+                                    "text-[var(--text-muted)]"
+                                  )}>
+                                    {step.label}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {ai.error && <p className="mt-2.5 text-xs text-red-500">{ai.error}</p>}
+
+                          {!ai.loading && (
+                            <div className="flex items-center justify-between mt-4">
+                              <span className="hidden sm:inline text-[10px] text-[var(--text-muted)]">Ctrl+Enter untuk generate</span>
+                              <button
+                                onClick={handleAIGenerate}
+                                disabled={!aiPrompt.trim()}
+                                className={cn(
+                                  "flex items-center gap-2 px-5 py-2.5 text-[13px] font-bold rounded-xl transition-all w-full sm:w-auto justify-center",
+                                  !aiPrompt.trim()
+                                    ? "bg-[var(--surface-3)] text-[var(--text-muted)] cursor-not-allowed"
+                                    : "bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:shadow-lg hover:shadow-purple-500/25"
+                                )}
+                              >
+                                <Sparkles size={15} />
+                                Buat dengan AI
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {}
+                      <div className="lg:col-span-2 relative overflow-hidden rounded-3xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/60 to-[var(--surface-1)] shadow-sm">
+                        <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 to-green-600" />
+                        <div className="p-5 sm:p-6 flex flex-col h-full">
+                          <div className="flex items-center gap-2.5 mb-3">
+                            <div className="flex items-center justify-center w-9 h-9 rounded-2xl bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-md shadow-emerald-500/25">
+                              <BarChart3 size={17} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <p className="text-sm font-black text-[var(--text-primary)] leading-tight">Customer Feedback</p>
+                                <span className="px-1.5 py-0.5 text-[9px] font-black bg-emerald-100 text-emerald-700 rounded-full uppercase tracking-wide">Template</span>
+                              </div>
+                              <p className="text-[11px] text-[var(--text-muted)]">Dashboard 5 halaman standar.</p>
+                            </div>
+                          </div>
+                          <p className="text-xs text-[var(--text-secondary)] mb-4 leading-relaxed">
+                            Case Category, Detail Category, Detail Report, CGO Case Category & CGO Detail Report — layout tetap sesuai standar.
+                          </p>
+                          <div className="grid grid-cols-2 gap-2.5 mt-auto">
+                            <div>
+                              <label className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Dari</label>
+                              <input type="date" value={cfDateFrom} onChange={(e) => setCfDateFrom(e.target.value)} disabled={ai.loading}
+                                className="w-full mt-1 px-2.5 py-2 text-xs bg-[var(--surface-1)] border border-[var(--surface-4)] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 text-[var(--text-primary)]" />
+                            </div>
+                            <div>
+                              <label className="text-[9px] font-bold text-[var(--text-muted)] uppercase tracking-wider">Sampai</label>
+                              <input type="date" value={cfDateTo} onChange={(e) => setCfDateTo(e.target.value)} disabled={ai.loading}
+                                className="w-full mt-1 px-2.5 py-2 text-xs bg-[var(--surface-1)] border border-[var(--surface-4)] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 text-[var(--text-primary)]" />
+                            </div>
+                            <div className="col-span-2">
+                              <input type="text" value={cfFolder} onChange={(e) => setCfFolder(e.target.value)} placeholder="Folder (opsional)…" disabled={ai.loading}
+                                className="w-full px-2.5 py-2 text-xs bg-[var(--surface-1)] border border-[var(--surface-4)] rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 text-[var(--text-primary)] placeholder:text-[var(--text-muted)]" />
+                            </div>
                           </div>
                           <button
                             onClick={handleCustomerFeedbackGenerate}
                             disabled={!cfDateFrom || !cfDateTo || ai.loading}
                             className={cn(
-                              "flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap",
+                              "mt-3 flex items-center justify-center gap-2 px-4 py-2.5 text-[13px] font-bold rounded-xl transition-all",
                               !cfDateFrom || !cfDateTo || ai.loading
                                 ? "bg-[var(--surface-3)] text-[var(--text-muted)] cursor-not-allowed"
                                 : "bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:shadow-lg hover:shadow-emerald-500/25"
@@ -617,43 +659,38 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
                             Generate
                           </button>
                         </div>
-                        {ai.error && (
-                          <p className="mt-2 text-xs text-red-500">{ai.error}</p>
-                        )}
                       </div>
                     </div>
 
                     {}
-                    <div className="flex items-center gap-3 mb-5">
+                    <div className="flex items-center gap-3 my-6">
                       <div className="flex-1 h-px bg-[var(--surface-4)]" />
-                      <span className="text-[10px] text-[var(--text-muted)] font-medium uppercase tracking-wider">atau buat manual</span>
+                      <span className="text-[10px] text-[var(--text-muted)] font-bold uppercase tracking-widest">atau buat manual</span>
                       <div className="flex-1 h-px bg-[var(--surface-4)]" />
                     </div>
 
                     {}
-                    <div className="flex gap-3">
-                      <div className="flex-1 p-3 bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-xl hover:-translate-y-0.5 transition-transform cursor-default group">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="inline-flex w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white items-center justify-center text-[10px] font-bold">1</span>
-                          <MousePointerClick size={13} className="text-blue-400 opacity-60 group-hover:opacity-100 transition-opacity" />
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { n: 1, icon: MousePointerClick, from: 'from-blue-400', to: 'to-blue-600', text: 'Pilih field di panel data' },
+                        { n: 2, icon: Play, from: 'from-emerald-400', to: 'to-emerald-600', text: 'Jalankan query' },
+                        { n: 3, icon: BarChart3, from: 'from-purple-400', to: 'to-purple-600', text: 'Atur grafik & simpan' },
+                      ].map((s) => (
+                        <div key={s.n} className="flex items-center gap-3 p-3.5 rounded-2xl border border-[var(--surface-4)] bg-[var(--surface-1)] hover:border-[var(--brand-primary)]/30 hover:-translate-y-0.5 transition-all">
+                          <span className={cn("inline-flex w-8 h-8 rounded-xl bg-gradient-to-br text-white items-center justify-center text-xs font-black shrink-0", s.from, s.to)}>{s.n}</span>
+                          <s.icon size={15} className="text-[var(--text-muted)] shrink-0" />
+                          <p className="text-xs font-medium text-[var(--text-secondary)]">{s.text}</p>
                         </div>
-                        <p className="text-xs text-[var(--text-secondary)]">Select a field in the left panel</p>
-                      </div>
-                      <div className="flex-1 p-3 bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-xl hover:-translate-y-0.5 transition-transform cursor-default group">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="inline-flex w-5 h-5 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white items-center justify-center text-[10px] font-bold">2</span>
-                          <Play size={13} className="text-emerald-400 opacity-60 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                        <p className="text-xs text-[var(--text-secondary)]">Klik &quot;Jalankan Query&quot;</p>
-                      </div>
-                      <div className="flex-1 p-3 bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-xl hover:-translate-y-0.5 transition-transform cursor-default group">
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="inline-flex w-5 h-5 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 text-white items-center justify-center text-[10px] font-bold">3</span>
-                          <BarChart3 size={13} className="text-purple-400 opacity-60 group-hover:opacity-100 transition-opacity" />
-                        </div>
-                        <p className="text-xs text-[var(--text-secondary)]">Atur grafik &amp; simpan</p>
-                      </div>
+                      ))}
                     </div>
+
+                    {}
+                    <button
+                      onClick={() => setMobilePanel('fields')}
+                      className="xl:hidden mt-4 w-full flex items-center justify-center gap-2 px-4 py-3 text-[13px] font-bold text-[var(--brand-primary)] bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-2xl hover:bg-[var(--surface-3)] transition-colors"
+                    >
+                      <PanelLeft size={15} /> Buka Panel Data <ArrowRight size={15} />
+                    </button>
                   </div>
                 </div>
               ) : (
@@ -669,7 +706,21 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
 
           {}
           {hasResult && (
-            <div className="w-[280px] shrink-0 overflow-hidden">
+            <div
+              className={cn(
+                "z-40 w-[85%] max-w-[320px] shrink-0 overflow-hidden bg-[var(--surface-1)] shadow-2xl transition-transform duration-300 ease-out",
+                "fixed inset-y-0 right-0",
+                "xl:static xl:z-auto xl:w-[280px] xl:max-w-none xl:translate-x-0 xl:shadow-none",
+                mobilePanel === 'config' ? "translate-x-0" : "translate-x-full"
+              )}
+            >
+              {}
+              <div className="xl:hidden flex items-center justify-between px-3 py-2 border-b border-[var(--surface-4)]">
+                <span className="text-xs font-bold text-[var(--text-primary)]">Atur Grafik</span>
+                <button onClick={() => setMobilePanel(null)} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg">
+                  <X size={16} />
+                </button>
+              </div>
               <ChartConfigPanel
                 visualization={visualization}
                 result={qe.data}

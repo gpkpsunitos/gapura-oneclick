@@ -2,9 +2,8 @@
 
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import AirlineIntelligenceDetail from '@/components/charts/case-category-by-airline/AirlineIntelligenceDetail';
+import { EmbedDetailLayout } from '@/components/EmbedDetailLayout';
 
 interface FilterState {
   hub: string;
@@ -42,33 +41,15 @@ function EmbedCaseCategoryByAirlineContent() {
   });
 
   return (
-    <div className={cn("min-h-screen bg-[#f5f5f5] embed-detail-page", isStatic && "bg-white")}>
-      {!isStatic && (
-        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-          <div className="h-16 px-4 sm:px-6 flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button 
-                onClick={() => router.push(getBackUrl())}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-[#6b8e3d]"
-              >
-                <ArrowLeft size={20} />
-              </button>
-              <div>
-                <h1 className="text-xl font-black text-gray-900 tracking-tight">Case Category by Airlines</h1>
-                <p className="text-xs text-gray-500">Cross-dimensional analysis (Airline × Category)</p>
-              </div>
-            </div>
-          </div>
-
-        </header>
-      )}
-
-      <main className={cn("w-full px-4 sm:px-6 py-6", isStatic && "p-0")}>
-        <div className={cn("max-w-[1800px] mx-auto", isStatic && "max-w-none")}>
-          <AirlineIntelligenceDetail filters={filters} />
-        </div>
-      </main>
-    </div>
+    <EmbedDetailLayout
+      title="Case Category by Airlines"
+      subtitle="Cross-dimensional analysis (Airline × Category)"
+      onBack={() => router.push(getBackUrl())}
+      isStatic={isStatic}
+      filters={filters}
+    >
+      <AirlineIntelligenceDetail filters={filters} />
+    </EmbedDetailLayout>
   );
 }
 

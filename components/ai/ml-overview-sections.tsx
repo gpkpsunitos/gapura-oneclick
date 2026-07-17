@@ -38,6 +38,7 @@ export interface MLOverview {
     subcategory: TrendsResult | null;
     airline: TrendsResult | null;
     category: TrendsResult | null;
+    area: TrendsResult | null;
   };
   risk: RiskScoreResult | null;
   subcategoryForecast: DimensionForecastResult | null;
@@ -118,26 +119,26 @@ export function severityLabel(score: number): string {
   return 'Rendah';
 }
 
-function signedChange(entry: TrendEntry): number {
+export function signedChange(entry: TrendEntry): number {
   const raw = typeof entry.half_period_change === 'number' ? entry.half_period_change : entry.percent_change;
   const s = entry.direction === 'falling' ? -Math.abs(raw) : Math.abs(raw);
   return Math.max(-100, Math.round(s));
 }
 
-function isNotable(entry: TrendEntry): boolean {
+export function isNotable(entry: TrendEntry): boolean {
   if (entry.notable === false) return false;
   return entry.recent_count >= 5 && Math.abs(signedChange(entry)) >= 15;
 }
 
-function fmtNumber(x: number, digits = 0): string {
+export function fmtNumber(x: number, digits = 0): string {
   return x.toLocaleString('id-ID', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
-function fmtSignedPct(x: number): string {
+export function fmtSignedPct(x: number): string {
   return `${x > 0 ? '+' : ''}${x.toFixed(0)}%`;
 }
 
-function momentumLabel(m: number): string {
+export function momentumLabel(m: number): string {
   if (m > 0.75) return 'menaik tajam';
   if (m > 0.62) return 'menaik';
   if (m < 0.25) return 'menurun tajam';
@@ -145,7 +146,7 @@ function momentumLabel(m: number): string {
   return 'stabil';
 }
 
-function momentumTone(m: number): string {
+export function momentumTone(m: number): string {
   if (m > 0.62) return 'text-[#FF3B30]';
   if (m < 0.38) return 'text-[#34C759]';
   return 'text-neutral-600';
@@ -1084,20 +1085,20 @@ const COUNT_TABS = [
 ] as const;
 type CountTabKey = (typeof COUNT_TABS)[number]['key'];
 
-function trendGlyph(dir: ReportCountEntry['trend_direction']): React.ReactNode {
+export function trendGlyph(dir: ReportCountEntry['trend_direction']): React.ReactNode {
   if (dir === 'rising') return <ArrowUpRight size={12} className="text-[#FF3B30]" />;
   if (dir === 'falling') return <ArrowDownRight size={12} className="text-[#34C759]" />;
   return <Minus size={12} className="text-neutral-400" />;
 }
-function trendWord(dir: ReportCountEntry['trend_direction']): string {
+export function trendWord(dir: ReportCountEntry['trend_direction']): string {
   return dir === 'rising' ? 'sedang menaik' : dir === 'falling' ? 'sedang menurun' : 'relatif stabil';
 }
-function entityRange(entry: ReportCountEntry): [number, number] {
+export function entityRange(entry: ReportCountEntry): [number, number] {
   const lo = entry.forecast.reduce((s, p) => s + (p.lower ?? p.predicted_count), 0);
   const hi = entry.forecast.reduce((s, p) => s + (p.upper ?? p.predicted_count), 0);
   return [lo, hi];
 }
-function isForecastConfident(entry: ReportCountEntry): boolean {
+export function isForecastConfident(entry: ReportCountEntry): boolean {
   const [lo, hi] = entityRange(entry);
   return (hi - lo) / (entry.predicted_total || 1) <= 1.5;
 }

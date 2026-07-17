@@ -17,7 +17,7 @@ interface SavedDashboard {
 
 export default function DashboardBuilderPage() {
   const [savedDashboards, setSavedDashboards] = useState<SavedDashboard[]>([]);
-  const [savedExpanded, setSavedExpanded] = useState(true);
+  const [savedExpanded, setSavedExpanded] = useState(false);
   const [expandedFolders, setExpandedFolders] = useState<Record<string, boolean>>({});
   const [renamingFolder, setRenamingFolder] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -169,7 +169,7 @@ export default function DashboardBuilderPage() {
       style={{ zIndex: 10 }}
     >
       {}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className={cn("flex-1 min-h-0 overflow-hidden", savedDashboards.length > 0 && "pb-[46px]")}>
         <BuilderLayout
           onSaveDashboard={handleSave}
           existingFolders={existingFolders}
@@ -177,12 +177,21 @@ export default function DashboardBuilderPage() {
       </div>
 
       {}
+      {savedDashboards.length > 0 && savedExpanded && (
+        <div
+          onClick={() => setSavedExpanded(false)}
+          className="absolute inset-0 z-10 bg-black/10 backdrop-blur-[1px] animate-fade-in"
+        />
+      )}
       {savedDashboards.length > 0 && (
-        <div className="shrink-0 border-t border-[var(--surface-4)] bg-[var(--surface-1)]">
+        <div className={cn(
+          "absolute inset-x-0 bottom-0 z-20 border-t border-[var(--surface-4)] bg-[var(--surface-1)] transition-shadow",
+          savedExpanded ? "rounded-t-2xl shadow-[0_-8px_30px_-12px_rgba(0,0,0,0.25)]" : ""
+        )}>
           {}
           <button
             onClick={() => setSavedExpanded(!savedExpanded)}
-            className="w-full flex items-center justify-between px-6 py-3 hover:bg-[var(--surface-2)] transition-colors"
+            className="w-full flex items-center justify-between px-6 py-3 hover:bg-[var(--surface-2)] transition-colors rounded-t-2xl"
           >
             <div className="flex items-center gap-2">
               <BarChart3 size={13} className="text-[var(--text-muted)]" />

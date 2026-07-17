@@ -1,5 +1,6 @@
 'use client';
 
+import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Report } from '@/types';
 import {
@@ -14,12 +15,15 @@ import {
   Tooltip,
   Legend,
 } from 'recharts';
-import { motion } from 'framer-motion';
-import { Clock, CheckCircle, Loader2 } from 'lucide-react';
-import { AiRootCauseInvestigation } from '../ai-root-cause/AiRootCauseInvestigation';
+import { Sparkles } from 'lucide-react';
 import { InvestigativeTable } from '@/components/chart-detail/InvestigativeTable';
+import {
+  ReportSection,
+  ReportStatCard,
+  ReportLoading,
+  ReportError,
+} from '@/components/chart-detail/ReportDetailKit';
 import type { QueryResult } from '@/types/builder';
-import { fetchRootCauseStatsAi, fetchRootCauseCategories } from '@/lib/services/gapura-ai';
 
 type CategoryField = 'terminal_area_category' | 'apron_area_category' | 'general_category';
 
@@ -41,7 +45,14 @@ interface AreaSubCategoryDetailProps {
 }
 
 const INVALID_VALUES = new Set(['', '-', 'nil', 'none', 'unknown', 'n/a', '#n/a', 'null']);
-const CATEGORY_COLORS = ['#2e7d32', '#43a047', '#66bb6a', '#81c784', '#a5d6a7', '#c8e6c9'];
+const CATEGORY_COLORS = [
+  'var(--cf-teal)',
+  'var(--cf-coral)',
+  'var(--cf-amber)',
+  'var(--cf-lime)',
+  'var(--cf-slate)',
+  'var(--cf-teal-deep)',
+];
 const CONTEXT_META: Record<
   CategoryField,
   {
@@ -112,8 +123,8 @@ function parseEventDate(report: Report): number {
 function HeatCell({ value, max }: { value: number; max: number }) {
   const ratio = max > 0 ? value / max : 0;
   const alpha = value === 0 ? 0.07 : Math.min(0.95, 0.2 + ratio * 0.75);
-  const background = `rgba(67, 160, 71, ${alpha})`;
-  const color = alpha > 0.55 ? '#ffffff' : '#1f2937';
+  const background = `rgba(15, 118, 110, ${alpha})`;
+  const color = alpha > 0.55 ? '#ffffff' : 'var(--cf-ink)';
 
   return (
     <div
@@ -126,31 +137,38 @@ function HeatCell({ value, max }: { value: number; max: number }) {
   );
 }
 
-function KPICard({ title, value, color = 'blue' }: { title: string; value: string | number; color?: 'green' | 'blue' | 'amber' | 'red' }) {
-  const colorClasses = {
-    green: 'bg-[var(--surface-1)] border-emerald-500/20 text-emerald-400',
-    red: 'bg-[var(--surface-1)] border-red-500/20 text-red-400',
-    amber: 'bg-[var(--surface-1)] border-amber-500/20 text-amber-400',
-    blue: 'bg-[var(--surface-1)] border-blue-500/20 text-blue-400',
-  };
+function CategoryInsight({
+  insightLabel,
+  singular,
+  plural,
+  topCategory,
+  topCategoryShare,
+}: {
+  insightLabel: string;
+  singular: string;
+  plural: string;
+  topCategory?: { category: string; count: number; share: number };
+  topCategoryShare: number;
+}) {
+  const message = topCategory
+    ? `${topCategory.category} leads ${plural} with ${topCategory.count.toLocaleString('id-ID')} reports (${topCategoryShare.toFixed(1)}%).`
+    : `No ${singular} data available for the current filter.`;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4, scale: 1.02 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className={`group relative overflow-hidden p-5 rounded-3xl border shadow-spatial-md backdrop-blur-xl ${colorClasses[color]} transition-all duration-300`}
-    >
-      <div className="absolute inset-0 bg-noise opacity-[0.02] mix-blend-overlay pointer-events-none"></div>
-      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-      <div className="absolute -inset-1 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full group-hover:animate-shine pointer-events-none"></div>
-
-      <div className="relative z-10">
-        <div className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">{title}</div>
-        <div className="text-2xl font-black tracking-tight">{value}</div>
+    <div className="cf-card p-4 sm:p-5" style={{ '--cf-spine': 'var(--cf-amber)' } as CSSProperties}>
+      <div className="flex items-start gap-3">
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#fef3c7] text-[var(--cf-amber)]">
+          <Sparkles size={16} />
+        </div>
+        <div className="min-w-0">
+          <h3 className="cf-eyebrow mb-2">
+            <span>{insightLabel}</span>
+            <span className="cf-eyebrow-rule" />
+          </h3>
+          <p className="cf-display text-[15px] font-medium leading-snug text-[var(--cf-ink)]">{message}</p>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -164,12 +182,6 @@ export default function AreaSubCategoryDetail({
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [aiLoading, setAiLoading] = useState(true);
-  const [aiError, setAiError] = useState<string | null>(null);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [aiData, setAiData] = useState<any>(null);
-  const [aiStatus, setAiStatus] = useState<'loading' | 'success' | 'error' | 'timeout'>('loading');
-  const aiTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [focusedCategory, setFocusedCategory] = useState<string>('');
   const hasAutoSelected = useRef(false);
 
@@ -187,7 +199,7 @@ export default function AreaSubCategoryDetail({
         if (filters.sourceSheet) query.append('sourceSheet', filters.sourceSheet);
 
         const fields = [
-          'id', 'date_of_event', 'incident_date', 'created_at', 'hub', 'branch', 
+          'id', 'date_of_event', 'incident_date', 'created_at', 'hub', 'branch',
           'reporting_branch', 'station_code', 'airlines', 'airline', 'area',
           categoryField, 'main_category', 'category', 'irregularity_complain_category',
           'severity', 'status', 'root_caused', 'action_taken', 'source_sheet'
@@ -207,71 +219,6 @@ export default function AreaSubCategoryDetail({
     };
     fetchReports();
   }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.sourceSheet, filters.dateFrom, filters.dateTo, categoryField]);
-
-  useEffect(() => {
-    if (!reports.length) {
-      setAiLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const fetchData = async () => {
-      try {
-        setAiLoading(true);
-        setAiStatus('loading');
-
-        aiTimeoutRef.current = setTimeout(() => {
-          setAiStatus('timeout');
-        }, 48000);
-
-        const [statsData, categoriesData] = await Promise.all([
-          fetchRootCauseStatsAi(filters.sourceSheet, controller.signal),
-          fetchRootCauseCategories(controller.signal)
-        ]);
-
-        if (aiTimeoutRef.current) {
-          clearTimeout(aiTimeoutRef.current);
-          aiTimeoutRef.current = null;
-        }
-
-        setAiData({ stats: statsData, categories: categoriesData });
-        setAiStatus('success');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      } catch (err: any) {
-        if (err.name === 'AbortError') return;
-
-        if (aiTimeoutRef.current) {
-          clearTimeout(aiTimeoutRef.current);
-          aiTimeoutRef.current = null;
-        }
-
-        console.error('AI Root Cause Fetch Error:', err);
-        setAiError(err.message || 'Failed to load AI intelligence data');
-        setAiStatus('error');
-      } finally {
-        if (!controller.signal.aborted) {
-          setAiLoading(false);
-        }
-      }
-    };
-
-    fetchData();
-
-    return () => {
-      controller.abort();
-      if (aiTimeoutRef.current) {
-        clearTimeout(aiTimeoutRef.current);
-      }
-    };
-  }, [reports, filters.sourceSheet]);
-
-  const handleRetryAi = () => {
-    setAiLoading(true);
-    setAiError(null);
-    setAiStatus('loading');
-    setAiData(null);
-  };
 
   const filteredReports = useMemo(() => {
     return reports.filter((r) => {
@@ -495,115 +442,82 @@ export default function AreaSubCategoryDetail({
     [filteredReports]
   );
 
-  if (loading) {
-    return (
-      <div className="min-h-[45vh] flex items-center justify-center">
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          Loading {title} detail...
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="text-sm text-red-600 bg-red-50 border border-red-100 rounded-lg p-4">{error}</div>;
-  }
+  if (loading) return <ReportLoading label={`Loading ${title} detail…`} />;
+  if (error) return <ReportError message={error} onRetry={() => window.location.reload()} />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 sm:space-y-8">
       <div>
-        <h2 className="text-xl font-black text-gray-900 tracking-tight">{title}</h2>
-        <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
-      </div>
-      {}
-      <section className="relative overflow-hidden bg-[var(--surface-1)]/50 backdrop-blur-xl rounded-3xl border border-[var(--surface-2)] p-8 shadow-spatial-md transition-all">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">AI Root Cause Analysis</h2>
-            <p className="text-slate-500 text-sm font-medium">Neural investigation into {contextMeta.singular} operational friction.</p>
-          </div>
-        </div>
-        <AiRootCauseInvestigation source={filters.sourceSheet === 'CGO' ? 'CGO' : 'NON CARGO'} />
-      </section>
-
-      <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
-        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700">{contextMeta.insightLabel}</p>
-        <p className="mt-1 text-sm font-semibold text-emerald-900">
-          {topCategory
-            ? `${topCategory.category} leads ${contextMeta.plural} with ${topCategory.count.toLocaleString('id-ID')} reports (${topCategoryShare.toFixed(1)}%).`
-            : `No ${contextMeta.singular} data available for the current filter.`}
-        </p>
+        <h2 className="cf-display text-xl font-semibold text-[var(--cf-ink)] tracking-tight">{title}</h2>
+        <p className="mt-1 text-[11px] font-medium text-[var(--cf-ink-3)]">{subtitle}</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Total Reports" value={filteredReports.length.toLocaleString('id-ID')} color="green" />
-        <KPICard title="Distinct Stations" value={new Set(filteredReports.map((r) => cleanLabel(r.branch || r.reporting_branch || r.station_code)).filter(isValidLabel)).size.toLocaleString('id-ID')} color="blue" />
-        <KPICard title="Distinct Airlines" value={new Set(filteredReports.map((r) => cleanLabel(r.airlines || r.airline)).filter(isValidLabel)).size.toLocaleString('id-ID')} color="amber" />
-        <KPICard
-          title="Irregularity Rate"
+      <CategoryInsight
+        insightLabel={contextMeta.insightLabel}
+        singular={contextMeta.singular}
+        plural={contextMeta.plural}
+        topCategory={topCategory}
+        topCategoryShare={topCategoryShare}
+      />
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <ReportStatCard label="Total Reports" value={filteredReports.length.toLocaleString('id-ID')} tone="teal" />
+        <ReportStatCard
+          label="Distinct Stations"
+          value={new Set(filteredReports.map((r) => cleanLabel(r.branch || r.reporting_branch || r.station_code)).filter(isValidLabel)).size.toLocaleString('id-ID')}
+          tone="slate"
+        />
+        <ReportStatCard
+          label="Distinct Airlines"
+          value={new Set(filteredReports.map((r) => cleanLabel(r.airlines || r.airline)).filter(isValidLabel)).size.toLocaleString('id-ID')}
+          tone="amber"
+        />
+        <ReportStatCard
+          label="Irregularity Rate"
           value={`${filteredReports.length ? ((irregularityCount / filteredReports.length) * 100).toFixed(1) : '0.0'}%`}
-          color="red"
+          tone="coral"
         />
       </div>
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="bg-[var(--surface-1)] border border-[var(--surface-2)] rounded-3xl p-6 shadow-spatial-sm"
-      >
-        <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">{contextMeta.singular} ranking (Top 10)</h3>
-        <div className="h-[300px]">
+      <ReportSection index={1} title={`${contextMeta.singular} Ranking (Top 10)`} tone="teal">
+        <div className="h-[240px] sm:h-[300px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={categoryRanking.slice(0, 10)} layout="vertical" margin={{ top: 8, right: 20, left: 12, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="category" width={180} tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Bar dataKey="count" fill="#2e7d32" radius={[0, 6, 6, 0]} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+              <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+              <YAxis type="category" dataKey="category" width={140} tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+              <Tooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
+              <Bar dataKey="count" fill="var(--cf-teal)" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </motion.div>
+      </ReportSection>
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-[var(--surface-1)] border border-[var(--surface-2)] rounded-3xl p-6 shadow-spatial-sm"
-      >
-        <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Monthly trend (Top 3 {contextMeta.plural})</h3>
-        <div className="h-[280px]">
+      <ReportSection index={2} title="Monthly Trend" subtitle={`Top 3 ${contextMeta.plural}`} tone="teal">
+        <div className="h-[220px] sm:h-[260px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={monthlyTrend}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
-              <XAxis dataKey="monthLabel" tick={{ fontSize: 11 }} />
-              <YAxis />
-              <Tooltip />
-              <Legend />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+              <XAxis dataKey="monthLabel" tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+              <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+              <Tooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
+              <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
               {topCategories.map((cat, idx) => (
-                <Line key={cat} type="monotone" dataKey={cat} stroke={CATEGORY_COLORS[idx % CATEGORY_COLORS.length]} strokeWidth={2.3} dot={{ r: 2 }} />
+                <Line key={cat} type="monotone" dataKey={cat} stroke={CATEGORY_COLORS[idx % CATEGORY_COLORS.length]} strokeWidth={2} dot={{ r: 2 }} />
               ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </motion.div>
+      </ReportSection>
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="bg-[var(--surface-1)] border border-[var(--surface-2)] rounded-3xl p-6 shadow-spatial-sm"
-      >
-        <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Station x {contextMeta.singular} hotspot</h3>
+      <ReportSection index={3} title={`Station x ${contextMeta.singular} Hotspot`} tone="slate">
         <div className="overflow-auto custom-scrollbar">
           <table className="w-full border-separate border-spacing-1">
             <thead>
               <tr>
-                <th className="sticky left-0 bg-[var(--surface-1)] text-left text-[10px] uppercase tracking-wide text-[var(--text-secondary)] min-w-[140px]">Station</th>
+                <th className="sticky left-0 bg-[var(--cf-card)] text-left text-[9px] font-black uppercase tracking-[0.12em] text-[var(--cf-ink-3)] min-w-[120px]">Station</th>
                 {branchHeatmap.categories.map((cat) => (
-                  <th key={cat} className="text-[10px] font-bold text-[var(--text-secondary)] min-w-[90px] max-w-[140px] whitespace-normal break-words">
+                  <th key={cat} className="text-[9px] font-black uppercase tracking-[0.08em] text-[var(--cf-ink-3)] min-w-[90px] max-w-[140px] whitespace-normal break-words">
                     {cat}
                   </th>
                 ))}
@@ -612,7 +526,7 @@ export default function AreaSubCategoryDetail({
             <tbody>
               {branchHeatmap.branches.map((branch) => (
                 <tr key={branch}>
-                  <td className="sticky left-0 bg-[var(--surface-1)] text-[11px] font-semibold text-[var(--text-primary)]">{branch}</td>
+                  <td className="sticky left-0 bg-[var(--cf-card)] text-[11px] font-semibold text-[var(--cf-ink-2)]">{branch}</td>
                   {branchHeatmap.categories.map((cat) => {
                     const value = branchHeatmap.cells.get(`${branch}::${cat}`) || 0;
                     return (
@@ -626,96 +540,64 @@ export default function AreaSubCategoryDetail({
             </tbody>
           </table>
         </div>
-      </motion.div>
+      </ReportSection>
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="bg-[var(--surface-1)] border border-[var(--surface-2)] rounded-3xl p-6 shadow-spatial-sm"
-      >
-        <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">Airline Contribution (Top 8)</h3>
-        <div className="h-[320px]">
+      <ReportSection index={4} title="Airline Contribution (Top 8)" tone="teal">
+        <div className="h-[260px] sm:h-[320px]">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={airlineContribution} layout="vertical" margin={{ top: 8, right: 16, left: 8, bottom: 8 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="airline" width={170} tick={{ fontSize: 11 }} />
-              <Tooltip />
-              <Legend />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+              <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+              <YAxis type="category" dataKey="airline" width={130} tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+              <Tooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
               {topCategories.map((cat, idx) => (
                 <Bar key={cat} dataKey={cat} stackId="a" fill={CATEGORY_COLORS[idx % CATEGORY_COLORS.length]} radius={idx === topCategories.length - 1 ? [0, 6, 6, 0] : [0, 0, 0, 0]} />
               ))}
             </BarChart>
           </ResponsiveContainer>
         </div>
-      </motion.div>
+      </ReportSection>
 
-      {}
-
-      {}
       {categoryRanking.length > 0 && (
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[var(--surface-1)] border border-[var(--surface-2)] rounded-3xl p-6 shadow-spatial-sm"
-        >
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--text-secondary)] mb-4">
-            Filter table by {contextMeta.singular}
-          </p>
+        <ReportSection index={5} title={`Filter by ${contextMeta.singular}`} tone="amber">
           <div className="flex flex-wrap gap-2">
-            {}
             {categoryRanking.length > 1 && (
               <button
                 type="button"
                 aria-pressed={focusedCategory === ''}
                 onClick={() => setFocusedCategory('')}
-                className={`px-4 py-2 rounded-full text-xs font-bold border transition-all ${
-                  focusedCategory === ''
-                    ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)] shadow-md shadow-[var(--brand-primary)]/20'
-                    : 'bg-[var(--surface-0)] text-[var(--text-secondary)] border-[var(--surface-2)] hover:bg-[var(--surface-2)]'
-                }`}
+                className={focusedCategory === '' ? 'cf-btn cf-btn-primary px-4 py-2' : 'cf-btn cf-btn-ghost px-4 py-2'}
               >
                 All · {filteredReports.length.toLocaleString('id-ID')}
               </button>
             )}
 
-            {}
             {categoryRanking.map(({ category, count }) => (
               <button
                 key={category}
                 type="button"
                 aria-pressed={focusedCategory === category}
                 onClick={() => setFocusedCategory(category)}
-                className={`px-4 py-2 rounded-full text-xs font-bold border transition-all ${
-                  focusedCategory === category
-                    ? 'bg-[var(--brand-primary)] text-white border-[var(--brand-primary)] shadow-md shadow-[var(--brand-primary)]/20'
-                    : 'bg-[var(--surface-0)] text-[var(--text-secondary)] border-[var(--surface-2)] hover:bg-[var(--surface-2)]'
-                }`}
+                className={focusedCategory === category ? 'cf-btn cf-btn-primary px-4 py-2' : 'cf-btn cf-btn-ghost px-4 py-2'}
               >
                 {category} · {count.toLocaleString('id-ID')}
               </button>
             ))}
           </div>
-        </motion.div>
+        </ReportSection>
       )}
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-[var(--surface-1)] border border-[var(--surface-2)] rounded-3xl p-6 shadow-spatial-sm overflow-hidden"
+      <ReportSection
+        index={6}
+        title="Investigative Table"
+        subtitle={`Full data table${focusedCategory ? ` — ${focusedCategory}` : ''}`}
+        bodyClassName="p-0"
       >
-        <h3 className="text-sm font-bold text-[var(--text-primary)] mb-4">
-          Full Data Table{focusedCategory ? ` — ${focusedCategory}` : ''}
-        </h3>
-        <InvestigativeTable
-          title={focusedCategory || title}
-          data={queryResult}
-          className="shadow-none border-0 bg-transparent"
-        />
-      </motion.div>
+        <InvestigativeTable title={focusedCategory || title} data={queryResult} theme="cf" />
+      </ReportSection>
 
-      <div className="text-[11px] text-gray-400 font-medium">
+      <div className="text-[11px] font-medium text-[var(--cf-ink-3)]">
         {contextMeta.footerLabel}: {filteredReports.length.toLocaleString('id-ID')} | Complaint: {complaintCount.toLocaleString('id-ID')}
       </div>
     </div>

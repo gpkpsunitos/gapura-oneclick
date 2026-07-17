@@ -153,10 +153,24 @@ export async function compressImage(
 
 export async function compressToExactSize(
   input: Buffer | ArrayBuffer,
-  targetSizeKB: number = 5
+  targetSizeKB: number = 500
 ): Promise<CompressionResult> {
   const inputBuffer = Buffer.isBuffer(input) ? input : Buffer.from(input);
   const originalSize = inputBuffer.length;
+  const targetSizeBytesEarly = targetSizeKB * 1024;
+
+  if (originalSize <= targetSizeBytesEarly) {
+    const dims = await sharp(inputBuffer).metadata();
+    return {
+      buffer: inputBuffer,
+      size: originalSize,
+      format: dims.format || 'webp',
+      width: dims.width || 0,
+      height: dims.height || 0,
+      originalSize,
+      compressionRatio: 0
+    };
+  }
 
   let metadata;
   try {

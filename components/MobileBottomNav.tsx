@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { 
     LayoutDashboard, 
     PlusCircle, 
@@ -35,6 +35,7 @@ type MenuSheetItem = NavItemConfig | { href: '#logout'; label: string; icon: Luc
 
 export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
     const pathname = usePathname();
+    const searchParams = useSearchParams();
     const router = useRouter();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isVisible, setIsVisible] = useState(true);
@@ -109,10 +110,16 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
             items.push({ href: '/dashboard/employee/new', label: 'Create', icon: PlusCircle, isPrimary: true });
             items.push({ href: '#menu', label: 'Menu', icon: Menu });
         } else {
+            // Divisi roles (OP/OS/OCS/HT/HC/...) don't live under /dashboard/employee —
+            // that path server-redirects them elsewhere (e.g. Choose Workspace for
+            // OP/OS/OCS/HT). Pull the real dashboard/reports hrefs from the same
+            // per-role nav config the sidebar/menu already use.
+            const configItems = resolveNavGroups(role, division).flatMap(group => group.items);
+            const homeItem = configItems.find(i => /dashboard/i.test(i.label)) || configItems[0];
+            const reportsItem = configItems.find(i => /report/i.test(i.label) && i.href !== homeItem?.href);
 
-            items.push({ href: '/dashboard', label: 'Home', icon: LayoutDashboard });
-
-            items.push({ href: '/dashboard/employee', label: 'Reports', icon: FileText });
+            if (homeItem) items.push({ href: homeItem.href, label: 'Home', icon: LayoutDashboard });
+            if (reportsItem) items.push({ href: reportsItem.href, label: 'Reports', icon: FileText });
 
             items.push({ href: '/dashboard/employee/new', label: 'Create', icon: PlusCircle, isPrimary: true });
 
@@ -133,7 +140,7 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
         }
 
         return items;
-    }, [role]);
+    }, [role, division]);
 
     return (
         <>
@@ -159,18 +166,31 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
                             >
                                 {navItems.map((item, idx) => {
                                     const Icon = item.icon;
-                                    const isMatch = item.href !== '#menu' && (pathname === item.href || pathname.startsWith(item.href + '/'));
-                                    const isBestMatch = isMatch && !navItems.some(other => 
-                                        other !== item && 
-                                        other.href !== '#menu' && 
-                                        (pathname === other.href || pathname.startsWith(other.href + '/')) &&
+                                    // Divisi dashboards (e.g. /dashboard/op) render their "Reports" tab
+                                    // via a ?view=reports query on the same pathname rather than
+                                    // navigating to <pathname>/reports, so pathname-only matching can't
+                                    // tell Home and Reports apart there.
+                                    const isReportsView = searchParams.get('view') === 'reports';
+                                    const matches = (href: string) =>
+                                        href !== '#menu' && (
+                                            isReportsView
+                                                ? href === `${pathname}/reports`
+                                                : (pathname === href || pathname.startsWith(href + '/'))
+                                        );
+                                    const isMatch = matches(item.href);
+                                    const isBestMatch = isMatch && !navItems.some(other =>
+                                        other !== item &&
+                                        matches(other.href) &&
                                         other.href.length > item.href.length
                                     );
                                     const isActive = isBestMatch;
                                     if (item.isPrimary) {
+                                        const primaryHref = item.href === '/dashboard/employee/new'
+                                            ? `/dashboard/employee/new?from=${encodeURIComponent(pathname)}`
+                                            : item.href;
                                         return (
                                             <div key="primary" className="relative -top-2 sm:-top-3 flex items-center justify-center">
-                                                <button type="button" onClick={() => router.push(item.href)} aria-label={item.label || 'Create report'}>
+                                                <button type="button" onClick={() => router.push(primaryHref)} aria-label={item.label || 'Create report'}>
                                                     <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#0F172A] flex items-center justify-center text-white shadow-lg border-4 border-white transition-transform active:scale-90">
                                                         <PlusCircle size={24} strokeWidth={2} className="sm:hidden" />
                                                         <PlusCircle size={28} strokeWidth={2} className="hidden sm:block" />

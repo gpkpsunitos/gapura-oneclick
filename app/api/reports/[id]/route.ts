@@ -350,7 +350,9 @@ export async function PATCH(
 
         if (updates.status !== undefined) {
             try {
-                const statusMsg = `Status laporan diubah ke ${updates.status}${updates.action_taken ? ` — Catatan: ${updates.action_taken}` : ''}`;
+                const actorName = payload.full_name || payload.email || 'Unknown';
+                const actorDivision = payload.division || payload.role || '-';
+                const statusMsg = `Status laporan diubah ke ${updates.status} oleh ${actorName} (${actorDivision})${updates.action_taken ? ` — Catatan: ${updates.action_taken}` : ''}`;
                 await supabaseAdmin.from('report_comments').insert({
                     report_id: updatedReport.id || id,
                     user_id: payload.id,

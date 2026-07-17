@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, Fragment } from 'react';
+import { useState, useMemo, Fragment, type CSSProperties } from 'react';
 import { 
   ChevronRight, 
   Search, 
@@ -26,6 +26,12 @@ interface InvestigativeTableProps {
   rowsPerPage?: number;
   maxRows?: number;
   isLoading?: boolean;
+  /**
+   * Visual theme. 'cf' retints this table to the Customer Feedback dashboard's
+   * teal/amber palette (only when rendered inside `.cf-root`). Default leaves the
+   * shared --sr-* tokens untouched so every other detail page keeps its own look.
+   */
+  theme?: 'default' | 'cf';
 }
 
 type SortDir = 'asc' | 'desc';
@@ -33,16 +39,32 @@ type SortDir = 'asc' | 'desc';
 const getCategoryBadgeStyle = (category: string) => {
   const cat = category.toLowerCase();
   if (cat.includes('complaint') || cat.includes('komplain')) {
-    return 'bg-[oklch(0.98_0.02_25)] border-[oklch(0.9_0.05_25)] text-[oklch(0.45_0.2_25)] shadow-[0_4px_12px_oklch(0.6_0.22_25/0.05)]';
+    return 'bg-red-50 border-red-100 text-red-600';
   }
   if (cat.includes('irregularity') || cat.includes('irreg')) {
-    return 'bg-[oklch(0.98_0.04_45)] border-[oklch(0.9_0.08_45)] text-[oklch(0.55_0.2_45)] shadow-[0_4px_12px_oklch(0.65_0.25_45/0.05)]';
+    return 'bg-amber-50 border-amber-100 text-amber-600';
   }
   if (cat.includes('compliment') || cat.includes('apresiasi')) {
-    return 'bg-[var(--surface-1)] border-[oklch(0.9_0.02_160)] text-[var(--brand-emerald-700)] shadow-[0_4px_12px_oklch(0.65_0.18_160/0.05)]';
+    return 'bg-lime-50 border-lime-100 text-lime-700';
   }
-  return 'bg-[var(--surface-2)]/50 border-[var(--surface-border)] text-[var(--text-secondary)] shadow-sm';
+  return 'bg-gray-50 border-gray-100 text-gray-500';
 };
+
+/* Local overrides of the shared --sr-* report tokens: retints this table to the
+   customer-feedback dashboard's teal/amber palette without touching the emerald/gold
+   values other --sr-scope dashboards (CGO/Delay/SQI/GSE) rely on. */
+const TEAL_SR_OVERRIDES = {
+  '--sr-accent': '#0f766e',
+  '--sr-accent-strong': '#115e59',
+  '--sr-accent-dark': '#134e4a',
+  '--sr-accent-darker': '#042f2e',
+  '--sr-accent-soft': '#ccfbf1',
+  '--sr-accent-soft-2': '#99f6e4',
+  '--sr-accent-tint': '#f0fdfa',
+  '--sr-gold': '#f59e0b',
+  '--sr-gold-soft': '#fef3c7',
+  '--sr-gold-strong': '#b45309',
+} as CSSProperties;
 
 const getCategoryIcon = (category: string) => {
   const cat = category.toLowerCase();
@@ -72,7 +94,13 @@ export function InvestigativeTable({
   rowsPerPage = 10,
   maxRows = 50,
   isLoading = false,
+  theme = 'default',
 }: InvestigativeTableProps) {
+  const isCf = theme === 'cf';
+  // cf theme trims header/cell padding so rows read as compact list items
+  // instead of the spacious default report table
+  const thPad = isCf ? 'px-4 py-3' : 'px-6 py-5';
+  const tdPad = isCf ? 'px-4 py-2.5' : 'px-6 py-4';
   const [searchTerm, setSearchTerm] = useState('');
   const [sortCol, setSortCol] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -106,10 +134,16 @@ export function InvestigativeTable({
   const primaryColumns = useMemo(() => {
     return allColumns.filter(c => {
       const lower = c.toLowerCase();
-
-      return !['id', 'count', 'description', 'detail', 'full_report', 'url', 'jumlah', 'total'].includes(lower) && !lower.includes('count');
+      if (['id', 'count', 'description', 'detail', 'full_report', 'url', 'jumlah', 'total'].includes(lower)) return false;
+      if (lower.includes('count')) return false;
+      // cf theme keeps the compact row to short fields only — long free-text
+      // columns (root cause/action/preventive/evidence) already live in the
+      // "Details" expand drawer below, showing them twice is what forced the
+      // wide min-w-[300px] columns and the endless horizontal scroll
+      if (isCf && (c === rootCauseCol || c === actionTakenCol || c === preventiveActionCol || c === evidenceCol)) return false;
+      return true;
     });
-  }, [allColumns]);
+  }, [allColumns, isCf, rootCauseCol, actionTakenCol, preventiveActionCol, evidenceCol]);
 
   const prioritizedRows = useMemo(() => {
     const rows = data.rows as Record<string, unknown>[];
@@ -231,7 +265,8 @@ export function InvestigativeTable({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, ease: [0.19, 1, 0.22, 1] }}
-      className={`sr-scope sr-table-card flex h-full min-h-0 min-w-0 flex-col ${className}`}
+      className={`sr-scope sr-table-card flex h-full min-h-0 min-w-0 flex-col ${isCf ? 'cf-invtable' : ''} ${className}`}
+      style={isCf ? TEAL_SR_OVERRIDES : undefined}
     >
       {}
       <div className="sr-table-caption">
@@ -306,14 +341,16 @@ export function InvestigativeTable({
       <div
         className="min-h-0 flex-1 overflow-x-auto overflow-y-auto custom-scrollbar"
       >
-        <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 1080 }}>
+        <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: isCf ? undefined : 1080 }}>
           <thead>
             <tr>
-              <th className="w-12" />
+              <th className={`${thPad} border-b border-[var(--surface-border)] text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] text-center bg-transparent w-20`}>
+                Details
+              </th>
               {categoryCol && (
-                <th onClick={() => handleSort(categoryCol)} className="px-6 py-5 border-b border-[var(--surface-border)] text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] cursor-pointer hover:text-[var(--brand-primary)] transition-colors group select-none text-left bg-transparent">
+                <th onClick={() => handleSort(categoryCol)} className={`${thPad} border-b border-[var(--surface-border)] text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] cursor-pointer hover:text-[var(--brand-primary)] transition-colors group select-none text-left bg-transparent`}>
                   <div className="flex items-center gap-2">
-                    {categoryCol} 
+                    {categoryCol}
                     {sortCol === categoryCol ? (
                       <span className="text-[var(--brand-primary)]">{sortDir === 'asc' ? '▲' : '▼'}</span>
                     ) : (
@@ -323,9 +360,9 @@ export function InvestigativeTable({
                 </th>
               )}
               {dateCol && (
-                <th onClick={() => handleSort(dateCol)} className="px-6 py-5 border-b border-[var(--surface-border)] text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] cursor-pointer hover:text-[var(--brand-primary)] transition-colors group select-none text-left bg-transparent">
+                <th onClick={() => handleSort(dateCol)} className={`${thPad} border-b border-[var(--surface-border)] text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] cursor-pointer hover:text-[var(--brand-primary)] transition-colors group select-none text-left bg-transparent`}>
                   <div className="flex items-center gap-2">
-                    {dateCol} 
+                    {dateCol}
                     {sortCol === dateCol ? (
                       <span className="text-[var(--brand-primary)]">{sortDir === 'asc' ? '▲' : '▼'}</span>
                     ) : (
@@ -335,12 +372,12 @@ export function InvestigativeTable({
                 </th>
               )}
               {primaryColumns.filter(c => c !== categoryCol && c !== dateCol && c !== reportCol).map(col => {
-                const isWide = col === rootCauseCol || col === actionTakenCol || col === preventiveActionCol;
+                const isWide = !isCf && (col === rootCauseCol || col === actionTakenCol || col === preventiveActionCol);
                 return (
-                  <th 
-                    key={col} 
-                    onClick={() => handleSort(col)} 
-                    className={`px-6 py-5 border-b border-[var(--surface-border)] text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] cursor-pointer hover:text-[var(--brand-primary)] transition-colors group select-none text-left bg-transparent ${isWide ? 'min-w-[300px]' : ''}`}
+                  <th
+                    key={col}
+                    onClick={() => handleSort(col)}
+                    className={`${thPad} border-b border-[var(--surface-border)] text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-[0.2em] cursor-pointer hover:text-[var(--brand-primary)] transition-colors group select-none text-left bg-transparent ${isWide ? 'min-w-[300px]' : ''}`}
                   >
                     <div className="flex items-center gap-2">
                       {col.replace(/_/g, ' ')}
@@ -353,8 +390,8 @@ export function InvestigativeTable({
                   </th>
                 );
               })}
-              {reportCol && (
-                <th className="px-6 py-5 border-b border-[var(--surface-border)] text-[9px] font-black text-[var(--text-tertiary)] uppercase tracking-[0.2em] text-left bg-transparent min-w-[300px]">
+              {reportCol && !isCf && (
+                <th className={`${thPad} border-b border-[var(--surface-border)] text-[9px] font-black text-[var(--text-tertiary)] uppercase tracking-[0.2em] text-left bg-transparent min-w-[300px]`}>
                   {reportCol.replace(/_/g, ' ')}
                 </th>
               )}
@@ -370,14 +407,14 @@ export function InvestigativeTable({
                       <div className="absolute inset-0 bg-[var(--brand-primary)]/20 blur-2xl rounded-full animate-pulse" />
                       <div className="relative w-12 h-12 border-2 border-[var(--brand-primary)] border-t-transparent rounded-full animate-spin" />
                     </div>
-                    <span className="text-[10px] font-black text-[var(--text-primary)] tracking-[0.2em] uppercase italic">SYPHONING DATA...</span>
+                    <span className="text-[10px] font-black text-[var(--text-primary)] tracking-[0.2em] uppercase italic">Loading...</span>
                   </div>
                 </td>
               </tr>
             ) : filteredData.length === 0 ? (
               <tr>
                 <td colSpan={100} className="px-6 py-16 text-center text-[var(--text-tertiary)] text-[11px] font-medium italic">
-                  Null result set in current query.
+                  No results found.
                 </td>
               </tr>
             ) : (
@@ -398,14 +435,23 @@ export function InvestigativeTable({
                           ${isExpanded ? 'bg-[var(--surface-1)] sticky top-[69px] z-30 shadow-[0_8px_32px_rgba(0,0,0,0.05)] border-t border-[var(--brand-primary)]/20' : 'hover:bg-[var(--surface-2)]/40'}
                         `}
                       >
-                        <td className="px-6 py-4 text-center w-12 border-b border-transparent">
-                          <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all duration-300 ${isExpanded ? 'bg-[var(--brand-primary)] text-[var(--text-on-brand)] rotate-90 shadow-md' : 'bg-[var(--surface-2)] text-[var(--text-tertiary)] group-hover/tr:bg-[var(--surface-border)] group-hover/tr:text-[var(--text-primary)]'}`}>
-                            <ChevronRight size={14} strokeWidth={3} />
-                          </div>
+                        <td className={`${tdPad} text-center w-20 border-b border-transparent`}>
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); toggleRow(absoluteIdx); }}
+                            className={`inline-flex h-6 items-center gap-1 rounded-md px-2 text-[10px] font-bold uppercase tracking-[0.04em] transition-colors ${
+                              isExpanded
+                                ? 'bg-[var(--surface-2)] text-[var(--text-tertiary)] group-hover/tr:bg-[var(--surface-border)] group-hover/tr:text-[var(--text-primary)]'
+                                : 'bg-[var(--brand-primary)] text-[var(--text-on-brand)] shadow-md'
+                            }`}
+                          >
+                            <ChevronRight size={12} strokeWidth={3} className={`transition-transform duration-300 ${isExpanded ? 'rotate-90' : ''}`} />
+                            {isExpanded ? 'Hide' : 'Details'}
+                          </button>
                         </td>
 
                         {categoryCol && (
-                          <td className="px-6 py-4 border-b border-transparent">
+                          <td className={`${tdPad} border-b border-transparent`}>
                              <span className={`inline-flex items-center gap-2 px-2.5 py-1 rounded-full text-[10px] font-black tracking-widest border shadow-sm ${badges}`}>
                                {Icon} {String(row[categoryCol]).toUpperCase()}
                              </span>
@@ -413,7 +459,7 @@ export function InvestigativeTable({
                         )}
 
                         {dateCol && (
-                          <td className="px-6 py-4 text-[11px] font-black tracking-tight text-[var(--text-secondary)] font-mono border-b border-transparent">
+                          <td className={`${tdPad} text-[11px] font-black tracking-tight text-[var(--text-secondary)] font-mono border-b border-transparent`}>
                              <div className="flex items-center gap-2">
                                <Clock size={12} className="text-[var(--text-tertiary)]" />
                                {formatDisplayValue(row[dateCol], dateCol)}
@@ -422,20 +468,20 @@ export function InvestigativeTable({
                         )}
 
                         {primaryColumns.filter(c => c !== categoryCol && c !== dateCol && c !== reportCol).map(col => {
-                          const isWide = col === rootCauseCol || col === actionTakenCol || col === preventiveActionCol;
+                          const isWide = !isCf && (col === rootCauseCol || col === actionTakenCol || col === preventiveActionCol);
                           const isEvidence = evidenceCol === col || col.toLowerCase().includes('evidence') || col.toLowerCase() === 'link';
 
                           if (isEvidence) {
                             const urls = parseEvidenceLinks(row[col]);
                             return (
-                              <td key={col} className={`px-6 py-4 text-[11px] font-medium text-[var(--text-secondary)] border-b border-transparent ${isWide ? 'min-w-[300px]' : ''}`}>
+                              <td key={col} className={`${tdPad} text-[11px] font-medium text-[var(--text-secondary)] border-b border-transparent ${isWide ? 'min-w-[300px]' : ''}`}>
                                 {urls.length > 0 ? (
                                   <div className="flex flex-wrap gap-2">
                                     {urls.map((url, i) => (
-                                      <a 
-                                        key={i} 
-                                        href={url} 
-                                        target="_blank" 
+                                      <a
+                                        key={i}
+                                        href={url}
+                                        target="_blank"
                                         rel="noopener noreferrer"
                                         onClick={(e) => e.stopPropagation()}
                                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[var(--brand-primary)]/10 text-[var(--brand-primary)] hover:bg-[var(--brand-primary)] hover:text-white transition-all duration-300 text-[9px] font-black uppercase tracking-wider shadow-sm"
@@ -452,14 +498,14 @@ export function InvestigativeTable({
                           }
 
                           return (
-                            <td key={col} className={`px-6 py-4 text-[11px] font-medium text-[var(--text-secondary)] border-b border-transparent ${isWide ? 'min-w-[300px]' : ''}`}>
+                            <td key={col} className={`${tdPad} text-[11px] font-medium text-[var(--text-secondary)] border-b border-transparent ${isWide ? 'min-w-[300px]' : ''}`}>
                               <span dangerouslySetInnerHTML={{ __html: sanitizeTableCell(formatDisplayValue(row[col], col)) }} />
                             </td>
                           );
                         })}
 
-                        {reportCol && (
-                          <td className="px-6 py-4 text-[11px] text-[var(--text-secondary)] border-b border-transparent min-w-[300px]">
+                        {reportCol && !isCf && (
+                          <td className={`${tdPad} text-[11px] text-[var(--text-secondary)] border-b border-transparent min-w-[300px]`}>
                             <div className="font-medium italic opacity-90 whitespace-normal leading-relaxed">
                               {String(row[reportCol])}
                             </div>
@@ -477,28 +523,32 @@ export function InvestigativeTable({
                                 animate={{ height: 'auto', opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
                                 transition={{ duration: 0.4, ease: [0.19, 1, 0.22, 1] }}
-                                className="overflow-hidden bg-[var(--text-primary)] text-[var(--surface-1)] border-y border-[var(--text-primary)] relative isolate group/drawer shadow-inner"
+                                className={`overflow-hidden relative isolate group/drawer shadow-inner ${
+                                  isCf
+                                    ? 'bg-[var(--cf-canvas-2)] text-[var(--cf-ink)] border-y border-[var(--cf-line)]'
+                                    : 'bg-[var(--text-primary)] text-[var(--surface-1)] border-y border-[var(--text-primary)]'
+                                }`}
                               >
                                 <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-[var(--brand-primary)]/5 to-transparent pointer-events-none" />
 
                                 <div className="p-8 lg:p-12 grid grid-cols-1 lg:grid-cols-12 gap-12 relative z-10">
-                                  <div className="lg:col-span-4 space-y-8">
+                                  <div className="lg:col-span-4 space-y-8 min-w-0">
                                     <div className="space-y-4">
-                                      <h4 className="text-[10px] font-black text-[var(--surface-400)] uppercase tracking-[0.2em] flex items-center gap-2">
+                                      <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${isCf ? 'text-[var(--cf-ink-3)]' : 'text-[var(--surface-400)]'}`}>
                                          <FileText size={14} className="text-[var(--brand-primary)]" /> LOGISTICS METADATA
                                       </h4>
-                                      <div className="grid grid-cols-2 gap-6 bg-white/5 p-6 rounded-2xl border border-white/10 shadow-inner">
+                                      <div className={`grid grid-cols-2 gap-6 p-6 rounded-2xl shadow-inner ${isCf ? 'bg-[var(--cf-card)] border border-[var(--cf-line)]' : 'bg-white/5 border border-white/10'}`}>
                                         {allColumns.map(col => {
                                           const lowerCol = col.toLowerCase();
-                                          if (lowerCol === reportCol?.toLowerCase() || 
-                                              lowerCol === rootCauseCol?.toLowerCase() || 
-                                              lowerCol === actionTakenCol?.toLowerCase() || 
-                                              lowerCol.includes('evidence') || 
+                                          if (lowerCol === reportCol?.toLowerCase() ||
+                                              lowerCol === rootCauseCol?.toLowerCase() ||
+                                              lowerCol === actionTakenCol?.toLowerCase() ||
+                                              lowerCol.includes('evidence') ||
                                               lowerCol.includes('link')) return null;
                                           return (
-                                            <div key={col} className="space-y-1">
-                                               <div className="text-[9px] font-black text-[var(--surface-500)] uppercase tracking-widest">{col.replace(/_/g, ' ')}</div>
-                                               <div className="text-[11px] font-bold text-[var(--surface-50)]">{String(row[col] || '-')}</div>
+                                            <div key={col} className="space-y-1 min-w-0">
+                                               <div className={`text-[9px] font-black uppercase tracking-widest ${isCf ? 'text-[var(--cf-ink-3)]' : 'text-[var(--surface-500)]'}`}>{col.replace(/_/g, ' ')}</div>
+                                               <div className={`text-[11px] font-bold whitespace-normal break-words ${isCf ? 'text-[var(--cf-ink)]' : 'text-[var(--surface-50)]'}`}>{String(row[col] || '-')}</div>
                                             </div>
                                           );
                                         })}
@@ -506,13 +556,13 @@ export function InvestigativeTable({
                                     </div>
                                   </div>
 
-                                  <div className="lg:col-span-8 space-y-8">
+                                  <div className="lg:col-span-8 space-y-8 min-w-0">
                                     {reportCol && (
-                                      <div className="space-y-3">
-                                        <h4 className="text-[10px] font-black text-[var(--brand-primary)] uppercase tracking-[0.2em] flex items-center gap-2">
+                                      <div className="space-y-3 min-w-0">
+                                        <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${isCf ? 'text-[var(--cf-teal)]' : 'text-[var(--brand-primary)]'}`}>
                                           <FileText size={14} /> NARRATIVE RECORD
                                         </h4>
-                                        <div className="bg-white/5 p-6 rounded-2xl border border-white/10 shadow-inner text-[13px] text-[var(--surface-100)] leading-relaxed italic font-medium">
+                                        <div className={`p-6 rounded-2xl shadow-inner text-[13px] leading-relaxed italic font-medium whitespace-normal break-words ${isCf ? 'bg-[var(--cf-teal-tint)] border border-[var(--cf-line)] text-[var(--cf-ink-2)]' : 'bg-white/5 border border-white/10 text-[var(--surface-100)]'}`}>
                                           &quot;{String(row[reportCol])}&quot;
                                         </div>
                                       </div>
@@ -520,22 +570,22 @@ export function InvestigativeTable({
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                       {rootCauseCol && row[rootCauseCol] && (
-                                         <div className="space-y-3">
-                                          <h4 className="text-[10px] font-black text-[oklch(0.65_0.25_45)] uppercase tracking-[0.2em] flex items-center gap-2">
+                                         <div className="space-y-3 min-w-0">
+                                          <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${isCf ? 'text-amber-600' : 'text-[oklch(0.65_0.25_45)]'}`}>
                                             <AlertCircle size={14} strokeWidth={2.5} /> ROOT CAUSE ANALYSIS
                                           </h4>
-                                          <div className="bg-[oklch(0.98_0.04_45)]/10 p-6 rounded-2xl border border-[oklch(0.65_0.25_45)]/20 text-[11px] font-bold text-[oklch(0.9_0.1_45)] leading-relaxed ring-1 ring-[oklch(0.65_0.25_45)]/10 shadow-inner">
+                                          <div className={`p-6 rounded-2xl text-[11px] font-bold leading-relaxed shadow-inner whitespace-normal break-words ${isCf ? 'bg-amber-50 border border-amber-100 text-amber-800 ring-1 ring-amber-100/50' : 'bg-[oklch(0.98_0.04_45)]/10 border border-[oklch(0.65_0.25_45)]/20 text-[oklch(0.9_0.1_45)] ring-1 ring-[oklch(0.65_0.25_45)]/10'}`}>
                                             {String(row[rootCauseCol])}
                                           </div>
                                         </div>
                                       )}
 
                                       {actionTakenCol && row[actionTakenCol] && (
-                                         <div className="space-y-3">
-                                          <h4 className="text-[10px] font-black text-[var(--brand-emerald-400)] uppercase tracking-[0.2em] flex items-center gap-2">
+                                         <div className="space-y-3 min-w-0">
+                                          <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${isCf ? 'text-lime-700' : 'text-[var(--brand-emerald-400)]'}`}>
                                             <CheckCircle2 size={14} strokeWidth={2.5} /> REMEDIATION STEPS
                                           </h4>
-                                          <div className="bg-[var(--brand-emerald-900)]/20 p-6 rounded-2xl border border-[var(--brand-emerald-500)]/20 text-[11px] font-bold text-[var(--brand-emerald-100)] leading-relaxed ring-1 ring-[var(--brand-emerald-500)]/10 shadow-inner">
+                                          <div className={`p-6 rounded-2xl text-[11px] font-bold leading-relaxed shadow-inner whitespace-normal break-words ${isCf ? 'bg-lime-50 border border-lime-100 text-lime-800 ring-1 ring-lime-100/50' : 'bg-[var(--brand-emerald-900)]/20 border border-[var(--brand-emerald-500)]/20 text-[var(--brand-emerald-100)] ring-1 ring-[var(--brand-emerald-500)]/10'}`}>
                                             {String(row[actionTakenCol])}
                                           </div>
                                         </div>
@@ -548,12 +598,22 @@ export function InvestigativeTable({
                                       if (urls.length === 0) return null;
                                       return (
                                         <div key={col} className="space-y-3">
-                                          <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                          <h4 className={`text-[10px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${isCf ? 'text-[var(--cf-teal)]' : 'text-blue-400'}`}>
                                             <LinkIcon size={14} strokeWidth={2.5} /> ATTACHED EVIDENCE
                                           </h4>
                                           <div className="flex flex-wrap gap-3">
                                             {urls.map((url, uIdx) => (
-                                              <a key={uIdx} href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-400/20 text-blue-300 text-[10px] font-black rounded-full hover:bg-blue-500 hover:text-white transition-all shadow-[0_4px_12px_rgba(59,130,246,0.2)] active:scale-95 uppercase tracking-widest">
+                                              <a
+                                                key={uIdx}
+                                                href={url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className={
+                                                  isCf
+                                                    ? 'inline-flex items-center gap-2 px-4 py-2 bg-[var(--cf-teal-tint)] border border-[var(--cf-line)] text-[var(--cf-teal)] text-[10px] font-black rounded-full hover:bg-[var(--cf-teal)] hover:text-white transition-all active:scale-95 uppercase tracking-widest'
+                                                    : 'inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-400/20 text-blue-300 text-[10px] font-black rounded-full hover:bg-blue-500 hover:text-white transition-all shadow-[0_4px_12px_rgba(59,130,246,0.2)] active:scale-95 uppercase tracking-widest'
+                                                }
+                                              >
                                                 <Download size={12} strokeWidth={2.5} /> EVIDENCE {urls.length > 1 ? uIdx + 1 : ''}
                                               </a>
                                             ))}
@@ -581,8 +641,8 @@ export function InvestigativeTable({
       <div className="relative z-10 px-6 py-5 border-t border-[var(--surface-border)]/50 bg-[var(--surface-0)]/50 backdrop-blur-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="text-[10px] font-black text-[var(--text-tertiary)] uppercase tracking-[0.2em]">
           {filteredData.length > 0
-            ? `SYNCING ${((safeCurrentPage - 1) * rowsPerPage + 1).toString().padStart(3, '0')} — ${Math.min(safeCurrentPage * rowsPerPage, filteredData.length).toString().padStart(3, '0')} / ${filteredData.length.toString().padStart(3, '0')} RECORDS`
-            : 'NULL SET'}
+            ? `Showing ${(safeCurrentPage - 1) * rowsPerPage + 1}–${Math.min(safeCurrentPage * rowsPerPage, filteredData.length)} of ${filteredData.length}`
+            : 'No records'}
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -590,7 +650,7 @@ export function InvestigativeTable({
             disabled={safeCurrentPage === 1}
             className="px-4 py-2 text-[10px] font-black border border-[var(--surface-border)] rounded-full disabled:opacity-20 hover:bg-[var(--surface-2)] transition-all uppercase tracking-[0.15em] text-[var(--text-secondary)]"
           >
-            Start
+            First
           </button>
           <div className="flex items-center gap-1 bg-[var(--surface-0)] px-4 py-2 rounded-full border border-[var(--surface-border)] shadow-inner-rim">
             <span className="text-[10px] font-black text-[var(--brand-primary)]">{safeCurrentPage}</span>
@@ -602,7 +662,7 @@ export function InvestigativeTable({
             disabled={safeCurrentPage === totalPages}
             className="px-4 py-2 text-[10px] font-black border border-[var(--surface-border)] rounded-full disabled:opacity-20 hover:bg-[var(--surface-2)] transition-all uppercase tracking-[0.15em] text-[var(--text-secondary)]"
           >
-            Next Phase
+            Next
           </button>
         </div>
       </div>

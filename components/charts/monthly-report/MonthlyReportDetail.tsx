@@ -1,18 +1,10 @@
 'use client';
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useState, useMemo } from 'react';
 import {
-  fetchMonthlySummary,
-  fetchDailyTrend,
   fetchBranchByMonth,
   fetchAirlineByMonth,
   fetchAllMonthlyReports,
-  fetchRollingAverage,
-  fetchPeakDay,
-  fetchDominantBranch,
-  fetchDominantAirline,
-  fetchMonthlyTrendByCategory,
   fetchAggregatedMonthlyReport,
   MonthlySummary,
   DailyDataPoint,
@@ -26,20 +18,17 @@ import {
   MonthlyTrendData,
 } from './data';
 import { BarChart, Bar as RechartsBar, LineChart, Line as RechartsLine, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend as RechartsLegend, ResponsiveContainer } from 'recharts';
-import { ArrowUp, ArrowDown, Minus, Download, Filter, Zap, Brain } from 'lucide-react';
-import { saveAs } from 'file-saver';
-import { motion } from 'framer-motion';
+import { Sparkles } from 'lucide-react';
 import { InvestigativeTable } from '@/components/chart-detail/InvestigativeTable';
-import { DataTableWithPagination } from '@/components/chart-detail/DataTableWithPagination';
-import { AiRootCauseInvestigation } from '../ai-root-cause/AiRootCauseInvestigation';
-import { AiBranchSummary } from '@/components/ai/AiBranchSummary';
-import { AiReportSummary } from '@/components/ai/AiReportSummary';
-import { AiSeasonalForecast } from '@/components/ai/AiSeasonalForecast';
-import { AiSeasonalityForecast } from '@/components/ai/AiSeasonalityForecast';
-import { fetchRiskSummaryAi, AiRiskSummary } from '@/lib/services/gapura-ai';
-import { HeatmapChart } from '@/components/charts/HeatmapChart';
+import {
+  ReportSection,
+  ReportStatCard,
+  CompactTable,
+  ReportLoading,
+  ReportError,
+  type CompactColumn,
+} from '@/components/chart-detail/ReportDetailKit';
 import type { QueryResult } from '@/types/builder';
-import { sanitizeTableCell } from '@/lib/security/sanitize';
 
 interface FilterParams {
   hub?: string;
@@ -50,55 +39,6 @@ interface FilterParams {
   sourceSheet?: string;
   dateFrom?: string;
   dateTo?: string;
-}
-
-interface KPICardProps {
-  title: string;
-  value: string | number;
-  subtitle?: string;
-  trend?: number;
-  trendLabel?: string;
-  color?: 'green' | 'red' | 'yellow' | 'blue' | 'orange';
-  explanation?: string;
-}
-
-function KPICard({ title, value, subtitle, trend, trendLabel, color = 'blue', explanation }: KPICardProps) {
-  const colorClasses = {
-    green: 'bg-[var(--surface-1)] border-emerald-500/20 text-emerald-400',
-    red: 'bg-[var(--surface-1)] border-red-500/20 text-red-400',
-    yellow: 'bg-[var(--surface-1)] border-amber-500/20 text-amber-400',
-    blue: 'bg-[var(--surface-1)] border-blue-500/20 text-blue-400',
-    orange: 'bg-[var(--surface-1)] border-orange-500/20 text-orange-400',
-  };
-
-  return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      whileHover={{ y: -4, scale: 1.02 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-      className={`group relative overflow-hidden p-5 rounded-3xl border shadow-spatial-md backdrop-blur-xl ${colorClasses[color]} transition-all duration-300`}
-    >
-      <div className="absolute inset-0 bg-noise opacity-[0.03] mix-blend-overlay pointer-events-none"></div>
-      <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-      <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-
-      <div className="relative z-10">
-        <div className="text-xs font-semibold uppercase tracking-wider opacity-70 mb-1">{title}</div>
-        <div className="text-3xl font-black tracking-tight text-[var(--text-primary)]">{value}</div>
-        {subtitle && <div className="text-xs font-medium opacity-70 mt-1">{subtitle}</div>}
-        {trend !== undefined && (
-          <div className={`flex items-center gap-1 text-xs font-bold mt-2 ${trend > 0 ? 'text-emerald-400' : trend < 0 ? 'text-red-400' : 'text-gray-400'}`}>
-            {trend > 0 ? <ArrowUp size={12} /> : trend < 0 ? <ArrowDown size={12} /> : <Minus size={12} />}
-            <span>{Math.abs(trend).toFixed(1)}% {trendLabel || 'vs Prev'}</span>
-          </div>
-        )}
-        {explanation && (
-          <div className="text-xs text-[var(--text-secondary)] mt-3 pt-3 border-t border-[var(--surface-2)] leading-relaxed">{explanation}</div>
-        )}
-      </div>
-    </motion.div>
-  );
 }
 
 function AutoInsight({ monthly, peakDay, dominantBranch, dominantAirline }: {
@@ -126,92 +66,33 @@ function AutoInsight({ monthly, peakDay, dominantBranch, dominantAirline }: {
   const mainInsight = `Reports ${direction} ${Math.abs(growth).toFixed(1)}% MoM${drivers.length > 0 ? `, driven by ${drivers.join(' & ')}` : ''}.`;
 
   const insightParts = [
-    mainInsight,
     peakDay.date !== '-' ? `Peak day: ${peakDay.date} (${peakDay.dayOfWeek}) with ${peakDay.count} reports.` : null,
     `Irregularity accounts for ${current.irregularityRate.toFixed(1)}% of all reports this period.`,
     current.total > prev.total ? `Volume increased from ${prev.total} to ${current.total}.` : `Volume decreased from ${prev.total} to ${current.total}.`,
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="relative overflow-hidden bg-[var(--surface-1)] border border-[var(--brand-aurora-2)]/30 rounded-3xl p-6 shadow-spatial-md group"
-    >
-      <div className="absolute inset-0 bg-noise opacity-[0.03] mix-blend-overlay pointer-events-none"></div>
-      <div className="absolute -inset-1 bg-gradient-to-r from-[var(--brand-aurora-1)] via-[var(--brand-aurora-2)] to-[var(--brand-aurora-3)] opacity-5 blur-xl group-hover:opacity-10 transition-opacity duration-500 pointer-events-none"></div>
-
-      <div className="relative z-10">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="p-2 bg-[var(--brand-aurora-2)]/10 rounded-xl">
-            <Zap size={20} className="text-[var(--brand-aurora-2)]" />
-          </div>
-          <h3 className="text-lg font-bold text-[var(--text-primary)]">Auto-Insight</h3>
+    <div className="cf-card p-4 sm:p-5" style={{ '--cf-spine': 'var(--cf-amber)' } as React.CSSProperties}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-[#fef3c7] text-[var(--cf-amber)]">
+          <Sparkles size={16} />
         </div>
-        <ul className="space-y-3">
-          {insightParts.map((insight, idx) => (
-            <motion.li 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              key={idx} 
-              className="flex items-start gap-3 text-sm text-[var(--text-secondary)] leading-relaxed"
-            >
-              <span className="text-[var(--brand-aurora-2)] mt-1 shrink-0">•</span>
-              <span>{insight}</span>
-            </motion.li>
-          ))}
-        </ul>
+        <div className="min-w-0">
+          <h3 className="cf-eyebrow mb-2">
+            <span>Summary</span>
+            <span className="cf-eyebrow-rule" />
+          </h3>
+          <p className="cf-display mb-3 text-[15px] font-medium leading-snug text-[var(--cf-ink)]">{mainInsight}</p>
+          <ul className="grid gap-2 sm:grid-cols-2">
+            {insightParts.map((insight, idx) => (
+              <li key={idx} className="flex items-start gap-2 rounded-lg border border-[var(--cf-line)] bg-[var(--cf-canvas-2)] px-3 py-2 text-[11px] font-medium leading-relaxed text-[var(--cf-ink-2)]">
+                <span className="mt-0.5 text-[var(--cf-amber)]">•</span>
+                {insight}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
-    </motion.div>
-  );
-}
-
-function MonthlyTrendTable({ data }: { data: MonthlySummary[] }) {
-
-  const displayData = [...data].reverse();
-
-  return (
-    <div className="overflow-x-auto max-h-[500px] overflow-y-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-gray-50 sticky top-0 z-10">
-          <tr>
-            <th className="px-3 py-2 text-left font-semibold text-gray-600 sticky top-0 bg-gray-50">Month</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600 sticky top-0 bg-gray-50">Total</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600 sticky top-0 bg-gray-50">Irreg.</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600 sticky top-0 bg-gray-50">Complaint</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600 sticky top-0 bg-gray-50">Compliment</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600 sticky top-0 bg-gray-50">Irreg. Rate</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600 sticky top-0 bg-gray-50">Net Sentiment</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600 sticky top-0 bg-gray-50">MoM</th>
-            <th className="px-3 py-2 text-right font-semibold text-gray-600 sticky top-0 bg-gray-50">YoY</th>
-          </tr>
-        </thead>
-        <tbody>
-          {displayData.map((month, idx) => {
-            const isCurrent = idx === 0;
-            return (
-              <tr key={month.month} className={`border-t border-gray-100 hover:bg-gray-50 ${isCurrent ? 'bg-blue-50' : ''}`}>
-                <td className="px-3 py-2 font-semibold text-gray-900">{month.month}</td>
-                <td className="px-3 py-2 text-right font-medium">{month.total.toLocaleString('id-ID')}</td>
-                <td className="px-3 py-2 text-right text-red-600">{month.irregularity}</td>
-                <td className="px-3 py-2 text-right text-orange-600">{month.complaint}</td>
-                <td className="px-3 py-2 text-right text-green-600">{month.compliment}</td>
-                <td className="px-3 py-2 text-right">{month.irregularityRate.toFixed(1)}%</td>
-                <td className={`px-3 py-2 text-right ${month.netSentiment >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {month.netSentiment >= 0 ? '+' : ''}{month.netSentiment.toFixed(1)}%
-                </td>
-                <td className={`px-3 py-2 text-right font-medium ${month.momGrowth > 0 ? 'text-red-600' : month.momGrowth < 0 ? 'text-green-600' : 'text-gray-600'}`}>
-                  {month.momGrowth > 0 ? '+' : ''}{month.momGrowth.toFixed(1)}%
-                </td>
-                <td className={`px-3 py-2 text-right font-medium ${month.yoyGrowth !== undefined ? (month.yoyGrowth > 0 ? 'text-red-600' : month.yoyGrowth < 0 ? 'text-emerald-600' : 'text-gray-600') : 'text-gray-400'}`}>
-                  {month.yoyGrowth !== undefined ? `${month.yoyGrowth > 0 ? '+' : ''}${month.yoyGrowth.toFixed(1)}%` : '-'}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
     </div>
   );
 }
@@ -225,17 +106,17 @@ function DailyTrendChart({ data }: { data: DailyDataPoint[] }) {
   }));
 
   return (
-    <div className="h-[250px]">
+    <div className="h-[220px] sm:h-[260px]">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-          <XAxis dataKey="name" tick={{ fontSize: 9 }} angle={-35} textAnchor="end" height={50} />
-          <YAxis tick={{ fontSize: 10 }} />
-          <RechartsTooltip />
+        <LineChart data={rechartsData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+          <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--cf-ink-3)' }} angle={-35} textAnchor="end" height={50} />
+          <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+          <RechartsTooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
           <RechartsLegend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
-          <RechartsLine type="monotone" dataKey="Total" stroke="#3b82f6" strokeWidth={2} dot={false} />
-          <RechartsLine type="monotone" dataKey="Irregularity" stroke="#ef4444" strokeWidth={2} dot={false} />
-          <RechartsLine type="monotone" dataKey="Complaint" stroke="#f97316" strokeWidth={2} dot={false} />
+          <RechartsLine type="monotone" dataKey="Total" stroke="var(--cf-teal)" strokeWidth={2} dot={false} />
+          <RechartsLine type="monotone" dataKey="Irregularity" stroke="var(--cf-coral)" strokeWidth={2} dot={false} />
+          <RechartsLine type="monotone" dataKey="Complaint" stroke="var(--cf-amber)" strokeWidth={2} dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -251,17 +132,17 @@ function RollingAverageChart({ data }: { data: RollingAveragePoint[] }) {
   }));
 
   return (
-    <div className="h-[250px]">
+    <div className="h-[220px] sm:h-[260px]">
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-          <YAxis tick={{ fontSize: 10 }} />
-          <RechartsTooltip />
+        <LineChart data={rechartsData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+          <XAxis dataKey="name" tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+          <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+          <RechartsTooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
           <RechartsLegend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
-          <RechartsLine type="monotone" dataKey="Actual" stroke="#3b82f6" strokeWidth={2} dot={false} />
-          <RechartsLine type="monotone" dataKey="3-Month Avg" stroke="#f97316" strokeWidth={2} strokeDasharray="5 5" dot={false} />
-          <RechartsLine type="monotone" dataKey="6-Month Avg" stroke="#8b5cf6" strokeWidth={2} strokeDasharray="10 5" dot={false} />
+          <RechartsLine type="monotone" dataKey="Actual" stroke="var(--cf-teal)" strokeWidth={2} dot={false} />
+          <RechartsLine type="monotone" dataKey="3-Month Avg" stroke="var(--cf-amber)" strokeWidth={2} strokeDasharray="5 5" dot={false} />
+          <RechartsLine type="monotone" dataKey="6-Month Avg" stroke="var(--cf-slate)" strokeWidth={2} strokeDasharray="10 5" dot={false} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -283,14 +164,14 @@ function TopBranchesChart({ data }: { data: BranchByMonthData[] }) {
   }));
 
   return (
-    <div className="h-[250px]">
+    <div className="h-[220px] sm:h-[260px]">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
-          <YAxis tick={{ fontSize: 10 }} />
-          <RechartsTooltip />
-          <RechartsBar dataKey="Reports" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+        <BarChart data={rechartsData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+          <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--cf-ink-3)' }} angle={-20} textAnchor="end" height={50} />
+          <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+          <RechartsTooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
+          <RechartsBar dataKey="Reports" fill="var(--cf-teal)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -312,162 +193,16 @@ function TopAirlinesChart({ data }: { data: AirlineByMonthData[] }) {
   }));
 
   return (
-    <div className="h-[250px]">
+    <div className="h-[220px] sm:h-[260px]">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={rechartsData} margin={{ top: 10, right: 30, left: 0, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.05)" />
-          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-20} textAnchor="end" height={60} />
-          <YAxis tick={{ fontSize: 10 }} />
-          <RechartsTooltip />
-          <RechartsBar dataKey="Reports" fill="#f97316" radius={[4, 4, 0, 0]} />
+        <BarChart data={rechartsData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+          <XAxis dataKey="name" tick={{ fontSize: 9, fill: 'var(--cf-ink-3)' }} angle={-20} textAnchor="end" height={50} />
+          <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+          <RechartsTooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
+          <RechartsBar dataKey="Reports" fill="var(--cf-amber)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
-    </div>
-  );
-}
-
-function DataTable({ data }: { data: MonthlyReportRecord[] }) {
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [sortField, setSortField] = useState('Date');
-  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 50;
-
-  if (!data || data.length === 0) {
-    return <div className="p-8 text-center text-gray-500">No data available</div>;
-  }
-
-  const columns = Object.keys(data[0]);
-
-  const filteredData = data
-    .filter(row => {
-      const matchesSearch = search === '' ||
-        columns.some(col => String(row[col]).toLowerCase().includes(search.toLowerCase()));
-      const matchesCategory = categoryFilter === 'all' ||
-        String(row.Category)?.toLowerCase() === categoryFilter.toLowerCase();
-      return matchesSearch && matchesCategory;
-    })
-    .sort((a, b) => {
-      const aVal = a[sortField] as string | number;
-      const bVal = b[sortField] as string | number;
-      if (aVal === bVal) return 0;
-      const cmp = aVal < bVal ? -1 : 1;
-      return sortDir === 'asc' ? cmp : -cmp;
-    });
-
-  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
-  const paginatedData = filteredData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDir('desc');
-    }
-    setCurrentPage(1);
-  };
-
-  const handleExportCSV = () => {
-    const headers = columns.join(',');
-    const rows = filteredData.map(row =>
-      columns.map(col => {
-        const cell = row[col];
-        return typeof cell === 'string' && cell.includes(',') ? `"${cell}"` : cell;
-      }).join(',')
-    ).join('\n');
-    const csv = `${headers}\n${rows}`;
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    saveAs(blob, 'monthly-report.csv');
-  };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative flex-1 min-w-[200px]">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-          <input
-            type="text"
-            placeholder="Search..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#6b8e3d]"
-          />
-        </div>
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-lg text-sm"
-        >
-          <option value="all">All Categories</option>
-          <option value="Irregularity">Irregularity</option>
-          <option value="Complaint">Complaint</option>
-          <option value="Compliment">Compliment</option>
-        </select>
-        <button
-          onClick={handleExportCSV}
-          className="flex items-center gap-2 px-4 py-2 bg-[#6b8e3d] text-white rounded-lg text-sm font-medium"
-        >
-          <Download size={16} />
-          Export CSV
-        </button>
-      </div>
-
-      <div className="overflow-x-auto border border-gray-200 rounded-lg">
-        <table className="w-full text-sm">
-          <thead className="bg-gray-50">
-            <tr>
-              {columns.map(col => (
-                <th key={col} onClick={() => handleSort(col)} className="px-4 py-3 text-left font-semibold text-gray-600 cursor-pointer hover:bg-gray-100">
-                  <div className="flex items-center gap-1">
-                    {col}
-                    {sortField === col && <span className="text-[#6b8e3d]">{sortDir === 'asc' ? '↑' : '↓'}</span>}
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedData.map((row, idx) => (
-              <tr key={idx} className="border-t border-gray-100 hover:bg-gray-50">
-                {columns.map(col => (
-                  col === 'Evidence' ? (
-                    <td key={col} className="px-4 py-2.5 text-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeTableCell(row[col]) }} />
-                  ) : (
-                    <td key={col} className="px-4 py-2.5 text-gray-700">{row[col] !== null && row[col] !== undefined ? String(row[col]) : '-'}</td>
-                  )
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        {totalPages > 1 && (
-          <div className="p-3 flex items-center justify-between bg-gray-50 border-t">
-            <div className="text-sm text-gray-500">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filteredData.length)} of {filteredData.length} rows
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-1 text-sm border border-gray-200 rounded disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span className="text-sm text-gray-600">Page {currentPage} of {totalPages}</span>
-              <button
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-1 text-sm border border-gray-200 rounded disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -489,38 +224,25 @@ function ManagementSummary({ data, dominantBranch, dominantAirline }: {
     `Irregularity accounts for ${currentMonth.irregularityRate.toFixed(1)}% of all reports.`,
     dominantBranch.name !== '-' ? `Dominant branch: ${dominantBranch.name} with ${dominantBranch.count} reports (${dominantBranch.percent.toFixed(1)}%).` : null,
     dominantAirline.name !== '-' ? `Top airline: ${dominantAirline.name} with ${dominantAirline.count} reports (${dominantAirline.percent.toFixed(1)}%).` : null,
-  ].filter(Boolean);
+  ].filter(Boolean) as string[];
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden bg-[var(--surface-1)] border border-[var(--accent-1)]/30 rounded-3xl p-6 shadow-spatial-md group"
-    >
-      <div className="absolute inset-0 bg-noise opacity-[0.03] mix-blend-overlay pointer-events-none"></div>
-      <div className="absolute inset-0 bg-gradient-to-br from-[var(--accent-1)]/5 to-transparent pointer-events-none"></div>
-
-      <div className="relative z-10">
-        <h3 className="font-bold text-[var(--text-primary)] mb-4 flex items-center gap-2 text-lg">
-          📅 Management Summary
-        </h3>
-        <ul className="space-y-3">
-          {insights.map((insight, idx) => (
-            <li key={idx} className="flex items-start gap-3 text-sm text-[var(--text-secondary)] leading-relaxed">
-              <span className="text-[var(--accent-1)] mt-1 shrink-0">•</span>
-              <span>{insight}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </motion.div>
+    <ul className="grid gap-3 sm:grid-cols-2">
+      {insights.map((insight, idx) => (
+        <li key={idx} className="flex items-start gap-3 rounded-xl border border-[var(--cf-line)] bg-[var(--cf-canvas-2)] p-3">
+          <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-[var(--cf-teal-tint)] text-[10px] font-bold text-[var(--cf-teal)]">
+            0{idx + 1}
+          </span>
+          <span className="text-[12px] font-medium leading-snug text-[var(--cf-ink-2)]">{insight}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
 export default function MonthlyReportDetail({ filters = {} }: { filters?: FilterParams }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tableLoading, setTableLoading] = useState(false);
   const [chartData, setChartData] = useState({
     monthlyData: [] as MonthlySummary[],
     dailyData: [] as DailyDataPoint[],
@@ -533,9 +255,6 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
     dominantAirline: { name: '-', count: 0, percent: 0 } as DominantInfo,
     kpis: null as MonthlyKPIs | null,
     trendData: [] as MonthlyTrendData[],
-    aiRiskSummary: null as AiRiskSummary | null,
-     
-    aiRiskHeatmap: [] as any[],
   });
   const investigativeData: QueryResult = useMemo(() => {
     const rows = chartData.tableData as unknown as Record<string, unknown>[];
@@ -548,17 +267,6 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
       executionTimeMs: 0,
     };
   }, [chartData.tableData]);
-  const fullTableData: QueryResult = useMemo(() => {
-    const rows = chartData.monthlyData.map(item => ({ ...item })) as unknown as Record<string, unknown>[];
-    const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
-
-    return {
-      columns,
-      rows,
-      rowCount: rows.length,
-      executionTimeMs: 0,
-    };
-  }, [chartData.monthlyData]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -580,33 +288,13 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
             dominantBranch: aggregated.dominantBranch || { name: '-', count: 0, percent: 0 },
             dominantAirline: aggregated.dominantAirline || { name: '-', count: 0, percent: 0 },
             kpis: aggregated.kpis,
-             
-            trendData: (aggregated.trend || []) as any,
+            trendData: (aggregated.trend || []) as unknown as MonthlyTrendData[],
           }));
         } else {
           throw new Error('Invalid aggregated monthly data');
         }
-
-        fetchRiskSummaryAi(controller.signal).then(riskSummaryRes => {
-          const riskSummaryResult = riskSummaryRes as AiRiskSummary | null;
-          if (riskSummaryResult) {
-            const heatmapData = riskSummaryResult.branch_details
-              ? riskSummaryResult.branch_details.flatMap(b => 
-                Object.entries(b.severity_distribution).map(([sev, count]) => ({
-                  branch: b.name,
-                  severity: sev,
-                  count: count
-                }))
-              )
-              : [];
-            setChartData(prev => ({ ...prev, aiRiskSummary: riskSummaryResult, aiRiskHeatmap: heatmapData }));
-          }
-        }).catch(err => {
-          if (err.name === 'AbortError') return;
-        });
       } catch (err) {
-         
-        if ((err as any).name === 'AbortError') return;
+        if ((err as { name?: string }).name === 'AbortError') return;
         console.error('Failed to load aggregated monthly data:', err);
         setError('Failed to load primary dashboard data.');
       } finally {
@@ -625,7 +313,6 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
 
   useEffect(() => {
     async function loadDeferredData() {
-      setTableLoading(true);
       try {
         const [branch, airline, table] = await Promise.all([
           fetchBranchByMonth(filters),
@@ -640,89 +327,67 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
         }));
       } catch (err) {
         console.error('Failed to load deferred monthly data:', err);
-      } finally {
-        setTableLoading(false);
       }
     }
 
     loadDeferredData();
   }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.month, filters.dateFrom, filters.dateTo]);
 
-  if (loading) {
-    return (
-      <div className="min-h-[600px] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#6b8e3d]"></div>
-      </div>
-    );
-  }
+  if (loading) return <ReportLoading label="Loading monthly report…" />;
+  if (error) return <ReportError message={error} onRetry={() => window.location.reload()} />;
 
-  if (error) {
-    return (
-      <div className="min-h-[400px] flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 mb-2">⚠️ {error}</div>
-          <button onClick={() => window.location.reload()} className="px-4 py-2 bg-[#6b8e3d] text-white rounded-lg text-sm font-medium">Retry</button>
-        </div>
-      </div>
-    );
-  }
-
-  const currentMonth = chartData.monthlyData[chartData.monthlyData.length - 1];
-  const prevMonth = chartData.monthlyData[chartData.monthlyData.length - 2];
-
-   
-  const totalCurrentReports = chartData.monthlyData.reduce((s: number, m: any) => s + m.total, 0);
-   
-  const totalPrevReports = chartData.monthlyData.reduce((s: number, m: any) => s + m.prevMonthTotal, 0);
-   
-  const totalPrevYearReportsSelection = chartData.monthlyData.reduce((s: number, m: any) => s + (m.prevYearTotal || 0), 0);
+  const totalCurrentReports = chartData.monthlyData.reduce((s, m) => s + m.total, 0);
+  const totalPrevReports = chartData.monthlyData.reduce((s, m) => s + m.prevMonthTotal, 0);
+  const totalPrevYearReportsSelection = chartData.monthlyData.reduce((s, m) => s + (m.prevYearTotal || 0), 0);
 
   const overallMomGrowth = totalPrevReports > 0 ? ((totalCurrentReports - totalPrevReports) / totalPrevReports) * 100 : 0;
   const overallYoyGrowth = totalPrevYearReportsSelection > 0 ? ((totalCurrentReports - totalPrevYearReportsSelection) / totalPrevYearReportsSelection) * 100 : undefined;
 
-   
-  const totalReportsSum = chartData.monthlyData.reduce((sum: number, m: any) => sum + m.total, 0);
-   
-  const totalIrregSum = chartData.monthlyData.reduce((sum: number, m: any) => sum + m.irregularity, 0);
-   
-  const totalComplaintSum = chartData.monthlyData.reduce((sum: number, m: any) => sum + (m.complaint || 0), 0);
-   
-  const totalComplimentSum = chartData.monthlyData.reduce((sum: number, m: any) => sum + (m.compliment || 0), 0);
+  const totalReportsSum = chartData.monthlyData.reduce((sum, m) => sum + m.total, 0);
+  const totalIrregSum = chartData.monthlyData.reduce((sum, m) => sum + m.irregularity, 0);
+  const totalComplaintSum = chartData.monthlyData.reduce((sum, m) => sum + (m.complaint || 0), 0);
+  const totalComplimentSum = chartData.monthlyData.reduce((sum, m) => sum + (m.compliment || 0), 0);
 
   const overallIrregRate = totalReportsSum > 0 ? (totalIrregSum / totalReportsSum) * 100 : 0;
   const overallNetSentiment = (totalComplimentSum + totalComplaintSum) > 0
     ? ((totalComplimentSum - totalComplaintSum) / (totalComplimentSum + totalComplaintSum)) * 100
     : 0;
 
+  const trendColumns: CompactColumn<MonthlySummary>[] = [
+    { key: 'month', label: 'Month' },
+    { key: 'total', label: 'Total', align: 'right', numeric: true, render: (r) => r.total.toLocaleString('id-ID') },
+    { key: 'irregularity', label: 'Irreg.', align: 'right', numeric: true, hideBelow: 'sm' },
+    { key: 'complaint', label: 'Complaint', align: 'right', numeric: true, hideBelow: 'md' },
+    { key: 'compliment', label: 'Compliment', align: 'right', numeric: true, hideBelow: 'md' },
+    { key: 'irregularityRate', label: 'Irreg. Rate', align: 'right', numeric: true, hideBelow: 'lg', render: (r) => `${r.irregularityRate.toFixed(1)}%` },
+    {
+      key: 'netSentiment', label: 'Net Sentiment', align: 'right', numeric: true, hideBelow: 'lg',
+      render: (r) => (
+        <span className={r.netSentiment >= 0 ? 'text-[var(--cf-lime)]' : 'text-[var(--cf-coral)]'}>
+          {r.netSentiment >= 0 ? '+' : ''}{r.netSentiment.toFixed(1)}%
+        </span>
+      ),
+    },
+    {
+      key: 'momGrowth', label: 'MoM', align: 'right', numeric: true, hideBelow: 'sm',
+      render: (r) => (
+        <span className={r.momGrowth > 0 ? 'text-[var(--cf-coral)]' : r.momGrowth < 0 ? 'text-[var(--cf-lime)]' : 'text-[var(--cf-ink-3)]'}>
+          {r.momGrowth > 0 ? '+' : ''}{r.momGrowth.toFixed(1)}%
+        </span>
+      ),
+    },
+    {
+      key: 'yoyGrowth', label: 'YoY', align: 'right', numeric: true, hideBelow: 'lg',
+      render: (r) => r.yoyGrowth !== undefined ? (
+        <span className={r.yoyGrowth > 0 ? 'text-[var(--cf-coral)]' : r.yoyGrowth < 0 ? 'text-[var(--cf-lime)]' : 'text-[var(--cf-ink-3)]'}>
+          {r.yoyGrowth > 0 ? '+' : ''}{r.yoyGrowth.toFixed(1)}%
+        </span>
+      ) : <span className="text-[var(--cf-ink-3)]">-</span>,
+    },
+  ];
+
   return (
-    <div className="space-y-8">
-      {}
-      <AiReportSummary source={filters.sourceSheet as any} />
-      <AiBranchSummary source={filters.sourceSheet as any} />
-      <AiSeasonalForecast />
-      <AiSeasonalityForecast />
-
-      {}
-      {chartData.aiRiskHeatmap.length > 0 && (
-        <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm mt-6">
-          <div className="flex items-center gap-2 mb-1">
-            <Brain className="w-5 h-5 text-emerald-600" />
-            <h2 className="text-lg font-bold text-gray-800">AI Risk Heatmap</h2>
-          </div>
-          <p className="text-xs text-gray-500 mb-4">Proactive risk analysis by severity across stations (AI Service Data)</p>
-          <div className="h-[400px]">
-            <HeatmapChart 
-              data={chartData.aiRiskHeatmap}
-              xAxis="severity"
-              yAxis="branch"
-              metric="count"
-              showTitle={false}
-            />
-          </div>
-        </section>
-      )}
-
-      {}
+    <div className="space-y-6 sm:space-y-8">
       <AutoInsight
         monthly={chartData.monthlyData}
         peakDay={chartData.peakDay}
@@ -730,229 +395,101 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
         dominantAirline={chartData.dominantAirline}
       />
 
-      {}
       {chartData.kpis && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <KPICard
-            title="Current Month"
-            value={chartData.kpis.currentMonthTotal}
-            color="blue"
-            explanation="Total laporan bulan ini (bulan terakhir dalam dataset)."
-          />
-          <KPICard
-            title="Previous Month"
-            value={chartData.kpis.previousMonthTotal}
-            color="blue"
-            explanation="Total laporan bulan sebelumnya untuk perbandingan."
-          />
-          <KPICard
-            title="MoM Change"
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <ReportStatCard label="Current Month" value={chartData.kpis.currentMonthTotal} tone="teal" />
+          <ReportStatCard label="Previous Month" value={chartData.kpis.previousMonthTotal} tone="slate" />
+          <ReportStatCard
+            label="MoM Change"
             value={`${chartData.kpis.momChange > 0 ? '+' : ''}${chartData.kpis.momChange}%`}
-            color={chartData.kpis.momChange > 0 ? 'red' : 'green'}
-            explanation="Perubahan persentase dari bulan lalu ke bulan ini."
+            trend={chartData.kpis.momChange}
+            tone={chartData.kpis.momChange > 0 ? 'coral' : 'lime'}
           />
-          <KPICard
-            title="Highest Peak"
-            value={chartData.kpis.highestPeakMonth.month}
-            subtitle={`${chartData.kpis.highestPeakMonth.count} reports`}
-            color="yellow"
-            explanation="Month with the highest number of reports in this period."
-          />
+          <ReportStatCard label="Highest Peak" value={chartData.kpis.highestPeakMonth.month} subtitle={`${chartData.kpis.highestPeakMonth.count} reports`} tone="amber" />
         </div>
       )}
 
-      {}
-      {chartData.trendData.length > 0 && (
-        <div className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <h3 className="text-lg font-bold mb-4">Category Trends Over Time</h3>
-          <p className="text-xs text-gray-500 mb-4">Tren kategori laporan per bulan untuk melihat pola perubahan kategori Irregularity, Complaint, dan Compliment</p>
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={chartData.trendData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis />
-              <RechartsTooltip />
-              <RechartsLegend />
-              <RechartsLine type="monotone" dataKey="irregularity" stroke="#4ade80" strokeWidth={2} name="Irregularity" />
-              <RechartsLine type="monotone" dataKey="complaint" stroke="#0ea5e9" strokeWidth={2} name="Complaint" />
-              <RechartsLine type="monotone" dataKey="compliment" stroke="#facc15" strokeWidth={2} name="Compliment" />
-              <RechartsLine type="monotone" dataKey="total" stroke="#6366f1" strokeWidth={3} strokeDasharray="5 5" name="Total" />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KPICard
-          title="Growth (MoM)"
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <ReportStatCard
+          label="Growth (MoM)"
           value={`${overallMomGrowth >= 0 ? '+' : ''}${overallMomGrowth.toFixed(1)}%`}
-          subtitle={`Total: ${totalCurrentReports} vs Prev: ${totalPrevReports}`}
+          subtitle={`${totalCurrentReports} vs ${totalPrevReports}`}
           trend={overallMomGrowth}
-          trendLabel="MoM"
-          color={overallMomGrowth > 0 ? 'red' : 'green'}
-          explanation="Pertumbuhan volume laporan periode ini vs periode sebelumnya (shifted 1 bulan)."
+          tone={overallMomGrowth > 0 ? 'coral' : 'lime'}
         />
         {overallYoyGrowth !== undefined && (
-          <KPICard
-            title="Growth (YoY)"
+          <ReportStatCard
+            label="Growth (YoY)"
             value={`${overallYoyGrowth >= 0 ? '+' : ''}${overallYoyGrowth.toFixed(1)}%`}
-            subtitle={`Total: ${totalCurrentReports} vs Prev Year: ${totalPrevYearReportsSelection}`}
+            subtitle={`${totalCurrentReports} vs ${totalPrevYearReportsSelection}`}
             trend={overallYoyGrowth}
-            trendLabel="YoY"
-            color={overallYoyGrowth > 0 ? 'red' : 'green'}
-            explanation="Pertumbuhan vs periode yang sama tahun lalu."
+            tone={overallYoyGrowth > 0 ? 'coral' : 'lime'}
           />
         )}
-        <KPICard
-          title="Dominant Station"
-          value={chartData.dominantBranch.name}
-          subtitle={`${chartData.dominantBranch.count} reports (${chartData.dominantBranch.percent.toFixed(0)}%)`}
-          color="blue"
-          explanation="Cabang dengan laporan terbanyak dalam periode ini."
-        />
-        <KPICard
-          title="Dominant Airline"
-          value={chartData.dominantAirline.name}
-          subtitle={`${chartData.dominantAirline.count} reports (${chartData.dominantAirline.percent.toFixed(0)}%)`}
-          color="orange"
-          explanation="Maskapai dengan laporan terbanyak dalam periode ini."
-        />
+        <ReportStatCard label="Dominant Station" value={chartData.dominantBranch.name} subtitle={`${chartData.dominantBranch.count} (${chartData.dominantBranch.percent.toFixed(0)}%)`} tone="teal" />
+        <ReportStatCard label="Dominant Airline" value={chartData.dominantAirline.name} subtitle={`${chartData.dominantAirline.count} (${chartData.dominantAirline.percent.toFixed(0)}%)`} tone="amber" />
       </div>
 
-      {}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <KPICard
-          title="Total Reports"
-          value={totalReportsSum.toLocaleString('id-ID')}
-          color="blue"
-          explanation="Total laporan yang masuk dalam periode ini."
-        />
-        <KPICard
-          title="Irregularity Rate"
-          value={`${overallIrregRate.toFixed(1)}%`}
-          color="red"
-          explanation="Persentase laporan irregularity dari total keseluruhan periode ini."
-        />
-        <KPICard
-          title="Net Sentiment"
-          value={`${overallNetSentiment >= 0 ? '+' : ''}${overallNetSentiment.toFixed(1)}%`}
-          color={overallNetSentiment > 0 ? 'green' : 'red'}
-          explanation="Selisih Compliment vs Complaint untuk keseluruhan periode ini."
-        />
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <ReportStatCard label="Total Reports" value={totalReportsSum.toLocaleString('id-ID')} tone="teal" />
+        <ReportStatCard label="Irregularity Rate" value={`${overallIrregRate.toFixed(1)}%`} tone="coral" />
+        <ReportStatCard label="Net Sentiment" value={`${overallNetSentiment >= 0 ? '+' : ''}${overallNetSentiment.toFixed(1)}%`} tone={overallNetSentiment > 0 ? 'lime' : 'coral'} />
       </div>
 
-      {}
-      <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-bold text-gray-800">Monthly Trend</h2>
-            <p className="text-xs text-gray-500 mt-1">Tren laporan bulanan ({chartData.monthlyData.length} bulan) - Januari 2025 sampai terbaru</p>
+      {chartData.trendData.length > 0 && (
+        <ReportSection index={1} title="Category Trends Over Time" subtitle="Tren kategori laporan per bulan (Irregularity, Complaint, Compliment)" tone="teal">
+          <div className="h-[240px] sm:h-[320px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData.trendData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--cf-line)" />
+                <XAxis dataKey="month" tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+                <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
+                <RechartsTooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
+                <RechartsLegend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
+                <RechartsLine type="monotone" dataKey="irregularity" stroke="var(--cf-coral)" strokeWidth={2} name="Irregularity" />
+                <RechartsLine type="monotone" dataKey="complaint" stroke="var(--cf-amber)" strokeWidth={2} name="Complaint" />
+                <RechartsLine type="monotone" dataKey="compliment" stroke="var(--cf-lime)" strokeWidth={2} name="Compliment" />
+                <RechartsLine type="monotone" dataKey="total" stroke="var(--cf-teal)" strokeWidth={2} strokeDasharray="5 5" name="Total" />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
-          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg max-w-xs">
-            <strong className="text-gray-700">Penjelasan:</strong> Tabel ini menunjukkan jumlah laporan per bulan dari awal data. Kolom MoM menunjukkan perubahan dari bulan sebelumnya. Warna merah = naik (lebih banyak laporan), hijau = turun (lebih sedikit laporan). Scroll untuk melihat semua bulan.
-          </div>
-        </div>
-        <MonthlyTrendTable data={chartData.monthlyData} />
-      </section>
+        </ReportSection>
+      )}
 
-      {}
-      <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-bold text-gray-800">Daily Timeline</h2>
-            <p className="text-xs text-gray-500 mt-1">Distribusi laporan harian untuk melihat pola dan lonjakan</p>
-          </div>
-          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg max-w-xs">
-            <strong className="text-gray-700">Penjelasan:</strong> Grafik ini menunjukkan jumlah laporan setiap hari. Puncak tinggi = hari dengan banyak insiden. Gunakan ini untuk mengidentifikasi tanggal kejadian.
-          </div>
-        </div>
+      <ReportSection index={2} title="Monthly Trend" subtitle={`${chartData.monthlyData.length} bulan — merah naik, hijau turun`} tone="teal" bodyClassName="p-0">
+        <CompactTable columns={trendColumns} rows={[...chartData.monthlyData].reverse()} rowKey="month" />
+      </ReportSection>
+
+      <ReportSection index={3} title="Daily Timeline" subtitle="Distribusi laporan harian — puncak tinggi menandai lonjakan insiden" tone="slate">
         <DailyTrendChart data={chartData.dailyData} />
-      </section>
+      </ReportSection>
 
-      {}
-      <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <div className="flex items-start justify-between mb-4">
-          <div>
-            <h2 className="text-lg font-bold text-gray-800">Historical Context</h2>
-            <p className="text-xs text-gray-500 mt-1">Perbandingan dengan rata-rata 3 dan 6 bulan terakhir</p>
-          </div>
-          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg max-w-xs">
-            <strong className="text-gray-700">Penjelasan:</strong> Grafik ini membandingkan laporan bulan ini dengan rata-rata 3 dan 6 bulan sebelumnya. Jika garis biru di atas garis lain = lonjakan tidak normal.
-          </div>
-        </div>
+      <ReportSection index={4} title="Historical Context" subtitle="Perbandingan dengan rata-rata 3 dan 6 bulan terakhir" tone="amber">
         <RollingAverageChart data={chartData.rollingData} />
-      </section>
+      </ReportSection>
 
-      {}
-      <section className="relative overflow-hidden bg-[var(--surface-1)]/50 backdrop-blur-xl rounded-3xl border border-[var(--surface-2)] p-8 shadow-spatial-md transition-all">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">AI Root Cause Analysis</h2>
-            <p className="text-slate-500 text-sm font-medium">Neural investigation into operational friction points.</p>
-          </div>
-        </div>
-        <AiRootCauseInvestigation source={filters.sourceSheet === 'CGO' ? 'CGO' : 'NON CARGO'} />
-      </section>
-
-      {}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-800">Top Contributing Stations</h2>
-              <p className="text-xs text-gray-500 mt-1">Cabang dengan kontribusi laporan tertinggi</p>
-            </div>
-            <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg max-w-xs">
-              <strong className="text-gray-700">Penjelasan:</strong> Cabang mana yang paling banyak melaporkan masalah bulan ini. Prioritas perbaikan bisa difokuskan ke cabang ini.
-            </div>
-          </div>
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2">
+        <ReportSection index={5} title="Top Contributing Stations" subtitle="Cabang dengan kontribusi laporan tertinggi" tone="teal">
           <TopBranchesChart data={chartData.branchData} />
-        </section>
-        <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-800">Top Contributing Airlines</h2>
-              <p className="text-xs text-gray-500 mt-1">Maskapai dengan kontribusi laporan tertinggi</p>
-            </div>
-            <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg max-w-xs">
-              <strong className="text-gray-700">Penjelasan:</strong> Maskapai mana yang paling banyak dilaporkan. Bisa jadi indikasi masalah operasional maskapai tertentu.
-            </div>
-          </div>
+        </ReportSection>
+        <ReportSection index={6} title="Top Contributing Airlines" subtitle="Maskapai dengan kontribusi laporan tertinggi" tone="amber">
           <TopAirlinesChart data={chartData.airlineData} />
-        </section>
+        </ReportSection>
       </div>
 
-      {}
-      <ManagementSummary data={chartData.monthlyData} dominantBranch={chartData.dominantBranch} dominantAirline={chartData.dominantAirline} />
+      <ReportSection index={7} title="Management Summary" tone="teal">
+        <ManagementSummary data={chartData.monthlyData} dominantBranch={chartData.dominantBranch} dominantAirline={chartData.dominantAirline} />
+      </ReportSection>
 
-      {}
-      <InvestigativeTable
-        data={investigativeData}
-        title="Investigative Table - Monthly Reports"
-        rowsPerPage={5}
-        maxRows={40}
-      />
-
-      {}
-      <section className="relative overflow-hidden bg-[var(--surface-1)] rounded-3xl p-6 border border-[var(--surface-2)] shadow-spatial-sm">
-        <div className="p-6 border-b border-gray-200 flex items-start justify-between">
-          <div>
-            <h2 className="text-lg font-bold text-gray-800">Full Data Table</h2>
-            <p className="text-xs text-gray-500 mt-1">Tabel lengkap semua laporan bulan ini</p>
-          </div>
-          <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg max-w-xs">
-            <strong className="text-gray-700">Penjelasan:</strong> Tabel ini berisi semua laporan. Gunakan fitur pencarian dan filter untuk menemukan laporan spesifik. Export ke CSV untuk analisis lebih lanjut.
-          </div>
-        </div>
-        <div className="p-6">
-          <DataTableWithPagination 
-          data={fullTableData} 
-          title="Monthly Trend Source Data"
-          rowsPerPage={3}
+      <ReportSection index={8} title="Investigative Table" subtitle="Monthly reports — expand a row for full case detail" bodyClassName="p-0">
+        <InvestigativeTable
+          data={investigativeData}
+          title="Investigative Table - Monthly Reports"
+          rowsPerPage={5}
+          maxRows={40}
+          theme="cf"
         />
-        </div>
-      </section>
+      </ReportSection>
     </div>
   );
 }

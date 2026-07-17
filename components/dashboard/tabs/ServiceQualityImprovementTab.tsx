@@ -772,7 +772,7 @@ function buildDetailRow(r: Report): DetailRow {
     caseClass: getCaseClass(r) || '—',
     subCategory: val(r.terminal_area_category) || val(r.apron_area_category) || val(r.general_category) || '—',
     rootCause: getRoot(r) || '—',
-    actionTaken: val(r.action_taken) || '—',
+    actionTaken: val(r.action_taken) || val(r.immediate_action) || val(r.gapura_kps_action_taken) || '—',
     preventive: val(r.preventive_action) || '—',
     severity: getSeverity(r),
     status: getStatus(r),
@@ -838,16 +838,16 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
       <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
           <thead>
             <tr>
-              <th style={{ width: '9.5%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Date</th>
-              <th style={{ width: '6.5%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Station</th>
-              <th style={{ width: '12%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Airlines</th>
-              <th style={{ width: '7.5%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Flight</th>
-              <th style={{ width: '10.5%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Category</th>
-              <th style={{ width: '10%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Area</th>
-              <th style={{ width: '18.5%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Case Classification</th>
-              <th style={{ width: '8.5%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Severity</th>
-              <th style={{ width: '8%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Status</th>
-              <th style={{ width: '9%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Details</th>
+              <th style={{ width: '9.5%', whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal' }} className="!text-left">Date</th>
+              <th style={{ width: '6.5%', whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal' }} className="!text-left">Station</th>
+              <th style={{ width: '12%', whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal' }} className="!text-left">Airlines</th>
+              <th style={{ width: '7.5%', whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal' }} className="!text-left">Flight</th>
+              <th style={{ width: '10.5%', whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal' }} className="!text-left">Category</th>
+              <th style={{ width: '10%', whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal' }} className="!text-left">Area</th>
+              <th style={{ width: '18.5%', whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal' }} className="!text-left">Case Classification</th>
+              <th style={{ width: '8.5%', whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal' }} className="sr-center">Severity</th>
+              <th style={{ width: '8%', whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal' }} className="sr-center">Status</th>
+              <th style={{ width: '9%', whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal' }} className="sr-center">Details</th>
             </tr>
           </thead>
           <tbody>

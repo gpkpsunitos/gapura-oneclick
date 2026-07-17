@@ -14,6 +14,7 @@ interface FeedbackBarChartProps {
   limit?: number;
   sortByValue?: boolean;
   compact?: boolean;
+  barColor?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -46,7 +47,7 @@ const WrappedTick = (props: any) => {
           y={i * lineHeight}
           dy={-((lines.length - 1) * (lineHeight / 2))}
           textAnchor="end"
-          fill="#475569"
+          fill="#57534e"
           fontSize={compact ? 8 : 9}
           fontWeight={700}
           className="tracking-tighter"
@@ -58,7 +59,7 @@ const WrappedTick = (props: any) => {
   );
 };
 
-export function FeedbackBarChart({ title, data, limit = 6, sortByValue = true, compact = false }: FeedbackBarChartProps) {
+export function FeedbackBarChart({ title, data, limit = 6, sortByValue = true, compact = false, barColor: barColorProp }: FeedbackBarChartProps) {
   const displayData = React.useMemo(() => {
     let result = [...data];
     if (sortByValue) {
@@ -70,7 +71,14 @@ export function FeedbackBarChart({ title, data, limit = 6, sortByValue = true, c
     return result;
   }, [data, limit, sortByValue]);
 
-  const barColor = title.toLowerCase().includes('complaint') || title.toLowerCase().includes('irregularity') ? '#ef5350' : '#7cb342';
+  const lowerTitle = title.toLowerCase();
+  const barColor = barColorProp || (lowerTitle.includes('complaint')
+    ? '#ef4444'
+    : lowerTitle.includes('irregularity')
+    ? '#f59e0b'
+    : lowerTitle.includes('compliment')
+    ? '#84cc16'
+    : '#0f766e');
 
   const pxPerBar = compact ? 32 : 55;
   const chartHeight = Math.max(compact ? 140 : 220, displayData.length * pxPerBar);
@@ -90,7 +98,7 @@ export function FeedbackBarChart({ title, data, limit = 6, sortByValue = true, c
             margin={margin}
             barCategoryGap={compact ? '30%' : '40%'}
           >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+            <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#efe9d9" />
             <XAxis
               type="number"
               fontSize={compact ? 8 : 10}
@@ -123,14 +131,14 @@ export function FeedbackBarChart({ title, data, limit = 6, sortByValue = true, c
             <Bar
               dataKey="value"
               fill={barColor}
-              radius={[0, 4, 4, 0]}
+              radius={[0, 8, 8, 0]}
               barSize={barSize}
               animationDuration={600}
             >
               <LabelList
                 dataKey="value"
                 position="right"
-                style={{ fontSize: labelFontSize, fontWeight: 800, fill: '#475569' }}
+                style={{ fontSize: labelFontSize, fontWeight: 800, fill: '#57534e' }}
               />
             </Bar>
           </BarChart>

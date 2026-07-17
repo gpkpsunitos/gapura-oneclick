@@ -1,6 +1,6 @@
 
 import type { Metadata, Viewport } from 'next';
-import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google';
+import { Plus_Jakarta_Sans, JetBrains_Mono, Fraunces } from 'next/font/google';
 import './globals.css';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -9,6 +9,17 @@ const plusJakartaSans = Plus_Jakarta_Sans({
     preload: true,
     adjustFontFallback: true,
     variable: '--font-plus-jakarta',
+});
+
+// Editorial display serif — applied ONLY inside `.cf-root` (Customer Feedback dashboard).
+// Loading it globally is harmless: unused elsewhere because nothing else references the variable.
+const fraunces = Fraunces({
+    subsets: ['latin'],
+    display: 'swap',
+    preload: false,
+    adjustFontFallback: true,
+    axes: ['opsz', 'SOFT', 'WONK'],
+    variable: '--font-fraunces',
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -94,7 +105,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="id" className={`${plusJakartaSans.variable} ${jetbrainsMono.variable}`}>
+        <html lang="id" className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}>
             <body>
                 {children}
             </body>

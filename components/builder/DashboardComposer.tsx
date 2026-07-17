@@ -87,7 +87,7 @@ export function DashboardComposer({
       : `Landside & Airside Customer Feedback${yearSuffix}`;
 
   return (
-    <div className="flex h-full bg-[#f5f5f5]">
+    <div className="flex h-full bg-[var(--surface-0)]">
       {}
       <div
         className="flex-1 flex flex-col overflow-hidden"
@@ -139,10 +139,10 @@ export function DashboardComposer({
             {}
             <div className="bg-white px-6 py-4">
               {}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <Image src="/logo.png" alt="Gapura" width={120} height={40} style={{ objectFit: 'contain', width: 'auto', height: 'auto' }} />
-                  <h1 className="text-lg font-bold text-[#333]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <Image src="/logo.png" alt="Gapura" width={120} height={40} style={{ objectFit: 'contain', width: 'auto', height: 40 }} />
+                  <h1 className="text-base sm:text-lg font-bold text-[#333] truncate">
                     {displayTitle}
                   </h1>
                 </div>
@@ -158,14 +158,14 @@ export function DashboardComposer({
               </div>
 
               {}
-              <div 
-                className="flex items-center justify-between px-4 py-2 rounded"
+              <div
+                className="flex flex-col md:flex-row md:items-center justify-between gap-2 px-4 py-2.5 rounded-lg"
                 style={{ backgroundColor: GAPURA_BANNER }}
               >
-                <span className="text-sm font-bold text-white">
+                <span className="text-sm font-bold text-white shrink-0">
                   {dashboardDescription || 'Irregularity, Complain & Compliment Report'}
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 w-full md:w-auto">
                   <DynamicFilterHeader 
                     onFilterChange={onFilterChange || (() => {})} 
                     initialFilters={currentFilters}
@@ -175,7 +175,7 @@ export function DashboardComposer({
 
               {}
               {kpiTiles.length > 0 && (
-                <div className="grid grid-cols-4 gap-4 mt-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                   {kpiTiles.slice(0, 4).map(tile => {
                     const result = tileResults.get(tile.id);
                     let value: string | number = '-';
@@ -220,22 +220,15 @@ export function DashboardComposer({
             {}
             <div className="px-6 py-5">
               {contentTiles.length > 0 ? (
-                <div
-                  className="grid gap-5"
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
-                    gridAutoRows: '220px',
-                  }}
-                >
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 lg:[grid-auto-rows:220px]">
                   {contentTiles.map(tile => (
                     <div
                       key={tile.id}
-                      className="relative group rounded-xl border border-[#e0e0e0] bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden"
                       style={{
-                        gridColumn: `span ${Math.min(tile.layout.w, gridCols)}`,
-                        gridRow: `span ${tile.layout.h}`,
+                        ['--cs' as string]: Math.min(tile.layout.w, gridCols),
+                        ['--rs' as string]: tile.layout.h,
                       }}
+                      className="relative group rounded-xl border border-[#e0e0e0] bg-white shadow-sm hover:shadow-md transition-shadow overflow-hidden min-h-[240px] lg:min-h-0 lg:[grid-column:span_var(--cs)] lg:[grid-row:span_var(--rs)]"
                     >
                       <TileCard
                         tile={tile}
@@ -284,7 +277,7 @@ export function DashboardComposer({
             {}
             <div className="px-5 py-3 border-t border-[#e0e0e0] bg-white">
               <p className="text-xs text-[#999]">
-                Data Last Updated: 2/13/2026 1:18:37 PM | <button className="text-[#6b8e3d] hover:underline">Privacy Policy</button>
+                Preview susunan dashboard · {contentTiles.length + kpiTiles.length} tile
               </p>
             </div>
           </div>

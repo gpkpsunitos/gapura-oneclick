@@ -72,6 +72,35 @@ export const getLoginRedirectPath = (role: UserRole): string => {
     return '/dashboard/admin';
 };
 
+// Where to send a user after finishing the "create report" flow, when no
+// originating page was captured. Unlike getLoginRedirectPath, division roles
+// go straight to their own dashboard rather than the eskalasi chooser.
+export const getReportReturnPath = (role: string): string => {
+    const map: Record<string, string> = {
+        SUPER_ADMIN: '/dashboard/admin',
+        ANALYST: '/dashboard/analyst',
+        MANAGER_CABANG: '/dashboard/manager',
+        STAFF_CABANG: '/dashboard/employee',
+        CABANG: '/dashboard/employee',
+        DIVISI_OCS: '/dashboard/ocs',
+        PARTNER_OCS: '/dashboard/ocs',
+        DIVISI_OS: '/dashboard/os',
+        PARTNER_OS: '/dashboard/os',
+        DIVISI_OP: '/dashboard/op',
+        PARTNER_OP: '/dashboard/op',
+        DIVISI_OT: '/dashboard/op',
+        PARTNER_OT: '/dashboard/op',
+        DIVISI_UQ: '/dashboard/op',
+        PARTNER_UQ: '/dashboard/op',
+        DIVISI_HT: '/dashboard/ht',
+        PARTNER_HT: '/dashboard/ht',
+        DIVISI_HC: '/dashboard/hc',
+        PARTNER_HC: '/dashboard/hc',
+        DIVISI_ESKALASI: '/dashboard/eskalasi/select',
+    };
+    return map[role] || '/dashboard/employee';
+};
+
 export const canViewAllStationReports = (role: UserRole): boolean =>
     role === 'MANAGER_CABANG' || ROLE_HIERARCHY[role] >= 3;
 

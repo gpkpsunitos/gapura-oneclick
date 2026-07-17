@@ -11,10 +11,6 @@ export const AnalystCharts = dynamic(
   () => import('@/components/dashboard/analyst/AnalystCharts'),
   { ssr: false, loading: () => <ChartSpinner /> }
 );
-const OSAnalystCharts = dynamic(
-  () => import('@/components/dashboard/analyst/OSAnalystCharts'),
-  { ssr: false, loading: () => <ChartSpinner /> }
-);
 const OPAnalystCharts = dynamic(
   () => import('@/components/dashboard/analyst/OPAnalystCharts'),
   { ssr: false, loading: () => <ChartSpinner /> }
@@ -323,9 +319,6 @@ export function ChartSection({
     availableOptions,
   };
 
-  if (division.code === 'OS' || division.code === 'OCS' || division.code === 'ANALYST') {
-    return <OSAnalystCharts {...chartProps} />;
-  }
   if (division.code === 'OP') {
     return <OPAnalystCharts {...chartProps} allReports={reports} />;
   }

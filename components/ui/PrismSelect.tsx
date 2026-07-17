@@ -18,7 +18,7 @@ interface PrismSelectProps {
     label?: string;
     searchable?: boolean;
     required?: boolean;
-    variant?: 'default' | 'white';
+    variant?: 'default' | 'white' | 'pill';
 }
 
 export function PrismSelect({ 
@@ -56,7 +56,7 @@ export function PrismSelect({
     return (
         <div className="relative" ref={containerRef}>
             {label && (
-                <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ml-1 ${variant === 'white' ? 'text-white/80' : 'text-[var(--text-secondary)]'}`}>
+                <label className={`block text-[10px] font-bold uppercase tracking-wider mb-1.5 ml-1 ${variant === 'white' ? 'text-white/80' : variant === 'pill' ? 'text-[var(--cf-ink-3,#a8a29e)]' : 'text-[var(--text-secondary)]'}`}>
                     {label} {required && <span className="text-[var(--status-error)]">*</span>}
                 </label>
             )}
@@ -66,20 +66,24 @@ export function PrismSelect({
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 className={`
-                    w-full flex items-center justify-between px-3 py-1.5 rounded-lg border transition-all duration-200
-                    ${variant === 'white'
-                        ? isOpen 
-                            ? 'border-white/40 bg-white/25 text-white shadow-lg' 
-                            : 'border-white/10 bg-white/5 text-white/90 hover:bg-white/15 hover:border-white/20'
-                        : isOpen 
-                            ? 'border-[var(--brand-primary)] bg-[var(--surface-2)] border-2' 
-                            : 'border-transparent bg-[var(--surface-3)] hover:bg-[var(--surface-4)] border-2'
+                    w-full flex items-center justify-between transition-all duration-200
+                    ${variant === 'pill'
+                        ? `px-4 py-2 rounded-full border ${isOpen ? 'border-[var(--cf-teal,#0f766e)] bg-[var(--cf-card,#fffdf8)] shadow-[var(--cf-shadow-sm)]' : 'border-[var(--cf-line,#e9e2d0)] bg-[var(--cf-card,#fffdf8)] hover:border-[var(--cf-teal,#0f766e)]/50'}`
+                        : `px-3 py-1.5 rounded-lg border ${
+                            variant === 'white'
+                                ? isOpen
+                                    ? 'border-white/40 bg-white/25 text-white shadow-lg'
+                                    : 'border-white/10 bg-white/5 text-white/90 hover:bg-white/15 hover:border-white/20'
+                                : isOpen
+                                    ? 'border-[var(--brand-primary)] bg-[var(--surface-2)] border-2'
+                                    : 'border-transparent bg-[var(--surface-3)] hover:bg-[var(--surface-4)] border-2'
+                        }`
                     }
                 `}
             >
                 {selectedOption ? (
                     <div className="flex flex-col items-start text-left min-w-0">
-                        <span className={`font-semibold truncate w-full ${variant === 'white' ? 'text-sm text-white' : 'text-base text-[var(--text-primary)]'}`}>
+                        <span className={`font-semibold truncate w-full ${variant === 'white' ? 'text-sm text-white' : variant === 'pill' ? 'text-[13px] text-[var(--text-primary)]' : 'text-base text-[var(--text-primary)]'}`}>
                             {selectedOption.label}
                         </span>
                         {selectedOption.description && (
@@ -89,9 +93,9 @@ export function PrismSelect({
                 ) : (
                     <span className={`text-sm ${variant === 'white' ? 'text-white/60' : 'text-[var(--text-muted)]'}`}>{placeholder}</span>
                 )}
-                <ChevronDown 
-                    size={16} 
-                    className={`${variant === 'white' ? 'text-white' : 'text-[var(--text-secondary)]'} transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
+                <ChevronDown
+                    size={16}
+                    className={`${variant === 'white' ? 'text-white' : variant === 'pill' ? 'text-[var(--cf-teal,#0f766e)]' : 'text-[var(--text-secondary)]'} transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
                 />
             </button>
 

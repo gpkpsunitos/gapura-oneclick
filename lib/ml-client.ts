@@ -246,10 +246,19 @@ export interface SchemaMapping {
 
 export interface MLHealthResult {
   status: string;
+  version?: string;
+  timezone?: string;
   schema_detected: SchemaMapping | null;
   last_retrain: string | null;
   row_count: number | null;
+  retrain_running?: boolean;
+  retrain_last_error?: string | null;
   models: Record<string, unknown>;
+}
+
+export interface MLReadyResult {
+  ready: boolean;
+  missing_models: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -275,6 +284,11 @@ function get<T>(path: string): Promise<T> {
 export const mlClient = {
   health(): Promise<MLHealthResult> {
     return get("/health");
+  },
+
+  /** Whether trained models are loadable right now (unauthenticated, no sheet fetch). */
+  ready(): Promise<MLReadyResult> {
+    return get("/ready");
   },
 
   forecast(nDays = 30): Promise<ForecastResult> {

@@ -15,8 +15,8 @@ interface FeedbackDonutChartProps {
   height?: number | `${number}%`;
 }
 
-const FIXED_DONUT_RANK_COLORS = ['#81c784', '#13b5cb', '#cddc39'];
-const DONUT_FALLBACK_COLORS = ['#66bb6a', '#9ccc65', '#aed581', '#4db6ac', '#80cbc4'];
+// Editorial accent cycle — teal, amber, coral, lime, slate (by rank).
+const CF_ACCENT_CYCLE = ['#0f766e', '#f59e0b', '#ef4444', '#65a30d', '#78716c'];
 
 export function FeedbackDonutChart({ title, data, colors = [], height = 170 }: FeedbackDonutChartProps) {
   const total = data.reduce((acc, cur) => acc + cur.value, 0);
@@ -26,9 +26,8 @@ export function FeedbackDonutChart({ title, data, colors = [], height = 170 }: F
   const outerR = isCompact ? 66 : 96;
 
   const getSliceColor = (index: number): string => {
-    if (index < FIXED_DONUT_RANK_COLORS.length) return FIXED_DONUT_RANK_COLORS[index];
-    const fallbackPalette = colors.length > 0 ? colors : DONUT_FALLBACK_COLORS;
-    return fallbackPalette[(index - FIXED_DONUT_RANK_COLORS.length) % fallbackPalette.length];
+    const palette = colors.length > 0 ? colors : CF_ACCENT_CYCLE;
+    return palette[index % palette.length];
   };
 
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
@@ -41,19 +40,18 @@ export function FeedbackDonutChart({ title, data, colors = [], height = 170 }: F
       }));
   }, [data, colors]);
 
-  const totalFontSize = isCompact ? 'text-[22px]' : 'text-[32px]';
-  const totalLabelSize = isCompact ? 'text-[7px]' : 'text-[9px]';
-  const legendDotSize = isCompact ? 'w-1 h-1' : 'w-1.5 h-1.5';
-  const legendFontSize = isCompact ? 'text-[7px]' : 'text-[9px]';
-  const legendGapX = isCompact ? 'gap-x-3' : 'gap-x-6';
-  const legendGapY = isCompact ? 'gap-y-1.5' : 'gap-y-3';
-  const legendPadding = isCompact ? 'px-2 mt-2' : 'px-6 mt-4';
+  const totalFontSize = isCompact ? 'text-[18px]' : 'text-[28px]';
+  const totalLabelSize = isCompact ? 'text-[6px]' : 'text-[8px]';
+  const legendDotSize = isCompact ? 'w-1.5 h-1.5' : 'w-2 h-2';
+  const legendNameSize = isCompact ? 'text-[8px]' : 'text-[10px]';
+  const legendValueSize = isCompact ? 'text-[9px]' : 'text-[11px]';
   const labelFontSize = isCompact ? 8 : 10;
-  const centerOffset = isCompact ? 'translate-y-[-6px]' : 'translate-y-[-10px]';
+  const centerOffset = isCompact ? 'translate-y-[-4px]' : 'translate-y-[-6px]';
+  const chartSize = typeof height === 'number' ? height : 170;
 
   return (
-    <div className="w-full flex flex-col items-center">
-      <div className="w-full relative" style={{ height }}>
+    <div className="w-full h-full flex items-center gap-3">
+      <div className="relative shrink-0" style={{ width: chartSize, height: chartSize }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -109,27 +107,38 @@ export function FeedbackDonutChart({ title, data, colors = [], height = 170 }: F
         </ResponsiveContainer>
 
         <div className={`absolute inset-0 flex flex-col items-center justify-center pointer-events-none ${centerOffset}`}>
-          <span className={`${totalFontSize} font-black text-gray-800 leading-none tracking-tight`}>
+          <span className={`cf-display cf-tabular ${totalFontSize} font-semibold text-[var(--cf-ink,#1c1917)] leading-none`}>
             {total.toLocaleString('id-ID')}
           </span>
-          <span className={`${totalLabelSize} font-bold text-gray-400 uppercase tracking-widest mt-0.5 opacity-70`}>
-            Total Reports
+          <span className={`${totalLabelSize} font-black text-[var(--cf-ink-3,#a8a29e)] uppercase tracking-[0.22em] mt-1`}>
+            Total
           </span>
         </div>
       </div>
 
-      <div className={`mt-2 flex flex-wrap justify-center ${legendGapX} ${legendGapY} ${legendPadding}`}>
-        {rankedData.map((entry, index) => (
-          <div key={`${entry.name}-${index}`} className="flex items-center gap-1">
-            <div
-              className={`${legendDotSize} rounded-full shrink-0`}
-              style={{ backgroundColor: entry.fill }}
-            />
-            <span className={`${legendFontSize} font-bold text-gray-500 uppercase tracking-wide whitespace-normal leading-tight max-w-[100px] break-words`}>
-              {entry.name}
-            </span>
-          </div>
-        ))}
+      <div className="flex-1 min-w-0 h-full flex flex-col justify-center gap-1.5 overflow-y-auto custom-scrollbar">
+        {rankedData.map((entry, index) => {
+          const pct = total > 0 ? Math.round((entry.value / total) * 100) : 0;
+          return (
+            <div key={`${entry.name}-${index}`} className="min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full pl-1.5 pr-2 py-0.5 min-w-0 ${legendNameSize} font-black uppercase tracking-tight`}
+                  style={{ backgroundColor: `${entry.fill}18`, color: entry.fill }}
+                >
+                  <span className={`${legendDotSize} rounded-full shrink-0`} style={{ backgroundColor: entry.fill }} />
+                  <span className="truncate">{entry.name}</span>
+                </span>
+                <span className={`${legendValueSize} font-black tabular-nums shrink-0`} style={{ color: entry.fill }}>
+                  {entry.value.toLocaleString('id-ID')} <span className="opacity-50 font-bold">· {pct}%</span>
+                </span>
+              </div>
+              <div className="h-1 rounded-full bg-[var(--cf-line-soft,#f0ead9)] overflow-hidden">
+                <div className="h-full rounded-full transition-all duration-500" style={{ width: `${pct}%`, backgroundColor: entry.fill }} />
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

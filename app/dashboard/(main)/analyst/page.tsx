@@ -15,5 +15,5 @@ export default async function AnalystPage() {
         return <OCSDivisionDashboardClientLoader division={DIVISIONS.OCS} />;
     }
 
-    return <DivisionAnalystDashboard division={DIVISIONS.ANALYST} />;
+    return <DivisionAnalystDashboard division={DIVISIONS.ANALYST} realDivisionCode={session?.division} />;
 }

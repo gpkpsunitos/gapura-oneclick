@@ -84,3 +84,5 @@ supabase/export/seed_data.sql
 # Large analysis outputs
 analyze-all-response.json
 sheets_dump.txt
+
+.superpowers/

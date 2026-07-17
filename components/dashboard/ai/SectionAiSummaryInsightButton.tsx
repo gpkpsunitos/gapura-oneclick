@@ -8,9 +8,10 @@
  *                POST /api/ai/section-summary; every number displayed is
  *                computed server-side from the real data, and the LLM only
  *                writes the narrative around those facts.
- *  - Wawasan   : network-wide analysis from the Gapura ML Service
- *                (GET /api/ai/overview): executive summary, key numbers,
- *                14-day forecast, trends, risk leaderboard, 4-week outlook.
+ *  - Wawasan   : network-wide analysis from the Gapura ML Service, one
+ *                section per ml-service capability (forecast, seasonality,
+ *                risk score, trends, dimension forecasts, report-count
+ *                forecast, case recurrence, model health, text analysis).
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -21,12 +22,9 @@ import {
 import { cn } from '@/lib/utils';
 import { buildCacheKey, readClientCache, writeClientCache } from '@/lib/ai/client-cache';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import {
-  useMLOverview, buildExecutiveSummary,
-  EditorialSummary, HeroFigures, ForecastChart, SeasonalityPanel,
-  RiskTable, MoversPanel, ReportCountForecast, CategoryOutlook,
-  CaseRecurrencePanel,
-} from '@/components/ai/ml-overview-sections';
+import { useMLOverview } from '@/components/ai/ml-overview-sections';
+import { WawasanTab, ModelHealthPill } from '@/components/ai/insight-panel';
+import { CARD, KICKER, CAPTION } from '@/components/ai/insight-panel/primitives';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -113,19 +111,16 @@ function formatNumber(value: number) {
 // Ringkasan — shared building blocks
 // ---------------------------------------------------------------------------
 
-const LABEL_CLASS = 'text-[10.5px] font-black uppercase tracking-[0.2em] text-emerald-900/80';
-const CARD_CLASS = 'rounded-2xl border border-[#e7e1d2] bg-white shadow-[0_1px_3px_rgba(76,63,34,0.07)]';
-
 function SummarySkeleton() {
   return (
-    <div className="space-y-4">
-      <div className={cn(CARD_CLASS, 'h-32 animate-pulse bg-gradient-to-br from-amber-50/60 to-white')} />
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className={cn(CARD_CLASS, 'h-52 animate-pulse')} />
-        <div className={cn(CARD_CLASS, 'h-52 animate-pulse')} />
+    <div className="space-y-3">
+      <div className={cn(CARD, 'h-32 animate-pulse bg-slate-100')} />
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <div className={cn(CARD, 'h-52 animate-pulse bg-slate-100')} />
+        <div className={cn(CARD, 'h-52 animate-pulse bg-slate-100')} />
       </div>
-      <div className={cn(CARD_CLASS, 'h-40 animate-pulse')} />
-      <p className="text-center text-[12px] text-stone-400">
+      <div className={cn(CARD, 'h-40 animate-pulse bg-slate-100')} />
+      <p className="text-center text-[12px] text-slate-500">
         AI sedang membaca dan menyimpulkan data bagian ini — mohon tunggu sebentar…
       </p>
     </div>
@@ -134,11 +129,12 @@ function SummarySkeleton() {
 
 function ErrorCard({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className={cn(CARD_CLASS, 'p-10 text-center')}>
-      <p className="break-words text-[13px] text-stone-500">{message}</p>
+    <div className={cn(CARD, 'p-8 text-center')}>
+      <p className="break-words text-[13px] text-slate-600">{message}</p>
       <button
+        type="button"
         onClick={onRetry}
-        className="mt-3 rounded-lg border border-emerald-800/20 bg-emerald-50 px-4 py-1.5 text-[12px] font-bold text-emerald-900 transition hover:bg-emerald-100"
+        className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-[12px] font-bold text-emerald-800 hover:bg-emerald-100"
       >
         Coba lagi
       </button>
@@ -153,8 +149,8 @@ function DeltaBadge({ delta }: { delta: number }) {
   return (
     <span
       className={cn(
-        'ml-1.5 inline-flex items-center rounded-full px-1.5 py-0.5 text-[10px] font-black tabular-nums',
-        flat ? 'bg-stone-100 text-stone-500' : rising ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-700',
+        'ml-1.5 inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-bold tabular-nums',
+        flat ? 'bg-slate-100 text-slate-500' : rising ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700',
       )}
     >
       {flat ? '±0%' : `${rising ? '▲' : '▼'} ${Math.abs(delta)}%`}
@@ -162,7 +158,7 @@ function DeltaBadge({ delta }: { delta: number }) {
   );
 }
 
-/** Ranked horizontal bars — gold for the leader, emerald for the rest. */
+/** Ranked horizontal bars — emerald throughout, gold reserved for the #1 leader. */
 function RankedBars({ dataset }: { dataset: SummaryDataset }) {
   const rows = dataset.rows.slice(0, 8);
   const max = Math.max(...rows.map((row) => row.value), 1);
@@ -174,27 +170,25 @@ function RankedBars({ dataset }: { dataset: SummaryDataset }) {
       {rows.map((row, index) => (
         <div key={`${row.label}-${index}`}>
           <div className="flex items-baseline justify-between gap-3">
-            <p className="min-w-0 break-words text-[13px] font-semibold text-stone-700">
+            <p className="min-w-0 break-words text-[13px] font-semibold text-slate-800">
               {row.label}
               {row.delta !== undefined && <DeltaBadge delta={row.delta} />}
             </p>
-            <p className="shrink-0 text-[12px] font-bold tabular-nums text-stone-500">
+            <p className="shrink-0 text-[12px] font-bold tabular-nums text-slate-600">
               {formatNumber(row.value)}
               {showShare && row.sharePct > 0 && (
-                <span className="ml-1.5 font-semibold text-stone-400">{row.sharePct}%</span>
+                <span className="ml-1.5 font-semibold text-slate-400">{row.sharePct}%</span>
               )}
             </p>
           </div>
           {row.note ? (
-            <p className="mt-0.5 break-words text-[11px] leading-snug text-stone-400">{row.note}</p>
+            <p className="mt-0.5 break-words text-[11px] leading-snug text-slate-500">{row.note}</p>
           ) : null}
-          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[#f1ede2]">
+          <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
             <div
               className={cn(
                 'h-full rounded-full transition-[width] duration-700',
-                index === 0
-                  ? 'bg-gradient-to-r from-amber-500 to-amber-400'
-                  : 'bg-gradient-to-r from-emerald-700 to-emerald-500',
+                index === 0 ? 'bg-amber-500' : 'bg-emerald-600',
               )}
               style={{ width: `${Math.max(4, (row.value / max) * 100)}%` }}
             />
@@ -216,19 +210,19 @@ function MonthlyColumns({ dataset }: { dataset: SummaryDataset }) {
         <BarChart data={rows} margin={{ top: 16, right: 4, bottom: 0, left: 4 }}>
           <XAxis
             dataKey="label"
-            tick={{ fontSize: 10, fill: '#a8a29e' }}
+            tick={{ fontSize: 10, fill: '#64748b' }}
             tickLine={false}
-            axisLine={{ stroke: '#e7e1d2' }}
+            axisLine={{ stroke: '#e2e8f0' }}
             interval={0}
             tickFormatter={(label: string) => label.slice(0, 3)}
           />
           <Tooltip
-            cursor={{ fill: 'rgba(217,180,110,0.12)' }}
+            cursor={{ fill: 'rgba(5,150,105,0.08)' }}
             contentStyle={{
               fontSize: 12,
-              border: '1px solid #e7e1d2',
+              border: '1px solid #e2e8f0',
               borderRadius: 10,
-              boxShadow: '0 4px 12px rgba(76,63,34,0.08)',
+              background: '#fff',
             }}
             formatter={(value: number) => [`${formatNumber(value)} ${dataset.unit}`, 'Jumlah']}
           />
@@ -236,7 +230,7 @@ function MonthlyColumns({ dataset }: { dataset: SummaryDataset }) {
             {rows.map((row, index) => (
               <Cell
                 key={`${row.label}-${index}`}
-                fill={row.value === maxValue && maxValue > 0 ? '#d97706' : '#047857'}
+                fill={row.value === maxValue && maxValue > 0 ? '#d97706' : '#059669'}
               />
             ))}
           </Bar>
@@ -248,18 +242,18 @@ function MonthlyColumns({ dataset }: { dataset: SummaryDataset }) {
 
 function DatasetCard({ dataset }: { dataset: SummaryDataset }) {
   return (
-    <div className={cn(CARD_CLASS, 'flex flex-col p-6')}>
+    <div className={cn(CARD, 'flex flex-col p-5')}>
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
-        <h4 className={LABEL_CLASS}>{dataset.name}</h4>
+        <h4 className={KICKER}>{dataset.name}</h4>
         {/* Comparison rows may include their own "Total" row — summing them double-counts. */}
         {dataset.kind !== 'comparison' && (
-          <span className="shrink-0 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-amber-800">
+          <span className="shrink-0 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold tabular-nums text-emerald-800">
             {formatNumber(dataset.total)} {dataset.unit}
           </span>
         )}
       </div>
 
-      <p className="mt-3 break-words text-[13.5px] font-semibold leading-relaxed text-emerald-950">
+      <p className="mt-3 break-words text-[13.5px] font-semibold leading-relaxed text-slate-900">
         {dataset.headline}
       </p>
 
@@ -272,7 +266,7 @@ function DatasetCard({ dataset }: { dataset: SummaryDataset }) {
       </div>
 
       {dataset.narrative ? (
-        <p className="mt-4 break-words border-l-2 border-amber-300 pl-3 text-[12.5px] leading-relaxed text-stone-500">
+        <p className="mt-4 break-words border-l-2 border-slate-200 pl-3 text-[12.5px] leading-relaxed text-slate-500">
           {dataset.narrative}
         </p>
       ) : null}
@@ -283,12 +277,12 @@ function DatasetCard({ dataset }: { dataset: SummaryDataset }) {
 const PRIORITY_STYLES: Record<SummaryRecommendation['priority'], { badge: string; label: string }> = {
   tinggi: { badge: 'border-rose-200 bg-rose-50 text-rose-700', label: 'Prioritas Tinggi' },
   sedang: { badge: 'border-amber-200 bg-amber-50 text-amber-800', label: 'Prioritas Sedang' },
-  rendah: { badge: 'border-stone-200 bg-stone-50 text-stone-500', label: 'Prioritas Rendah' },
+  rendah: { badge: 'border-slate-200 bg-slate-50 text-slate-600', label: 'Prioritas Rendah' },
 };
 
 function RecommendationCards({ items }: { items: SummaryRecommendation[] }) {
   if (items.length === 0) {
-    return <p className="text-[13px] text-stone-400">No recommendations for this section.</p>;
+    return <p className="text-[13px] text-slate-500">No recommendations for this section.</p>;
   }
   const order = { tinggi: 0, sedang: 1, rendah: 2 } as const;
   const sorted = [...items].sort((a, b) => order[a.priority] - order[b.priority]);
@@ -300,15 +294,15 @@ function RecommendationCards({ items }: { items: SummaryRecommendation[] }) {
         return (
           <div
             key={`${rec.title}-${index}`}
-            className="rounded-xl border border-[#eee9dc] bg-[#fdfcf9] p-4 transition hover:border-amber-200"
+            className="rounded-lg border border-slate-200 bg-slate-50 p-4 transition hover:border-slate-300"
           >
             <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
-              <p className="break-words text-[13.5px] font-bold text-stone-800">{rec.title}</p>
-              <span className={cn('shrink-0 rounded-full border px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.08em]', style.badge)}>
+              <p className="break-words text-[13.5px] font-bold text-slate-900">{rec.title}</p>
+              <span className={cn('shrink-0 rounded-md border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide', style.badge)}>
                 {style.label}
               </span>
             </div>
-            <p className="mt-1.5 break-words text-[13px] leading-relaxed text-stone-600">{rec.detail}</p>
+            <p className="mt-1.5 break-words text-[13px] leading-relaxed text-slate-600">{rec.detail}</p>
           </div>
         );
       })}
@@ -322,14 +316,14 @@ function KeyPointList({ items }: { items: string[] }) {
     .filter(Boolean);
 
   if (cleaned.length === 0) {
-    return <p className="text-[13px] text-stone-400">No notes for this section.</p>;
+    return <p className="text-[13px] text-slate-500">No notes for this section.</p>;
   }
 
   return (
     <ul className="space-y-3">
       {cleaned.slice(0, 6).map((item, index) => (
-        <li key={`${item}-${index}`} className="flex gap-3 text-[13.5px] leading-relaxed text-stone-700">
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-900 text-[10px] font-black text-amber-300">
+        <li key={`${item}-${index}`} className="flex gap-3 text-[13.5px] leading-relaxed text-slate-800">
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-700 text-[10px] font-bold text-white">
             {index + 1}
           </span>
           <span className="min-w-0 break-words">{item}</span>
@@ -358,98 +352,43 @@ export function SummaryTab({
   const datasets = summary.datasets ?? [];
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Executive summary */}
-      <div className="relative overflow-hidden rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50/90 via-white to-emerald-50/70 p-6 shadow-[0_1px_3px_rgba(76,63,34,0.07)]">
-        <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-amber-400 via-amber-300 to-emerald-600" aria-hidden="true" />
-        <h4 className={LABEL_CLASS}>Ringkasan Eksekutif</h4>
-        <p className="mt-3 break-words text-[14.5px] leading-relaxed text-stone-800">
+      <div className={cn(CARD, 'p-5')}>
+        <h4 className={KICKER}>Ringkasan Eksekutif</h4>
+        <p className="mt-3 break-words text-[14px] leading-relaxed text-slate-800">
           {summary.executiveSummary}
         </p>
       </div>
 
       {/* One card per dataset — numbers computed from the dashboard data */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         {datasets.map((dataset) => (
           <DatasetCard key={dataset.id} dataset={dataset} />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <div className={cn(CARD_CLASS, 'p-6')}>
-          <h4 className={LABEL_CLASS}>Poin Penting</h4>
+      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+        <div className={cn(CARD, 'p-5')}>
+          <h4 className={KICKER}>Poin Penting</h4>
           <div className="mt-4">
             <KeyPointList items={summary.keyPoints} />
           </div>
         </div>
-        <div className={cn(CARD_CLASS, 'p-6')}>
-          <h4 className={LABEL_CLASS}>Rekomendasi Tindakan</h4>
+        <div className={cn(CARD, 'p-5')}>
+          <h4 className={KICKER}>Rekomendasi Tindakan</h4>
           <div className="mt-4">
             <RecommendationCards items={summary.recommendations ?? []} />
           </div>
         </div>
       </div>
 
-      <div className={cn(CARD_CLASS, 'border-emerald-100 bg-gradient-to-br from-emerald-50/60 to-white p-6')}>
-        <h4 className={LABEL_CLASS}>Perkiraan ke Depan</h4>
-        <p className="mt-3 break-words text-[13.5px] leading-relaxed text-stone-700">
+      <div className={cn(CARD, 'p-5')}>
+        <h4 className={KICKER}>Perkiraan ke Depan</h4>
+        <p className="mt-3 break-words text-[13.5px] leading-relaxed text-slate-700">
           {summary.predictiveSummary}
         </p>
       </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Wawasan (network-wide ML analysis) tab
-// ---------------------------------------------------------------------------
-
-function InsightTab({
-  loading, error, data, onRetry,
-}: {
-  loading: boolean;
-  error: string;
-  data: ReturnType<typeof useMLOverview>['data'];
-  onRetry: () => void;
-}) {
-  const sentences = useMemo(() => (data ? buildExecutiveSummary(data) : []), [data]);
-
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <div className="rounded-[24px] bg-white/80 ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.10)] h-28 animate-pulse" />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="rounded-[24px] bg-white/80 ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.10)] h-40 animate-pulse" />
-          ))}
-        </div>
-        <div className="rounded-[24px] bg-white/80 ring-1 ring-black/[0.04] shadow-[0_1px_2px_rgba(0,0,0,0.04),0_8px_24px_-12px_rgba(0,0,0,0.10)] h-72 animate-pulse" />
-        <p className="text-center text-[12px] text-neutral-500 pt-2">
-          Menganalisis pola laporan seluruh stasiun · biasanya &lt; 15 detik
-        </p>
-      </div>
-    );
-  }
-
-  if (error) return <ErrorCard message={error} onRetry={onRetry} />;
-  if (!data) return null;
-
-  return (
-    <div className="space-y-4 md:space-y-5">
-      {sentences.length > 0 && <EditorialSummary sentences={sentences} />}
-      <HeroFigures data={data} />
-      {data.forecast?.forecast?.length ? <ForecastChart forecast={data.forecast} /> : null}
-      {data.seasonality ? <SeasonalityPanel seasonality={data.seasonality} /> : null}
-      {data.risk ? <RiskTable risk={data.risk} /> : null}
-      <MoversPanel trends={data.trends} />
-      {data.reportCounts ? <ReportCountForecast reportCounts={data.reportCounts} /> : null}
-      {(data.categoryForecast || data.subcategoryForecast) ? (
-        <CategoryOutlook
-          categoryForecast={data.categoryForecast}
-          subcategoryForecast={data.subcategoryForecast}
-        />
-      ) : null}
-      {data.caseRecurrence ? <CaseRecurrencePanel recurrence={data.caseRecurrence} /> : null}
     </div>
   );
 }
@@ -528,53 +467,53 @@ export function SectionAiSummaryInsightButton({ context }: { context: SectionAiC
     else void overview.refresh(true);
   };
 
-
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="group relative inline-flex h-11 shrink-0 items-center gap-2 overflow-hidden rounded-xl border border-amber-300 bg-gradient-to-r from-amber-50 via-white to-emerald-50 px-5 text-[11px] font-black uppercase tracking-[0.14em] text-emerald-900 shadow-[0_12px_28px_-16px_rgba(4,120,87,0.55),0_0_0_1px_rgba(217,145,30,0.18)_inset] transition hover:-translate-y-0.5 hover:border-amber-400 hover:shadow-[0_16px_34px_-18px_rgba(180,83,9,0.55),0_0_0_1px_rgba(217,145,30,0.28)_inset] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-300/70 focus-visible:ring-offset-2"
+        className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 text-[11.5px] font-bold text-emerald-800 transition hover:border-emerald-300 hover:bg-emerald-100"
       >
-        <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,transparent_0%,rgba(217,145,30,0.18)_46%,transparent_72%)] opacity-55 transition group-hover:opacity-80" aria-hidden="true" />
-        <span className="relative z-10 whitespace-nowrap">AI Summary &amp; Insight</span>
+        AI Summary &amp; Insight
       </button>
 
       <Sheet open={open} onOpenChange={setOpen}>
-        <SheetContent side="right" className="w-[min(96vw,1040px)] overflow-y-auto bg-[#f7f5ef] p-0 sm:max-w-[1040px]">
+        <SheetContent side="right" className="w-[min(96vw,1040px)] overflow-y-auto bg-[#f8faf9] p-0 sm:max-w-[1040px]">
           {/* Header */}
-          <div className="border-b border-[#e7e1d2] bg-white px-6 py-5 pr-14">
+          <div className="border-b border-slate-200 bg-white px-6 py-5 pr-14">
             <SheetHeader>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <SheetTitle className="break-words text-[18px] font-bold text-stone-800">
+                  <SheetTitle className="break-words text-[17px] font-bold text-slate-900">
                     {context.title}
                   </SheetTitle>
-                  <p className="mt-1 break-words text-[11px] leading-relaxed text-stone-400">
+                  <p className="mt-0.5 break-words text-[11.5px] text-slate-500">
                     AI Summary &amp; Insight
                   </p>
                 </div>
-                <button
-                  onClick={handleRefresh}
-                  disabled={refreshing}
-                  className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold text-stone-400 transition-colors hover:text-emerald-800 disabled:opacity-40"
-                >
-                  <RefreshCw size={13} className={cn(refreshing && 'animate-spin')} />
-                  Perbarui
-                </button>
+                <div className="flex shrink-0 items-center gap-3">
+                  {activeTab === 'insight' && <ModelHealthPill enabled={open} />}
+                  <button
+                    type="button"
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 transition-colors hover:text-emerald-700 disabled:opacity-40"
+                  >
+                    <RefreshCw size={13} className={cn(refreshing && 'animate-spin')} />
+                    Perbarui
+                  </button>
+                </div>
               </div>
             </SheetHeader>
-          </div>
 
-          <div className="px-6 py-5">
-            {/* Tabs */}
-            <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-[#e7e1d2] bg-white text-[12px] font-bold">
+            {/* Tabs — underline style */}
+            <div className="mt-4 flex gap-6 border-b border-slate-200">
               <button
                 type="button"
                 onClick={() => setActiveTab('summary')}
                 className={cn(
-                  'flex h-10 items-center justify-center border-r border-[#e7e1d2] transition-colors',
-                  activeTab === 'summary' ? 'bg-emerald-900 text-amber-100' : 'text-stone-500 hover:bg-stone-50',
+                  'border-b-2 pb-2.5 text-[12.5px] font-bold transition-colors',
+                  activeTab === 'summary' ? 'border-emerald-700 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800',
                 )}
               >
                 Ringkasan
@@ -583,38 +522,37 @@ export function SectionAiSummaryInsightButton({ context }: { context: SectionAiC
                 type="button"
                 onClick={() => setActiveTab('insight')}
                 className={cn(
-                  'flex h-10 items-center justify-center transition-colors',
-                  activeTab === 'insight' ? 'bg-emerald-900 text-amber-100' : 'text-stone-500 hover:bg-stone-50',
+                  'border-b-2 pb-2.5 text-[12.5px] font-bold transition-colors',
+                  activeTab === 'insight' ? 'border-emerald-700 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800',
                 )}
               >
                 Wawasan
               </button>
             </div>
+          </div>
 
-            {/* Body */}
-            <div className="mt-5 space-y-5">
-              {activeTab === 'summary' ? (
-                <SummaryTab
-                  loading={summaryLoading}
-                  error={summaryError}
-                  summary={summary}
-                  onRetry={() => loadSummary(true)}
-                />
-              ) : (
-                <InsightTab
-                  loading={overview.loading}
-                  error={overview.error}
-                  data={overview.data}
-                  onRetry={() => overview.refresh()}
-                />
-              )}
+          <div className="px-6 py-5">
+            {activeTab === 'summary' ? (
+              <SummaryTab
+                loading={summaryLoading}
+                error={summaryError}
+                summary={summary}
+                onRetry={() => loadSummary(true)}
+              />
+            ) : (
+              <WawasanTab
+                loading={overview.loading}
+                error={overview.error}
+                data={overview.data}
+                onRetry={() => overview.refresh()}
+              />
+            )}
 
-              {/* Fine print */}
-              <div className="border-t border-black/[0.06] pt-4 text-[11.5px] text-neutral-500 break-words">
-                {activeTab === 'summary'
-                  ? 'Semua angka diambil langsung dari data dashboard yang sedang Anda lihat — AI hanya menyusun narasinya.'
-                  : 'Semua angka adalah estimasi berdasarkan pola laporan historis — bukan angka pasti. Gunakan sebagai panduan, bukan keputusan akhir.'}
-              </div>
+            {/* Fine print */}
+            <div className={cn(CAPTION, 'mt-5 border-t border-slate-200 pt-4')}>
+              {activeTab === 'summary'
+                ? 'Semua angka diambil langsung dari data dashboard yang sedang Anda lihat — AI hanya menyusun narasinya.'
+                : 'Semua angka adalah estimasi berdasarkan pola laporan historis — bukan angka pasti. Gunakan sebagai panduan, bukan keputusan akhir.'}
             </div>
           </div>
         </SheetContent>

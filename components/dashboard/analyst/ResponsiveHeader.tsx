@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   FileSpreadsheet,
   RefreshCw,
@@ -76,6 +76,7 @@ export function ResponsiveHeader({
   createReportHref = '/dashboard/employee/new',
 }: ResponsiveHeaderProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isDateOpen, setIsDateOpen] = useState(false);
   const [showCustomPicker, setShowCustomPicker] = useState(typeof dateRange === 'object');
   const [customRange, setCustomRange] = useState(
@@ -296,7 +297,12 @@ export function ResponsiveHeader({
 
   const createReportButton = (
     <Button
-      onClick={() => router.push(createReportHref)}
+      onClick={() => {
+        const [path, query] = createReportHref.split('?');
+        const params = new URLSearchParams(query);
+        params.set('from', pathname);
+        router.push(`${path}?${params.toString()}`);
+      }}
       className={cn(
         'min-h-[48px] px-5 sm:px-6 rounded-2xl font-display font-bold tracking-tight transition-all duration-300 w-full sm:w-auto justify-center',
         'bg-gradient-to-br from-[var(--brand-emerald-500)] to-[var(--brand-emerald-600)] text-[var(--text-on-brand)]',
@@ -374,6 +380,17 @@ export function ResponsiveHeader({
 
               <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
                 {divisionDashboardButtons}
+                {onCustomerFeedback && (
+                  <Button
+                    onClick={onCustomerFeedback}
+                    disabled={cfLoading}
+                    aria-label="Feedback"
+                    className="w-full sm:w-auto inline-flex items-center justify-center sm:justify-start gap-2 min-h-[48px] px-4 sm:px-5 rounded-2xl border-0 bg-white/85 text-[var(--text-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] border border-slate-200/80 hover:bg-white hover:-translate-y-0.5 active:scale-95 transition-all duration-300 font-display font-bold disabled:opacity-70 disabled:cursor-not-allowed"
+                  >
+                    {cfLoading ? <Loader2 size={16} className="animate-spin text-cyan-700" /> : <LayoutDashboard size={16} className="text-cyan-700" />}
+                    <span className="min-w-0 truncate text-left tracking-tight">Customer Feedback</span>
+                  </Button>
+                )}
                 {refreshButton}
                 <Button
                   onClick={onExportExcel}

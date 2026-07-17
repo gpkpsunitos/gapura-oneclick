@@ -1,5 +1,5 @@
 
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { reportsService } from '@/lib/services/reports-service';
 import { notifyNewRecordEmail, notifyNewReport } from '@/lib/notifications';
 import { persistReportMetadata } from '@/lib/report-persistence';
@@ -8,6 +8,8 @@ import { linkEvidenceFilesToReport, normalizeEvidenceSubmissionId, validateEvide
 import { findRegisteredUserByEmail } from '@/lib/user-lookup';
 import type { Report } from '@/types';
 import { signReportDocumentToken } from '@/lib/report-document-token';
+import { bumpSyncVersion } from '@/lib/sync-state';
+import { purgeDashboardSnapshots, purgeExpiredDashboardSnapshots } from '@/lib/dashboard-cache';
 
 export async function POST(request: Request) {
   try {
@@ -150,13 +152,14 @@ export async function POST(request: Request) {
       throw linkError;
     }
 
-    await persistReportMetadata(newReport).catch((persistError) => {
-      console.warn('[Public Report] Metadata persistence failed (non-blocking):', persistError);
-    });
-
-    await notifyNewRecordEmail(newReport, 'public').catch((notificationError) => {
-      console.warn('[Public Report] New-record notification failed:', notificationError);
-    });
+    await Promise.all([
+      persistReportMetadata(newReport).catch((persistError) => {
+        console.warn('[Public Report] Metadata persistence failed (non-blocking):', persistError);
+      }),
+      notifyNewRecordEmail(newReport, 'public').catch((notificationError) => {
+        console.warn('[Public Report] New-record notification failed:', notificationError);
+      }),
+    ]);
 
     const targetDivision = newReport.target_division || newReport.esklasi_divisi;
     if (targetDivision) {
@@ -170,6 +173,16 @@ export async function POST(request: Request) {
         console.warn('[Public Report] Division new-report notification failed:', notificationError);
       });
     }
+
+    after(async () => {
+      try {
+        const state = await bumpSyncVersion('reports');
+        await purgeDashboardSnapshots({ maxSyncVersion: Number(state.sync_version) });
+        await purgeExpiredDashboardSnapshots();
+      } catch (syncStateError) {
+        console.warn('[Public Report] Post-create cache invalidation failed:', syncStateError);
+      }
+    });
 
     const reportId = String(newReport.id || newReport.original_id || newReport.sheet_id || '');
     const documentFinalizationToken = await signReportDocumentToken({

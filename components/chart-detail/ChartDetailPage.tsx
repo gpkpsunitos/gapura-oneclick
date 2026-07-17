@@ -53,25 +53,25 @@ function ContextRibbon({ query }: { query: DashboardTile['query'] }) {
   const subArea = getFilterValue(['apron_area_category', 'terminal_area_category', 'general_category']);
 
   const items = [
-    { label: 'Cabang', value: branch, icon: MapPin, color: 'text-blue-600', bg: 'bg-blue-50' },
-    { label: 'Maskapai', value: airline, icon: Plane, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-    { label: 'Kategori', value: category, icon: Layers, color: 'text-amber-600', bg: 'bg-amber-50' },
-    { label: 'Area', value: area, icon: Crosshair, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-    { label: 'Sub-Area', value: subArea, icon: Target, color: 'text-rose-600', bg: 'bg-rose-50' },
+    { label: 'Cabang', value: branch, icon: MapPin },
+    { label: 'Maskapai', value: airline, icon: Plane },
+    { label: 'Kategori', value: category, icon: Layers },
+    { label: 'Area', value: area, icon: Crosshair },
+    { label: 'Sub-Area', value: subArea, icon: Target },
   ].filter(item => item.value);
 
   if (items.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 mb-6 overflow-x-auto pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 sm:pb-0 scrollbar-hide">
+    <div className="-mx-3 mb-6 flex flex-wrap gap-2 overflow-x-auto px-3 pb-1 sm:mx-0 sm:px-0 sm:pb-0">
       {items.map((item, idx) => (
-        <div 
-          key={idx} 
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-full border border-gray-200/60 shadow-sm ${item.bg} backdrop-blur-md transition-all hover:shadow-md cursor-default group flex-shrink-0 whitespace-nowrap`}
+        <div
+          key={idx}
+          className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap rounded-full border border-[var(--cf-line)] bg-[var(--cf-card)] px-3 py-1.5 shadow-[var(--cf-shadow-sm)]"
         >
-          <item.icon size={14} className={`${item.color} group-hover:scale-110 transition-transform`} />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{item.label}</span>
-          <span className="text-xs font-black text-gray-800 tracking-tight">{item.value}</span>
+          <item.icon size={13} className="text-[var(--cf-teal)]" />
+          <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--cf-ink-3)]">{item.label}</span>
+          <span className="text-xs font-black tracking-tight text-[var(--cf-ink)]">{item.value}</span>
         </div>
       ))}
     </div>
@@ -306,19 +306,16 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
 
   if (fetchError) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6 text-red-500">
+      <div className="cf-root flex min-h-screen flex-col items-center justify-center p-6 text-center">
+        <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[#fee2e2] text-[var(--cf-coral)]">
           <X size={32} />
         </div>
-        <h2 className="text-2xl font-black text-gray-900 mb-2">Link Tidak Valid</h2>
-        <p className="text-gray-500 max-w-md mb-8">
-          Tile ID <code className="bg-gray-200 px-1 rounded">{fetchError}</code> tidak ditemukan atau Anda tidak memiliki akses. 
+        <h2 className="cf-display mb-2 text-2xl font-semibold text-[var(--cf-ink)]">Link Tidak Valid</h2>
+        <p className="mb-8 max-w-md text-sm text-[var(--cf-ink-2)]">
+          Tile ID <code className="rounded bg-[var(--cf-canvas-2)] px-1">{fetchError}</code> tidak ditemukan atau Anda tidak memiliki akses.
           Pastikan dashboard telah diatur menjadi publik.
         </p>
-        <button 
-          onClick={() => router.push('/dashboard')}
-          className="px-6 py-2.5 bg-[#6b8e3d] text-white font-bold rounded-lg shadow-md hover:bg-[#5a7a3a] transition-all"
-        >
+        <button onClick={() => router.push('/dashboard')} className="cf-btn cf-btn-primary px-6 py-2.5">
           Back to Dashboard
         </button>
       </div>
@@ -327,8 +324,8 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-[#f5f5f5] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-[#6b8e3d]" />
+      <div className="cf-root flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-[var(--cf-teal)]" />
       </div>
     );
   }
@@ -337,75 +334,73 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
   const tile = data.tile;
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5]">
+    <div className="cf-root min-h-screen">
       {}
-      <header className="bg-white border-b border-[#e0e0e0] sticky top-0 z-50 w-full px-4 sm:px-6">
-        <div className="h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+      <header className="sticky top-0 z-50 w-full border-b border-[var(--cf-line)] bg-[var(--cf-card)]/90 px-3 backdrop-blur-xl sm:px-6">
+        <div className="flex h-16 items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
             {!isPublic && (
-              <button 
+              <button
                 onClick={() => router.back()}
-                className="p-2 hover:bg-gray-50 rounded-full transition-all hover:shadow-sm group text-gray-500 hover:text-indigo-600 shrink-0"
+                className="group flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full border border-[var(--cf-line)] bg-[var(--cf-card)] text-[var(--cf-ink-2)] shadow-[var(--cf-shadow-sm)] transition-all hover:border-[var(--cf-teal)] hover:text-[var(--cf-teal)]"
               >
-                <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
+                <ArrowLeft size={17} strokeWidth={2.5} className="transition-transform group-hover:-translate-x-0.5" />
               </button>
             )}
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-2xl font-black text-gray-900 tracking-tight truncate">
+              <div className="cf-eyebrow">
+                <span className="cf-eyebrow-idx">•</span>
+                <span>Chart Detail</span>
+              </div>
+              <h1 className="cf-display truncate text-lg font-semibold tracking-tight text-[var(--cf-ink)] sm:text-2xl">
                 {tile.visualization.title}
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            <div className="hidden sm:flex items-center gap-1 sm:gap-2">
+          <div className="flex flex-shrink-0 items-center gap-1 sm:gap-2">
+            <div className="hidden items-center gap-1 sm:flex sm:gap-2">
               <button
                 onClick={handleCopyLink}
-                className="p-2 hover:bg-[#f5f5f5] rounded-full transition-colors text-[#666] tooltip"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--cf-ink-2)] transition-colors hover:bg-[var(--cf-canvas-2)] hover:text-[var(--cf-teal)]"
                 title="Copy Link"
               >
-                {copied ? <Check size={20} className="text-green-600" /> : <LinkIcon size={20} />}
+                {copied ? <Check size={18} className="text-[var(--cf-lime)]" /> : <LinkIcon size={18} />}
               </button>
               <button
                 onClick={handleExportCSV}
                 disabled={exporting}
-                className="p-2 hover:bg-[#f5f5f5] rounded-full transition-colors text-[#666]"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--cf-ink-2)] transition-colors hover:bg-[var(--cf-canvas-2)] hover:text-[var(--cf-teal)]"
                 title="Export CSV"
               >
-                {exporting ? <Loader2 size={20} className="animate-spin" /> : <FileText size={20} />}
+                {exporting ? <Loader2 size={18} className="animate-spin" /> : <FileText size={18} />}
               </button>
               <button
                 onClick={handleDownloadImage}
-                className="p-2 hover:bg-[#f5f5f5] rounded-full transition-colors text-[#666]"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--cf-ink-2)] transition-colors hover:bg-[var(--cf-canvas-2)] hover:text-[var(--cf-teal)]"
                 title="Download PNG"
               >
-                <Download size={20} />
+                <Download size={18} />
               </button>
             </div>
 
             {!isPublic && (
-              <div className="flex items-center gap-1 sm:gap-2">
-                <button
-                  onClick={handleSharePublic}
-                  className="p-2 hover:bg-[#f5f5f5] rounded-full transition-colors text-[#666]"
-                  title="Share Public Link"
-                >
-                  {copied ? (
-                    <Check size={20} className="text-green-600" />
-                  ) : (
-                    <Share2 size={20} />
-                  )}
-                </button>
-              </div>
+              <button
+                onClick={handleSharePublic}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--cf-ink-2)] transition-colors hover:bg-[var(--cf-canvas-2)] hover:text-[var(--cf-teal)]"
+                title="Share Public Link"
+              >
+                {copied ? <Check size={18} className="text-[var(--cf-lime)]" /> : <Share2 size={18} />}
+              </button>
             )}
             {!isPublic && (
               <>
-                <div className="h-6 w-px bg-[#e0e0e0] mx-1 sm:mx-2" />
+                <div className="mx-1 h-6 w-px bg-[var(--cf-line)] sm:mx-2" />
                 <button
                   onClick={() => router.back()}
-                  className="p-2 hover:bg-[#f5f5f5] rounded-full transition-colors"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--cf-ink-2)] transition-colors hover:bg-[var(--cf-canvas-2)]"
                 >
-                  <X size={20} className="text-[#666]" />
+                  <X size={18} />
                 </button>
               </>
             )}
@@ -413,13 +408,13 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
         </div>
       </header>
 
-      <main className="w-full px-4 sm:px-6 py-4 sm:py-6 font-sans">
-        <div className="max-w-[1700px] mx-auto space-y-6 sm:space-y-8">
+      <main className="w-full px-3 py-5 sm:px-6 sm:py-8">
+        <div className="mx-auto max-w-[1600px] space-y-6 sm:space-y-8">
           {}
           <ContextRibbon query={tile.query} />
 
           {}
-          <div ref={chartRef}>
+          <div ref={chartRef} className="cf-card p-4 sm:p-5">
             <EnlargedChart
               tile={tile}
               result={displayData}
@@ -428,38 +423,37 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
             />
           </div>
 
-        {analyticalLoading && (
-          <div className="flex justify-center p-12">
-             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
-          </div>
-        )}
-
-
-        {}
-        <div ref={supportingRef} className="space-y-6 pt-4 border-t border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-            <span className="w-1 h-6 bg-indigo-500 rounded-full"></span>
-            Detailed Breakdown
-          </h3>
-          {supportingVisible && (
-            <SupportingCharts
-              charts={analyticalCharts}
-              dataMap={analyticalDataMap}
-              loading={analyticalLoading}
-              source="system"
-              viewMode={viewMode}
-              normalization={normalization}
-            />
+          {analyticalLoading && (
+            <div className="flex justify-center p-12">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--cf-teal)] border-t-transparent"></div>
+            </div>
           )}
-        </div>
 
-        {}
-        <section className="bg-white rounded-xl shadow-sm border border-[#e0e0e0] overflow-hidden">
-          <InvestigativeTable 
+          {}
+          <div ref={supportingRef} className="space-y-4 border-t border-[var(--cf-line)] pt-6">
+            <div className="cf-eyebrow">
+              <span className="cf-eyebrow-idx">•</span>
+              <span>Detailed Breakdown</span>
+              <span className="cf-eyebrow-rule" />
+            </div>
+            {supportingVisible && (
+              <SupportingCharts
+                charts={analyticalCharts}
+                dataMap={analyticalDataMap}
+                loading={analyticalLoading}
+                source="system"
+                viewMode={viewMode}
+                normalization={normalization}
+              />
+            )}
+          </div>
+
+          {}
+          <InvestigativeTable
             data={displayData}
             title={tile.visualization.title || 'Chart Data'}
+            theme="cf"
           />
-        </section>
         </div>
       </main>
     </div>

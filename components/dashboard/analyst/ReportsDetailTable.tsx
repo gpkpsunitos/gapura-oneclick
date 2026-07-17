@@ -58,14 +58,6 @@ type StatusUpdateDetails = {
   remarksBy: string;
 };
 
-type StatusEditorState = {
-  reportId: string;
-  status: ReportStatus;
-  finalRemarks: string;
-  division: string;
-  name: string;
-};
-
 function resolveSeverity(report: Report): string {
   const raw = (report as Record<string, unknown>)['severity_level']
     || (report as Record<string, unknown>)['Severity Level']
@@ -143,6 +135,163 @@ const ClassificationSeverityCell = memo(function ClassificationSeverityCell({ re
   );
 });
 
+interface StatusEditorModalProps {
+  report: Report;
+  onSubmit: (reportId: string, status: ReportStatus, finalRemarks: string, details: StatusUpdateDetails) => Promise<void>;
+  onClose: () => void;
+}
+
+// ponytail: keystroke state lives in its own component so typing here never
+// forces the (potentially 100+ row) report list in ReportsDetailTable to
+// re-render on every character.
+function StatusEditorModal({ report, onSubmit, onClose }: StatusEditorModalProps) {
+  const [status, setStatus] = useState<ReportStatus>(report.status === 'CLOSED' ? 'CLOSED' : 'OPEN');
+  const [finalRemarks, setFinalRemarks] = useState(cleanDisplayValue(report.kps_remarks));
+  const [division, setDivision] = useState('');
+  const [name, setName] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = useCallback(async (event: MouseEvent) => {
+    event.stopPropagation();
+    const trimmedRemarks = finalRemarks.trim();
+    const trimmedName = name.trim();
+
+    if (!status || !trimmedRemarks || !division || !trimmedName) {
+      setError('Status, final remarks, division, and name are required.');
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      await onSubmit(report.id, status, trimmedRemarks, {
+        finalRemarks: trimmedRemarks,
+        remarksBy: `${division} - ${trimmedName}`,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update report status.');
+    } finally {
+      setSubmitting(false);
+    }
+  }, [division, finalRemarks, name, onSubmit, report.id, status]);
+
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_32px_90px_-28px_rgba(15,23,42,0.55)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">Report status</p>
+            <h3 className="mt-1 text-xl font-black tracking-[-0.03em] text-slate-950">Change Status</h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+            aria-label="Close status dialog"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-[150px_minmax(0,1fr)]">
+          <label className="space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Status <span className="text-red-500">*</span></span>
+            <select
+              value={status}
+              onChange={(event) => setStatus(event.target.value as ReportStatus)}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20"
+              required
+              aria-required="true"
+            >
+              {STATUS_OPTIONS.map((option) => (
+                <option key={option} value={option}>{STATUS_CONFIG[option]?.label || option}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Final Remarks <span className="text-red-500">*</span></span>
+            <textarea
+              value={finalRemarks}
+              onChange={(event) => setFinalRemarks(event.target.value)}
+              rows={4}
+              className="min-h-[8rem] w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-semibold leading-relaxed text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20"
+              placeholder="Write final remarks"
+              required
+              aria-required="true"
+              autoFocus
+            />
+          </label>
+        </div>
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-[150px_minmax(0,1fr)]">
+          <label className="space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Division <span className="text-red-500">*</span></span>
+            <select
+              value={division}
+              onChange={(event) => setDivision(event.target.value)}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20"
+              required
+              aria-required="true"
+            >
+              <option value="">Select</option>
+              {REMARKS_BY_DIVISIONS.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
+            </select>
+          </label>
+
+          <label className="space-y-1.5">
+            <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Name <span className="text-red-500">*</span></span>
+            <input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-[13px] font-semibold text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20"
+              placeholder="Filled by"
+              required
+              aria-required="true"
+            />
+          </label>
+        </div>
+
+        {error && (
+          <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] font-bold text-red-700">{error}</p>
+        )}
+
+        <div className="mt-5 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] text-slate-600 hover:bg-slate-50"
+          >
+            <X size={14} />
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="inline-flex items-center gap-2 rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] text-white hover:bg-emerald-700 disabled:opacity-60"
+          >
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+            Save Status
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 interface ReportsDetailTableProps {
   reports: Report[];
   onReportClick: (report: Report) => void;
@@ -173,8 +322,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
   const [sortField, setSortField] = useState<SortField>('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [downloadingReportId, setDownloadingReportId] = useState<string | null>(null);
-  const [statusEditor, setStatusEditor] = useState<StatusEditorState | null>(null);
-  const [statusUpdateError, setStatusUpdateError] = useState<string | null>(null);
+  const [editingReport, setEditingReport] = useState<Report | null>(null);
   const [updatingStatusReportId, setUpdatingStatusReportId] = useState<string | null>(null);
   const [statusUpdateSuccess, setStatusUpdateSuccess] = useState<ReportStatus | null>(null);
 
@@ -241,45 +389,25 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
 
   const handleOpenStatusEditor = useCallback((event: MouseEvent, report: Report) => {
     event.stopPropagation();
-    setStatusUpdateError(null);
-    setStatusEditor({
-      reportId: report.id,
-      status: report.status === 'CLOSED' ? 'CLOSED' : 'OPEN',
-      finalRemarks: cleanDisplayValue(report.kps_remarks),
-      division: '',
-      name: '',
-    });
+    setEditingReport(report);
   }, []);
 
-  const handleSubmitStatusUpdate = useCallback(async (event: MouseEvent) => {
-    event.stopPropagation();
-    if (!statusEditor || !onStatusUpdate) return;
-
-    const finalRemarks = statusEditor.finalRemarks.trim();
-    const name = statusEditor.name.trim();
-    const status = statusEditor.status;
-    const remarksBy = statusEditor.division && name ? `${statusEditor.division} - ${name}` : '';
-
-    if (!status || !finalRemarks || !statusEditor.division || !name) {
-      setStatusUpdateError('Status, final remarks, division, and name are required.');
-      return;
-    }
-
-    setUpdatingStatusReportId(statusEditor.reportId);
-    setStatusUpdateError(null);
+  const handleSubmitStatusUpdate = useCallback(async (
+    reportId: string,
+    status: ReportStatus,
+    finalRemarks: string,
+    details: StatusUpdateDetails,
+  ) => {
+    if (!onStatusUpdate) return;
+    setUpdatingStatusReportId(reportId);
     try {
-      await onStatusUpdate(statusEditor.reportId, status, finalRemarks, undefined, {
-        finalRemarks,
-        remarksBy,
-      });
-      setStatusEditor(null);
+      await onStatusUpdate(reportId, status, finalRemarks, undefined, details);
+      setEditingReport(null);
       setStatusUpdateSuccess(status);
-    } catch (error) {
-      setStatusUpdateError(error instanceof Error ? error.message : 'Failed to update report status.');
     } finally {
       setUpdatingStatusReportId(null);
     }
-  }, [onStatusUpdate, statusEditor]);
+  }, [onStatusUpdate]);
 
   if (loading) {
     return (
@@ -505,126 +633,12 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
         })}
       </div>
 
-      {statusEditor && typeof document !== 'undefined' && createPortal(
-        <div
-          className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
-          onClick={() => {
-            setStatusEditor(null);
-            setStatusUpdateError(null);
-          }}
-        >
-          <div
-            className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_32px_90px_-28px_rgba(15,23,42,0.55)]"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-700">Report status</p>
-                <h3 className="mt-1 text-xl font-black tracking-[-0.03em] text-slate-950">Change Status</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusEditor(null);
-                  setStatusUpdateError(null);
-                }}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-                aria-label="Close status dialog"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-[150px_minmax(0,1fr)]">
-              <label className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Status <span className="text-red-500">*</span></span>
-                <select
-                  value={statusEditor.status}
-                  onChange={(event) => setStatusEditor((current) => current ? { ...current, status: event.target.value as ReportStatus } : current)}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20"
-                  required
-                  aria-required="true"
-                >
-                  {STATUS_OPTIONS.map((status) => (
-                    <option key={status} value={status}>{STATUS_CONFIG[status]?.label || status}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Final Remarks <span className="text-red-500">*</span></span>
-                <textarea
-                  value={statusEditor.finalRemarks}
-                  onChange={(event) => setStatusEditor((current) => current ? { ...current, finalRemarks: event.target.value } : current)}
-                  rows={4}
-                  className="min-h-[8rem] w-full resize-y rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] font-semibold leading-relaxed text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20"
-                  placeholder="Write final remarks"
-                  required
-                  aria-required="true"
-                  autoFocus
-                />
-              </label>
-            </div>
-
-            <div className="mt-3 grid gap-3 sm:grid-cols-[150px_minmax(0,1fr)]">
-              <label className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Division <span className="text-red-500">*</span></span>
-                <select
-                  value={statusEditor.division}
-                  onChange={(event) => setStatusEditor((current) => current ? { ...current, division: event.target.value } : current)}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-[13px] font-black text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20"
-                  required
-                  aria-required="true"
-                >
-                  <option value="">Select</option>
-                  {REMARKS_BY_DIVISIONS.map((division) => (
-                    <option key={division} value={division}>{division}</option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="space-y-1.5">
-                <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-500">Name <span className="text-red-500">*</span></span>
-                <input
-                  value={statusEditor.name}
-                  onChange={(event) => setStatusEditor((current) => current ? { ...current, name: event.target.value } : current)}
-                  className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-[13px] font-semibold text-slate-900 outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20"
-                  placeholder="Filled by"
-                  required
-                  aria-required="true"
-                />
-              </label>
-            </div>
-
-            {statusUpdateError && (
-              <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[12px] font-bold text-red-700">{statusUpdateError}</p>
-            )}
-
-            <div className="mt-5 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setStatusEditor(null);
-                  setStatusUpdateError(null);
-                }}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] text-slate-600 hover:bg-slate-50"
-              >
-                <X size={14} />
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleSubmitStatusUpdate}
-                disabled={updatingStatusReportId === statusEditor.reportId}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-600 bg-emerald-600 px-4 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] text-white hover:bg-emerald-700 disabled:opacity-60"
-              >
-                {updatingStatusReportId === statusEditor.reportId ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                Save Status
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body,
+      {editingReport && (
+        <StatusEditorModal
+          report={editingReport}
+          onSubmit={handleSubmitStatusUpdate}
+          onClose={() => setEditingReport(null)}
+        />
       )}
 
       <StatusUpdateSuccessDialog

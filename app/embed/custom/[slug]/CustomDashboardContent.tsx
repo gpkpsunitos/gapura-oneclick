@@ -18,6 +18,9 @@ import { DynamicFilterHeader, type FilterData } from '@/components/builder/Dynam
 import type { QueryDefinition, QueryResult, ChartType, ChartVisualization, DashboardTile, TileLayout } from '@/types/builder';
 import { cn } from '@/lib/utils';
 import { DASHBOARD_FILTER_FIELDS, type DashboardScopeFilters } from '@/lib/dashboard-query-scope';
+import { computeBento } from '@/lib/builder/bento-layout';
+import { useAuth } from '@/lib/hooks/use-auth';
+import { getReportReturnPath } from '@/lib/permissions';
 
 const GREEN_PALETTE = ['#7cb342', '#558b2f', '#aed581', '#33691e', '#9ccc65', '#689f38', '#c5e1a5', '#43a047', '#81c784', '#4caf50'];
 
@@ -91,6 +94,10 @@ export function CustomDashboardContent() {
   const router = useRouter();
   const slug = params.slug as string;
   const range = searchParams.get('range') || '7d';
+  // embed dashboards open in a fresh tab (window.open), so its history stack
+  // never actually contains the portal — router.back() would just pop
+  // whatever embed page (e.g. a chart detail view) happens to sit behind it
+  const { user } = useAuth(false);
 
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [chartsData, setChartsData] = useState<Map<string, ChartResult>>(new Map());
@@ -109,6 +116,15 @@ export function CustomDashboardContent() {
   const [exportingFormat, setExportingFormat] = useState<'xlsx' | 'pptx' | null>(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [investigativeResult, setInvestigativeResult] = useState<QueryResult | undefined>(undefined);
+  const [isDesktopViewport, setIsDesktopViewport] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const update = () => setIsDesktopViewport(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   useEffect(() => {
     const pageIndex = searchParams.get('pageIndex');
@@ -285,6 +301,15 @@ export function CustomDashboardContent() {
   const kpiTiles = useMemo(() => currentPage?.tiles.filter(c => (c.visualization_config?.chartType === 'kpi' || c.chart_type === 'kpi')) || [], [currentPage]);
   const contentTiles = useMemo(() => currentPage?.tiles.filter(c => (c.visualization_config?.chartType !== 'kpi' && c.chart_type !== 'kpi')) || [], [currentPage]);
 
+  const bentoSpans = useMemo(() => {
+    const spans = computeBento(contentTiles.map(t => ({
+      id: t.id,
+      chartType: (t.visualization_config?.chartType || t.chart_type || 'bar') as ChartType,
+      rows: chartsData.get(t.id)?.queryResult?.rowCount,
+    })));
+    return new Map(spans.map(s => [s.id, s.colSpan]));
+  }, [contentTiles, chartsData]);
+
   const handleExport = useCallback(async (format: 'xlsx' | 'pptx') => {
     if (!dashboard) return;
     setExportingFormat(format);
@@ -394,28 +419,67 @@ export function CustomDashboardContent() {
   if (error || !dashboard) return <div className="min-h-screen flex items-center justify-center text-red-500">{error || 'Dashboard not found'}</div>;
 
   const hasMultiplePages = pages.length > 1;
+  const cf = isCustomerFeedbackDashboard;
 
   return (
-    <div className="flex min-h-screen bg-surface-0 overflow-hidden selection:bg-brand-primary/10">
+    <div className={cn(
+      "flex min-h-screen overflow-hidden selection:bg-brand-primary/10",
+      cf ? "cf-root" : "bg-surface-0",
+    )}>
       {hasMultiplePages && (
-        <aside className={cn("fixed inset-y-0 left-0 z-50 glass-morphism border-none flex flex-col transform transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] shadow-spatial-lg h-screen md:top-0", mobileMenuOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0", sidebarCollapsed ? "md:w-[80px]" : "md:w-72", "w-72")}>
-          <div className="p-6 flex items-center justify-between border-b border-gray-100/50">
-            {!sidebarCollapsed && <div className="flex items-center gap-2.5"><div className="w-8 h-8 rounded-xl bg-brand-primary/10 flex items-center justify-center"><Box className="w-4 h-4 text-brand-primary" /></div><span className="text-sm font-black text-gray-800 tracking-tight uppercase">Dashboard</span></div>}
-            <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="p-2 rounded-xl text-gray-400 hover:text-brand-primary hover:bg-brand-primary/5 transition-all"><LayoutGrid size={18} /></button>
+        <aside
+          style={{ transform: isDesktopViewport ? 'none' : (mobileMenuOpen ? 'translateY(0)' : 'translateY(100%)') }}
+          className={cn(
+            "fixed z-50 flex flex-col transition-transform duration-300 ease-out shadow-sm",
+            "inset-x-0 bottom-0 max-h-[80vh] rounded-t-3xl border-t",
+            "md:inset-y-0 md:left-0 md:right-auto md:bottom-auto md:max-h-none md:rounded-t-none md:rounded-none md:border-t-0 md:border-r md:h-screen md:top-0",
+            cf ? "bg-[var(--cf-card)] border-[var(--cf-line)]" : "bg-white border-gray-100",
+            sidebarCollapsed ? "md:w-[80px]" : "md:w-72",
+          )}>
+          <div className={cn("p-6 flex items-center justify-between shrink-0 border-b", cf ? "border-[var(--cf-line-soft)]" : "border-gray-100")}>
+            {!sidebarCollapsed && (
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className={cn("w-9 h-9 rounded-2xl flex items-center justify-center shrink-0", cf ? "bg-[var(--cf-teal)] text-white shadow-[0_6px_16px_-8px_rgba(15,118,110,0.8)]" : "bg-brand-primary/10")}>
+                  <Box className={cn("w-4 h-4", cf ? "text-white" : "text-brand-primary")} />
+                </div>
+                {cf ? (
+                  <div className="flex flex-col leading-none min-w-0">
+                    <span className="cf-display text-[19px] font-semibold text-[var(--cf-ink)] truncate">Feedback</span>
+                    <span className="text-[8px] font-black uppercase tracking-[0.28em] text-[var(--cf-ink-3)] mt-0.5">Intelligence</span>
+                  </div>
+                ) : (
+                  <span className="text-sm font-black text-gray-800 tracking-tight uppercase">Dashboard</span>
+                )}
+              </div>
+            )}
+            <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className={cn("hidden md:inline-flex p-2 rounded-xl transition-all", cf ? "text-[var(--cf-ink-3)] hover:text-[var(--cf-teal)] hover:bg-[var(--cf-teal-tint)]" : "text-gray-400 hover:text-brand-primary hover:bg-brand-primary/5")}><LayoutGrid size={18} /></button>
+            <button onClick={() => setMobileMenuOpen(false)} className={cn("md:hidden p-2 rounded-xl transition-all", cf ? "text-[var(--cf-ink-3)] hover:text-[var(--cf-teal)] hover:bg-[var(--cf-teal-tint)]" : "text-gray-400 hover:text-brand-primary hover:bg-brand-primary/5")}><X size={18} /></button>
           </div>
-          <nav className="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto">
+          {cf && !sidebarCollapsed && (
+            <div className="px-6 pt-5 pb-1 hidden md:block">
+              <span className="cf-eyebrow"><span className="cf-eyebrow-idx">§</span> Sections</span>
+            </div>
+          )}
+          <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto">
             {pages.map((p, i) => (
-              <button key={i} onClick={() => { setActivePage(i); setMobileMenuOpen(false); }} className={cn("w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-500 group relative", activePage === i ? "bg-brand-primary text-white shadow-spatial-sm" : "text-gray-500 hover:bg-brand-primary/5 hover:text-brand-primary")}>
-                <div className={cn("w-1.5 h-1.5 rounded-full transition-all duration-500", activePage === i ? "bg-white scale-100" : "bg-brand-primary scale-0 group-hover:scale-100")} />
-                {!sidebarCollapsed && <span className="text-[13px] font-bold tracking-wide whitespace-nowrap overflow-hidden">{p.name}</span>}
-              </button>
+              cf ? (
+                <button key={i} onClick={() => { setActivePage(i); setMobileMenuOpen(false); }} className={cn("w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all duration-200 group relative text-left", activePage === i ? "bg-[var(--cf-teal)] text-white shadow-[0_8px_20px_-12px_rgba(15,118,110,0.9)]" : "text-[var(--cf-ink-2)] hover:bg-[var(--cf-teal-tint)] hover:text-[var(--cf-teal)]")}>
+                  <span className={cn("cf-display text-[13px] tabular-nums shrink-0 w-6", activePage === i ? "text-white/70" : "text-[var(--cf-ink-3)] group-hover:text-[var(--cf-teal)]")}>{String(i + 1).padStart(2, '0')}</span>
+                  {!sidebarCollapsed && <span className="text-[12.5px] font-bold tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">{p.name}</span>}
+                </button>
+              ) : (
+                <button key={i} onClick={() => { setActivePage(i); setMobileMenuOpen(false); }} className={cn("w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-colors duration-200 group relative", activePage === i ? "bg-brand-primary text-white shadow-sm" : "text-gray-500 hover:bg-brand-primary/5 hover:text-brand-primary")}>
+                  <div className={cn("w-1.5 h-1.5 rounded-full transition-all duration-200", activePage === i ? "bg-white scale-100" : "bg-brand-primary scale-0 group-hover:scale-100")} />
+                  {!sidebarCollapsed && <span className="text-[13px] font-bold tracking-wide whitespace-nowrap overflow-hidden">{p.name}</span>}
+                </button>
+              )
             ))}
 
                 {isCustomerFeedbackDashboard && !isFiltered && (
-                  <div className="pt-4 mt-4 border-t border-gray-100/50">
-                    <button 
-                      onClick={() => router.back()} 
-                      className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-500 text-gray-400 hover:bg-red-50 hover:text-red-500 group"
+                  <div className="pt-4 mt-4 border-t border-gray-100">
+                    <button
+                      onClick={() => router.push(getReportReturnPath(user?.role || ''))}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-colors duration-200 text-gray-400 hover:bg-red-50 hover:text-red-500 group"
                     >
                       <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-1" />
                       {!sidebarCollapsed && <span className="text-[13px] font-bold tracking-wide uppercase">Back to Portal</span>}
@@ -425,22 +489,42 @@ export function CustomDashboardContent() {
           </nav>
         </aside>
       )}
+      {hasMultiplePages && mobileMenuOpen && (
+        <div className="md:hidden fixed inset-0 z-40 bg-black/30" onClick={() => setMobileMenuOpen(false)} />
+      )}
 
-      <main className={cn("flex-1 min-w-0 bg-surface-0 flex flex-col overflow-x-hidden relative transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]", hasMultiplePages ? (sidebarCollapsed ? "md:ml-[80px]" : "md:ml-72") : "")}>
-        <header className="glass-morphism border-none sticky top-0 z-40 w-full !p-0 shadow-spatial-md rounded-none">
+      <main className={cn("flex-1 min-w-0 flex flex-col overflow-x-hidden relative transition-[margin] duration-200 ease-out", cf ? "bg-transparent" : "bg-surface-0", hasMultiplePages ? (sidebarCollapsed ? "md:ml-[80px]" : "md:ml-72") : "")}>
+        <header className={cn("sticky top-0 z-40 w-full !p-0 border-b", cf ? "bg-[var(--cf-canvas)]/80 supports-[backdrop-filter]:backdrop-blur-md border-[var(--cf-line)]" : "bg-white border-gray-100 shadow-sm")}>
           <div className="px-8 py-3.5">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
-                <div className="p-3 bg-brand-primary/10 rounded-2xl shadow-inner"><Image src="/logo.png" alt="Logo" width={32} height={32} unoptimized style={{ height: 32, width: 'auto', objectFit: 'contain' }} /></div>
-                <div className="flex flex-col"><h1 className="text-2xl font-black text-gray-800 tracking-tight uppercase leading-none mb-1">{dashboard.name}</h1><p className="text-[11px] font-bold text-gray-400 tracking-[0.2em] uppercase opacity-80">{dashboard.description || dashboard.config?.subtitle || 'Executive Intelligence Portal'}</p></div>
+                <div className={cn("rounded-2xl", cf ? "p-3 bg-[var(--cf-card)] border border-[var(--cf-line)] shadow-[var(--cf-shadow-sm)]" : "p-3 bg-brand-primary/10 shadow-inner")}><Image src="/logo.png" alt="Logo" width={32} height={32} unoptimized style={{ height: 32, width: 'auto', objectFit: 'contain' }} /></div>
+                <div className="flex flex-col">
+                  {cf ? (
+                    <>
+                      <h1 className="cf-display text-[30px] leading-[0.95] font-semibold text-[var(--cf-ink)] mb-1">{dashboard.name}</h1>
+                      <p className="text-[10px] font-black text-[var(--cf-teal)] tracking-[0.24em] uppercase">{dashboard.description || dashboard.config?.subtitle || 'Voice of the Customer'}</p>
+                    </>
+                  ) : (
+                    <>
+                      <h1 className="text-2xl font-black text-gray-800 tracking-tight uppercase leading-none mb-1">{dashboard.name}</h1>
+                      <p className="text-[11px] font-bold text-gray-400 tracking-[0.2em] uppercase opacity-80">{dashboard.description || dashboard.config?.subtitle || 'Executive Intelligence Portal'}</p>
+                    </>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2.5">
                 <div className="relative group">
-                  <button 
-                    onClick={() => setShowDatePicker(!showDatePicker)} 
-                    className="flex items-center gap-3 bg-white border border-gray-100 px-5 py-2.5 rounded-2xl text-[13px] font-bold text-gray-600 hover:border-brand-primary/30 hover:shadow-spatial-sm transition-all shadow-sm min-w-[200px]"
+                  <button
+                    onClick={() => setShowDatePicker(!showDatePicker)}
+                    className={cn(
+                      "flex items-center gap-3 px-5 py-2.5 rounded-full text-[13px] font-bold transition-all min-w-[200px]",
+                      cf
+                        ? "bg-[var(--cf-card)] border border-[var(--cf-line)] text-[var(--cf-ink-2)] shadow-[var(--cf-shadow-sm)] hover:border-[var(--cf-teal)]"
+                        : "bg-white border border-gray-100 text-gray-600 hover:border-brand-primary/40 hover:shadow-sm shadow-sm",
+                    )}
                   >
-                    <Calendar size={16} className="text-brand-primary flex-shrink-0" />
+                    <Calendar size={16} className={cn("flex-shrink-0", cf ? "text-[var(--cf-teal)]" : "text-brand-primary")} />
                     <span className="whitespace-nowrap flex-1 text-left">
                       {(() => {
                         if (!dateFrom && !dateTo) return 'Select Period';
@@ -454,7 +538,7 @@ export function CustomDashboardContent() {
                     <ChevronDownIcon size={14} className="text-gray-300 flex-shrink-0" />
                   </button>
                   {showDatePicker && (
-                    <div className="absolute right-0 mt-3 p-6 bg-white rounded-3xl shadow-spatial-xl border border-gray-100 z-50 min-w-[320px] animate-prism-reveal overflow-hidden">
+                    <div className="absolute right-0 mt-3 p-6 bg-white rounded-3xl shadow-xl border border-gray-100 z-50 min-w-[320px] animate-prism-reveal overflow-hidden">
                       <div className="grid gap-6">
                         <div>
                           <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-1 mb-3 block">Quick Range</label>
@@ -513,9 +597,9 @@ export function CustomDashboardContent() {
                         </div>
 
                         <div className="flex gap-2 pt-2">
-                          <button 
-                            onClick={() => setShowDatePicker(false)} 
-                            className="flex-1 py-3.5 bg-brand-primary text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-brand-primary/90 transition-all shadow-spatial-sm"
+                          <button
+                            onClick={() => setShowDatePicker(false)}
+                            className="flex-1 py-3.5 bg-brand-primary text-white rounded-full text-xs font-black uppercase tracking-widest hover:bg-brand-primary/90 transition-all shadow-sm"
                           >
                             Apply Selection
                           </button>
@@ -532,9 +616,9 @@ export function CustomDashboardContent() {
                   )}
                 </div>
                 <div className="relative">
-                  <button onClick={() => setShowExportMenu(!showExportMenu)} disabled={exportingFormat !== null} className="flex items-center gap-2.5 bg-brand-primary text-white px-6 py-2.5 rounded-2xl text-[13px] font-black tracking-widest uppercase hover:bg-brand-primary/90 shadow-spatial-sm disabled:opacity-50 transition-all">{exportingFormat ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}<span className="hidden sm:inline">Dispatch</span></button>
+                  <button onClick={() => setShowExportMenu(!showExportMenu)} disabled={exportingFormat !== null} className={cn("flex items-center gap-2.5 px-6 py-2.5 rounded-full text-[13px] font-black tracking-widest uppercase transition-all disabled:opacity-50", cf ? "cf-btn cf-btn-primary !text-[12px]" : "bg-brand-primary text-white hover:bg-brand-primary/90 shadow-sm")}>{exportingFormat ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}<span className="hidden sm:inline">{cf ? 'Export' : 'Dispatch'}</span></button>
                   {showExportMenu && (
-                    <div className="absolute right-0 mt-3 p-2 bg-white rounded-2xl shadow-spatial-xl border border-gray-100 z-50 min-w-[200px] animate-prism-reveal">
+                    <div className="absolute right-0 mt-3 p-2 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 min-w-[200px] animate-prism-reveal">
                       <button onClick={() => handleExport('xlsx')} className="w-full flex items-center gap-3 px-4 py-3 text-left text-[12px] font-bold text-gray-600 hover:bg-emerald-50 hover:text-emerald-600 rounded-xl transition-all"><FileSpreadsheet size={16} /> Excel Spreadsheet</button>
                       <button onClick={() => handleExport('pptx')} className="w-full flex items-center gap-3 px-4 py-3 text-left text-[12px] font-bold text-gray-600 hover:bg-orange-50 hover:text-orange-600 rounded-xl transition-all"><Presentation size={16} /> Presentation Deck</button>
                     </div>
@@ -542,7 +626,7 @@ export function CustomDashboardContent() {
                 </div>
               </div>
             </div>
-            {!dashboard.config?.hideControls && <div className="mt-8 border-t border-gray-100/50 pt-5"><DynamicFilterHeader onFilterChange={setActiveFilters} initialFilters={activeFilters} variant="default" /></div>}
+            {!dashboard.config?.hideControls && <div className={cn("pt-5 border-t", cf ? "mt-5 border-[var(--cf-line)]" : "mt-8 border-gray-100")}>{cf && <div className="mb-3"><span className="cf-eyebrow"><span className="cf-eyebrow-rule" />Filters</span></div>}<DynamicFilterHeader onFilterChange={setActiveFilters} initialFilters={activeFilters} variant={isCustomerFeedbackDashboard ? 'pill' : 'default'} /></div>}
           </div>
         </header>
 
@@ -562,51 +646,75 @@ export function CustomDashboardContent() {
           ) : (
             <div className="mt-8">
               {kpiTiles.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-4 gap-4 mb-8">
-                  {kpiTiles.map(tile => {
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                  {kpiTiles.map((tile, i) => {
                     const cr = chartsData.get(tile.id);
-                    const value = cr?.type === 'query' && cr.queryResult?.rows[0] ? Number(Object.values(cr.queryResult.rows[0])[0]) || 0 : 0;
+                    let value = 0;
+                    if (cr?.type === 'query' && cr.queryResult?.rows[0]) {
+                      const row = cr.queryResult.rows[0] as Record<string, unknown>;
+                      const cols = cr.queryResult.columns || [];
+                      // read the measure column, not a synthetic helper like "_count"
+                      const valueKey = (tile.visualization_config as { value?: string } | undefined)?.value
+                        || tile.visualization_config?.yAxis?.[0]
+                        || cols.filter(c => !c.startsWith('_')).slice(-1)[0]
+                        || (cols.length ? cols[cols.length - 1] : undefined);
+                      value = Number(valueKey ? row[valueKey] : Object.values(row)[0]) || 0;
+                    }
                     return (
-                      <div key={tile.id} onClick={() => openCustomerFeedbackDetail(tile)} className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center transition-all hover:shadow-md hover:-translate-y-1 active:scale-[0.98] cursor-pointer group">
-                        <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.2em] mb-2 opacity-70 group-hover:opacity-100 transition-opacity">{tile.title}</span>
-                        <span className="text-3xl font-black text-gray-800 tabular-nums tracking-tighter">{value.toLocaleString('id-ID')}</span>
-                      </div>
+                      <button
+                        key={tile.id}
+                        onClick={() => openCustomerFeedbackDetail(tile)}
+                        className="group relative overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-sm p-5 text-left transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98]"
+                      >
+                        <span className="absolute inset-y-0 left-0 w-1 bg-gradient-to-b from-emerald-400 to-green-600 opacity-70 group-hover:opacity-100 transition-opacity" style={{ animationDelay: `${i * 60}ms` }} />
+                        <span className="block text-[10px] font-black text-emerald-600 uppercase tracking-[0.18em] mb-2 opacity-80 group-hover:opacity-100 transition-opacity truncate">{tile.title}</span>
+                        <span className="block text-[32px] leading-none font-black text-gray-800 tabular-nums tracking-tight">{value.toLocaleString('id-ID')}</span>
+                      </button>
                     );
                   })}
                 </div>
               )}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {contentTiles.map(chart => (
-                  <div key={chart.id} className={chart.width === '3' ? 'md:col-span-1' : chart.width === '6' ? 'md:col-span-2' : chart.width === '12' ? 'md:col-span-4' : 'md:col-span-1'}>
-                    <ChartPreview 
-                      visualization={greenify(chart.visualization_config || { 
-                        chartType: (chart.chart_type as ChartType) || 'bar', 
-                        xAxis: chartsData.get(chart.id)?.queryResult?.columns[0],
-                        yAxis: chartsData.get(chart.id)?.queryResult?.columns.slice(1) || [],
-                        showLegend: true 
-                      })} 
-                      result={chartsData.get(chart.id)?.queryResult || { columns: [], rows: [], rowCount: 0, executionTimeMs: 0 }}
-                      tile={{
-                        id: chart.id,
-                        query: chart.query_config || { source: 'reports', joins: [], dimensions: [], measures: [], filters: [], sorts: [] },
-                        visualization: greenify(chart.visualization_config || { chartType: (chart.chart_type as ChartType) || 'bar', yAxis: [], showLegend: true }),
-                        layout: (chart.layout as TileLayout) || { x: 0, y: 0, w: 12, h: 4 }
-                      } as DashboardTile}
-                    />
-                  </div>
-                ))}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 items-stretch">
+                {contentTiles.map(chart => {
+                  const cs = bentoSpans.get(chart.id) ?? 6;
+                  return (
+                    <div
+                      key={chart.id}
+                      style={{ ['--cs' as string]: cs }}
+                      className="group relative flex flex-col overflow-hidden rounded-2xl bg-white border border-gray-100 shadow-sm transition-shadow hover:shadow-md lg:[grid-column:span_var(--cs)]"
+                    >
+                      <div className="flex-1 min-h-[300px] flex flex-col">
+                        <ChartPreview
+                          visualization={greenify(chart.visualization_config || {
+                            chartType: (chart.chart_type as ChartType) || 'bar',
+                            xAxis: chartsData.get(chart.id)?.queryResult?.columns[0],
+                            yAxis: chartsData.get(chart.id)?.queryResult?.columns.slice(1) || [],
+                            showLegend: true
+                          })}
+                          result={chartsData.get(chart.id)?.queryResult || { columns: [], rows: [], rowCount: 0, executionTimeMs: 0 }}
+                          tile={{
+                            id: chart.id,
+                            query: chart.query_config || { source: 'reports', joins: [], dimensions: [], measures: [], filters: [], sorts: [] },
+                            visualization: greenify(chart.visualization_config || { chartType: (chart.chart_type as ChartType) || 'bar', yAxis: [], showLegend: true }),
+                            layout: (chart.layout as TileLayout) || { x: 0, y: 0, w: 12, h: 4 }
+                          } as DashboardTile}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
         </section>
 
-        <footer className="mt-auto bg-white border-t border-gray-100 px-8 py-6 flex flex-wrap items-center justify-between gap-4 text-[11px] font-bold tracking-widest uppercase">
-          <div className="flex items-center gap-3"><Image src="/logo.png" alt="Gapura" width={24} height={24} unoptimized style={{ height: 24, width: 'auto', objectFit: 'contain', opacity: 0.5 }} /><span className="text-gray-400">Integrated Intelligence</span></div>
-          <div className="flex items-center gap-6"><span className="flex items-center gap-2 text-gray-400"><div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)] animate-pulse" />Live Telemetry</span><span className="text-gray-300">|</span><span className="text-gray-400">© {new Date().getFullYear()} PT Gapura Angkasa</span></div>
+        <footer className={cn("mt-auto px-8 py-6 flex flex-wrap items-center justify-between gap-4 text-[11px] font-bold tracking-widest uppercase border-t", cf ? "bg-transparent border-[var(--cf-line)]" : "bg-white border-gray-100")}>
+          <div className="flex items-center gap-3"><Image src="/logo.png" alt="Gapura" width={24} height={24} unoptimized style={{ height: 24, width: 'auto', objectFit: 'contain', opacity: 0.5 }} /><span className={cf ? "text-[var(--cf-ink-3)]" : "text-gray-400"}>{cf ? 'Voice of the Customer' : 'Integrated Intelligence'}</span></div>
+          <div className={cn("flex items-center gap-6", cf ? "text-[var(--cf-ink-3)]" : "")}><span className={cn("flex items-center gap-2", cf ? "text-[var(--cf-ink-3)]" : "text-gray-400")}><div className={cn("w-2 h-2 rounded-full animate-pulse", cf ? "bg-[var(--cf-teal)] shadow-[0_0_8px_rgba(15,118,110,0.5)]" : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]")} />Live</span><span className={cf ? "text-[var(--cf-line)]" : "text-gray-300"}>|</span><span className={cf ? "text-[var(--cf-ink-3)]" : "text-gray-400"}>© {new Date().getFullYear()} PT Gapura Angkasa</span></div>
         </footer>
       </main>
 
-      <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden fixed bottom-6 right-6 z-50 w-14 h-14 bg-brand-primary text-white rounded-full shadow-spatial-xl flex items-center justify-center active:scale-90 transition-all"><Menu size={24} /></button>
+      <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden fixed bottom-6 right-6 z-50 w-14 h-14 bg-brand-primary text-white rounded-full shadow-lg flex items-center justify-center active:scale-90 transition-transform"><Menu size={24} /></button>
     </div>
   );
 }

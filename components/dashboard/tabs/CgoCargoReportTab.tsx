@@ -45,7 +45,12 @@ function readAirline(r: Report): string {
   return val(r.airlines) || val(r.airline);
 }
 const NOISY_CARGO_VALUES = new Set(['unknown', '#n/a', 'n/a', '-', '_', '–', '—']);
-const VALID_CARGO_CATEGORIES = new Set(AREA_CATEGORIES.CARGO);
+// Historical CGO sheet stores its cargo category in the "Supporting Evidence"
+// column using a coarse legacy taxonomy, while `AREA_CATEGORIES.CARGO` is the
+// newer fine-grained taxonomy used by the public report form. Accept both so
+// legacy CGO reports aren't silently dropped from the cargo category charts.
+const LEGACY_CARGO_CATEGORIES = ['Cargo Problems', 'Operation', 'Baggage Handling', 'GSE'];
+const VALID_CARGO_CATEGORIES = new Set([...AREA_CATEGORIES.CARGO, ...LEGACY_CARGO_CATEGORIES]);
 function readCargoCategory(r: Report): string {
   const raw = val(r.category_case_cargo) || val(r.supporting_evidence);
   if (!raw || raw.length <= 1 || NOISY_CARGO_VALUES.has(raw.toLowerCase())) return '';
@@ -223,8 +228,9 @@ function getMonth(r: Report): { key: string; label: string; ts: number } | null 
 }
 
 function getAirlineType(r: Report): string {
-
-  return val(r.jenis_maskapai).toUpperCase();
+  // keep original casing for display — aggregate() already groups
+  // case-insensitively, so "Garuda Indonesia" stays readable in the chart
+  return val(r.jenis_maskapai);
 }
 
 function getCategory(r: Report): CategoryKey | '' {

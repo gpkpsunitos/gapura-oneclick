@@ -106,6 +106,7 @@ const ChartSection = dynamic(
 
 interface DivisionAnalystDashboardProps {
   division: DivisionConfig;
+  realDivisionCode?: string;
 }
 
 type DashboardView = 'dashboard' | 'reports';
@@ -198,6 +199,7 @@ async function fetchAllAdminReports(): Promise<Report[]> {
 
 export function DivisionAnalystDashboard({
   division,
+  realDivisionCode,
   initialReports,
   initialAnalytics,
   lockedBranches,
@@ -248,7 +250,7 @@ export function DivisionAnalystDashboard({
   const [showOSDashboardModal, setShowOSDashboardModal] = useState(false);
   const [osDashboardLink, setOsDashboardLink] = useState<string>(getLinkUrl(externalLinks, 'os-dashboard-analyst'));
 
-  const needsCustomerFeedbackData = (division.code === 'OCS' || division.code === 'ANALYST') && showFilterModal;
+  const needsCustomerFeedbackData = realDivisionCode === 'OS' && showFilterModal;
 
   const handleScrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -378,21 +380,21 @@ export function DivisionAnalystDashboard({
     }
   }, [lockedBranches, listBranch]);
 
-  const filteredReports = useMemo(() => {
+  const filterReportsByDateRange = useCallback((list: Report[], range: typeof dateRange) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 
     let cutoffDate: Date;
     let explicitEndDate: Date | null = null;
 
-    if (typeof dateRange === 'object') {
-      cutoffDate = new Date(dateRange.from);
+    if (typeof range === 'object') {
+      cutoffDate = new Date(range.from);
       cutoffDate.setHours(0, 0, 0, 0);
-      explicitEndDate = new Date(dateRange.to);
+      explicitEndDate = new Date(range.to);
       explicitEndDate.setHours(23, 59, 59, 999);
-    } else if (dateRange === 'all') {
+    } else if (range === 'all') {
       cutoffDate = new Date(0);
-    } else if (dateRange === 'month') {
+    } else if (range === 'month') {
       cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
     } else {
       cutoffDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
@@ -400,8 +402,8 @@ export function DivisionAnalystDashboard({
 
     const endDate = explicitEndDate || today;
 
-    const safeReports = Array.isArray(reports) ? reports : [];
-    const base = safeReports.filter((r) => {
+    const safeReports = Array.isArray(list) ? list : [];
+    return safeReports.filter((r) => {
       const dateStr = r.date_of_event || r.created_at;
       if (!dateStr) return false;
 
@@ -415,8 +417,10 @@ export function DivisionAnalystDashboard({
 
       return d >= cutoffDate && d <= endDate;
     });
+  }, []);
 
-    let result = base;
+  const filteredReports = useMemo(() => {
+    let result = filterReportsByDateRange(reports, dateRange);
 
     if (lockedBranches && lockedBranches.length > 0) {
       const allowed = new Set(lockedBranches.map((b) => b.toUpperCase()));
@@ -446,9 +450,14 @@ export function DivisionAnalystDashboard({
     }
 
     return result;
-  }, [reports, dateRange, globalFilters, lockedBranches]);
+  }, [reports, dateRange, globalFilters, lockedBranches, filterReportsByDateRange]);
+
+  const listGroundReportsDateFiltered = useMemo(
+    () => isScopeLocked ? filteredReports : filterReportsByDateRange(pagedReports, dateRange),
+    [isScopeLocked, filteredReports, pagedReports, dateRange, filterReportsByDateRange]
+  );
   // Filter dropdowns reflect the reports currently loaded in the list view.
-  const listFilterSource = isScopeLocked ? filteredReports : pagedReports;
+  const listFilterSource = listGroundReportsDateFiltered;
   const listFilterOptions = useMemo(() => {
     const uniqueSorted = (values: string[]) => Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
     return {
@@ -474,13 +483,16 @@ export function DivisionAnalystDashboard({
     setListSource('all');
   }, []);
   const scopedJoumpaReports = useMemo(() => {
-    if (!lockedBranches || lockedBranches.length === 0) return joumpaReports;
-    const allowed = new Set(lockedBranches.map((b) => b.toUpperCase()));
-    return joumpaReports.filter((r) => allowed.has((r.stations?.code || r.branch || '').toString().toUpperCase()));
-  }, [joumpaReports, lockedBranches]);
+    let result = filterReportsByDateRange(joumpaReports, dateRange);
+    if (lockedBranches && lockedBranches.length > 0) {
+      const allowed = new Set(lockedBranches.map((b) => b.toUpperCase()));
+      result = result.filter((r) => allowed.has((r.stations?.code || r.branch || '').toString().toUpperCase()));
+    }
+    return result;
+  }, [joumpaReports, lockedBranches, dateRange, filterReportsByDateRange]);
   // Ground reports for the list come from the paginated source (server-side
-  // cursor pagination). Scope-locked users keep their server-provided set.
-  const listGroundReports = isScopeLocked ? filteredReports : pagedReports;
+  // cursor pagination), filtered by the header's date range tab.
+  const listGroundReports = listGroundReportsDateFiltered;
   const listReportsBase = useMemo(
     () => [...listGroundReports, ...scopedJoumpaReports],
     [listGroundReports, scopedJoumpaReports]
@@ -544,6 +556,46 @@ export function DivisionAnalystDashboard({
     listFilter,
     listSeverity,
     debouncedSearch,
+  ]);
+  // ponytail: memoized so this element's reference stays stable across
+  // unrelated re-renders (e.g. opening the detail dialog), letting
+  // ReportsDetailTable's memo() actually skip re-rendering the report list.
+  const reportsToolbarFilter = useMemo(() => (
+    <ReportFilterBar
+      search={listSearch}
+      onSearch={setListSearch}
+      startDate={listStartDate}
+      onStartDate={setListStartDate}
+      endDate={listEndDate}
+      onEndDate={setListEndDate}
+      hub={listHub}
+      onHub={setListHub}
+      branch={listBranch}
+      onBranch={setListBranch}
+      airline={listAirline}
+      onAirline={setListAirline}
+      category={listCategory}
+      onCategory={setListCategory}
+      caseClassification={listCaseClassification}
+      onCaseClassification={setListCaseClassification}
+      area={listArea}
+      onArea={setListArea}
+      status={listFilter}
+      onStatus={setListFilter}
+      severity={listSeverity}
+      onSeverity={setListSeverity}
+      options={listFilterOptions}
+      totalCount={listReportsBase.length}
+      filteredCount={listReports.length}
+      refreshing={refreshing}
+      onRefresh={refreshData}
+      onReset={resetListFilters}
+    />
+  ), [
+    listSearch, listStartDate, listEndDate, listHub, listBranch, listAirline,
+    listCategory, listCaseClassification, listArea, listFilter, listSeverity,
+    listFilterOptions, listReportsBase.length, listReports.length, refreshing,
+    refreshData, resetListFilters,
   ]);
   const setView = useCallback(
     (nextView: DashboardView) => {
@@ -763,9 +815,9 @@ export function DivisionAnalystDashboard({
             onDateRangeChange={setDateRange}
             onRefresh={refreshData}
             refreshing={refreshing}
-            onCustomerFeedback={division.code === 'OCS' || division.code === 'ANALYST' ? handleCustomerFeedbackShortcut : undefined}
-            cfLoading={division.code === 'OCS' || division.code === 'ANALYST' ? cfLoading : false}
-            onFilterClick={division.code === 'OCS' || division.code === 'ANALYST' ? () => setShowFilterModal(true) : undefined}
+            onCustomerFeedback={realDivisionCode === 'OS' ? handleCustomerFeedbackShortcut : undefined}
+            cfLoading={realDivisionCode === 'OS' ? cfLoading : false}
+            onFilterClick={realDivisionCode === 'OS' ? () => setShowFilterModal(true) : undefined}
             onExportExcel={exportToExcel}
             onExportPDF={exportToPDF}
             exporting={null}
@@ -802,7 +854,7 @@ export function DivisionAnalystDashboard({
               </button>
             </div>
           )}
-          {view === 'dashboard' && (division.code === 'OCS' || division.code === 'ANALYST') && (
+          {view === 'dashboard' && realDivisionCode === 'OS' && (
             <div className="mt-2 sm:mt-3 flex flex-wrap gap-2">
               <button
                 onClick={() => window.open(getLinkUrl(externalLinks, 'analyst-joumpa'), '_blank', 'noopener,noreferrer')}
@@ -844,14 +896,16 @@ export function DivisionAnalystDashboard({
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><path d="M14 3h7v5h-7z"/><path d="M14 12h7v9h-7z"/></svg>
                 <span>WSN</span>
               </button>
-              <button
-                onClick={() => window.open(getLinkUrl(externalLinks, 'analyst-branch-perf'), '_blank')}
-                aria-label="About OS"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 bg-amber-600 text-white hover:bg-amber-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h5l2 2h11v9a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7z"/><path d="M3 7V5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.4.6L12 5"/></svg>
-                <span>About OS</span>
-              </button>
+              {realDivisionCode === 'OS' && (
+                <button
+                  onClick={() => window.open(getLinkUrl(externalLinks, 'analyst-branch-perf'), '_blank')}
+                  aria-label="About OS"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 bg-amber-600 text-white hover:bg-amber-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h5l2 2h11v9a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7z"/><path d="M3 7V5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.4.6L12 5"/></svg>
+                  <span>About OS</span>
+                </button>
+              )}
             </div>
           )}
         </PresentationSlide>
@@ -897,38 +951,7 @@ export function DivisionAnalystDashboard({
               onStatusUpdate={isScopeLocked ? undefined : handleUpdateStatus}
               loading={loading || refreshing}
               fullHeight
-              toolbarFilter={(
-                <ReportFilterBar
-                  search={listSearch}
-                  onSearch={setListSearch}
-                  startDate={listStartDate}
-                  onStartDate={setListStartDate}
-                  endDate={listEndDate}
-                  onEndDate={setListEndDate}
-                  hub={listHub}
-                  onHub={setListHub}
-                  branch={listBranch}
-                  onBranch={setListBranch}
-                  airline={listAirline}
-                  onAirline={setListAirline}
-                  category={listCategory}
-                  onCategory={setListCategory}
-                  caseClassification={listCaseClassification}
-                  onCaseClassification={setListCaseClassification}
-                  area={listArea}
-                  onArea={setListArea}
-                  status={listFilter}
-                  onStatus={setListFilter}
-                  severity={listSeverity}
-                  onSeverity={setListSeverity}
-                  options={listFilterOptions}
-                  totalCount={listReportsBase.length}
-                  filteredCount={listReports.length}
-                  refreshing={refreshing}
-                  onRefresh={refreshData}
-                  onReset={resetListFilters}
-                />
-              )}
+              toolbarFilter={reportsToolbarFilter}
             />
             {!isScopeLocked && pagedHasMore && (
               <div className="flex justify-center pt-4">
