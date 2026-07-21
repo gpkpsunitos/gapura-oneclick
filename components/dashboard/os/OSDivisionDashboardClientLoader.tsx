@@ -5,6 +5,7 @@
 import dynamic from 'next/dynamic';
 import type { DivisionConfig } from '@/components/dashboard/AnalyticsDashboard';
 import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWorkspaceSkeleton';
+import type { DashboardOverview } from '@/lib/dashboard/contracts';
 import type { Report } from '@/types';
 
 const OSDivisionDashboard = dynamic(
@@ -23,9 +24,17 @@ const OSDivisionDashboard = dynamic(
 interface OSDivisionDashboardClientLoaderProps {
   division: DivisionConfig;
   initialReports?: Report[];
+  initialOverview?: DashboardOverview;
   lockedBranches?: string[];
 }
 
-export function OSDivisionDashboardClientLoader({ division, initialReports, lockedBranches }: OSDivisionDashboardClientLoaderProps) {
-  return <OSDivisionDashboard division={division} initialReports={initialReports} lockedBranches={lockedBranches} />;
+export function OSDivisionDashboardClientLoader({ division, initialReports, initialOverview, lockedBranches }: OSDivisionDashboardClientLoaderProps) {
+  return (
+    <OSDivisionDashboard
+      division={division}
+      initialReports={initialReports}
+      initialOverview={initialOverview}
+      lockedBranches={lockedBranches}
+    />
+  );
 }

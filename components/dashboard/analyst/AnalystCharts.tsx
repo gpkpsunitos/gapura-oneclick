@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Filter } from 'lucide-react';
 import { PrismMultiSelect } from '@/components/ui/PrismMultiSelect';
 import { cn } from '@/lib/utils';
+import { useJoumpaReports } from '@/lib/hooks/useJoumpaReports';
 import type { Report } from '@/types';
 import type { ComparisonData } from '@/types';
 import {
@@ -133,6 +134,20 @@ export default function AnalystCharts({
     };
     const [activeTab, setActiveTab] = useState<string>('summary');
     const [isGlobalFilterCollapsed, setIsGlobalFilterCollapsed] = useState(true);
+    const {
+        reports: joumpaReports,
+        error: joumpaError,
+        isLoading: joumpaLoading,
+    } = useJoumpaReports(activeTab === 'joumpa');
+    const filteredJoumpaReports = joumpaReports.filter((report) => {
+        if (globalFilters.hubs.length > 0 && !globalFilters.hubs.includes(report.hub || '')) return false;
+        const branch = report.stations?.code || report.station_code || report.branch || '';
+        if (globalFilters.branches.length > 0 && !globalFilters.branches.includes(branch)) return false;
+        const airline = report.airlines || report.airline || '';
+        if (globalFilters.airlines.length > 0 && !globalFilters.airlines.includes(airline)) return false;
+        const category = report.main_category || report.category || '';
+        return globalFilters.categories.length === 0 || globalFilters.categories.includes(category);
+    });
 
     return (
         <div className="space-y-6">
@@ -238,10 +253,16 @@ export default function AnalystCharts({
             {activeTab === 'summary' && <SummaryReportTab reports={filteredReports as Report[]} />}
             {activeTab === 'sqi' && <ServiceQualityImprovementTab reports={filteredReports as Report[]} />}
             {activeTab === 'joumpa' && (
-                <JoumpaServiceTab
-                    allReports={allReports as Report[]}
-                    reports={filteredReports as Report[]}
-                />
+                joumpaLoading ? tabLoadingFallback : joumpaError ? (
+                    <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm font-semibold text-red-700">
+                        JOUMPA data could not be loaded. No partial totals are shown.
+                    </div>
+                ) : (
+                    <JoumpaServiceTab
+                        allReports={joumpaReports as Report[]}
+                        reports={filteredJoumpaReports as Report[]}
+                    />
+                )
             )}
             {activeTab === 'gse' && <GsePerformanceTab reports={filteredReports as Report[]} />}
             {activeTab === 'cgo_cargo' && <CgoCargoReportTab reports={filteredReports as Report[]} />}

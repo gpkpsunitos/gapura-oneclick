@@ -7,8 +7,8 @@ import type { Report } from '@/types';
 
 type JoumpaReportsResponse = { reports?: Report[] };
 
-export function useJoumpaReports() {
-  const { data, mutate } = useData<JoumpaReportsResponse>('/api/joumpa');
+export function useJoumpaReports(enabled = true) {
+  const { data, error, isLoading, mutate } = useData<JoumpaReportsResponse>(enabled ? '/api/joumpa' : null);
   const reports = useMemo(() => data?.reports ?? [], [data]);
 
   const refresh = useCallback(() => mutate(), [mutate]);
@@ -19,5 +19,5 @@ export function useJoumpaReports() {
     false,
   ), [mutate]);
 
-  return { reports, refresh, patchReport };
+  return { reports, error, isLoading: enabled && isLoading, refresh, patchReport };
 }

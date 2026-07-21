@@ -30,7 +30,8 @@ import {
   resolveReportSource,
 } from '@/lib/reports-export';
 import type { Report, AnalyticsData, UserRole } from '@/types';
-import { reportsFromPayload } from '@/lib/report-page';
+import { fetchCompleteDashboardReports } from '@/lib/dashboard/client';
+import type { DashboardOverview } from '@/lib/dashboard/contracts';
 import type { DivisionConfig } from '@/components/dashboard/AnalyticsDashboard';
 import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWorkspaceSkeleton';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
@@ -110,8 +111,10 @@ type DashboardView = 'dashboard' | 'reports';
 
 const DeferredChartRegion = memo(function DeferredChartRegion({
   children,
+  onVisible,
 }: {
   children: ReactNode;
+  onVisible?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -126,6 +129,7 @@ const DeferredChartRegion = memo(function DeferredChartRegion({
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
           setIsVisible(true);
+          onVisible?.();
           observer.disconnect();
         }
       },
@@ -138,7 +142,7 @@ const DeferredChartRegion = memo(function DeferredChartRegion({
     observer.observe(node);
 
     return () => observer.disconnect();
-  }, [isVisible]);
+  }, [isVisible, onVisible]);
 
   return (
     <div ref={containerRef}>
@@ -180,11 +184,13 @@ export function OSDivisionDashboard({
   division,
   initialReports,
   initialAnalytics,
+  initialOverview,
   lockedBranches,
   forceView,
 }: DivisionAnalystDashboardProps & {
   initialReports?: Report[];
   initialAnalytics?: AnalyticsData | null;
+  initialOverview?: DashboardOverview;
 
   lockedBranches?: string[];
 
@@ -201,9 +207,9 @@ export function OSDivisionDashboard({
     : searchParams.get('view') === 'reports'
       ? 'reports'
       : 'dashboard';
-  const isDashboardView = view === 'dashboard';
 
   const [refreshing, setRefreshing] = useState(false);
+  const [shouldLoadCompleteReports, setShouldLoadCompleteReports] = useState(false);
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
   const [showReportsExportModal, setShowReportsExportModal] = useState(false);
   const [dateRange, setDateRange] = useState<'all' | 'week' | 'month' | { from: string; to: string }>('all');
@@ -247,19 +253,31 @@ export function OSDivisionDashboard({
     categories: [],
   });
 
-  const { data: swrReports, isLoading: swrLoading, mutate: mutateReports } = useSWR<Report[]>(
-    isScopeLocked ? null : '/api/admin/reports',
-    (url) => fetch(url).then(res => res.json()).then(reportsFromPayload<Report>),
-    { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: initialReports }
+  // Full rows leave the critical path. Exact KPIs, filter options, and the
+  // report list come from the server overview until the charts scroll into view
+  // or the user enters the report list — then the complete population loads from
+  // an endpoint that rejects partial results.
+  const needReports = view === 'reports' || shouldLoadCompleteReports;
+  const {
+    data: completeReports,
+    error: completeReportsError,
+    isLoading: completeReportsLoading,
+    mutate: mutateReports,
+  } = useSWR<Report[]>(
+    needReports ? '/api/dashboard/reports' : null,
+    fetchCompleteDashboardReports,
+    { revalidateOnFocus: false, dedupingInterval: 60000, keepPreviousData: true }
   );
-  const reports = isScopeLocked ? (initialReports ?? []) : (swrReports ?? []);
-  const reportsLoading = isScopeLocked ? false : swrLoading;
+  const reports = useMemo(
+    () => completeReports ?? initialReports ?? [],
+    [completeReports, initialReports]
+  );
+  const hasCompleteReports = Array.isArray(completeReports);
+  const reportsLoading = needReports && completeReportsLoading && !hasCompleteReports;
 
-  const { data: analytics = null, isLoading: analyticsLoading, mutate: mutateAnalytics } = useSWR<AnalyticsData>(
-    isDashboardView ? '/api/admin/analytics' : null,
-    (url) => fetch(url).then(res => res.json()),
-    { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: initialAnalytics ?? undefined }
-  );
+  // The former /api/admin/analytics response was never consumed by the rendered
+  // charts and returned 403 for division roles. Keep it off the critical path.
+  const analytics = initialAnalytics ?? null;
 
   const { data: dashboardsData } = useData<{ dashboards: Array<{ folder?: string | null }> }>(
     needsCustomerFeedbackData ? '/api/dashboards' : null
@@ -270,25 +288,23 @@ export function OSDivisionDashboard({
     [dashboardsData]
   );
 
-  const loading = reportsLoading || (isDashboardView && analyticsLoading);
+  const loading = view === 'reports' && reportsLoading;
   const {
     reports: joumpaReports,
     refresh: refreshJoumpaReports,
     patchReport: patchJoumpaReport,
-  } = useJoumpaReports();
+  } = useJoumpaReports(needReports);
 
   const refreshData = useCallback(async () => {
     setRefreshing(true);
     try {
       await Promise.all([
-        mutateReports(),
-        refreshJoumpaReports(),
-        ...(isDashboardView ? [mutateAnalytics()] : []),
+        ...(needReports ? [mutateReports(), refreshJoumpaReports()] : []),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [isDashboardView, mutateReports, mutateAnalytics, refreshJoumpaReports]);
+  }, [needReports, mutateReports, refreshJoumpaReports]);
 
   const handleUpdateStatus = useCallback(async (
     reportId: string,
@@ -559,6 +575,17 @@ export function OSDivisionDashboard({
   );
 
   const filteredStats = useMemo(() => {
+    const overviewMatchesFilters = Boolean(initialOverview)
+      && dateRange === 'all'
+      && globalFilters.hubs.length === 0
+      && globalFilters.airlines.length === 0
+      && globalFilters.categories.length === 0
+      && (
+        globalFilters.branches.length === 0
+        || globalFilters.branches.every((branch) => lockedBranches?.includes(branch))
+      );
+    if (!hasCompleteReports && overviewMatchesFilters) return initialOverview!.summary;
+
     const total = filteredReports.length;
     const resolved = filteredReports.filter((r) => cleanReportValue(r.status).toUpperCase() === 'CLOSED').length;
     const pending = filteredReports.filter(
@@ -580,7 +607,7 @@ export function OSDivisionDashboard({
       )
     ).sort((a, b) => a - b);
     return { total, resolved, pending, highSeverity, resolutionRate, years };
-  }, [filteredReports]);
+  }, [dateRange, filteredReports, globalFilters, hasCompleteReports, initialOverview, lockedBranches]);
 
   const drilldownUrl = (type: string, value: string) =>
     `/dashboard/analyst/drilldown?type=${type}&value=${encodeURIComponent(
@@ -588,6 +615,8 @@ export function OSDivisionDashboard({
     )}&period=${dateRange}`;
 
   const availableOptions = useMemo(() => {
+    if (!hasCompleteReports && initialOverview) return initialOverview.filterOptions;
+
     const hubs = new Set<string>();
     const branches = new Set<string>();
     const airlines = new Set<string>();
@@ -608,7 +637,7 @@ export function OSDivisionDashboard({
       airlines: Array.from(airlines).sort(),
       categories: Array.from(categories).sort(),
     };
-  }, [reports]);
+  }, [hasCompleteReports, initialOverview, reports]);
 
   const handleCustomerFeedbackShortcut = useCallback(async () => {
     setCfLoading(true);
@@ -695,6 +724,10 @@ export function OSDivisionDashboard({
   };
 
   const handleStatClick = (type: string) => {
+    if (!hasCompleteReports) {
+      setShouldLoadCompleteReports(true);
+      return;
+    }
     const open = (items: Report[], title: string) => {
       openDrilldown(items, title);
     };
@@ -881,18 +914,38 @@ export function OSDivisionDashboard({
         )}
 
         {view === 'dashboard' && (
-          <DeferredChartRegion>
-            <ChartSection
-              division={division}
-              filteredReports={filteredReports}
-              reports={reports}
-              analytics={analytics}
-              globalFilters={globalFilters}
-              setGlobalFilters={setGlobalFilters}
-              availableOptions={availableOptions}
-              drilldownUrl={drilldownUrl}
-              onDrilldown={(url) => router.push(url)}
-            />
+          <DeferredChartRegion onVisible={() => setShouldLoadCompleteReports(true)}>
+            {completeReportsError ? (
+              <section role="alert" className="rounded-[28px] border border-red-200 bg-red-50 p-8 text-center text-sm font-semibold text-red-700">
+                Complete report data could not be loaded. No partial section totals are shown.
+                <button
+                  type="button"
+                  onClick={() => { void mutateReports(); }}
+                  className="ml-3 rounded-xl bg-red-700 px-4 py-2 text-white"
+                >
+                  Retry
+                </button>
+              </section>
+            ) : reportsLoading || !hasCompleteReports ? (
+              <section aria-label="Loading complete report calculations" className="min-h-[40vh] rounded-[28px] border border-[var(--surface-3)] bg-[var(--surface-1)] p-8 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-[var(--surface-4)] border-t-[var(--brand-primary)]" />
+                  <p className="text-sm font-semibold text-[var(--text-secondary)]">Calculating every eligible report…</p>
+                </div>
+              </section>
+            ) : (
+              <ChartSection
+                division={division}
+                filteredReports={filteredReports}
+                reports={reports}
+                analytics={analytics}
+                globalFilters={globalFilters}
+                setGlobalFilters={setGlobalFilters}
+                availableOptions={availableOptions}
+                drilldownUrl={drilldownUrl}
+                onDrilldown={(url) => router.push(url)}
+              />
+            )}
           </DeferredChartRegion>
         )}
 

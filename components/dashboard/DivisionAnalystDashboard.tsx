@@ -15,6 +15,8 @@ import { type StatusUpdateDetails } from '@/components/dashboard/ReportDetailVie
 
 import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
 import { useJoumpaReports } from '@/lib/hooks/useJoumpaReports';
+import { fetchCompleteDashboardReports } from '@/lib/dashboard/client';
+import type { DashboardOverview } from '@/lib/dashboard/contracts';
 import { mergeReportUpdate } from '@/lib/report-cache';
 import { getLinkUrl } from '@/lib/external-links';
 import { ReportSourceToggle, matchesReportSource, type ReportSourceValue } from '@/components/dashboard/analyst/ReportSourceToggle';
@@ -30,7 +32,6 @@ import {
   resolveReportSource,
 } from '@/lib/reports-export';
 import type { Report, AnalyticsData, UserRole } from '@/types';
-import { normalizeReportPage, withReportCursor } from '@/lib/report-page';
 import { useReportsData } from '@/hooks/use-reports-cache';
 import type { DivisionConfig } from '@/components/dashboard/AnalyticsDashboard';
 import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWorkspaceSkeleton';
@@ -113,8 +114,10 @@ type DashboardView = 'dashboard' | 'reports';
 
 const DeferredChartRegion = memo(function DeferredChartRegion({
   children,
+  onVisible,
 }: {
   children: ReactNode;
+  onVisible?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -129,6 +132,7 @@ const DeferredChartRegion = memo(function DeferredChartRegion({
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
           setIsVisible(true);
+          onVisible?.();
           observer.disconnect();
         }
       },
@@ -141,7 +145,7 @@ const DeferredChartRegion = memo(function DeferredChartRegion({
     observer.observe(node);
 
     return () => observer.disconnect();
-  }, [isVisible]);
+  }, [isVisible, onVisible]);
 
   return (
     <div ref={containerRef}>
@@ -179,34 +183,18 @@ const DeferredChartRegion = memo(function DeferredChartRegion({
   );
 });
 
-// Dashboard summary/KPIs need every ground report, not just the first page.
-// Loop the cursor API (100/page) until exhausted. DB is small, so this is cheap.
-async function fetchAllAdminReports(): Promise<Report[]> {
-  const all: Report[] = [];
-  let cursor: string | null = null;
-  for (let guard = 0; guard < 500; guard += 1) {
-    const res = await fetch(withReportCursor('/api/admin/reports', cursor, 100), {
-      credentials: 'include',
-    });
-    if (!res.ok) throw new Error(`Failed to fetch reports (${res.status})`);
-    const page = normalizeReportPage<Report>(await res.json());
-    all.push(...page.reports);
-    if (!page.pagination.hasMore || !page.pagination.nextCursor) break;
-    cursor = page.pagination.nextCursor;
-  }
-  return all;
-}
-
 export function DivisionAnalystDashboard({
   division,
   realDivisionCode,
   initialReports,
   initialAnalytics,
+  initialOverview,
   lockedBranches,
   forceView,
 }: DivisionAnalystDashboardProps & {
   initialReports?: Report[];
   initialAnalytics?: AnalyticsData | null;
+  initialOverview?: DashboardOverview;
 
   lockedBranches?: string[];
 
@@ -226,6 +214,7 @@ export function DivisionAnalystDashboard({
   const isDashboardView = view === 'dashboard';
 
   const [refreshing, setRefreshing] = useState(false);
+  const [shouldLoadCompleteReports, setShouldLoadCompleteReports] = useState(false);
   const [showReportsExportModal, setShowReportsExportModal] = useState(false);
   const [dateRange, setDateRange] = useState<'all' | 'week' | 'month' | { from: string; to: string }>('all');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -268,17 +257,25 @@ export function DivisionAnalystDashboard({
     categories: [],
   });
 
-  // Dashboard view loads ALL ground reports (no page cap) for accurate KPIs/summary.
-  const { data: swrReports, isLoading: swrLoading, mutate: mutateReports } = useSWR<Report[]>(
-    isScopeLocked || !isDashboardView ? null : '/api/admin/reports?all=1',
-    fetchAllAdminReports,
-    { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: initialReports }
+  // Full rows are not part of the critical route. They are fetched once the
+  // section workspace is actually reached, and the endpoint rejects partial
+  // populations before any tab is allowed to calculate.
+  const {
+    data: completeReports,
+    error: completeReportsError,
+    isLoading: completeReportsLoading,
+    mutate: mutateReports,
+  } = useSWR<Report[]>(
+    isDashboardView && shouldLoadCompleteReports ? '/api/dashboard/reports' : null,
+    fetchCompleteDashboardReports,
+    { revalidateOnFocus: false, dedupingInterval: 60000, keepPreviousData: true }
   );
   const reports = useMemo(
-    () => isScopeLocked ? (initialReports ?? []) : (swrReports ?? initialReports ?? []),
-    [initialReports, isScopeLocked, swrReports]
+    () => completeReports ?? initialReports ?? [],
+    [completeReports, initialReports]
   );
-  const reportsLoading = isScopeLocked ? false : swrLoading;
+  const hasCompleteReports = Array.isArray(completeReports);
+  const reportsLoading = shouldLoadCompleteReports && completeReportsLoading;
 
   // All Reports view uses server-side cursor pagination (50/page, "Load More").
   const {
@@ -294,11 +291,10 @@ export function DivisionAnalystDashboard({
     initialPage: null,
   });
 
-  const { data: analytics = null, isLoading: analyticsLoading, mutate: mutateAnalytics } = useSWR<AnalyticsData>(
-    isDashboardView ? '/api/admin/analytics' : null,
-    (url) => fetch(url).then(res => res.json()),
-    { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: initialAnalytics ?? undefined }
-  );
+  // The previous /api/admin/analytics response was never consumed by the
+  // rendered charts and returned 403 for division roles. Do not place it on
+  // the critical path.
+  const analytics = initialAnalytics ?? null;
 
   const { data: dashboardsData } = useData<{ dashboards: Array<{ folder?: string | null }> }>(
     needsCustomerFeedbackData ? '/api/dashboards' : null
@@ -309,26 +305,25 @@ export function DivisionAnalystDashboard({
     [dashboardsData]
   );
 
-  const loading = reportsLoading || (view === 'reports' && pagedLoading) || (isDashboardView && analyticsLoading);
+  const loading = view === 'reports' && pagedLoading;
   const {
     reports: joumpaReports,
     refresh: refreshJoumpaReports,
     patchReport: patchJoumpaReport,
-  } = useJoumpaReports();
+  } = useJoumpaReports(view === 'reports');
 
   const refreshData = useCallback(async () => {
     setRefreshing(true);
     try {
       await Promise.all([
-        mutateReports(),
-        refreshJoumpaReports(),
+        ...(shouldLoadCompleteReports ? [mutateReports()] : []),
+        ...(view === 'reports' ? [refreshJoumpaReports()] : []),
         ...(view === 'reports' ? [refreshPaged()] : []),
-        ...(isDashboardView ? [mutateAnalytics()] : []),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [isDashboardView, view, mutateReports, mutateAnalytics, refreshJoumpaReports, refreshPaged]);
+  }, [shouldLoadCompleteReports, view, mutateReports, refreshJoumpaReports, refreshPaged]);
 
   const handleUpdateStatus = useCallback(async (
     reportId: string,
@@ -615,6 +610,17 @@ export function DivisionAnalystDashboard({
   );
 
   const filteredStats = useMemo(() => {
+    const overviewMatchesFilters = Boolean(initialOverview)
+      && dateRange === 'all'
+      && globalFilters.hubs.length === 0
+      && globalFilters.airlines.length === 0
+      && globalFilters.categories.length === 0
+      && (
+        globalFilters.branches.length === 0
+        || globalFilters.branches.every((branch) => lockedBranches?.includes(branch))
+      );
+    if (!hasCompleteReports && overviewMatchesFilters) return initialOverview!.summary;
+
     const total = filteredReports.length;
     const resolved = filteredReports.filter((r) => cleanReportValue(r.status).toUpperCase() === 'CLOSED').length;
     const pending = filteredReports.filter(
@@ -636,7 +642,7 @@ export function DivisionAnalystDashboard({
       )
     ).sort((a, b) => a - b);
     return { total, resolved, pending, highSeverity, resolutionRate, years };
-  }, [filteredReports]);
+  }, [dateRange, filteredReports, globalFilters, hasCompleteReports, initialOverview, lockedBranches]);
 
   const drilldownUrl = (type: string, value: string) =>
     `/dashboard/analyst/drilldown?type=${type}&value=${encodeURIComponent(
@@ -644,6 +650,8 @@ export function DivisionAnalystDashboard({
     )}&period=${dateRange}`;
 
   const availableOptions = useMemo(() => {
+    if (!hasCompleteReports && initialOverview) return initialOverview.filterOptions;
+
     const hubs = new Set<string>();
     const branches = new Set<string>();
     const airlines = new Set<string>();
@@ -664,7 +672,7 @@ export function DivisionAnalystDashboard({
       airlines: Array.from(airlines).sort(),
       categories: Array.from(categories).sort(),
     };
-  }, [reports]);
+  }, [hasCompleteReports, initialOverview, reports]);
 
   const handleCustomerFeedbackShortcut = useCallback(async () => {
     setCfLoading(true);
@@ -751,6 +759,10 @@ export function DivisionAnalystDashboard({
   };
 
   const handleStatClick = (type: string) => {
+    if (!hasCompleteReports) {
+      setShouldLoadCompleteReports(true);
+      return;
+    }
     const open = (items: Report[], title: string) => {
       openDrilldown(items, title);
     };
@@ -969,18 +981,38 @@ export function DivisionAnalystDashboard({
         )}
 
         {view === 'dashboard' && (
-          <DeferredChartRegion>
-            <ChartSection
-              division={division}
-              filteredReports={filteredReports}
-              reports={reports}
-              analytics={analytics}
-              globalFilters={globalFilters}
-              setGlobalFilters={setGlobalFilters}
-              availableOptions={availableOptions}
-              drilldownUrl={drilldownUrl}
-              onDrilldown={(url) => router.push(url)}
-            />
+          <DeferredChartRegion onVisible={() => setShouldLoadCompleteReports(true)}>
+            {completeReportsError ? (
+              <section role="alert" className="rounded-[28px] border border-red-200 bg-red-50 p-8 text-center text-sm font-semibold text-red-700">
+                Complete report data could not be loaded. No partial section totals are shown.
+                <button
+                  type="button"
+                  onClick={() => { void mutateReports(); }}
+                  className="ml-3 rounded-xl bg-red-700 px-4 py-2 text-white"
+                >
+                  Retry
+                </button>
+              </section>
+            ) : reportsLoading || !hasCompleteReports ? (
+              <section aria-label="Loading complete report calculations" className="min-h-[40vh] rounded-[28px] border border-[var(--surface-3)] bg-[var(--surface-1)] p-8 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-4 border-[var(--surface-4)] border-t-[var(--brand-primary)]" />
+                  <p className="text-sm font-semibold text-[var(--text-secondary)]">Calculating every eligible report…</p>
+                </div>
+              </section>
+            ) : (
+              <ChartSection
+                division={division}
+                filteredReports={filteredReports}
+                reports={reports}
+                analytics={analytics}
+                globalFilters={globalFilters}
+                setGlobalFilters={setGlobalFilters}
+                availableOptions={availableOptions}
+                drilldownUrl={drilldownUrl}
+                onDrilldown={(url) => router.push(url)}
+              />
+            )}
           </DeferredChartRegion>
         )}
 

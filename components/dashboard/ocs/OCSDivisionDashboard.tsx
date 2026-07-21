@@ -28,8 +28,8 @@ import {
   resolveReportSeverity,
   resolveReportSource,
 } from '@/lib/reports-export';
-import type { Report, AnalyticsData, UserRole } from '@/types';
-import { reportsFromPayload } from '@/lib/report-page';
+import type { Report, UserRole } from '@/types';
+import { fetchCompleteDashboardReports } from '@/lib/dashboard/client';
 import type { DivisionConfig } from '@/components/dashboard/AnalyticsDashboard';
 import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWorkspaceSkeleton';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
@@ -116,12 +116,10 @@ type DashboardView = 'dashboard' | 'reports';
 export function OCSDivisionDashboard({
   division,
   initialReports,
-  initialAnalytics,
   lockedBranches,
   forceView,
 }: OCSDivisionDashboardProps & {
   initialReports?: Report[];
-  initialAnalytics?: AnalyticsData | null;
 
   lockedBranches?: string[];
 
@@ -138,7 +136,6 @@ export function OCSDivisionDashboard({
     : searchParams.get('view') === 'reports'
       ? 'reports'
       : 'dashboard';
-  const isDashboardView = view === 'dashboard';
 
   const [refreshing, setRefreshing] = useState(false);
   const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
@@ -184,19 +181,27 @@ export function OCSDivisionDashboard({
     categories: [],
   });
 
-  const { data: swrReports, isLoading: swrLoading, mutate: mutateReports } = useSWR<Report[]>(
-    isScopeLocked ? null : '/api/admin/reports',
-    (url) => fetch(url).then(res => res.json()).then(reportsFromPayload<Report>),
-    { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: initialReports }
+  // OCS renders quick links + records tabs on the dashboard view — it needs no
+  // KPI/chart calculations there. The complete report collection is only needed
+  // for the report list and the on-intent filter/export modals, so it stays off
+  // the initial critical path. The endpoint rejects partial populations.
+  const needReports = view === 'reports' || showFilterModal || showReportsExportModal;
+  const {
+    data: completeReports,
+    error: completeReportsError,
+    isLoading: completeReportsLoading,
+    mutate: mutateReports,
+  } = useSWR<Report[]>(
+    needReports ? '/api/dashboard/reports' : null,
+    fetchCompleteDashboardReports,
+    { revalidateOnFocus: false, dedupingInterval: 60000, keepPreviousData: true }
   );
-  const reports = isScopeLocked ? (initialReports ?? []) : (swrReports ?? []);
-  const reportsLoading = isScopeLocked ? false : swrLoading;
-
-  const { data: analytics = null, isLoading: analyticsLoading, mutate: mutateAnalytics } = useSWR<AnalyticsData>(
-    isDashboardView ? '/api/admin/analytics' : null,
-    (url) => fetch(url).then(res => res.json()),
-    { revalidateOnFocus: false, dedupingInterval: 60000, fallbackData: initialAnalytics ?? undefined }
+  const reports = useMemo(
+    () => completeReports ?? initialReports ?? [],
+    [completeReports, initialReports]
   );
+  const hasCompleteReports = Array.isArray(completeReports);
+  const reportsLoading = needReports && completeReportsLoading && !hasCompleteReports;
 
   const { data: dashboardsData } = useData<{ dashboards: Array<{ folder?: string | null }> }>(
     needsCustomerFeedbackData ? '/api/dashboards' : null
@@ -207,25 +212,25 @@ export function OCSDivisionDashboard({
     [dashboardsData]
   );
 
-  const loading = reportsLoading || (isDashboardView && analyticsLoading);
+  // The former /api/admin/analytics response was never consumed by OCS and is
+  // not on the critical path.
+  const loading = view === 'reports' && reportsLoading;
   const {
     reports: joumpaReports,
     refresh: refreshJoumpaReports,
     patchReport: patchJoumpaReport,
-  } = useJoumpaReports();
+  } = useJoumpaReports(needReports);
 
   const refreshData = useCallback(async () => {
     setRefreshing(true);
     try {
       await Promise.all([
-        mutateReports(),
-        refreshJoumpaReports(),
-        ...(isDashboardView ? [mutateAnalytics()] : []),
+        ...(needReports ? [mutateReports(), refreshJoumpaReports()] : []),
       ]);
     } finally {
       setRefreshing(false);
     }
-  }, [isDashboardView, mutateReports, mutateAnalytics, refreshJoumpaReports]);
+  }, [needReports, mutateReports, refreshJoumpaReports]);
 
   const handleUpdateStatus = useCallback(async (
     reportId: string,
@@ -737,14 +742,27 @@ export function OCSDivisionDashboard({
             <div className="mb-4">
               <ReportSourceToggle value={listSource} onChange={setListSource} />
             </div>
-            <ReportsDetailTable
-              reports={listReports}
-              onReportClick={setSelectedReport}
-              onStatusUpdate={isScopeLocked ? undefined : handleUpdateStatus}
-              loading={loading || refreshing}
-              fullHeight
-              toolbarFilter={reportsToolbarFilter}
-            />
+            {completeReportsError ? (
+              <section role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-sm font-semibold text-red-700">
+                Complete report data could not be loaded. No partial list is shown.
+                <button
+                  type="button"
+                  onClick={() => { void mutateReports(); }}
+                  className="ml-3 rounded-xl bg-red-700 px-4 py-2 text-white"
+                >
+                  Retry
+                </button>
+              </section>
+            ) : (
+              <ReportsDetailTable
+                reports={listReports}
+                onReportClick={setSelectedReport}
+                onStatusUpdate={isScopeLocked ? undefined : handleUpdateStatus}
+                loading={loading || refreshing}
+                fullHeight
+                toolbarFilter={reportsToolbarFilter}
+              />
+            )}
           </div>
         )}
 
