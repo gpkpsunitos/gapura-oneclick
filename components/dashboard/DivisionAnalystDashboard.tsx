@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo, useRef, type ReactNode, memo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, useTransition, type Dispatch, type SetStateAction, type ReactNode, memo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
@@ -245,17 +245,32 @@ export function DivisionAnalystDashboard({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const [globalFilters, setGlobalFilters] = useState<{
+  type GlobalFilters = {
     hubs: string[];
     branches: string[];
     airlines: string[];
     categories: string[];
-  }>({
+  };
+  const [globalFilters, setGlobalFilters] = useState<GlobalFilters>({
     hubs: [],
     branches: lockedBranches ?? [],
     airlines: [],
     categories: [],
   });
+
+  // Date-range and global-filter changes recompute `filteredReports`/`filteredStats`
+  // and re-render the chart + table subtree. Marking those state updates as
+  // transitions lets React keep the clicked control responsive (better INP)
+  // instead of blocking the interaction on the downstream render.
+  const [, startFilterTransition] = useTransition();
+  const applyDateRange = useCallback(
+    (next: typeof dateRange) => startFilterTransition(() => setDateRange(next)),
+    []
+  );
+  const applyGlobalFilters = useCallback<Dispatch<SetStateAction<GlobalFilters>>>(
+    (next) => startFilterTransition(() => setGlobalFilters(next)),
+    []
+  );
 
   // Full rows are not part of the critical route. They are fetched once the
   // section workspace is actually reached, and the endpoint rejects partial
@@ -824,7 +839,7 @@ export function DivisionAnalystDashboard({
         <PresentationSlide className="!p-3 sm:!p-4 md:!p-5 !min-h-0 !bg-[var(--surface-1)] !shadow-sm !border !border-[var(--surface-3)] rounded-xl sm:rounded-2xl md:rounded-[24px] !overflow-visible">
           <ResponsiveHeader
             dateRange={dateRange}
-            onDateRangeChange={setDateRange}
+            onDateRangeChange={applyDateRange}
             onRefresh={refreshData}
             refreshing={refreshing}
             onCustomerFeedback={realDivisionCode === 'OS' ? handleCustomerFeedbackShortcut : undefined}
@@ -1007,7 +1022,7 @@ export function DivisionAnalystDashboard({
                 reports={reports}
                 analytics={analytics}
                 globalFilters={globalFilters}
-                setGlobalFilters={setGlobalFilters}
+                setGlobalFilters={applyGlobalFilters}
                 availableOptions={availableOptions}
                 drilldownUrl={drilldownUrl}
                 onDrilldown={(url) => router.push(url)}

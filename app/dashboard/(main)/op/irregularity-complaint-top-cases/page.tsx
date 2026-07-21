@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
@@ -15,17 +16,30 @@ import {
 } from 'lucide-react';
 import { OpMetricCard } from '@/components/dashboard/op-metric-card';
 import {
-  ActionSummaryInsightPanel,
-} from '@/components/dashboard/action-summary-insight-panel';
-import {
   AnalyticsSection,
-  AnalyticsSectionLoading,
   AnalyticsSourceStrip,
 } from '@/components/dashboard/analytics-source-strip';
 import { OpAnalyticsFilterBar, useFilterOptions } from '@/components/dashboard/op-analytics-filter-bar';
-import { ResponsiveBarChart } from '@/components/charts/ResponsiveBarChart';
-import { ResponsiveLineChart } from '@/components/charts/ResponsiveLineChart';
-import { ResponsivePieChart } from '@/components/charts/ResponsivePieChart';
+
+// recharts and the AI panel load lazily so they stay out of this route's
+// initial JS. Charts sit below the fold behind data fetches anyway.
+const chartLoading = () => <div className="h-64 w-full animate-pulse rounded-2xl bg-[var(--surface-2)]" />;
+const ResponsiveBarChart = dynamic(
+  () => import('@/components/charts/ResponsiveBarChart').then((m) => m.ResponsiveBarChart),
+  { ssr: false, loading: chartLoading }
+);
+const ResponsiveLineChart = dynamic(
+  () => import('@/components/charts/ResponsiveLineChart').then((m) => m.ResponsiveLineChart),
+  { ssr: false, loading: chartLoading }
+);
+const ResponsivePieChart = dynamic(
+  () => import('@/components/charts/ResponsivePieChart').then((m) => m.ResponsivePieChart),
+  { ssr: false, loading: chartLoading }
+);
+const ActionSummaryInsightPanel = dynamic(
+  () => import('@/components/dashboard/action-summary-insight-panel').then((m) => m.ActionSummaryInsightPanel),
+  { ssr: false }
+);
 import { getShortcutSourceConfig } from '@/lib/op-shortcut-source-matrix';
 import type { AnalyticsRuntimeStatus } from '@/lib/op-shortcut-source-matrix';
 import {

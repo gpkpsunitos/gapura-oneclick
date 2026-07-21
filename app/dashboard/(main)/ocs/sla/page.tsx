@@ -1,9 +1,19 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { PresentationSlide } from '@/components/dashboard/PresentationSlide';
-import { ResponsivePieChart } from '@/components/charts/ResponsivePieChart';
-import { ResponsiveBarChart } from '@/components/charts/ResponsiveBarChart';
+
+// recharts loads lazily so it stays out of this route's initial JS.
+const chartLoading = () => <div className="h-full w-full animate-pulse rounded-2xl bg-[var(--surface-2)]" />;
+const ResponsivePieChart = dynamic(
+  () => import('@/components/charts/ResponsivePieChart').then((m) => m.ResponsivePieChart),
+  { ssr: false, loading: chartLoading }
+);
+const ResponsiveBarChart = dynamic(
+  () => import('@/components/charts/ResponsiveBarChart').then((m) => m.ResponsiveBarChart),
+  { ssr: false, loading: chartLoading }
+);
 
 type Stats = {
   categoryDistribution: { name: string; value: number }[];
