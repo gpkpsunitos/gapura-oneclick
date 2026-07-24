@@ -15,8 +15,6 @@ export interface DashboardScopeFilters {
 
   area?: string;
 
-  target_division?: string;
-
   severity?: string;
 
   status?: string;
@@ -29,7 +27,6 @@ export const DASHBOARD_FILTER_FIELDS = [
   { key: 'airline', table: 'reports', field: 'airlines' },
   { key: 'main_category', table: 'reports', field: 'category' },
   { key: 'area', table: 'reports', field: 'area' },
-  { key: 'target_division', table: 'reports', field: 'target_division' },
   { key: 'severity', table: 'reports', field: 'severity' },
   { key: 'status', table: 'reports', field: 'status' },
 ] as const;

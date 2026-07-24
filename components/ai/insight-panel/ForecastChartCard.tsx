@@ -4,18 +4,18 @@ import { useMemo } from 'react';
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
-import { fmtNumber, shortDate } from '@/components/ai/ml-overview-sections';
 import type { ForecastResult } from '@/lib/ml-client';
-import { Section, StatTile } from './primitives';
+import { fmtNumberEn, shortDateEn } from './format';
+import { CAPTION, Section, StatTile } from './primitives';
 
 export function ForecastChartCard({ forecast }: { forecast: ForecastResult }) {
   const data = useMemo(
     () =>
       (forecast.forecast ?? []).map((p) => ({
-        date: shortDate(p.date),
-        prediksi: Number(p.predicted_count.toFixed(2)),
-        bawah: Number((p.lower ?? 0).toFixed(2)),
-        rentang: Number(((p.upper ?? 0) - (p.lower ?? 0)).toFixed(2)),
+        date: shortDateEn(p.date),
+        predicted: Number(p.predicted_count.toFixed(2)),
+        lower: Number((p.lower ?? 0).toFixed(2)),
+        range: Number(((p.upper ?? 0) - (p.lower ?? 0)).toFixed(2)),
         upper: Number((p.upper ?? 0).toFixed(2)),
       })),
     [forecast],
@@ -24,14 +24,15 @@ export function ForecastChartCard({ forecast }: { forecast: ForecastResult }) {
 
   const maxUpper = Math.max(...data.map((d) => d.upper), 1);
   const yMax = Math.ceil(maxUpper * 1.1);
-  const total = Math.round(data.reduce((s, d) => s + d.prediksi, 0));
+  const total = Math.round(data.reduce((s, d) => s + d.predicted, 0));
   const avg = (total / data.length).toFixed(1);
 
   return (
-    <Section title={`Forecast Harian · ${data.length} hari`}>
-      <div className="mb-4 grid grid-cols-2 gap-2">
-        <StatTile value={fmtNumber(total)} label={`Total ${data.length} hari`} />
-        <StatTile value={avg} label="Rata-rata per hari" />
+    <Section title={`Daily Forecast · ${data.length} Days`}>
+      <p className={CAPTION}>Overall reports across all stations combined, predicted day by day.</p>
+      <div className="mb-4 mt-2 grid grid-cols-2 gap-2">
+        <StatTile value={fmtNumberEn(total)} label={`Total over ${data.length} days`} />
+        <StatTile value={avg} label="Average per day" />
       </div>
       <div className="h-56">
         <ResponsiveContainer width="100%" height="100%">
@@ -56,12 +57,12 @@ export function ForecastChartCard({ forecast }: { forecast: ForecastResult }) {
               cursor={{ stroke: '#059669', strokeDasharray: '2 4', strokeOpacity: 0.5 }}
               contentStyle={{ fontSize: 12, border: '1px solid #e2e8f0', borderRadius: 10, background: '#fff' }}
               formatter={(value: number | string, name: string) =>
-                name === 'rentang' || name === 'bawah' ? [null, null] : [`~${value} laporan`, 'Perkiraan']}
+                name === 'range' || name === 'lower' ? [null, null] : [`~${value} reports`, 'Predicted']}
               labelStyle={{ color: '#0f172a', fontWeight: 600, marginBottom: 2 }}
             />
-            <Area dataKey="bawah" stackId="band" stroke="none" fill="transparent" isAnimationActive={false} />
-            <Area dataKey="rentang" stackId="band" stroke="none" fill="url(#forecastBand)" isAnimationActive={false} />
-            <Line dataKey="prediksi" stroke="#059669" strokeWidth={2.5} dot={{ r: 3, fill: '#059669', stroke: '#fff', strokeWidth: 1.5 }} type="monotone" />
+            <Area dataKey="lower" stackId="band" stroke="none" fill="transparent" isAnimationActive={false} />
+            <Area dataKey="range" stackId="band" stroke="none" fill="url(#forecastBand)" isAnimationActive={false} />
+            <Line dataKey="predicted" stroke="#059669" strokeWidth={2.5} dot={{ r: 3, fill: '#059669', stroke: '#fff', strokeWidth: 1.5 }} type="monotone" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>

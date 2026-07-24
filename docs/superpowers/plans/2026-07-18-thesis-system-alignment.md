@@ -3,7 +3,7 @@
 Date: 18 July 2026  
 Design: `docs/superpowers/specs/2026-07-18-thesis-system-alignment-design.md`  
 Source: `/Users/nrzngr/Downloads/Skripsi_Infinite_Loop.docx`  
-Output root: `/Users/nrzngr/Desktop/gapura-irrs2/output/skripsi-system-alignment/`
+Output root: `output/skripsi-system-alignment/`
 
 ## Execution Rules
 

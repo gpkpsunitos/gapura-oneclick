@@ -1,6 +1,6 @@
 
 import type { Metadata, Viewport } from 'next';
-import { Plus_Jakarta_Sans, JetBrains_Mono, Fraunces } from 'next/font/google';
+import { Plus_Jakarta_Sans, JetBrains_Mono, Fraunces, Bricolage_Grotesque, Hanken_Grotesk } from 'next/font/google';
 import './globals.css';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -9,6 +9,26 @@ const plusJakartaSans = Plus_Jakarta_Sans({
     preload: true,
     adjustFontFallback: true,
     variable: '--font-plus-jakarta',
+});
+
+// Display face — idiosyncratic editorial grotesque for headlines & big numbers.
+// App-wide default (dashboards/embed); auth routes pin back to Plus Jakarta in auth-theme.css.
+const bricolageGrotesque = Bricolage_Grotesque({
+    subsets: ['latin'],
+    display: 'swap',
+    preload: true,
+    adjustFontFallback: true,
+    weight: ['600', '700', '800'],
+    variable: '--font-bricolage',
+});
+
+// Body face — warm, highly readable grotesque for prose, labels, inputs, buttons.
+const hankenGrotesk = Hanken_Grotesk({
+    subsets: ['latin'],
+    display: 'swap',
+    preload: true,
+    adjustFontFallback: true,
+    variable: '--font-hanken',
 });
 
 // Editorial display serif — applied ONLY inside `.cf-root` (Customer Feedback dashboard).
@@ -105,7 +125,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="id" className={`${plusJakartaSans.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}>
+        <html lang="id" className={`${plusJakartaSans.variable} ${bricolageGrotesque.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}>
             <body>
                 {children}
             </body>

@@ -304,7 +304,7 @@ export function ResponsiveHeader({
         router.push(`${path}?${params.toString()}`);
       }}
       className={cn(
-        'min-h-[48px] px-5 sm:px-6 rounded-2xl font-display font-bold tracking-tight transition-all duration-300 w-full sm:w-auto justify-center',
+        'col-span-2 min-h-[48px] px-5 sm:px-6 rounded-2xl font-display font-bold tracking-tight transition-all duration-300 w-full sm:w-auto justify-center',
         'bg-gradient-to-br from-[var(--brand-emerald-500)] to-[var(--brand-emerald-600)] text-[var(--text-on-brand)]',
         'hover:shadow-xl hover:-translate-y-0.5 active:scale-95'
       )}
@@ -378,7 +378,7 @@ export function ResponsiveHeader({
                 </div>
               </div>
 
-              <div className="flex w-full flex-col gap-2 sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
+              <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap lg:w-auto lg:justify-end">
                 {divisionDashboardButtons}
                 {onCustomerFeedback && (
                   <Button

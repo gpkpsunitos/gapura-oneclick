@@ -52,9 +52,9 @@ export default function NewReportPage() {
         .cr-tab:hover { color: #101013; }
         .cr-tab:active { transform: scale(0.97); }
         .cr-tab--active {
-          background: #101013;
+          background: #047857;
           color: #ffffff;
-          box-shadow: 0 4px 12px -4px rgba(0,0,0,0.3);
+          box-shadow: 0 4px 12px -4px rgba(4,120,87,0.45);
         }
         .cr-tab--active:hover { color: #ffffff; }
       ` }} />

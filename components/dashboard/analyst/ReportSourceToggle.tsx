@@ -32,7 +32,7 @@ export function ReportSourceToggle({
   onChange: (value: ReportSourceValue) => void;
 }) {
   return (
-    <div className="inline-flex flex-wrap items-center gap-0.5 rounded-full border border-[color:var(--sr-border)] bg-white p-0.5">
+    <div className="flex w-full flex-nowrap items-center gap-0.5 overflow-x-auto rounded-full border border-[color:var(--sr-border)] bg-white p-0.5 hide-scrollbar sm:inline-flex sm:w-auto sm:flex-wrap sm:overflow-visible">
       {SOURCE_OPTIONS.map((opt) => {
         const active = opt.value === value;
         return (
@@ -41,7 +41,7 @@ export function ReportSourceToggle({
             type="button"
             onClick={() => onChange(opt.value)}
             aria-pressed={active}
-            className={`rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.06em] leading-none transition ${
+            className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.06em] leading-none transition ${
               active
                 ? 'bg-gradient-to-b from-emerald-500 to-emerald-700 text-white shadow-[0_2px_0_#064e3b]'
                 : 'text-[color:var(--sr-text-3)] hover:text-[color:var(--sr-text)]'

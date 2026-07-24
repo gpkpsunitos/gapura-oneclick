@@ -10,10 +10,11 @@ export function CaseRecurrenceCard({ recurrence }: { recurrence: ReportCountDime
     .sort((a, b) => (b.prob_appear_next ?? 0) - (a.prob_appear_next ?? 0))
     .slice(0, 8);
   if (entries.length === 0) return null;
-  const perLabel = recurrence.granularity === 'monthly' ? 'bulan' : 'minggu';
+  const perLabel = recurrence.granularity === 'monthly' ? 'month' : 'week';
+  const perLabelPlural = recurrence.granularity === 'monthly' ? 'months' : 'weeks';
 
   return (
-    <Section title="Kasus Cenderung Berulang">
+    <Section title="Cases Likely to Recur">
       <ul className="divide-y divide-slate-100">
         {entries.map((e) => {
           const prob = e.prob_appear_next ?? 0;
@@ -28,7 +29,7 @@ export function CaseRecurrenceCard({ recurrence }: { recurrence: ReportCountDime
         })}
       </ul>
       <InlineNote>
-        Kemungkinan klasifikasi kasus muncul minimal sekali dalam {recurrence.n_periods} {perLabel} ke depan. &gt;70% = hampir pasti terjadi lagi.
+        Likelihood this case classification appears at least once in the next {recurrence.n_periods} {recurrence.n_periods === 1 ? perLabel : perLabelPlural}. &gt;70% = almost certain to recur.
       </InlineNote>
     </Section>
   );

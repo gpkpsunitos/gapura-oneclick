@@ -74,7 +74,7 @@ type SummaryDataset = {
 type SummaryRecommendation = {
   title: string;
   detail: string;
-  priority: 'tinggi' | 'sedang' | 'rendah';
+  priority: 'high' | 'medium' | 'low';
 };
 
 export type SectionSummaryResponse = {
@@ -89,7 +89,7 @@ export type SectionSummaryResponse = {
   predictiveSummary: string;
 };
 
-const SUMMARY_CACHE_NS = 'section-summary';
+const SUMMARY_CACHE_NS = 'section-summary-v2';
 // The cacheKey already encodes the exact data snapshot (datasets/chartData),
 // so a long TTL is safe — a different filter/data state gets its own key
 // rather than reusing a stale one.
@@ -104,7 +104,7 @@ function stableKey(value: unknown) {
 }
 
 function formatNumber(value: number) {
-  return Number.isFinite(value) ? Math.round(value).toLocaleString('id-ID') : '—';
+  return Number.isFinite(value) ? Math.round(value).toLocaleString('en-US') : '—';
 }
 
 // ---------------------------------------------------------------------------
@@ -121,7 +121,7 @@ function SummarySkeleton() {
       </div>
       <div className={cn(CARD, 'h-40 animate-pulse bg-slate-100')} />
       <p className="text-center text-[12px] text-slate-500">
-        AI sedang membaca dan menyimpulkan data bagian ini — mohon tunggu sebentar…
+        AI is reading and summarizing this section&apos;s data — please wait a moment…
       </p>
     </div>
   );
@@ -136,7 +136,7 @@ function ErrorCard({ message, onRetry }: { message: string; onRetry: () => void 
         onClick={onRetry}
         className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-[12px] font-bold text-emerald-800 hover:bg-emerald-100"
       >
-        Coba lagi
+        Try again
       </button>
     </div>
   );
@@ -224,7 +224,7 @@ function MonthlyColumns({ dataset }: { dataset: SummaryDataset }) {
               borderRadius: 10,
               background: '#fff',
             }}
-            formatter={(value: number) => [`${formatNumber(value)} ${dataset.unit}`, 'Jumlah']}
+            formatter={(value: number) => [`${formatNumber(value)} ${dataset.unit}`, 'Amount']}
           />
           <Bar dataKey="value" radius={[5, 5, 0, 0]} isAnimationActive={false}>
             {rows.map((row, index) => (
@@ -275,22 +275,22 @@ function DatasetCard({ dataset }: { dataset: SummaryDataset }) {
 }
 
 const PRIORITY_STYLES: Record<SummaryRecommendation['priority'], { badge: string; label: string }> = {
-  tinggi: { badge: 'border-rose-200 bg-rose-50 text-rose-700', label: 'Prioritas Tinggi' },
-  sedang: { badge: 'border-amber-200 bg-amber-50 text-amber-800', label: 'Prioritas Sedang' },
-  rendah: { badge: 'border-slate-200 bg-slate-50 text-slate-600', label: 'Prioritas Rendah' },
+  high: { badge: 'border-rose-200 bg-rose-50 text-rose-700', label: 'High Priority' },
+  medium: { badge: 'border-amber-200 bg-amber-50 text-amber-800', label: 'Medium Priority' },
+  low: { badge: 'border-slate-200 bg-slate-50 text-slate-600', label: 'Low Priority' },
 };
 
 function RecommendationCards({ items }: { items: SummaryRecommendation[] }) {
   if (items.length === 0) {
     return <p className="text-[13px] text-slate-500">No recommendations for this section.</p>;
   }
-  const order = { tinggi: 0, sedang: 1, rendah: 2 } as const;
-  const sorted = [...items].sort((a, b) => order[a.priority] - order[b.priority]);
+  const order = { high: 0, medium: 1, low: 2 } as const;
+  const sorted = [...items].sort((a, b) => (order[a.priority] ?? 1) - (order[b.priority] ?? 1));
 
   return (
     <div className="space-y-3">
       {sorted.map((rec, index) => {
-        const style = PRIORITY_STYLES[rec.priority];
+        const style = PRIORITY_STYLES[rec.priority] ?? PRIORITY_STYLES.medium;
         return (
           <div
             key={`${rec.title}-${index}`}
@@ -355,7 +355,7 @@ export function SummaryTab({
     <div className="space-y-3">
       {/* Executive summary */}
       <div className={cn(CARD, 'p-5')}>
-        <h4 className={KICKER}>Ringkasan Eksekutif</h4>
+        <h4 className={KICKER}>Executive Summary</h4>
         <p className="mt-3 break-words text-[14px] leading-relaxed text-slate-800">
           {summary.executiveSummary}
         </p>
@@ -370,13 +370,13 @@ export function SummaryTab({
 
       <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
         <div className={cn(CARD, 'p-5')}>
-          <h4 className={KICKER}>Poin Penting</h4>
+          <h4 className={KICKER}>Key Points</h4>
           <div className="mt-4">
             <KeyPointList items={summary.keyPoints} />
           </div>
         </div>
         <div className={cn(CARD, 'p-5')}>
-          <h4 className={KICKER}>Rekomendasi Tindakan</h4>
+          <h4 className={KICKER}>Recommended Actions</h4>
           <div className="mt-4">
             <RecommendationCards items={summary.recommendations ?? []} />
           </div>
@@ -384,7 +384,7 @@ export function SummaryTab({
       </div>
 
       <div className={cn(CARD, 'p-5')}>
-        <h4 className={KICKER}>Perkiraan ke Depan</h4>
+        <h4 className={KICKER}>Looking Ahead</h4>
         <p className="mt-3 break-words text-[13.5px] leading-relaxed text-slate-700">
           {summary.predictiveSummary}
         </p>
@@ -500,7 +500,7 @@ export function SectionAiSummaryInsightButton({ context }: { context: SectionAiC
                     className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 transition-colors hover:text-emerald-700 disabled:opacity-40"
                   >
                     <RefreshCw size={13} className={cn(refreshing && 'animate-spin')} />
-                    Perbarui
+                    Refresh
                   </button>
                 </div>
               </div>
@@ -516,7 +516,7 @@ export function SectionAiSummaryInsightButton({ context }: { context: SectionAiC
                   activeTab === 'summary' ? 'border-emerald-700 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800',
                 )}
               >
-                Ringkasan
+                Summary
               </button>
               <button
                 type="button"
@@ -526,7 +526,7 @@ export function SectionAiSummaryInsightButton({ context }: { context: SectionAiC
                   activeTab === 'insight' ? 'border-emerald-700 text-emerald-700' : 'border-transparent text-slate-500 hover:text-slate-800',
                 )}
               >
-                Wawasan
+                Insights
               </button>
             </div>
           </div>
@@ -551,8 +551,8 @@ export function SectionAiSummaryInsightButton({ context }: { context: SectionAiC
             {/* Fine print */}
             <div className={cn(CAPTION, 'mt-5 border-t border-slate-200 pt-4')}>
               {activeTab === 'summary'
-                ? 'Semua angka diambil langsung dari data dashboard yang sedang Anda lihat — AI hanya menyusun narasinya.'
-                : 'Semua angka adalah estimasi berdasarkan pola laporan historis — bukan angka pasti. Gunakan sebagai panduan, bukan keputusan akhir.'}
+                ? 'Every number is pulled directly from the dashboard data you’re viewing — the AI only writes the narrative.'
+                : 'All figures are estimates based on historical report patterns — not exact numbers. Use them as guidance, not a final decision.'}
             </div>
           </div>
         </SheetContent>

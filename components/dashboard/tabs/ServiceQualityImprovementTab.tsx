@@ -661,15 +661,18 @@ function HeatMatrix({
   );
 
   return (
-    <div className="h-full w-full overflow-auto">
-      <table className="sr-table text-[11px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
+    <div className="h-full w-full overflow-auto touch-scroll">
+      <table
+        className="sr-table text-[11px]"
+        style={{ width: '100%', minWidth: `${160 + (colKeys.length + 1) * 84}px`, tableLayout: 'auto' }}
+      >
         <thead>
           <tr>
-            <th className="!text-left" style={{ width: '18%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{rowLabel}</th>
+            <th className="!text-left" style={{ minWidth: 120, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word' }}>{rowLabel}</th>
             {colKeys.map((c) => (
-              <th key={c.id} className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{c.label}</th>
+              <th key={c.id} className="sr-center" style={{ whiteSpace: 'nowrap' }}>{c.label}</th>
             ))}
-            <th className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>Total</th>
+            <th className="sr-center" style={{ whiteSpace: 'nowrap' }}>Total</th>
           </tr>
         </thead>
         <tbody>
@@ -679,7 +682,7 @@ function HeatMatrix({
               <tr key={r.id}>
                 <td
                   className="sr-label leading-tight !bg-[color:var(--sr-overlay)] font-bold"
-                  style={{ verticalAlign: 'middle', paddingTop: 8, paddingBottom: 8, whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+                  style={{ minWidth: 120, verticalAlign: 'middle', paddingTop: 8, paddingBottom: 8, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word' }}
                 >
                   {r.label}
                 </td>
@@ -826,16 +829,16 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
 
   const tdStyle: CSSProperties = {
     whiteSpace: 'normal',
-    wordBreak: 'break-word',
-    overflowWrap: 'anywhere',
+    wordBreak: 'normal',
+    overflowWrap: 'break-word',
     padding: '8px 10px',
     verticalAlign: 'top',
     fontSize: 12,
   };
 
   return (
-    <div className="overflow-y-auto" style={{ height: '36rem' }}>
-      <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
+    <div className="overflow-auto touch-scroll" style={{ height: '36rem' }}>
+      <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 920, tableLayout: 'fixed' }}>
           <thead>
             <tr>
               <th style={{ width: '9.5%', whiteSpace: 'normal', wordBreak: 'keep-all', overflowWrap: 'normal' }} className="!text-left">Date</th>
@@ -1325,8 +1328,9 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
             <p className="mt-1 text-[12px] font-semibold uppercase tracking-[0.16em] text-[color:var(--sr-text-3)]">
               {scopedReports.length} reports · {caseClassRows.length} case types · {branchRows.length} branches · {airlineRows.length} airlines
             </p>
-            <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[color:var(--sr-gold)] bg-[color:var(--sr-gold-soft)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[color:var(--sr-gold-strong)]">
-              Shown data: Landside and Airside operational service-quality reports
+            <p className="mt-2 flex items-start gap-1.5 rounded-md border border-[color:var(--sr-gold)] bg-[color:var(--sr-gold-soft)] px-2.5 py-1.5 text-[12.5px] font-semibold leading-relaxed text-[color:var(--sr-gold-strong)] sm:inline-flex">
+              <span className="font-black uppercase tracking-[0.08em]">Shown data:</span>
+              Landside and Airside operational service-quality reports
             </p>
           </div>
         </div>

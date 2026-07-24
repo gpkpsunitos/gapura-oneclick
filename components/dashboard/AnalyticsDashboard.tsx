@@ -21,7 +21,12 @@ import { exportToExcel as doExportExcel, exportToPDF as doExportPDF } from '@/li
 import { CustomerFeedbackFilterModal } from './analyst/CustomerFeedbackFilterModal';
 import { NoiseTexture } from '@/components/ui/NoiseTexture';
 
-const AnalystCharts = dynamic(() => import('./analyst/AnalystCharts'), {
+// Shared loader so we can warm the chunk during the data fetch instead of
+// waiting for it to start downloading only after `loading` flips false — that
+// serial waterfall was the "loading ends, then ~3s of nothing" gap.
+const loadAnalystCharts = () => import('./analyst/AnalystCharts');
+
+const AnalystCharts = dynamic(loadAnalystCharts, {
     ssr: false,
     loading: () => (
         <div className="min-h-[40vh] flex items-center justify-center">
@@ -124,6 +129,14 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
 
     useEffect(() => {
         fetchData();
+        // Warm the AnalystCharts chunk AND the default (summary) tab chunk in
+        // parallel with the fetch above. Previously these loaded as a serial
+        // waterfall — fetch → AnalystCharts chunk → SummaryReportTab chunk — so
+        // after the spinner ended the user stared at "Loading analysis
+        // workspace..." while chunks downloaded one after another. Warming them
+        // here overlaps all of it with the fetch.
+        loadAnalystCharts().catch(() => {});
+        import('@/components/dashboard/tabs/SummaryReportTab').catch(() => {});
     }, [fetchData]);
 
     useEffect(() => {

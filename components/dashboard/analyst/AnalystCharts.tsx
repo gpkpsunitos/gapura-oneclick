@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { Filter } from 'lucide-react';
@@ -134,6 +134,16 @@ export default function AnalystCharts({
     };
     const [activeTab, setActiveTab] = useState<string>('summary');
     const [isGlobalFilterCollapsed, setIsGlobalFilterCollapsed] = useState(true);
+    // Paint the tab bar + filter shell FIRST, then mount the heavy active-tab
+    // content on a later task. Rendering the whole tree in one commit produced
+    // ~1.5s of blocking long-tasks, so the tab bar + charts appeared "all at
+    // once" after a frozen gap. Deferring lets the shell show immediately with a
+    // loading placeholder while the charts build.
+    const [contentReady, setContentReady] = useState(false);
+    useEffect(() => {
+        const id = setTimeout(() => setContentReady(true), 0);
+        return () => clearTimeout(id);
+    }, []);
     const {
         reports: joumpaReports,
         error: joumpaError,
@@ -243,16 +253,17 @@ export default function AnalystCharts({
                                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                                 />
                             )}
-                            <span className="relative z-10 whitespace-normal text-center leading-tight">{TAB_LABELS[tab]}</span>
+                            <span className="relative z-10 whitespace-nowrap text-center leading-tight">{TAB_LABELS[tab]}</span>
                         </button>
                     ))}
                 </div>
             </div>
 
             {}
-            {activeTab === 'summary' && <SummaryReportTab reports={filteredReports as Report[]} />}
-            {activeTab === 'sqi' && <ServiceQualityImprovementTab reports={filteredReports as Report[]} />}
-            {activeTab === 'joumpa' && (
+            {!contentReady && tabLoadingFallback}
+            {contentReady && activeTab === 'summary' && <SummaryReportTab reports={filteredReports as Report[]} />}
+            {contentReady && activeTab === 'sqi' && <ServiceQualityImprovementTab reports={filteredReports as Report[]} />}
+            {contentReady && activeTab === 'joumpa' && (
                 joumpaLoading ? tabLoadingFallback : joumpaError ? (
                     <div role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm font-semibold text-red-700">
                         JOUMPA data could not be loaded. No partial totals are shown.

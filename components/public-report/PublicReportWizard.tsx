@@ -1528,7 +1528,7 @@ export function PublicReportWizard() {
 
                       <div className="space-y-3">
                         <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest">Delay Code</label>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <button
                             type="button"
                             onClick={() => { setDelayChoice('no'); setFormData({ ...formData, delay_code: '' }); }}
@@ -1557,7 +1557,7 @@ export function PublicReportWizard() {
 
                       <div className="space-y-3">
                         <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest">Report Category</label>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {REPORT_CATEGORY_OPTIONS.map((cat) => (
                             <button
                               key={cat}

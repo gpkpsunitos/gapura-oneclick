@@ -1333,10 +1333,8 @@ export class ReportsService {
 
           if (filters.esklasiRegex && !matchesEsklasiRegex(report, filters.esklasiRegex)) return false;
 
-          if (filters.targetDivision) {
-            const reportDivision = resolveReportEscalationDivision(report);
-            if (reportDivision !== normalizeDivisionCode(filters.targetDivision)) return false;
-          }
+          // target_division scoping removed: the column is unpopulated, so filtering
+          // by it emptied results. `filters.targetDivision` is now ignored.
 
           if (filters.gseOnly && !isGseRelatedReport(report)) return false;
         }
@@ -1438,7 +1436,7 @@ export class ReportsService {
       }
       if (filters?.airlines) requiredFields.add('airlines');
       if (filters?.sourceSheet) requiredFields.add('source_sheet');
-      if (filters?.targetDivision || filters?.esklasiRegex) {
+      if (filters?.esklasiRegex) {
         requiredFields.add('target_division');
       }
       if (filters?.gseOnly) {
@@ -1480,10 +1478,7 @@ export class ReportsService {
         }
         if (filters?.sourceSheet) q = q.eq('source_sheet', filters.sourceSheet);
         if (filters?.status && filters.status !== 'all') q = q.eq('status', filters.status);
-        const targetDivision = normalizeDivisionCode(filters?.targetDivision);
-        if (targetDivision) {
-          q = q.eq('target_division', targetDivision);
-        }
+        // target_division scoping removed (unpopulated column emptied results).
         return q;
       };
 

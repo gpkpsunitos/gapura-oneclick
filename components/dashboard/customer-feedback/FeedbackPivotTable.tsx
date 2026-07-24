@@ -92,11 +92,16 @@ export function FeedbackPivotTable({ title, result, rowKey, colKey, valueKey, co
 
   const handleCellClick = (rowVal: string, colVal: string) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const filteredData = rows.filter((row: any) => {
+    const matchedGroups = rows.filter((row: any) => {
       const rowValue = formatAxisLabel(String(row[keys.rk] ?? ''));
       const colValue = formatAxisLabel(String(row[keys.ck] ?? ''));
       return rowValue === rowVal && colValue === colVal;
     });
+    // Pivot rows are pre-aggregated groups; use the raw report records each
+    // group carries (`_records`) so the drawer gets real fields, not the
+    // group's bare dimension/measure values.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filteredData = matchedGroups.flatMap((row: any) => Array.isArray(row._records) ? row._records : []);
     if (filteredData.length > 0) {
       openDrilldown(filteredData, `${title}: ${rowVal} x ${colVal}`);
     }

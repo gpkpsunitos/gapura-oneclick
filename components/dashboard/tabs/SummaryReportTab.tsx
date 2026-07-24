@@ -1192,8 +1192,9 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
               Summary Report
               <span className="block text-[clamp(16px,1.5vw,22px)] font-semibold text-[color:var(--sr-text-2)]">Landside &amp; Airside</span>
             </h1>
-            <p className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-[color:var(--sr-gold)] bg-[color:var(--sr-gold-soft)] px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.1em] text-[color:var(--sr-gold-strong)]">
-              Shown data: Non-CGO operational reports covering Landside, Airside/Apron, General Service, and GSE-classified records
+            <p className="mt-2 flex items-start gap-1.5 rounded-md border border-[color:var(--sr-gold)] bg-[color:var(--sr-gold-soft)] px-2.5 py-1.5 text-[12.5px] font-semibold leading-relaxed text-[color:var(--sr-gold-strong)] sm:inline-flex">
+              <span className="font-black uppercase tracking-[0.08em]">Shown data:</span>
+              Non-CGO operational reports covering Landside, Airside/Apron, General Service, and GSE-classified records
             </p>
           </div>
         </div>

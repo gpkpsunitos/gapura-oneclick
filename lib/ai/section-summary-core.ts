@@ -62,7 +62,7 @@ export type PresentedDataset = {
 export type SectionRecommendation = {
   title: string;
   detail: string;
-  priority: 'tinggi' | 'sedang' | 'rendah';
+  priority: 'high' | 'medium' | 'low';
 };
 
 export type SectionSummaryPayload = {
@@ -108,7 +108,7 @@ function cleanRows(value: unknown): CleanRow[] {
             )
           : undefined;
       return {
-        label: normalizeText(row.label, 'Tidak diketahui'),
+        label: normalizeText(row.label, 'Unknown'),
         value: asNumber(row.value),
         delta: typeof row.delta === 'number' && Number.isFinite(row.delta) ? Math.round(row.delta) : undefined,
         note: normalizeText(row.note) || undefined,
@@ -129,8 +129,8 @@ export function cleanDatasets(value: unknown): CleanDataset[] {
       const kind = kinds.includes(ds.kind as DatasetKind) ? (ds.kind as DatasetKind) : 'ranking';
       return {
         id: normalizeText(ds.id, `dataset_${index}`),
-        name: normalizeText(ds.name, 'Data bagian'),
-        unit: normalizeText(ds.unit, 'kasus'),
+        name: normalizeText(ds.name, 'Section data'),
+        unit: normalizeText(ds.unit, 'cases'),
         kind,
         description: normalizeText(ds.description) || undefined,
         rows: cleanRows(ds.rows),
@@ -153,15 +153,15 @@ export function legacyDataset(chartData: unknown): CleanDataset[] {
     }),
   ).filter((row) => row.value > 0);
   if (rows.length === 0) return [];
-  return [{ id: 'section_data', name: 'Data bagian ini', unit: 'kasus', kind: 'ranking', rows }];
+  return [{ id: 'section_data', name: 'This section’s data', unit: 'cases', kind: 'ranking', rows }];
 }
 
 // ---------------------------------------------------------------------------
 // Deterministic facts & presentation
 // ---------------------------------------------------------------------------
 
-function formatId(n: number) {
-  return Math.round(n).toLocaleString('id-ID');
+function formatEn(n: number) {
+  return Math.round(n).toLocaleString('en-US');
 }
 
 function pct(part: number, total: number) {
@@ -226,24 +226,24 @@ export function buildHeadline(ds: CleanDataset, facts: DatasetFacts): string {
     const latest = facts.latest as { label: string; value: number } | undefined;
     const change = facts.change_latest_vs_previous_pct as number | null | undefined;
     if (latest && typeof change === 'number') {
-      const arah = change > 0 ? `naik ${change}%` : change < 0 ? `turun ${Math.abs(change)}%` : 'sama';
-      return `${latest.label}: ${formatId(latest.value)} ${ds.unit} — ${arah} dibanding bulan sebelumnya.`;
+      const direction = change > 0 ? `up ${change}%` : change < 0 ? `down ${Math.abs(change)}%` : 'flat';
+      return `${latest.label}: ${formatEn(latest.value)} ${ds.unit}, ${direction} versus the previous month.`;
     }
-    if (latest) return `Terbaru (${latest.label}): ${formatId(latest.value)} ${ds.unit} dari total ${formatId(total)}.`;
+    if (latest) return `Latest (${latest.label}): ${formatEn(latest.value)} ${ds.unit} out of a total of ${formatEn(total)}.`;
   }
 
   if (ds.kind === 'comparison' && top) {
     const row = ds.rows.find((r) => r.label === top.label);
     if (row?.delta !== undefined) {
-      const arah = row.delta > 0 ? `naik ${row.delta}%` : row.delta < 0 ? `turun ${Math.abs(row.delta)}%` : 'stabil';
-      return `${top.label}: ${formatId(top.value)} ${ds.unit}, ${arah} dibanding tahun sebelumnya.`;
+      const direction = row.delta > 0 ? `up ${row.delta}%` : row.delta < 0 ? `down ${Math.abs(row.delta)}%` : 'stable';
+      return `${top.label}: ${formatEn(top.value)} ${ds.unit}, ${direction} versus the previous year.`;
     }
   }
 
   if (top) {
-    return `Tertinggi: ${top.label} dengan ${formatId(top.value)} ${ds.unit} (${top.share_pct}% dari ${formatId(total)}).`;
+    return `Highest: ${top.label} with ${formatEn(top.value)} ${ds.unit} (${top.share_pct}% of ${formatEn(total)}).`;
   }
-  return `Total ${formatId(total)} ${ds.unit}.`;
+  return `Total ${formatEn(total)} ${ds.unit}.`;
 }
 
 function presentRows(ds: CleanDataset, total: number): PresentedRow[] {
@@ -269,7 +269,7 @@ function fallbackKeyPoints(datasets: CleanDataset[], allFacts: DatasetFacts[]): 
     .map((facts, i) => {
       const top = (facts.top as Array<{ label: string; value: number; share_pct: number }>)[0];
       if (!top) return null;
-      return `${datasets[i].name}: ${top.label} tertinggi dengan ${formatId(top.value)} ${datasets[i].unit}.`;
+      return `${datasets[i].name}: ${top.label} is highest with ${formatEn(top.value)} ${datasets[i].unit}.`;
     })
     .filter((s): s is string => Boolean(s))
     .slice(0, 5);
@@ -287,17 +287,17 @@ function fallbackRecommendations(datasets: CleanDataset[], allFacts: DatasetFact
       const latest = facts.latest as { label: string; value: number } | undefined;
       if (typeof change === 'number' && change > 10 && latest) {
         recs.push({
-          title: `Antisipasi kenaikan volume bulan ${latest.label}`,
-          detail: `Volume ${latest.label} naik ${change}% menjadi ${formatId(latest.value)} ${ds.unit}. Siapkan kapasitas tim dan review penyebab kenaikan sebelum bulan berikutnya.`,
-          priority: change > 30 ? 'tinggi' : 'sedang',
+          title: `Prepare for ${latest.label}'s volume increase`,
+          detail: `${latest.label} volume rose ${change}% to ${formatEn(latest.value)} ${ds.unit}. Line up team capacity and review the cause before next month.`,
+          priority: change > 30 ? 'high' : 'medium',
         });
       }
       continue;
     }
     recs.push({
-      title: `Tindak lanjuti ${top.label}`,
-      detail: `${top.label} menyumbang ${formatId(top.value)} ${ds.unit} (${top.share_pct}% dari ${ds.name.toLowerCase()}). Jadwalkan review akar masalah bersama tim terkait dan tetapkan target penurunan.`,
-      priority: top.share_pct >= 30 ? 'tinggi' : 'sedang',
+      title: `Follow up on ${top.label}`,
+      detail: `${top.label} accounts for ${formatEn(top.value)} ${ds.unit} (${top.share_pct}% of ${ds.name.toLowerCase()}). Schedule a root-cause review with the relevant team and set a reduction target.`,
+      priority: top.share_pct >= 30 ? 'high' : 'medium',
     });
   }
   return recs;
@@ -316,11 +316,11 @@ function extractJson(text: string) {
 
 /** Recommendations that say nothing actionable get dropped. */
 const GENERIC_REC_RE =
-  /perlu\s+(diperhatikan|memperhatikan|perhatian|dipantau|dimonitor|analisis\s+lebih\s+lanjut|dilakukan\s+analisis|ditinjau\s+lebih\s+lanjut)|tingkatkan\s+(monitoring|pengawasan|kewaspadaan)\s*\.?$|lakukan\s+monitoring/i;
+  /needs?\s+(attention|monitoring|further\s+analysis|review)|increase\s+(monitoring|oversight|vigilance)\s*\.?$|keep\s+(monitoring|an\s+eye\s+on)/i;
 
 function cleanRecommendations(value: unknown, allowed: Set<number>): SectionRecommendation[] {
   if (!Array.isArray(value)) return [];
-  const priorities = new Set(['tinggi', 'sedang', 'rendah']);
+  const priorities = new Set(['high', 'medium', 'low']);
   return value
     .filter((item) => item && typeof item === 'object')
     .map((item) => {
@@ -329,7 +329,7 @@ function cleanRecommendations(value: unknown, allowed: Set<number>): SectionReco
       return {
         title: normalizeText(rec.title ?? rec.action),
         detail: normalizeText(rec.detail ?? rec.reason ?? rec.description),
-        priority: (priorities.has(priority) ? priority : 'sedang') as SectionRecommendation['priority'],
+        priority: (priorities.has(priority) ? priority : 'medium') as SectionRecommendation['priority'],
       };
     })
     .filter((rec) => rec.title && rec.detail)
@@ -343,16 +343,16 @@ function buildMessages(section: string, title: string, allFacts: DatasetFacts[])
     {
       role: 'system' as const,
       content: [
-        'Analis operasi ground handling Gapura Angkasa untuk manajemen non-teknis. "Stasiun"=kode bandara (CGK,DPS,...). Kategori: Irregularity, Complaint, Compliment, Occurrence.',
-        'Balas JSON valid saja, tanpa markdown.',
-        'Aturan:',
-        '1. Semua angka HARUS disalin persis dari "facts". Dilarang hitung/jumlah/estimasi baru.',
-        '2. Dataset berdiri sendiri, dilarang bandingkan antar-dataset.',
-        '3. Label bulan = nama bulan, bukan kategori/entitas.',
-        '4. Bahasa Indonesia bisnis sederhana.',
-        '5. Rekomendasi konkret: sebut entitas (stasiun/maskapai/kategori/bulan) + angka + tindakan operasional nyata (briefing shift, audit SOP, koordinasi maskapai X, inspeksi GSE).',
-        '6. Dilarang generik ("perlu diperhatikan", "tingkatkan monitoring").',
-        'Schema: {"executiveSummary": string (2-3 kalimat), "datasetNarratives": {"<id>": string (1-2 kalimat/dataset)}, "keyPoints": string[] (3-5), "recommendations": [{"title": string ≤8 kata, "detail": string 1-2 kalimat, "priority": "tinggi"|"sedang"|"rendah"}] (2-4), "predictiveSummary": string (1-2 kalimat)}',
+        'You are a ground-handling operations analyst at Gapura Angkasa writing for non-technical management. "Station" = airport code (CGK, DPS, ...). Categories: Irregularity, Complaint, Compliment, Occurrence.',
+        'Reply with valid JSON only, no markdown.',
+        'Rules:',
+        '1. Every number MUST be copied exactly from "facts". Never compute/sum/estimate new numbers.',
+        '2. Each dataset stands alone — never compare across datasets.',
+        '3. A month label is a month name, not a category/entity.',
+        '4. Plain, simple business English.',
+        '5. Recommendations must be concrete: name the entity (station/airline/category/month) + a number + a real operational action (shift briefing, SOP audit, coordination with airline X, GSE inspection).',
+        '6. No generic filler ("needs attention", "increase monitoring").',
+        'Schema: {"executiveSummary": string (2-3 sentences), "datasetNarratives": {"<id>": string (1-2 sentences per dataset)}, "keyPoints": string[] (3-5), "recommendations": [{"title": string ≤8 words, "detail": string 1-2 sentences, "priority": "high"|"medium"|"low"}] (2-4), "predictiveSummary": string (1-2 sentences)}',
       ].join('\n'),
     },
     {
@@ -428,6 +428,6 @@ export async function buildSectionSummary(
       recommendations.length > 0 ? recommendations : fallbackRecommendations(datasets, allFacts),
     predictiveSummary:
       stripUngroundedSentences(normalizeText(parsed.predictiveSummary), allowed) ||
-      'Belum ada sinyal perubahan besar; angka berjalan masih sejalan dengan pola periode sebelumnya.',
+      'No major shift signal yet — current numbers are still in line with the previous period’s pattern.',
   };
 }

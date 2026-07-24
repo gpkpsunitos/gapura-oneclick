@@ -21,7 +21,8 @@
     "sync:joumpa": "node scripts/sync-joumpa-scheduler.mjs",
     "sync:joumpa:dry": "DRY_RUN=1 node scripts/sync-joumpa-scheduler.mjs",
     "security:guardrails": "node scripts/security-guardrails.mjs",
-    "clean": "rm -rf .next .next-audit .turbo node_modules/.cache"
+    "clean": "node scripts/clean-workspace.mjs",
+    "clean:all": "node scripts/clean-workspace.mjs --dependencies"
   },
   "engines": {
     "node": ">=20.9.0 <25",

@@ -167,7 +167,6 @@ Deck tidak boleh diserahkan sebelum seluruh poin berikut lulus:
 
 ## Deliverable
 
-- File final: `/Users/nrzngr/Desktop/gapura-irrs2/outputs/Presentasi_Sidang_Skripsi_Irregularity_Ground_Handling.pptx`.
+- File final: `outputs/Presentasi_Sidang_Skripsi_Irregularity_Ground_Handling.pptx`.
 - Scratch dan hasil QA disimpan di workspace eksternal presentasi, bukan di folder output.
 - Hanya file PowerPoint final yang diserahkan kepada pengguna.
-

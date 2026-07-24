@@ -341,8 +341,8 @@ function buildRecordRow(r: Report): RecordRow {
 function RecordsTable({ rows, title, onRowClick }: { rows: RecordRow[]; title: string; onRowClick: (row: RecordRow) => void }) {
   return (
     <Panel title={title} subtitle={`${rows.length} records`}>
-      <div className="overflow-y-auto" style={{ height: '36rem' }}>
-        <table className="sr-table w-full text-[12px]" style={{ tableLayout: 'fixed' }}>
+      <div className="overflow-auto touch-scroll" style={{ height: '36rem' }}>
+        <table className="sr-table w-full text-[12px]" style={{ minWidth: 940, tableLayout: 'fixed' }}>
           <thead>
             <tr>
               <th style={{ width: '10%' }} className="!text-left">Date</th>
@@ -367,13 +367,13 @@ function RecordsTable({ rows, title, onRowClick }: { rows: RecordRow[]; title: s
                 className="cursor-pointer transition-colors hover:!bg-[color:var(--sr-accent-soft)]"
                 title="Klik untuk lihat detail lengkap"
               >
-                <td className="font-mono tabular-nums" style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.date}</td>
+                <td className="font-mono tabular-nums" style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word' }}>{row.date}</td>
                 <td className="font-bold" style={{ padding: '8px 10px', fontSize: 12 }}>{row.branch}</td>
-                <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.airline}</td>
+                <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word' }}>{row.airline}</td>
                 <td className="font-mono font-semibold tabular-nums" style={{ padding: '8px 10px', fontSize: 12 }}>{row.flightNumber}</td>
-                <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.category}</td>
-                <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>{row.area}</td>
-                <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'break-word' }}>
+                <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word' }}>{row.category}</td>
+                <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word' }}>{row.area}</td>
+                <td style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word' }}>
                   <span className="block leading-snug" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                     {row.caseClass}
                   </span>

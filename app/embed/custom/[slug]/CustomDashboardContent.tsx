@@ -13,14 +13,12 @@ const CustomerFeedbackView = dynamic(
   () => import('@/components/dashboard/customer-feedback/CustomerFeedbackView').then(m => ({ default: m.CustomerFeedbackView })),
   { ssr: false, loading: () => <div className="h-[400px] animate-pulse rounded-2xl bg-slate-100" /> },
 );
-import { Loader2, AlertCircle, ChevronLeft, ChevronRight, ChevronDown as ChevronDownIcon, X, Download, FileSpreadsheet, Presentation, LayoutGrid, Box, Menu, Calendar, ArrowLeft } from 'lucide-react';
+import { Loader2, AlertCircle, ChevronLeft, ChevronRight, ChevronDown as ChevronDownIcon, X, Download, FileSpreadsheet, Presentation, LayoutGrid, Box, Menu, Calendar } from 'lucide-react';
 import { DynamicFilterHeader, type FilterData } from '@/components/builder/DynamicFilterHeader';
 import type { QueryDefinition, QueryResult, ChartType, ChartVisualization, DashboardTile, TileLayout } from '@/types/builder';
 import { cn } from '@/lib/utils';
 import { DASHBOARD_FILTER_FIELDS, type DashboardScopeFilters } from '@/lib/dashboard-query-scope';
 import { computeBento } from '@/lib/builder/bento-layout';
-import { useAuth } from '@/lib/hooks/use-auth';
-import { getReportReturnPath } from '@/lib/permissions';
 
 const GREEN_PALETTE = ['#7cb342', '#558b2f', '#aed581', '#33691e', '#9ccc65', '#689f38', '#c5e1a5', '#43a047', '#81c784', '#4caf50'];
 
@@ -94,11 +92,6 @@ export function CustomDashboardContent() {
   const router = useRouter();
   const slug = params.slug as string;
   const range = searchParams.get('range') || '7d';
-  // embed dashboards open in a fresh tab (window.open), so its history stack
-  // never actually contains the portal — router.back() would just pop
-  // whatever embed page (e.g. a chart detail view) happens to sit behind it
-  const { user } = useAuth(false);
-
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [chartsData, setChartsData] = useState<Map<string, ChartResult>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -279,11 +272,6 @@ export function CustomDashboardContent() {
   const isCustomerFeedbackDashboard = useMemo(() => {
     return dashboard?.name?.toLowerCase().includes('customer feedback') || slug?.includes('customer-feedback');
   }, [dashboard?.name, slug]);
-
-  const isFiltered = useMemo(() => {
-
-    return Object.values(activeFilters).some(v => v && v !== 'all');
-  }, [activeFilters]);
 
   const useCustomerFeedbackOverviewLayout = isCustomerFeedbackDashboard && [0, 1, 2, 3, 4].includes(activePage);
 
@@ -474,18 +462,6 @@ export function CustomDashboardContent() {
                 </button>
               )
             ))}
-
-                {isCustomerFeedbackDashboard && !isFiltered && (
-                  <div className="pt-4 mt-4 border-t border-gray-100">
-                    <button
-                      onClick={() => router.push(getReportReturnPath(user?.role || ''))}
-                      className="w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-colors duration-200 text-gray-400 hover:bg-red-50 hover:text-red-500 group"
-                    >
-                      <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-1" />
-                      {!sidebarCollapsed && <span className="text-[13px] font-bold tracking-wide uppercase">Back to Portal</span>}
-                    </button>
-                  </div>
-                )}
           </nav>
         </aside>
       )}

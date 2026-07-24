@@ -12,6 +12,7 @@
 # next.js
 /.next/
 /.next-audit/
+/.next-analyze/
 /.next-dev-alt/
 /out/
 /.next-verify/
@@ -61,8 +62,11 @@ supabase/export/seed_data.sql
 *.bak2
 *page 2*
 
-# Test output screenshots
+# Generated and disposable outputs
 /output/
+/outputs/
+/tmp/
+/sidang_prep/
 
 # AI tool configs (keep .claude tracked)
 .agent/
@@ -73,6 +77,7 @@ supabase/export/seed_data.sql
 .playwright-cli/
 .playwright-mcp/
 .mcp.json
+/.claude-flow/
 
 # IDE
 .idea/
@@ -86,3 +91,4 @@ analyze-all-response.json
 sheets_dump.txt
 
 .superpowers/
+.env*

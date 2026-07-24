@@ -100,6 +100,7 @@ export default async function proxy(request: NextRequest) {
                              path.startsWith('/api/uploads/evidence/token') ||
                              path.startsWith('/api/uploads/evidence/public') ||
                              (path === '/api/dashboards' && request.method === 'GET') ||
+                             (path.startsWith('/api/reports/analytics') && request.method === 'GET') ||
                              (isGoogleSheetsWebhook && (hasGoogleSheetsWebhookSecret || isDevelopment)) ||
 
                              (isSyncEndpoint && isDevelopment);

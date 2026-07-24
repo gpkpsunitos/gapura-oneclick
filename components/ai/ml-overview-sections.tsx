@@ -67,13 +67,13 @@ export function useMLOverview({ enabled = true }: { enabled?: boolean } = {}) {
       const res = await fetch(`/api/ai/overview${bypassCache ? '?bypass_cache=true' : ''}`);
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        throw new Error(body.error || `Gagal memuat analisis (${res.status})`);
+        throw new Error(body.error || `Failed to load analysis (${res.status})`);
       }
       const json = (await res.json()) as MLOverview;
       setData(json);
       writeClientCache(OVERVIEW_CACHE_KEY, json);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Gagal memuat analisis');
+      setError(err instanceof Error ? err.message : 'Failed to load analysis');
     } finally {
       setLoading(false);
     }

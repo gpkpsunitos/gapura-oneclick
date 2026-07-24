@@ -64,11 +64,6 @@ const REPORT_STATION_FIELDS = [
   'kode_cabang',
 ] as const;
 
-function normalizeDivision(value: unknown): string | null {
-  const normalized = String(value || '').trim().toUpperCase();
-  return normalized && /^[A-Z0-9_-]{1,32}$/.test(normalized) ? normalized : null;
-}
-
 function parseDateFilter(value: string | null | undefined, endOfDay = false): string | null {
   if (!value) return null;
   const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
@@ -162,7 +157,9 @@ export async function queryReportPage(
   } else if (access.kind === 'manager') {
     query = query.or(buildColumnValueOrFilter(REPORT_STATION_FIELDS, managerStationValues));
   } else if (access.kind === 'division') {
-    query = query.eq('target_division', access.division);
+    // target_division scoping removed (unpopulated column emptied results); this
+    // access kind is no longer produced by resolveReportPageAccess and, if it
+    // ever is, division users now see the full company set like the dashboards.
   }
 
   const filters = options.filters;
@@ -215,8 +212,7 @@ export async function queryReportPage(
   const sourceSheet = String(filters?.sourceSheet || '').trim();
   if (sourceSheet && sourceSheet.toLowerCase() !== 'all') query = query.eq('source_sheet', sourceSheet);
 
-  const targetDivision = normalizeDivision(filters?.targetDivision);
-  if (targetDivision) query = query.eq('target_division', targetDivision);
+  // target_division scoping removed (unpopulated column emptied results).
 
   const search = sanitizeReportSearch(filters?.search);
   if (search) {

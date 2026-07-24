@@ -367,7 +367,7 @@ function CrossMatrix({
   };
 
   return (
-    <div className="overflow-y-auto" style={{ maxHeight: 280, '--sr-sticky-col-1-width': '150px' } as React.CSSProperties}>
+    <div className="overflow-auto touch-scroll" style={{ maxHeight: 280, '--sr-sticky-col-1-width': '150px' } as React.CSSProperties}>
       <table className="sr-table w-full text-[11px]">
         <thead>
           <tr>

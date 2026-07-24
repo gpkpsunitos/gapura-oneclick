@@ -2,19 +2,18 @@
 
 import { useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
-import {
-  fmtNumber, momentumLabel, momentumTone, riskEntityName, severityLabel,
-} from '@/components/ai/ml-overview-sections';
+import { riskEntityName } from '@/components/ai/ml-overview-sections';
 import type { RiskScoreResult } from '@/lib/ml-client';
+import { fmtNumberEn, momentumLabelEn, momentumToneEn, severityLabelEn } from './format';
 import { CAPTION, EmptyNote, InlineNote, Section, SegmentedControl, SeverityChip } from './primitives';
 
 const RISK_TABS = [
-  { key: 'airline', label: 'Maskapai' },
-  { key: 'branch', label: 'Stasiun' },
+  { key: 'airline', label: 'Airline' },
+  { key: 'branch', label: 'Station' },
   { key: 'area', label: 'Area' },
-  { key: 'category', label: 'Kategori' },
-  { key: 'subcategory', label: 'Kategori Area' },
-  { key: 'case_classification', label: 'Klasifikasi Kasus' },
+  { key: 'category', label: 'Category' },
+  { key: 'subcategory', label: 'Area Category' },
+  { key: 'case_classification', label: 'Case Classification' },
 ] as const;
 type RiskTabKey = (typeof RISK_TABS)[number]['key'];
 
@@ -27,11 +26,12 @@ export function RiskLeaderboardCard({ risk }: { risk: RiskScoreResult }) {
 
   return (
     <Section
-      title="Papan Prioritas · Risk Leaderboard"
+      title="Priority Leaderboard"
       right={tabs.length > 0 ? <SegmentedControl<RiskTabKey> options={tabs} active={active} onChange={setTab} /> : undefined}
     >
+      <p className={cn(CAPTION, '-mt-1 mb-3')}>Ranked by a blend of report volume, severity, recent momentum, and last-30-day activity. The top of the list needs the most attention.</p>
       {entries.length === 0 ? (
-        <EmptyNote>Belum ada data peringkat.</EmptyNote>
+        <EmptyNote>No ranking data yet.</EmptyNote>
       ) : (
         <ul className="divide-y divide-slate-100">
           {entries.map((entry, idx) => {
@@ -51,15 +51,15 @@ export function RiskLeaderboardCard({ risk }: { risk: RiskScoreResult }) {
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-bold text-slate-900">{riskEntityName(entry)}</p>
                     <p className={cn(CAPTION, 'mt-0.5')}>
-                      {fmtNumber(entry.incident_count)} laporan
-                      {typeof entry.recent_30d === 'number' ? ` · ${entry.recent_30d} dalam 30 hari` : ''}
-                      {mom != null ? ` · ${momentumLabel(mom)}` : ''}
+                      {fmtNumberEn(entry.incident_count)} reports
+                      {typeof entry.recent_30d === 'number' ? ` · ${entry.recent_30d} in the last 30 days` : ''}
+                      {mom != null ? ` · ${momentumLabelEn(mom)}` : ''}
                     </p>
                   </div>
                 </div>
-                {showSeverity && sev != null && <SeverityChip label={severityLabel(sev)} score={sev} />}
+                {showSeverity && sev != null && <SeverityChip label={severityLabelEn(sev)} score={sev} />}
                 {mom != null && !showSeverity && (
-                  <span className={cn('shrink-0 text-[11.5px] font-bold', momentumTone(mom))}>{momentumLabel(mom)}</span>
+                  <span className={cn('shrink-0 text-[11.5px] font-bold', momentumToneEn(mom))}>{momentumLabelEn(mom)}</span>
                 )}
               </li>
             );
@@ -67,7 +67,7 @@ export function RiskLeaderboardCard({ risk }: { risk: RiskScoreResult }) {
         </ul>
       )}
       <InlineNote>
-        Total laporan menghitung seluruh laporan sejak awal pencatatan; &quot;30 hari terakhir&quot; adalah aktivitas terkini.
+        Total reports counts everything since records began; &quot;last 30 days&quot; reflects recent activity.
       </InlineNote>
     </Section>
   );

@@ -230,7 +230,6 @@ export async function getPublicDashboardPageData(options: {
   filters?: DashboardScopeFilters;
   dateFrom?: string;
   dateTo?: string;
-  allowCustomerFeedback?: boolean;
 }): Promise<PublicDashboardPagePayload> {
   const {
     slug,
@@ -239,7 +238,6 @@ export async function getPublicDashboardPageData(options: {
     filters = {},
     dateFrom,
     dateTo,
-    allowCustomerFeedback = false,
   } = options;
 
   const { data: dashboard, error } = await supabaseAdmin
@@ -269,10 +267,6 @@ export async function getPublicDashboardPageData(options: {
 
   if (error || !dashboard) {
     throw error || new Error('Dashboard not found');
-  }
-
-  if (slug.toLowerCase().includes('customer-feedback') && !allowCustomerFeedback) {
-    throw new Error('FORBIDDEN_CUSTOMER_FEEDBACK');
   }
 
   const typedDashboard = dashboard as DashboardRow;

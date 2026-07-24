@@ -71,11 +71,6 @@ export async function GET(request: NextRequest) {
     const allowCF = role === 'ANALYST' || role === 'SUPER_ADMIN' || (role === 'DIVISI_OS' || role === 'DIVISI_OCS');
 
     if (slug) {
-      const restrictedDashboard = isRestrictedDashboardSlug(slug);
-      if (restrictedDashboard && !allowCF) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-      }
-
       if (includeData) {
         const filters: DashboardScopeFilters = {
           hub: searchParams.get('hub') || undefined,
@@ -90,28 +85,16 @@ export async function GET(request: NextRequest) {
         };
         const pageIndex = Math.max(parseInt(searchParams.get('pageIndex') || '0', 10), 0);
         const range = searchParams.get('range') || '7d';
-        try {
-          const payload = await getPublicDashboardPageData({
-            slug,
-            pageIndex,
-            range,
-            filters,
-            dateFrom: searchParams.get('dateFrom') || undefined,
-            dateTo: searchParams.get('dateTo') || undefined,
-            allowCustomerFeedback: allowCF,
-          });
+        const payload = await getPublicDashboardPageData({
+          slug,
+          pageIndex,
+          range,
+          filters,
+          dateFrom: searchParams.get('dateFrom') || undefined,
+          dateTo: searchParams.get('dateTo') || undefined,
+        });
 
-          return NextResponse.json(payload, {
-            headers: restrictedDashboard
-              ? PRIVATE_DASHBOARD_CACHE_HEADERS
-              : PUBLIC_DASHBOARD_CACHE_HEADERS,
-          });
-        } catch (fetchError) {
-          if (fetchError instanceof Error && fetchError.message === 'FORBIDDEN_CUSTOMER_FEEDBACK') {
-            return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-          }
-          throw fetchError;
-        }
+        return NextResponse.json(payload, { headers: PUBLIC_DASHBOARD_CACHE_HEADERS });
       }
 
       const { data: dashboard, error } = await supabaseAdmin
@@ -145,27 +128,11 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Dashboard not found' }, { status: 404 });
       }
 
-      return NextResponse.json(dashboard, {
-        headers: restrictedDashboard
-          ? PRIVATE_DASHBOARD_CACHE_HEADERS
-          : PUBLIC_DASHBOARD_CACHE_HEADERS,
-      });
+      return NextResponse.json(dashboard, { headers: PUBLIC_DASHBOARD_CACHE_HEADERS });
     }
 
     const tileId = searchParams.get('tileId');
     if (tileId) {
-        if (!allowCF) {
-            const { data: ownTile } = await supabaseAdmin
-              .from('dashboard_charts')
-              .select(`id, custom_dashboards ( slug )`)
-              .eq('id', tileId)
-              .single();
-            const ownSlug = (ownTile as { custom_dashboards?: { slug?: string } } | null)?.custom_dashboards?.slug;
-            if (ownSlug && ownSlug.toLowerCase().includes('customer-feedback')) {
-              return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-            }
-        }
-
         const { data: chart, error } = await supabaseAdmin
             .from('dashboard_charts')
             .select(`
@@ -201,11 +168,7 @@ export async function GET(request: NextRequest) {
           return NextResponse.json({ error: 'Unauthorized access' }, { status: 403 });
         }
 
-        return NextResponse.json(chart, {
-          headers: isRestrictedDashboardSlug(chartDashboard?.slug)
-            ? PRIVATE_DASHBOARD_CACHE_HEADERS
-            : PUBLIC_DASHBOARD_CACHE_HEADERS,
-        });
+        return NextResponse.json(chart, { headers: PUBLIC_DASHBOARD_CACHE_HEADERS });
     }
 
     const { data: dashboards, error } = await supabaseAdmin

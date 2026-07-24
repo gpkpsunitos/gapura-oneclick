@@ -190,7 +190,7 @@ const NavContent = memo(function NavContent({
                                             <span className="flex-1">{link.label}</span>
 
                                             {link.count && (
-                                                <span className="px-1.5 py-0.5 rounded-md bg-[var(--surface-3)] text-[9px] md:text-[10px] font-bold text-[var(--text-secondary)]">
+                                                <span className="px-1.5 py-0.5 rounded-md bg-[var(--surface-3)] font-mono text-[9px] md:text-[10px] font-bold tabular-nums text-[var(--text-secondary)]">
                                                     {link.count}
                                                 </span>
                                             )}

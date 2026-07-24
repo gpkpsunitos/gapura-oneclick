@@ -3,9 +3,13 @@
    CSS variables are defined in globals.css (:root).
    ═══════════════════════════════════════════════════════════ */
 
-/* Auth routes inherit the design system font */
+/* Auth routes keep the current Plus Jakarta Sans type (scope guard).
+   The app-wide --font-display/--font-body are Bricolage/Hanken; we pin them
+   back to Plus Jakarta here so the auth redesign only touches layout, not type. */
 .auth-route {
-  font-family: var(--font-display);
+  --font-display: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  --font-body: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-plus-jakarta), ui-sans-serif, system-ui, sans-serif;
 }
 
 .auth-route h1,

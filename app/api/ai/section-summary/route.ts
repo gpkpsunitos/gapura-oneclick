@@ -71,11 +71,11 @@ export async function POST(req: NextRequest) {
     })();
 
     if (datasets.length === 0) {
-      return NextResponse.json({ error: 'No data untuk diringkas' }, { status: 422 });
+      return NextResponse.json({ error: 'No data to summarize' }, { status: 422 });
     }
 
     const scope = { section, title, datasets, model: MODEL };
-    const cacheKey = buildAICacheKey('section-summary', scope, 2);
+    const cacheKey = buildAICacheKey('section-summary', scope, 3);
     const cached = await readCached(cacheKey);
     if (cached?.payload) {
       return NextResponse.json({

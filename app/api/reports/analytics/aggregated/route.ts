@@ -10,9 +10,13 @@ export async function GET(request: NextRequest) {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get('session')?.value;
-    if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const session = await verifySession(token);
-    if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // no cookie at all = an anonymous viewer of a public /embed/* dashboard,
+    // which already exposes this same unfiltered report set via the
+    // dashboard's own data path — served here too so per-chart "detail"
+    // drill-downs work. An expired/invalid cookie still 401s (internal users
+    // should be prompted to re-login rather than silently downgraded).
+    const session = token ? await verifySession(token) : null;
+    if (token && !session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const { searchParams } = new URL(request.url);
     const view = searchParams.get('view');
@@ -51,10 +55,15 @@ export async function GET(request: NextRequest) {
       source: 'sync',
     });
 
-    const role = String(session.role || '').trim().toUpperCase();
-    const stationId = (session.station_id as string | null) ?? null;
-    const email = String(session.email || '').trim().toLowerCase();
-    const reports = applyReportsRbacFilter(allReports, role, session.id as string, stationId, email);
+    const reports = session
+      ? applyReportsRbacFilter(
+          allReports,
+          String(session.role || '').trim().toUpperCase(),
+          session.id as string,
+          (session.station_id as string | null) ?? null,
+          String(session.email || '').trim().toLowerCase(),
+        )
+      : allReports;
 
     let aggregatedData: unknown = {};
 
@@ -87,12 +96,16 @@ export async function GET(request: NextRequest) {
       count: reports.length,
       data: aggregatedData
     }, {
-      headers: {
-        // `private` keeps RBAC-filtered data out of shared/CDN caches; the short
-        // max-age lets the user's browser reuse pre-aggregated views instantly on
-        // re-navigation without a fresh round-trip.
-        'Cache-Control': 'private, max-age=30, stale-while-revalidate=120',
-      }
+      headers: session
+        ? {
+            // `private` keeps RBAC-filtered data out of shared/CDN caches; the short
+            // max-age lets the user's browser reuse pre-aggregated views instantly on
+            // re-navigation without a fresh round-trip.
+            'Cache-Control': 'private, max-age=30, stale-while-revalidate=120',
+          }
+        : {
+            'Cache-Control': 'public, s-maxage=180, stale-while-revalidate=300',
+          }
     });
 
   } catch (err) {

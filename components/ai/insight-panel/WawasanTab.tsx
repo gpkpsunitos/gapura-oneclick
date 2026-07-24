@@ -1,16 +1,15 @@
 'use client';
 
 import { useMemo } from 'react';
-import { buildExecutiveSummary, type MLOverview } from '@/components/ai/ml-overview-sections';
+import { type MLOverview } from '@/components/ai/ml-overview-sections';
+import { buildExecutiveSummaryEn } from './format';
 import { CARD, SkeletonCard } from './primitives';
 import { KeyFigures } from './KeyFigures';
 import { ForecastChartCard } from './ForecastChartCard';
 import { SeasonalityCard } from './SeasonalityCard';
 import { RiskLeaderboardCard } from './RiskLeaderboardCard';
-import { DimensionExplorerCard } from './DimensionExplorerCard';
-import { ReportCountForecastCard } from './ReportCountForecastCard';
+import { DimensionForecastCard } from './DimensionForecastCard';
 import { CaseRecurrenceCard } from './CaseRecurrenceCard';
-import { AnalyzePlayground } from './AnalyzePlayground';
 
 function WawasanSkeleton() {
   return (
@@ -24,7 +23,7 @@ function WawasanSkeleton() {
       <SkeletonCard className="h-64" />
       <SkeletonCard className="h-56" />
       <p className="pt-1 text-center text-[12px] text-slate-500">
-        Menganalisis pola laporan seluruh stasiun · biasanya &lt; 15 detik
+        Analyzing report patterns across all stations · usually &lt; 15 seconds
       </p>
     </div>
   );
@@ -39,7 +38,7 @@ function WawasanError({ message, onRetry }: { message: string; onRetry: () => vo
         onClick={onRetry}
         className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-1.5 text-[12px] font-bold text-emerald-800 hover:bg-emerald-100"
       >
-        Coba lagi
+        Try again
       </button>
     </div>
   );
@@ -53,7 +52,7 @@ export function WawasanTab({
   data: MLOverview | null;
   onRetry: () => void;
 }) {
-  const sentences = useMemo(() => (data ? buildExecutiveSummary(data) : []), [data]);
+  const sentences = useMemo(() => (data ? buildExecutiveSummaryEn(data) : []), [data]);
 
   if (loading) return <WawasanSkeleton />;
   if (error) return <WawasanError message={error} onRetry={onRetry} />;
@@ -65,10 +64,8 @@ export function WawasanTab({
       {data.forecast?.forecast?.length ? <ForecastChartCard forecast={data.forecast} /> : null}
       {data.seasonality ? <SeasonalityCard seasonality={data.seasonality} /> : null}
       {data.risk ? <RiskLeaderboardCard risk={data.risk} /> : null}
-      <DimensionExplorerCard data={data} />
-      {data.reportCounts ? <ReportCountForecastCard reportCounts={data.reportCounts} /> : null}
+      <DimensionForecastCard data={data} />
       {data.caseRecurrence ? <CaseRecurrenceCard recurrence={data.caseRecurrence} /> : null}
-      <AnalyzePlayground />
     </div>
   );
 }

@@ -72,7 +72,7 @@ const CORE_FIELDS = [
   'area', 'terminal_area_category', 'apron_area_category', 'general_category',
   'airlines', 'airline', 'main_category', 'category', 'irregularity_complain_category',
   'root_caused', 'action_taken', 'evidence_url', 'evidence_urls', 'source_sheet',
-  'station_id', 'risk_index'
+  'station_id'
 ];
 
 export type { SeverityDistribution } from "../shared-types";

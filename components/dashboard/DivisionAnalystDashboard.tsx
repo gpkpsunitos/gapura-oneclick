@@ -390,6 +390,17 @@ export function DivisionAnalystDashboard({
     }
   }, [lockedBranches, listBranch]);
 
+  // Warm the heavy chart chunks as soon as the charts view mounts, in parallel
+  // with hydration/data — otherwise they load as a serial waterfall only after
+  // the DeferredChartRegion scrolls in (skeleton → OPAnalystCharts chunk →
+  // SummaryReportTab chunk), which is the "loading ends, then blank, then the
+  // whole tab bar + charts appear at once" gap.
+  useEffect(() => {
+    if (!isDashboardView) return;
+    import('@/components/dashboard/analyst/OPAnalystCharts').catch(() => {});
+    import('@/components/dashboard/tabs/SummaryReportTab').catch(() => {});
+  }, [isDashboardView]);
+
   const filterReportsByDateRange = useCallback((list: Report[], range: typeof dateRange) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
@@ -894,7 +905,7 @@ export function DivisionAnalystDashboard({
               <button
                 onClick={() => setShowOSDashboardModal(true)}
                 aria-label="Open OS Dashboard"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 bg-slate-700 text-white hover:bg-slate-800 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
               >
                 <LinkIcon size={14} aria-hidden="true" />
                 <span>OS Dashboard</span>
@@ -902,7 +913,7 @@ export function DivisionAnalystDashboard({
               <button
                 onClick={() => window.open(getLinkUrl(externalLinks, 'analyst-op-weekly'), '_blank')}
                 aria-label="Open Survey Dashboard"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 bg-blue-600 text-white hover:bg-blue-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
                 <span>Survey</span>
@@ -910,7 +921,7 @@ export function DivisionAnalystDashboard({
               <button
                 onClick={() => window.open(getLinkUrl(externalLinks, 'analyst-sla-dashboard'), '_blank', 'noopener,noreferrer')}
                 aria-label="Open SLA Dashboard"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 bg-violet-600 text-white hover:bg-violet-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
                 <span>SLA</span>
@@ -918,7 +929,7 @@ export function DivisionAnalystDashboard({
               <button
                 onClick={() => router.push('/dashboard/ocs/wsn')}
                 aria-label="Open WSN Dashboard"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 bg-cyan-600 text-white hover:bg-cyan-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><path d="M14 3h7v5h-7z"/><path d="M14 12h7v9h-7z"/></svg>
                 <span>WSN</span>
@@ -927,7 +938,7 @@ export function DivisionAnalystDashboard({
                 <button
                   onClick={() => window.open(getLinkUrl(externalLinks, 'analyst-branch-perf'), '_blank')}
                   aria-label="About OS"
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 bg-amber-600 text-white hover:bg-amber-700 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-all duration-200 border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-slate-300 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 shadow-sm hover:shadow-md"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7h5l2 2h11v9a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7z"/><path d="M3 7V5a2 2 0 0 1 2-2h3.5a2 2 0 0 1 1.4.6L12 5"/></svg>
                   <span>About OS</span>
@@ -966,7 +977,7 @@ export function DivisionAnalystDashboard({
                 <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">Report List</h2>
               </div>
               <p className="text-xs font-bold text-[var(--text-muted)] bg-[var(--surface-3)] px-3 py-1 rounded-full uppercase tracking-tighter">
-                {listReports.length} reports
+                <span className="font-mono tabular-nums">{listReports.length}</span> reports
               </p>
             </div>
             <div className="mb-4">

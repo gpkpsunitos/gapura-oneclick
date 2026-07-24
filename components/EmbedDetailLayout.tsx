@@ -30,6 +30,17 @@ export function EmbedDetailLayout({
   filters,
 }: EmbedDetailLayoutProps) {
   const [scrolled, setScrolled] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const handleShare = () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('viewMode', 'static');
+    navigator.clipboard.writeText(url.toString()).then(() => {
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    });
+  };
+
   const hasActiveFilters =
     filters &&
     (filters.hub !== "all" ||
@@ -130,10 +141,23 @@ export function EmbedDetailLayout({
             </AnimatePresence>
 
             <button
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--cf-line)] bg-[var(--cf-card)] text-[var(--cf-ink-2)] shadow-[var(--cf-shadow-sm)] transition-colors hover:border-[var(--cf-teal)] hover:text-[var(--cf-teal)] sm:h-10 sm:w-10"
-              title="Share View"
+              onClick={handleShare}
+              className="flex h-9 items-center justify-center gap-2 rounded-full border border-[var(--cf-line)] bg-[var(--cf-card)] px-3 text-[var(--cf-ink-2)] shadow-[var(--cf-shadow-sm)] transition-colors hover:border-[var(--cf-teal)] hover:text-[var(--cf-teal)] sm:h-10"
+              title="Copy public share link"
             >
               <Share2 size={16} strokeWidth={2} />
+              <AnimatePresence mode="wait">
+                {linkCopied && (
+                  <motion.span
+                    initial={{ opacity: 0, width: 0 }}
+                    animate={{ opacity: 1, width: 'auto' }}
+                    exit={{ opacity: 0, width: 0 }}
+                    className="hidden overflow-hidden whitespace-nowrap text-[11px] font-semibold sm:inline"
+                  >
+                    Link copied
+                  </motion.span>
+                )}
+              </AnimatePresence>
             </button>
           </div>
         </div>

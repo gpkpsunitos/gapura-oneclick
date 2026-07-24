@@ -124,7 +124,7 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
       const key = dimValues.join('::');
 
       if (!groups[key]) {
-        groups[key] = { _count: 0 };
+        groups[key] = { _count: 0, _records: [] };
 
         query.dimensions!.forEach((d, idx) => {
           const alias = d.alias || d.field;
@@ -142,6 +142,7 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
       }
 
       groups[key]._count++;
+      groups[key]._records.push(row);
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const updateMetric = (m: any) => {
@@ -255,7 +256,7 @@ export function processQuery(query: QueryDefinition, data: any[]): QueryResult {
     resultRows = resultRows.slice(0, query.limit);
   }
 
-  const columns = resultRows.length > 0 ? Object.keys(resultRows[0]) : [];
+  const columns = resultRows.length > 0 ? Object.keys(resultRows[0]).filter(k => k !== '_records') : [];
 
   return {
     columns,

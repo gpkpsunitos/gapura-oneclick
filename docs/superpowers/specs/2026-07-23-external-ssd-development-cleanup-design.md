@@ -32,7 +32,7 @@ The generated `.claude-flow` state will be removed from version control and igno
 
 1. Extend `.gitignore` for all disposable and machine-generated directories identified above.
 2. Update the npm cleanup workflow so one command removes all rebuildable project caches and disposable outputs without touching source code or environment files.
-3. Replace maintained documentation references to `/Users/nrzngr/Desktop/gapura-irrs2` with repository-relative paths. Historical Git metadata is out of scope.
+3. Replace maintained documentation references to the former Desktop repository path with repository-relative paths. Historical Git metadata is out of scope.
 4. Keep the existing `.nvmrc` value of Node.js 22 and use it for dependency installation and verification.
 
 ## Dependency Refresh

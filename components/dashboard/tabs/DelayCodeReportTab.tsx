@@ -464,15 +464,15 @@ function HeatMatrix({
   );
 
   return (
-    <div className="h-full w-full overflow-y-auto overflow-x-hidden">
-      <table className="sr-table text-[11px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
+    <div className="h-full w-full overflow-auto touch-scroll">
+      <table className="sr-table text-[11px]" style={{ width: '100%', minWidth: `${150 + (colKeys.length + 1) * 84}px`, tableLayout: 'auto' }}>
         <thead>
           <tr>
-            <th className="!text-left" style={{ width: '32%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{rowLabel}</th>
+            <th className="!text-left" style={{ minWidth: 130, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word' }}>{rowLabel}</th>
             {colKeys.map((c) => (
-              <th key={c.id} className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>{c.label}</th>
+              <th key={c.id} className="sr-center" style={{ whiteSpace: 'nowrap' }}>{c.label}</th>
             ))}
-            <th className="sr-center" style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>Total</th>
+            <th className="sr-center" style={{ whiteSpace: 'nowrap' }}>Total</th>
           </tr>
         </thead>
         <tbody>
@@ -482,7 +482,7 @@ function HeatMatrix({
               <tr key={r.id}>
                 <td
                   className="sr-label leading-tight !bg-[color:var(--sr-overlay)] font-bold"
-                  style={{ verticalAlign: 'middle', paddingTop: 8, paddingBottom: 8, whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }}
+                  style={{ minWidth: 130, verticalAlign: 'middle', paddingTop: 8, paddingBottom: 8, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word' }}
                 >
                   {r.label}
                 </td>
@@ -615,27 +615,27 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
 
   const tdStyle: CSSProperties = {
     whiteSpace: 'normal',
-    wordBreak: 'break-word',
-    overflowWrap: 'anywhere',
+    wordBreak: 'normal',
+    overflowWrap: 'break-word',
     padding: '8px 10px',
     verticalAlign: 'top',
     fontSize: 12,
   };
 
   return (
-    <div className="overflow-y-auto" style={{ height: '36rem' }}>
-        <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 0, tableLayout: 'fixed' }}>
+    <div className="overflow-auto touch-scroll" style={{ height: '36rem' }}>
+        <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 900, tableLayout: 'fixed' }}>
           <thead>
             <tr>
-              <th style={{ width: '10%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Date</th>
-              <th style={{ width: '6%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Station</th>
-              <th style={{ width: '13%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Airlines</th>
-              <th style={{ width: '15%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Delay Code</th>
-              <th style={{ width: '10%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Category</th>
-              <th style={{ whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="!text-left">Report</th>
-              <th style={{ width: '9%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Severity</th>
-              <th style={{ width: '8%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Status</th>
-              <th style={{ width: '9%', whiteSpace: 'normal', wordBreak: 'break-word', overflowWrap: 'anywhere' }} className="sr-center">Details</th>
+              <th style={{ width: '10%', whiteSpace: 'nowrap' }} className="!text-left">Date</th>
+              <th style={{ width: '6%', whiteSpace: 'nowrap' }} className="!text-left">Station</th>
+              <th style={{ width: '13%', whiteSpace: 'nowrap' }} className="!text-left">Airlines</th>
+              <th style={{ width: '15%', whiteSpace: 'nowrap' }} className="!text-left">Delay Code</th>
+              <th style={{ width: '10%', whiteSpace: 'nowrap' }} className="!text-left">Category</th>
+              <th style={{ whiteSpace: 'nowrap' }} className="!text-left">Report</th>
+              <th style={{ width: '9%', whiteSpace: 'nowrap' }} className="sr-center">Severity</th>
+              <th style={{ width: '8%', whiteSpace: 'nowrap' }} className="sr-center">Status</th>
+              <th style={{ width: '9%', whiteSpace: 'nowrap' }} className="sr-center">Details</th>
             </tr>
           </thead>
           <tbody>

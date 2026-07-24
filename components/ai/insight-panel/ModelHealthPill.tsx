@@ -23,11 +23,11 @@ function relativeTime(iso: string | null): string | null {
   if (Number.isNaN(then)) return null;
   const diffMs = Date.now() - then;
   const days = Math.floor(diffMs / 86_400_000);
-  if (days <= 0) return 'hari ini';
-  if (days === 1) return '1 hari lalu';
-  if (days < 30) return `${days} hari lalu`;
+  if (days <= 0) return 'today';
+  if (days === 1) return '1 day ago';
+  if (days < 30) return `${days} days ago`;
   const months = Math.floor(days / 30);
-  return `${months} bulan lalu`;
+  return `${months} month${months === 1 ? '' : 's'} ago`;
 }
 
 export function ModelHealthPill({ enabled }: { enabled: boolean }) {
@@ -51,7 +51,7 @@ export function ModelHealthPill({ enabled }: { enabled: boolean }) {
 
   const degraded = info.ready === false || info.missingModels.length > 0;
   const dotTone = info.retrainRunning ? 'bg-amber-500' : degraded ? 'bg-rose-500' : 'bg-emerald-500';
-  const statusLabel = info.retrainRunning ? 'Melatih ulang…' : degraded ? 'Model perlu perhatian' : 'Model siap';
+  const statusLabel = info.retrainRunning ? 'Retraining…' : degraded ? 'Model needs attention' : 'Model ready';
   const retrainAgo = relativeTime(info.lastRetrain);
 
   return (

@@ -22,14 +22,17 @@ import { StatusUpdateSuccessDialog } from '@/components/dashboard/StatusUpdateSu
 
 type AreaTag = 'CGO' | 'LANDSIDE' | 'AIRSIDE' | 'GENERAL' | 'GSE' | 'JOUMPA' | 'LANDSIDE & AIRSIDE';
 
+// Palette guard: dashboard uses ONE dominant (green) + ONE accent (amber) + neutral ink.
+// CGO keeps emerald, GSE keeps amber; the former blue/sky/violet categories collapse to a
+// neutral-ink chip (category text is retained, only the color noise is removed).
 const AREA_TAG_CLASS: Record<AreaTag, string> = {
   CGO: 'bg-[var(--brand-emerald-50,#ecfdf5)] text-[var(--brand-emerald-700,#047857)]',
-  LANDSIDE: 'bg-[var(--brand-blue-50,#eff6ff)] text-[var(--brand-blue-700,#1d4ed8)]',
-  AIRSIDE: 'bg-sky-50 text-sky-700',
-  GENERAL: 'bg-slate-100 text-slate-700',
-  GSE: 'bg-amber-50 text-amber-700',
-  JOUMPA: 'bg-violet-50 text-violet-700',
-  'LANDSIDE & AIRSIDE': 'bg-[var(--brand-blue-50,#eff6ff)] text-[var(--brand-blue-700,#1d4ed8)]',
+  LANDSIDE: 'bg-[var(--chip-ink-bg,#f1f2f5)] text-[var(--chip-ink-text,#475569)]',
+  AIRSIDE: 'bg-[var(--chip-ink-bg,#f1f2f5)] text-[var(--chip-ink-text,#475569)]',
+  GENERAL: 'bg-[var(--chip-ink-bg,#f1f2f5)] text-[var(--chip-ink-text,#475569)]',
+  GSE: 'bg-[var(--signal-amber-soft,#fbecd2)] text-[var(--signal-amber-strong,#a86e10)]',
+  JOUMPA: 'bg-[var(--chip-ink-bg,#f1f2f5)] text-[var(--chip-ink-text,#475569)]',
+  'LANDSIDE & AIRSIDE': 'bg-[var(--chip-ink-bg,#f1f2f5)] text-[var(--chip-ink-text,#475569)]',
 };
 
 // ponytail: delegates to the same classifier the All Reports source toggle
@@ -123,7 +126,6 @@ const ClassificationSeverityCell = memo(function ClassificationSeverityCell({ re
         <span className="whitespace-normal break-words text-[10px] font-black uppercase leading-snug tracking-wide text-slate-800" title={classification}>
           {classification}
         </span>
-        <span className="text-[10px] font-black text-slate-400">-</span>
         <span
           className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[10px] font-black tracking-wide whitespace-nowrap"
           style={{ backgroundColor: config.bg, color: config.color }}
@@ -461,11 +463,11 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
       )}
     >
       <div className="flex flex-col gap-3 border-b border-[var(--surface-4)] bg-[var(--surface-0)] px-4 py-3 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex shrink-0 items-center gap-2 pt-1">
-          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
+        <div className="flex min-w-0 shrink-0 items-center gap-2 pt-1">
+          <span className="whitespace-nowrap text-[10px] font-black uppercase tracking-[0.2em] text-[var(--text-muted)]">
             Sort by
           </span>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex min-w-0 flex-nowrap gap-1.5 overflow-x-auto hide-scrollbar sm:flex-wrap sm:overflow-visible">
             {sortOptions.map((option) => {
               const active = sortField === option.field;
               return (
@@ -474,7 +476,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
                   type="button"
                   onClick={() => handleSort(option.field)}
                   className={cn(
-                    'inline-flex h-7 items-center gap-1 rounded-full border px-2.5 text-[10px] font-bold uppercase tracking-wide transition',
+                    'inline-flex h-7 shrink-0 items-center gap-1 rounded-full border px-2.5 text-[10px] font-bold uppercase tracking-wide transition',
                     active
                       ? 'border-[var(--brand-emerald-200,#a7f3d0)] bg-[var(--brand-emerald-50,#ecfdf5)] text-[var(--brand-emerald-700,#047857)]'
                       : 'border-[var(--surface-3)] bg-[var(--surface-1)] text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
@@ -528,22 +530,27 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
                   onReportClick(report);
                 }
               }}
-              className="group grid w-full grid-cols-[44px_minmax(0,1fr)] gap-3 rounded-xl border border-[var(--surface-3)] bg-white px-3.5 py-3 text-left shadow-[0_1px_0_rgba(15,23,42,0.03)] transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_12px_28px_-22px_rgba(15,23,42,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 sm:grid-cols-[52px_minmax(0,1fr)]"
+              className="group flex w-full flex-col gap-3 rounded-xl border border-[var(--surface-3)] bg-white px-3.5 py-3 text-left shadow-[0_1px_0_rgba(15,23,42,0.03)] transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-[0_12px_28px_-22px_rgba(15,23,42,0.45)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 sm:grid sm:grid-cols-[52px_minmax(0,1fr)]"
               style={{ borderLeft: `4px solid ${statusTone.accent}` }}
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f8f2df] text-[12px] font-black tabular-nums text-slate-900 ring-1 ring-black/[0.03] sm:h-12 sm:w-12">
+              <div className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f8f2df] font-display text-[15px] font-extrabold tabular-nums text-slate-900 ring-1 ring-black/[0.03] sm:flex sm:h-12 sm:w-12 sm:text-[17px]">
                 {idx + 1}
               </div>
 
               <div className="min-w-0 flex flex-col gap-2">
                 {}
                 <div className="flex items-center justify-between gap-2">
-                  <span className={cn(
-                    'rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-wide',
-                    AREA_TAG_CLASS[sourceTag]
-                  )}>
-                    {sourceTag}
-                  </span>
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="inline-flex h-6 min-w-[24px] shrink-0 items-center justify-center rounded-md bg-[#f8f2df] px-1.5 font-display text-[12px] font-extrabold tabular-nums text-slate-900 ring-1 ring-black/[0.03] sm:hidden">
+                      {idx + 1}
+                    </span>
+                    <span className={cn(
+                      'rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-wide',
+                      AREA_TAG_CLASS[sourceTag]
+                    )}>
+                      {sourceTag}
+                    </span>
+                  </div>
                   {report.status && (
                     <span className={cn(
                       'rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-wide',
@@ -562,20 +569,20 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
                 {(station !== '-' || flightNumber || route) && (
                   <div className="flex flex-wrap items-center gap-1.5">
                     {station && station !== '-' && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-slate-600">
-                        <Building2 size={9} strokeWidth={2.5} />
+                      <span className="inline-flex items-center gap-1 rounded-md border border-[var(--chip-ink-border,#e2e5eb)] bg-[var(--chip-ink-bg,#f5f6f8)] px-2 py-0.5 font-mono text-[10px] font-semibold tracking-tight text-[var(--chip-ink-text,#475569)]">
+                        <Building2 size={9} strokeWidth={2.5} className="text-slate-400" />
                         {station}
                       </span>
                     )}
                     {flightNumber && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-blue-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-blue-600">
-                        <Plane size={9} strokeWidth={2.5} />
+                      <span className="inline-flex items-center gap-1 rounded-md border border-[var(--chip-ink-border,#e2e5eb)] bg-[var(--chip-ink-bg,#f5f6f8)] px-2 py-0.5 font-mono text-[10px] font-semibold tracking-tight text-[var(--chip-ink-text,#475569)]">
+                        <Plane size={9} strokeWidth={2.5} className="text-slate-400" />
                         {flightNumber}
                       </span>
                     )}
                     {route && (
-                      <span className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-violet-600">
-                        <GitBranch size={9} strokeWidth={2.5} />
+                      <span className="inline-flex items-center gap-1 rounded-md border border-[var(--chip-ink-border,#e2e5eb)] bg-[var(--chip-ink-bg,#f5f6f8)] px-2 py-0.5 font-mono text-[10px] font-semibold tracking-tight text-[var(--chip-ink-text,#475569)]">
+                        <GitBranch size={9} strokeWidth={2.5} className="text-slate-400" />
                         {route}
                       </span>
                     )}
@@ -583,7 +590,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
                 )}
 
                 {}
-                <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-slate-700" title={title}>
+                <p className="line-clamp-2 text-[14px] font-semibold leading-snug text-slate-800" title={title}>
                   {title}
                 </p>
 
@@ -593,9 +600,9 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
                     <UserRound size={11} className="shrink-0 text-slate-400" />
                     <span className="truncate max-w-[160px]" title={reporter}>{reporter}</span>
                   </span>
-                  <span className="text-slate-200">|</span>
+                  <span className="hidden text-slate-200 xl:inline">|</span>
                   <ClassificationSeverityCell report={report} />
-                  <span className="ml-auto inline-flex items-center gap-1.5 text-[10px] font-semibold text-slate-400 tabular-nums">
+                  <span className="ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] font-medium text-slate-400 tabular-nums">
                     <CalendarDays size={11} className="shrink-0" />
                     {createdAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' })}
                     <span className="hidden sm:inline">
@@ -605,13 +612,13 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
                 </div>
 
                 {}
-                <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-2">
+                <div className="flex flex-col gap-2 border-t border-slate-100 pt-2 sm:flex-row sm:flex-wrap sm:justify-end">
                   {onStatusUpdate && (
                     <button
                       type="button"
                       onClick={(event) => handleOpenStatusEditor(event, report)}
                       disabled={isUpdatingStatus}
-                      className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
+                      className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 sm:min-h-0 sm:w-auto"
                     >
                       <PencilLine size={13} />
                       Change Status
@@ -621,7 +628,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
                     type="button"
                     onClick={(event) => handleDownloadCaseReport(event, report)}
                     disabled={downloadingReportId === report.id}
-                    className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60"
+                    className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-60 sm:min-h-0 sm:w-auto"
                   >
                     {downloadingReportId === report.id ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
                     Download This Case Report

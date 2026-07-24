@@ -195,8 +195,11 @@ export const FORM_CSS = `
   --fill-2: rgba(0,0,0,0.075);
   --paper: #fafafc;
   --card: rgba(255,255,255,0.72);
-  --teal: #0f7c7c;
-  --teal-soft: rgba(15,124,124,0.10);
+  /* Brand-aligned: Gapura green (was teal #0f7c7c). Drives progress bar,
+     focus rings, active marks, and the primary Continue/Submit button. */
+  --teal: #047857;
+  --teal-soft: rgba(4,120,87,0.10);
+  --teal-strong: #065f46;
   --red: #d0342c;
   --font: var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   font-family: var(--font);
@@ -531,7 +534,7 @@ export const FORM_CSS = `
 .jm-submit {
   width: 100%;
   padding: 14px 24px;
-  background: var(--ink);
+  background: var(--teal);
   color: #fff;
   border: none; border-radius: 14px;
   font-family: inherit;
@@ -541,8 +544,8 @@ export const FORM_CSS = `
   transition: background .2s ease, transform .12s ease, box-shadow .2s ease;
 }
 .jm-submit:hover:not(:disabled) {
-  background: var(--teal);
-  box-shadow: 0 8px 24px -8px rgba(15,124,124,0.5);
+  background: var(--teal-strong);
+  box-shadow: 0 8px 24px -8px rgba(4,120,87,0.5);
 }
 .jm-submit:active:not(:disabled) { transform: scale(0.985); }
 .jm-submit--disabled { opacity: 0.35; cursor: not-allowed; }
