@@ -6,18 +6,16 @@ import dynamic from 'next/dynamic';
 import {
     Clock, CheckCircle2,
     FileText, RefreshCw, Loader2, Plus,
-    FileSpreadsheet, ArrowRight, Shield,
-    AlertTriangle, ArrowUp, LayoutDashboard,
+    AlertTriangle, LayoutDashboard,
     Plane, ClipboardList, Search
 } from 'lucide-react';
 
 import { STATUS_CONFIG, type ReportStatus } from '@/lib/constants/report-status';
-import { type Report, type AnalyticsData, type ComparisonData } from '@/types';
+import { type Report, type AnalyticsData } from '@/types';
 import { reportsFromPayload } from '@/lib/report-page';
 import { cn } from '@/lib/utils';
 import { ReportDetailModal } from '@/components/dashboard/ReportDetailModal';
 import { calculateComparisonData } from '@/lib/utils/comparison-utils';
-import { exportToExcel as doExportExcel, exportToPDF as doExportPDF } from '@/lib/analyst-export';
 import { CustomerFeedbackFilterModal } from './analyst/CustomerFeedbackFilterModal';
 import { NoiseTexture } from '@/components/ui/NoiseTexture';
 
@@ -55,7 +53,6 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
     const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
     const [dateRange, setDateRange] = useState<'all' | 'week' | 'month' | { from: string; to: string }>('all');
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -147,7 +144,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                 const data = await res.json();
                 const role = String(data?.user?.role || '').trim().toUpperCase();
                 setAllowCF(role === 'ANALYST' || role === 'SUPER_ADMIN' || (role === 'DIVISI_OS' || role === 'DIVISI_OCS'));
-            } catch (_) {
+            } catch {
                 setAllowCF(false);
             }
         };
@@ -303,9 +300,9 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
             else if (r.category === 'Complaint') entry.complaint++;
             else if (r.category === 'Compliment') entry.compliment++;
         });
-        return Array.from(dataMap.entries())
-            .sort((a, b) => a[0].localeCompare(b[0])) 
-            .map(([_, val]) => ({
+        return Array.from(dataMap.values())
+            .sort((a, b) => a.date.getTime() - b.date.getTime())
+            .map((val) => ({
                 month: val.date.toLocaleString('en-US', { month: 'short', year: '2-digit' }),
                 irregularity: val.irregularity,
                 complaint: val.complaint,
@@ -416,7 +413,8 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
             }
         });
         return Array.from(dataMap.entries())
-            .sort((a, b) => a[0].localeCompare(b[0])) 
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             .map(([_, val]) => ({
                 month: val.date.toLocaleString('en-US', { month: 'short', year: '2-digit' }),
                 masuk: val.masuk,
@@ -600,7 +598,7 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
 
                 <div className="relative z-10 grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6 mt-8 pt-6 border-t border-white/20">
                     <MiniStat icon={FileText} label="Total Reports" value={analytics?.summary.totalReports || 0} />
-                    <MiniStat icon={CheckCircle2} label="Selesai" value={analytics?.summary.resolvedReports || 0} />
+                    <MiniStat icon={CheckCircle2} label="Resolved" value={analytics?.summary.resolvedReports || 0} />
                     <MiniStat icon={Clock} label="Pending" value={analytics?.summary.pendingReports || 0} highlight />
                     <MiniStat icon={AlertTriangle} label="High Severity" value={analytics?.summary.highSeverity || 0} />
                 </div>
@@ -681,13 +679,13 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                             <tr className="border-b border-[var(--surface-4)]">
                                 <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Maskapai / Flight</th>
                                 <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Incident Date</th>
-                                <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Cabang</th>
+                                <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Station</th>
                                 <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Status</th>
                             </tr>
                         </thead>
                         <tbody>
                             {filteredReportsList.length === 0 ? (
-                                <tr><td colSpan={5} className="p-8 text-center text-[var(--text-muted)]">No reports found</td></tr>
+                                <tr><td colSpan={4} className="p-8 text-center text-[var(--text-muted)]">No reports found</td></tr>
                             ) : (
                                 filteredReportsList.map((r) => (
                                     <tr key={r.id} className="border-b border-[var(--surface-4)] hover:bg-[var(--surface-2)] transition-colors cursor-pointer" onClick={() => setSelectedReport(r)}>
@@ -743,8 +741,10 @@ export function AnalyticsDashboard({ division, showGenerateFeedback = true }: An
                             });
                             if (!res.ok) throw new Error('Failed to create dashboard');
                             const data = await res.json();
-                            router.push(`/embed/custom/${data.dashboard.slug}`);
-                        } catch (err) {
+                            const slug = data.dashboard?.slug;
+                            if (!slug) throw new Error('No dashboard slug returned');
+                            router.push(`/embed/custom/${slug}`);
+                        } catch {
                             alert('Failed to create filtered dashboard');
                         } finally {
                             setFilterLoading(false);

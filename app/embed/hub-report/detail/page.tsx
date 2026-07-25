@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import HubReportDetail from '@/components/charts/hub-report/HubReportDetail';
 import { EmbedDetailLayout } from '@/components/EmbedDetailLayout';

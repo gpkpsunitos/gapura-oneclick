@@ -13,8 +13,8 @@ interface TimePeriodFilterProps {
 }
 
 const PERIOD_OPTIONS: { value: TimePeriod; label: string }[] = [
-    { value: '7d', label: '7 Hari' },
-    { value: '30d', label: '30 Hari' },
+    { value: '7d', label: '7 Days' },
+    { value: '30d', label: '30 Days' },
     { value: '3m', label: '3 Months' },
     { value: '6m', label: '6 Months' },
 ];

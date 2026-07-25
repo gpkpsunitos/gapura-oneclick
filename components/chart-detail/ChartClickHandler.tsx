@@ -14,7 +14,7 @@ interface ChartClickHandlerProps {
 export function ChartClickHandler({ tile, result, children, dashboardId }: ChartClickHandlerProps) {
   const router = useRouter();
 
-  const handleClick = (e: React.MouseEvent) => {
+  const handleClick = () => {
     if (!result) return;
 
     const openInNewTab = tile.visualization.openLinkInNewTab;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, Suspense } from 'react';
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import ReportByCaseCategoryDetail from '@/components/charts/report-by-case-category/ReportByCaseCategoryDetail';
 import { EmbedDetailLayout } from '@/components/EmbedDetailLayout';
@@ -30,7 +30,6 @@ function EmbedReportByCaseCategoryContent() {
 
   const isStatic = searchParams.get('viewMode') === 'static';
   const hideFilters = searchParams.get('hideFilters') === 'true' || isStatic;
-  const filterCriteriaParam = searchParams.get('filterCriteria');
   const dateFromParam = searchParams.get('dateFrom');
   const dateToParam = searchParams.get('dateTo');
 

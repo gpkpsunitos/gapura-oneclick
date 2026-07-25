@@ -309,7 +309,12 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
     return () => {
       controller.abort();
     };
-  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo]);
+    // filters is destructured to primitive fields so this effect doesn't
+    // re-fire on every parent re-render when filters gets a new object
+    // identity but the same values. All fields the fetch calls actually
+    // read are listed above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.month, filters.sourceSheet, filters.dateFrom, filters.dateTo]);
 
   useEffect(() => {
     async function loadDeferredData() {
@@ -331,7 +336,12 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
     }
 
     loadDeferredData();
-  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.month, filters.dateFrom, filters.dateTo]);
+    // filters is destructured to primitive fields so this effect doesn't
+    // re-fire on every parent re-render when filters gets a new object
+    // identity but the same values. All fields the fetch calls actually
+    // read are listed above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.month, filters.sourceSheet, filters.dateFrom, filters.dateTo]);
 
   if (loading) return <ReportLoading label="Loading monthly report…" />;
   if (error) return <ReportError message={error} onRetry={() => window.location.reload()} />;
@@ -437,7 +447,7 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
       </div>
 
       {chartData.trendData.length > 0 && (
-        <ReportSection index={1} title="Category Trends Over Time" subtitle="Tren kategori laporan per bulan (Irregularity, Complaint, Compliment)" tone="teal">
+        <ReportSection index={1} title="Category Trends Over Time" subtitle="Monthly report category trend (Irregularity, Complaint, Compliment)" tone="teal">
           <div className="h-[240px] sm:h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData.trendData} margin={{ top: 10, right: 10, left: -10, bottom: 10 }}>
@@ -456,23 +466,23 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
         </ReportSection>
       )}
 
-      <ReportSection index={2} title="Monthly Trend" subtitle={`${chartData.monthlyData.length} bulan — merah naik, hijau turun`} tone="teal" bodyClassName="p-0">
+      <ReportSection index={2} title="Monthly Trend" subtitle={`${chartData.monthlyData.length} months — red is rising, green is falling`} tone="teal" bodyClassName="p-0">
         <CompactTable columns={trendColumns} rows={[...chartData.monthlyData].reverse()} rowKey="month" />
       </ReportSection>
 
-      <ReportSection index={3} title="Daily Timeline" subtitle="Distribusi laporan harian — puncak tinggi menandai lonjakan insiden" tone="slate">
+      <ReportSection index={3} title="Daily Timeline" subtitle="Daily report distribution — tall peaks mark incident spikes" tone="slate">
         <DailyTrendChart data={chartData.dailyData} />
       </ReportSection>
 
-      <ReportSection index={4} title="Historical Context" subtitle="Perbandingan dengan rata-rata 3 dan 6 bulan terakhir" tone="amber">
+      <ReportSection index={4} title="Historical Context" subtitle="Comparison against the last 3 and 6 month averages" tone="amber">
         <RollingAverageChart data={chartData.rollingData} />
       </ReportSection>
 
       <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-2">
-        <ReportSection index={5} title="Top Contributing Stations" subtitle="Cabang dengan kontribusi laporan tertinggi" tone="teal">
+        <ReportSection index={5} title="Top Contributing Stations" subtitle="Stations with the highest report contribution" tone="teal">
           <TopBranchesChart data={chartData.branchData} />
         </ReportSection>
-        <ReportSection index={6} title="Top Contributing Airlines" subtitle="Maskapai dengan kontribusi laporan tertinggi" tone="amber">
+        <ReportSection index={6} title="Top Contributing Airlines" subtitle="Airlines with the highest report contribution" tone="amber">
           <TopAirlinesChart data={chartData.airlineData} />
         </ReportSection>
       </div>

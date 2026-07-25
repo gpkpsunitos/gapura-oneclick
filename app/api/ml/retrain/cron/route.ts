@@ -17,8 +17,15 @@ function isCronRequest(request: NextRequest): boolean {
     return timingSafeStringEqual(request.headers.get('authorization'), `Bearer ${secret}`);
 }
 
+// Requires both NODE_ENV=development AND an explicit opt-in flag, so a
+// misconfigured/shared environment that happens to have NODE_ENV=development
+// can't silently disable auth on this endpoint.
+function isDevBypassEnabled(): boolean {
+    return process.env.NODE_ENV === 'development' && process.env.CRON_DEV_AUTH_BYPASS === 'true';
+}
+
 async function handleCronRetrain(request: NextRequest) {
-    if (!isCronRequest(request) && process.env.NODE_ENV !== 'development') {
+    if (!isCronRequest(request) && !isDevBypassEnabled()) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

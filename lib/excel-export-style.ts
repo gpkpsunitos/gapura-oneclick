@@ -1,6 +1,6 @@
 import type * as ExcelJS from "exceljs";
 
-export const GAPURA_EXCEL_THEME = {
+const GAPURA_EXCEL_THEME = {
   primary: "FF276B57",
   accent: "FF0F766E",
   headerText: "FFFFFFFF",
@@ -45,7 +45,7 @@ export interface AdvancedExcelColumn {
   horizontal?: "left" | "center" | "right";
 }
 
-export interface AdvancedExcelTableOptions {
+interface AdvancedExcelTableOptions {
   workbook: ExcelJS.Workbook;
   worksheet: ExcelJS.Worksheet;
   name: string;
@@ -281,7 +281,10 @@ export function addAdvancedExcelTable(options: AdvancedExcelTableOptions): Excel
 
     const kind = column.kind ?? "text";
     const bounds = defaultColumnBounds(kind);
-    const longest = Math.max(column.header.length + 2, ...safeRows.map((row) => cellDisplayLength(row[index] ?? null) + 2));
+    const longest = safeRows.reduce(
+      (max, row) => Math.max(max, cellDisplayLength(row[index] ?? null) + 2),
+      column.header.length + 2,
+    );
     worksheet.getColumn(columnNumber).width = column.width ?? clamp(
       longest,
       column.minWidth ?? bounds.min,
@@ -317,11 +320,21 @@ export function addAdvancedExcelTable(options: AdvancedExcelTableOptions): Excel
 export function excelDate(value?: string | Date | null): Date | string {
   if (!value) return "";
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? "" : value;
-  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
-  const parsed = dateOnly
-    ? new Date(Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3])))
-    : new Date(value);
-  return Number.isNaN(parsed.getTime()) ? value : parsed;
+  const trimmed = value.trim();
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (dateOnly) {
+    const parsed = new Date(Date.UTC(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3])));
+    return Number.isNaN(parsed.getTime()) ? value : parsed;
+  }
+  // Unambiguous ISO 8601 datetime (YYYY-MM-DDTHH:mm[:ss[.sss]][Z|+HH:MM]).
+  // Other string formats (e.g. MM/DD/YYYY) are locale-ambiguous and are
+  // returned as-is rather than risking a silently wrong date.
+  const isoDateTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})?$/.exec(trimmed);
+  if (isoDateTime) {
+    const parsed = new Date(trimmed);
+    return Number.isNaN(parsed.getTime()) ? value : parsed;
+  }
+  return value;
 }
 
 export function excelHyperlink(url?: string | null, label = "Open link"): ExcelJS.CellValue {

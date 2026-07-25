@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useDeferredValue, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useDeferredValue, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -16,8 +16,6 @@ import {
 } from 'recharts';
 import {
   BarChart3,
-  ChevronLeft,
-  ChevronRight,
   ExternalLink,
 } from 'lucide-react';
 import type { Report } from '@/types';

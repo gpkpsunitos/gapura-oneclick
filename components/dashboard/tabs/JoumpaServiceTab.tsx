@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import Image from 'next/image';
 import {
   Bar,
   BarChart,
@@ -27,13 +28,11 @@ import { ReportTable, ReportTBody, ReportTD, ReportTH, ReportTHead, ReportTR } f
 import {
   isJoumpaServiceReport as resolveIsJoumpaServiceReport,
   resolveCaseClassification,
-  resolveEvidenceLinks,
   resolveJoumpaCategory,
   resolveJoumpaDetailCategory,
   resolveReportAirline,
   resolveReportBranch,
   resolveReportCategory,
-  resolveRootCause,
 } from '@/lib/report-normalization';
 
 interface JoumpaServiceTabProps {
@@ -64,14 +63,6 @@ interface MetricRow {
   id: string;
   label: string;
   value: number;
-}
-
-interface MatrixRow {
-  id: string;
-  primary: string;
-  secondary?: string;
-  values: Record<string, number>;
-  total: number;
 }
 
 type JoumpaCategoryKey = 'compliment' | 'complaint' | 'irregularity';
@@ -120,16 +111,11 @@ const CHART_COLORS = {
   customer: 'var(--sr-gold-strong)',
 };
 
-const STAFF_COLOR = 'var(--sr-gold-strong)';
-const CUSTOMER_COLOR = 'var(--sr-accent)';
-
 const JOUMPA_CATEGORY_METRICS: Array<{ key: JoumpaCategoryKey; label: string; color: string }> = [
   { key: 'compliment', label: 'Compliment', color: 'var(--sr-accent)' },
   { key: 'complaint', label: 'Complaint', color: 'var(--sr-gold)' },
   { key: 'irregularity', label: 'Irregularity', color: 'var(--sr-neg)' },
 ];
-
-const CURRENT_YEAR = new Date().getFullYear();
 
 function isJoumpaServiceReport(report: Report) {
   return resolveIsJoumpaServiceReport(report);
@@ -165,12 +151,6 @@ function parseCalendarDate(value?: string) {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return null;
   return new Date(parsed.getUTCFullYear(), parsed.getUTCMonth(), parsed.getUTCDate());
-}
-
-function formatDateLabel(value?: string) {
-  const parsed = parseCalendarDate(value);
-  if (!parsed) return normalizeText(value, '-');
-  return parsed.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
 function monthKey(date: Date) {
@@ -224,49 +204,6 @@ function buildPieSlices<T>(items: T[], getKey: (item: T) => string, palette: str
     value: row.value,
     fill: palette[index % palette.length],
   }));
-}
-
-function buildMatrixData<T>(
-  items: T[],
-  getRowKeys: (item: T) => { primary: string; secondary?: string },
-  getColumnKey: (item: T) => string,
-  preferredColumns?: string[]
-) {
-  const rowMap = new Map<string, MatrixRow>();
-  const columnSet = new Set<string>();
-  const columnTotals: Record<string, number> = {};
-
-  items.forEach((item) => {
-    const rowKeys = getRowKeys(item);
-    const primary = normalizeText(rowKeys.primary, '-');
-    const secondary = rowKeys.secondary ? normalizeText(rowKeys.secondary, '-') : undefined;
-    const column = normalize(getColumnKey(item));
-    if (!column) return;
-
-    const id = secondary ? `${primary}::${secondary}` : primary;
-    const existing = rowMap.get(id) || { id, primary, secondary, values: {}, total: 0 };
-    existing.values[column] = (existing.values[column] || 0) + 1;
-    existing.total += 1;
-    rowMap.set(id, existing);
-
-    columnSet.add(column);
-    columnTotals[column] = (columnTotals[column] || 0) + 1;
-  });
-
-  const detectedColumns = Array.from(columnSet);
-  const columns = preferredColumns?.length
-    ? preferredColumns.filter((column) => columnSet.has(column))
-    : detectedColumns.sort((left, right) => (columnTotals[right] || 0) - (columnTotals[left] || 0) || left.localeCompare(right));
-
-  const rows = Array.from(rowMap.values()).sort((left, right) => {
-    if (right.total !== left.total) return right.total - left.total;
-    return `${left.primary} ${left.secondary || ''}`.localeCompare(`${right.primary} ${right.secondary || ''}`);
-  });
-
-  const grandTotal = rows.reduce((sum, row) => sum + row.total, 0);
-  const maxValue = Math.max(0, ...rows.flatMap((row) => columns.map((column) => row.values[column] || 0)));
-
-  return { columns, rows, columnTotals, grandTotal, maxValue };
 }
 
 function getJoumpaCategoryKey(report: Report): JoumpaCategoryKey {
@@ -518,116 +455,6 @@ function JoumpaHorizontalBarPanel({
   );
 }
 
-function JoumpaStackedBarPanel({
-  title,
-  rows,
-  className = 'h-[19rem]',
-  labelWidth = 122,
-  onSegmentClick,
-}: {
-  title: string;
-  rows: Array<{ id: string; label: string; staff: number; customer: number }>;
-  className?: string;
-  labelWidth?: number;
-  onSegmentClick?: (row: { id: string; label: string; staff: number; customer: number }, type: 'staff' | 'customer') => void;
-}) {
-  const chartHeight = Math.max(190, rows.length * 38);
-
-  return (
-    <JoumpaPanel title={title} className={className} bodyClassName="overflow-auto px-2 py-3">
-      {rows.length === 0 ? <EmptyPanel /> : (
-        <>
-          <div className="mb-2 flex justify-center gap-4 text-[10px] font-bold uppercase tracking-[0.12em] text-[color:var(--sr-text-2)]">
-            <span className="inline-flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm" style={{ backgroundColor: CUSTOMER_COLOR }} />Customer Report</span>
-            <span className="inline-flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm" style={{ backgroundColor: STAFF_COLOR }} />Staff Report</span>
-          </div>
-          <div style={{ height: chartHeight }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={rows} layout="vertical" margin={{ top: 6, right: 44, left: 6, bottom: 6 }}>
-                <CartesianGrid strokeDasharray="2 6" horizontal={false} stroke="var(--sr-border)" />
-                <XAxis type="number" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--sr-text-3)' }} />
-                <YAxis
-                  type="category"
-                  dataKey="label"
-                  width={labelWidth}
-                  interval={0}
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fontSize: 10, fontWeight: 700, fill: 'var(--sr-text)' }}
-                />
-                <Tooltip cursor={{ fill: 'var(--sr-accent-tint)' }} contentStyle={{ borderRadius: 4, borderColor: 'var(--sr-border-strong)', fontSize: 11 }} />
-                <Bar
-                  dataKey="customer"
-                  name="Customer Report"
-                  stackId="voice"
-                  fill={CUSTOMER_COLOR}
-                  barSize={22}
-                  cursor={onSegmentClick ? 'pointer' : 'default'}
-                  onClick={(data: { payload?: { id: string; label: string; staff: number; customer: number } }) => data.payload && onSegmentClick?.(data.payload, 'customer')}
-                >
-                  <LabelList dataKey="customer" content={renderStackedBarLabel('Customer')} />
-                </Bar>
-                <Bar
-                  dataKey="staff"
-                  name="Staff Report"
-                  stackId="voice"
-                  fill={STAFF_COLOR}
-                  barSize={22}
-                  cursor={onSegmentClick ? 'pointer' : 'default'}
-                  onClick={(data: { payload?: { id: string; label: string; staff: number; customer: number } }) => data.payload && onSegmentClick?.(data.payload, 'staff')}
-                  radius={[0, 4, 4, 0]}
-                >
-                  <LabelList dataKey={(entry: { staff: number; customer: number }) => entry.staff + entry.customer} position="right" style={{ fontSize: 12, fontWeight: 900, fill: JOUMPA_TEXT }} />
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </>
-      )}
-    </JoumpaPanel>
-  );
-}
-
-function createInsidePieLabel(total: number) {
-  const PieInsideLabel = (props: {
-    cx?: number | string;
-    cy?: number | string;
-    midAngle?: number;
-    innerRadius?: number | string;
-    outerRadius?: number | string;
-    value?: number | string;
-  }) => {
-    const cx = Number(props.cx || 0);
-    const cy = Number(props.cy || 0);
-    const midAngle = Number(props.midAngle || 0);
-    const innerRadius = Number(props.innerRadius || 0);
-    const outerRadius = Number(props.outerRadius || 0);
-    const value = Number(props.value || 0);
-    if (!value || !total || !outerRadius) return null;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.58;
-    const x = cx + radius * Math.cos(-midAngle * Math.PI / 180);
-    const y = cy + radius * Math.sin(-midAngle * Math.PI / 180);
-    const percentage = Math.round((value / total) * 100);
-    return (
-      <text
-        x={x}
-        y={y}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fill="#102a2d"
-        paintOrder="stroke"
-        stroke="white"
-        strokeWidth={3}
-        style={{ fontSize: 12, fontWeight: 900, pointerEvents: 'none' }}
-      >
-        {value} ({percentage}%)
-      </text>
-    );
-  };
-  PieInsideLabel.displayName = 'PieInsideLabel';
-  return PieInsideLabel;
-}
-
 function JoumpaPiePanel({
   title,
   rows,
@@ -713,7 +540,6 @@ function JoumpaPiePanel({
 
 function JoumpaBarTable({
   title,
-  headerLabel,
   rows,
   className = 'h-[22rem]',
   onRowClick,
@@ -763,143 +589,6 @@ function JoumpaBarTable({
             );
           })}
         </ol>
-      )}
-    </JoumpaPanel>
-  );
-}
-
-function JoumpaMatrixTable({
-  title,
-  matrix,
-  rowLabel,
-  metricLabel,
-  className = 'h-[16rem]',
-  onRowClick,
-}: {
-  title: string;
-  matrix: ReturnType<typeof buildMatrixData<Report>>;
-  rowLabel: string;
-  metricLabel: string;
-  className?: string;
-  onRowClick?: (row: MatrixRow) => void;
-}) {
-  return (
-    <JoumpaPanel title={title} className={className} bodyClassName="overflow-y-auto overflow-x-hidden">
-      {matrix.rows.length === 0 ? <EmptyPanel /> : (
-        <ReportTable density="compact" containerClassName="overflow-visible rounded-none border-0 shadow-none" className="w-full table-fixed border-collapse text-[9px] leading-tight">
-          <ReportTHead className="sticky top-0 z-20">
-            <ReportTR>
-              <ReportTH colSpan={matrix.columns.length + 2} className="border border-[color:var(--sr-border-strong)] bg-[color:var(--sr-accent)] px-1 py-1 text-right text-[11px] font-semibold text-white">
-                {metricLabel}
-              </ReportTH>
-            </ReportTR>
-            <ReportTR className="bg-[color:var(--sr-sunken)] text-[color:var(--sr-text-2)]">
-              <ReportTH className="w-[31%] border border-[color:var(--sr-border)] px-1 py-1 text-left font-bold">{rowLabel}</ReportTH>
-              {matrix.columns.map((column) => (
-                <ReportTH key={column} className="border border-[color:var(--sr-border)] px-0.5 py-1 text-center font-bold">{column}</ReportTH>
-              ))}
-              <ReportTH className="w-[13%] border border-[color:var(--sr-border)] px-0.5 py-1 text-center font-black">Total</ReportTH>
-            </ReportTR>
-          </ReportTHead>
-          <ReportTBody>
-            {matrix.rows.map((row) => (
-              <ReportTR
-                key={row.id}
-                className={`${onRowClick ? 'cursor-pointer' : ''} transition-colors hover:bg-[color:var(--sr-accent-tint)]`}
-                onClick={() => onRowClick?.(row)}
-              >
-                <ReportTD className="border border-[color:var(--sr-border)] px-1 py-1 align-middle text-[9px] font-bold leading-tight text-[color:var(--sr-text)]">{row.primary}</ReportTD>
-                {matrix.columns.map((column) => {
-                  const value = row.values[column] || 0;
-                  return (
-                    <ReportTD
-                      key={column}
-                      className="border border-[color:var(--sr-border)] px-0.5 py-1 text-center text-[9px] font-semibold text-[color:var(--sr-text)]"
-                      style={{ backgroundColor: joumpaHeatColor(value, matrix.maxValue) }}
-                    >
-                      {value || '-'}
-                    </ReportTD>
-                  );
-                })}
-                <ReportTD className="border border-[color:var(--sr-border)] px-0.5 py-1 text-center text-[11px] font-semibold text-[color:var(--sr-text)]">{row.total}</ReportTD>
-              </ReportTR>
-            ))}
-            <ReportTR className="bg-[color:var(--sr-accent-soft)] font-black">
-              <ReportTD className="border border-[color:var(--sr-accent)] px-1 py-1 text-[color:var(--sr-accent-dark)]">Grand total</ReportTD>
-              {matrix.columns.map((column) => (
-                <ReportTD key={column} className="border border-[color:var(--sr-accent)] px-0.5 py-1 text-center text-[color:var(--sr-accent-dark)]">{matrix.columnTotals[column] || 0}</ReportTD>
-              ))}
-              <ReportTD className="border border-[color:var(--sr-accent)] px-0.5 py-1 text-center text-[color:var(--sr-accent-dark)]">{matrix.grandTotal}</ReportTD>
-            </ReportTR>
-          </ReportTBody>
-        </ReportTable>
-      )}
-    </JoumpaPanel>
-  );
-}
-
-function VoiceSummaryTable({
-  rows,
-  className = 'h-[19rem]',
-  onRowClick,
-}: {
-  rows: Array<{ type: string; service: string; comp: number; net: number; irreg: number; compl: number; total: number }>;
-  className?: string;
-  onRowClick?: (row: { type: string; service: string; comp: number; net: number; irreg: number; compl: number; total: number }) => void;
-}) {
-  const max = Math.max(1, ...rows.flatMap((row) => [row.comp, row.net, row.irreg, row.compl]));
-
-  return (
-    <JoumpaPanel title="Summary Station" className={className} bodyClassName="overflow-auto">
-      {rows.length === 0 ? <EmptyPanel /> : (
-        <ReportTable density="compact" containerClassName="overflow-visible rounded-none border-0 shadow-none" className="min-w-[760px] w-full border-collapse text-[11px]">
-          <ReportTHead className="sticky top-0 z-20">
-            <ReportTR>
-              <ReportTH colSpan={7} className="border border-[color:var(--sr-border-strong)] bg-[color:var(--sr-accent)] px-2.5 py-2 text-right text-[13px] font-black text-white">
-                Category Report / Record Count
-              </ReportTH>
-            </ReportTR>
-            <ReportTR className="bg-[color:var(--sr-sunken)] text-[color:var(--sr-text-2)]">
-              {['Report Type', 'Joumpa Service Type', 'Compliment', 'Netral', 'Irregularity', 'Complaint', 'Grand total'].map((label, index) => (
-                <ReportTH key={label} className={`border border-[color:var(--sr-border)] px-2.5 py-2 font-bold ${index > 1 ? 'text-center' : 'text-left'}`}>{label}</ReportTH>
-              ))}
-            </ReportTR>
-          </ReportTHead>
-          <ReportTBody>
-            {rows.map((row, index) => {
-              const prev = rows[index - 1];
-              const showType = !prev || prev.type !== row.type;
-              return (
-                <ReportTR
-                  key={`${row.type}-${row.service}`}
-                  className={`${onRowClick ? 'cursor-pointer' : ''} transition-colors hover:bg-[color:var(--sr-accent-tint)]`}
-                  onClick={() => onRowClick?.(row)}
-                >
-                  <ReportTD className="border border-[color:var(--sr-border)] px-2.5 py-2 align-top text-[13px] font-bold text-[color:var(--sr-text)]">{showType ? row.type : ''}</ReportTD>
-                  <ReportTD className="border border-[color:var(--sr-border)] px-2.5 py-2 text-[13px] text-[color:var(--sr-text)]">{row.service}</ReportTD>
-                  {[row.comp, row.net, row.irreg, row.compl].map((value, i) => (
-                    <ReportTD
-                      key={i}
-                      className="border border-[color:var(--sr-border)] px-2.5 py-2 text-center text-[13px] font-semibold text-[color:var(--sr-text)]"
-                      style={{ backgroundColor: joumpaHeatColor(value, max) }}
-                    >
-                      {value || '-'}
-                    </ReportTD>
-                  ))}
-                  <ReportTD className="border border-[color:var(--sr-border)] px-2.5 py-2 text-center text-[13px] font-black text-[color:var(--sr-text)]">{row.total}</ReportTD>
-                </ReportTR>
-              );
-            })}
-            <ReportTR className="bg-[color:var(--sr-accent-soft)] font-black">
-              <ReportTD colSpan={2} className="border border-[color:var(--sr-accent)] px-2.5 py-2 text-[color:var(--sr-accent-dark)]">Grand total</ReportTD>
-              <ReportTD className="border border-[color:var(--sr-accent)] px-2.5 py-2 text-center text-[color:var(--sr-accent-dark)]">{rows.reduce((sum, row) => sum + row.comp, 0)}</ReportTD>
-              <ReportTD className="border border-[color:var(--sr-accent)] px-2.5 py-2 text-center text-[color:var(--sr-accent-dark)]">{rows.reduce((sum, row) => sum + row.net, 0)}</ReportTD>
-              <ReportTD className="border border-[color:var(--sr-accent)] px-2.5 py-2 text-center text-[color:var(--sr-accent-dark)]">{rows.reduce((sum, row) => sum + row.irreg, 0)}</ReportTD>
-              <ReportTD className="border border-[color:var(--sr-accent)] px-2.5 py-2 text-center text-[color:var(--sr-accent-dark)]">{rows.reduce((sum, row) => sum + row.compl, 0)}</ReportTD>
-              <ReportTD className="border border-[color:var(--sr-accent)] px-2.5 py-2 text-center text-[color:var(--sr-accent-dark)]">{rows.reduce((sum, row) => sum + row.total, 0)}</ReportTD>
-            </ReportTR>
-          </ReportTBody>
-        </ReportTable>
       )}
     </JoumpaPanel>
   );
@@ -965,28 +654,6 @@ function getJoumpaKpiRecords(metricId: JoumpaKpiId, data: Report[]) {
     case 'report':
     default:
       return data;
-  }
-}
-
-function getJoumpaKpiBreakdown(metricId: JoumpaKpiId, data: Report[]) {
-  switch (metricId) {
-    case 'station':
-      return { title: 'Station Breakdown', rows: buildCountRows(data, (report) => normalizeText(resolveReportBranch(report), '-')) };
-    case 'airlines':
-      return { title: 'Airline Breakdown', rows: buildCountRows(data, (report) => normalizeText(resolveReportAirline(report), '-')) };
-    case 'complaintFeedback':
-    case 'complimentReport':
-      return { title: 'Case Breakdown', rows: buildCountRows(data, getJoumpaDetailIssue) };
-    case 'nonCorporate':
-      return { title: 'Non-Corporate Breakdown', rows: buildCountRows(data, getNonCorporateCategory) };
-    case 'corporatePassenger':
-      return { title: 'Corporate Breakdown', rows: buildCountRows(data, getCorporateCategory) };
-    case 'reportOpen':
-    case 'closedRecord':
-      return { title: 'Category Breakdown', rows: buildCountRows(data, getJoumpaCategoryLabel) };
-    case 'report':
-    default:
-      return { title: 'Report Category Breakdown', rows: buildCountRows(data, getJoumpaCategoryLabel) };
   }
 }
 
@@ -1299,277 +966,6 @@ function ErrorPanel({ message }: { message: string }) {
   );
 }
 
-function DetailBlock({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] p-3">
-      <p className="mb-2 text-[0.65rem] font-black uppercase tracking-[0.18em] text-[color:var(--sr-text-3)]">{label}</p>
-      <p className="text-sm font-semibold leading-snug text-[color:var(--sr-text)]">{value || '-'}</p>
-    </div>
-  );
-}
-
-function EvidenceLinks({ urls, raw }: { urls?: string[]; raw?: string }) {
-  const links = [...(Array.isArray(urls) ? urls : []), raw].filter(Boolean).map(String);
-  return (
-    <div className="border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] p-3">
-      <p className="mb-2 text-[0.65rem] font-black uppercase tracking-[0.18em] text-[color:var(--sr-text-3)]">Evidence Links</p>
-      <div className="flex flex-wrap gap-2">
-        {links.length === 0
-          ? <p className="text-sm text-[color:var(--sr-text-3)]">No evidence link.</p>
-          : links.map((link, i) => (
-            <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-full items-center gap-1.5 rounded-md bg-[color:var(--sr-accent)] px-2.5 py-1.5 text-[12px] font-semibold text-white transition-colors hover:bg-[color:var(--sr-accent-strong)]">
-              <ExternalLink size={13} />
-              <span className="truncate">Evidence {i + 1}</span>
-            </a>
-          ))}
-      </div>
-    </div>
-  );
-}
-
-function OpCauseDetailTable({ data }: { data: Report[] }) {
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
-  const toggleRow = (id: string) => setExpandedIds((c) => ({ ...c, [id]: !c[id] }));
-
-  if (data.length === 0) return <p className="text-xs text-[var(--text-muted)] text-center py-4">No data available</p>;
-
-  return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden border border-[color:var(--sr-border)] bg-white">
-      <div className="min-h-0 flex-1 overflow-auto">
-        <ReportTable density="compact" containerClassName="overflow-visible rounded-none border-0 shadow-none" className="min-w-full border-separate border-spacing-0 text-[11px]">
-          <ReportTHead className="sticky top-0 z-20 bg-white">
-            <ReportTR>
-              {['Case Classification', 'Airlines', 'Category', 'Identification of Root', 'Area', 'See Details'].map((label, i) => (
-                <ReportTH key={label} className={`border-b border-[oklch(0.88_0.02_145_/_0.75)] px-2 py-2 text-left text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)] ${i >= 5 ? 'text-right' : ''}`}>{label}</ReportTH>
-              ))}
-            </ReportTR>
-          </ReportTHead>
-          <ReportTBody>
-            {data.map((r, idx) => {
-              const rowId = String(r.id || idx);
-              const isExpanded = Boolean(expandedIds[rowId]);
-              const isLastRow = idx === data.length - 1 && !isExpanded;
-              const border = !isLastRow ? 'border-b border-[oklch(0.9_0.01_90_/_0.5)]' : '';
-              return (
-                <Fragment key={rowId}>
-                  <ReportTR className="hover:bg-[var(--surface-2)]/60">
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] ${border}`}>{normalizeText(resolveJoumpaDetailCategory(r) || resolveCaseClassification(r), '-')}</ReportTD>
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] ${border}`}>{normalizeText(resolveReportAirline(r), '-')}</ReportTD>
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] ${border}`}>{normalizeText(resolveReportCategory(r), '-')}</ReportTD>
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] ${border}`}>{normalizeText(resolveRootCause(r), '-')}</ReportTD>
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] ${border}`}>{normalizeText(r.area, '-')}</ReportTD>
-                    <ReportTD className={`px-2 py-2 text-right align-top ${border}`}>
-                      <button
-                        type="button"
-                        onClick={() => toggleRow(rowId)}
-                        aria-label={isExpanded ? 'Hide details' : 'Show details'}
-                        className={`inline-flex h-6 items-center justify-center rounded-md px-2 text-[10px] font-bold uppercase tracking-[0.04em] transition-colors ${
-                          isExpanded
-                            ? 'bg-[color:var(--sr-sunken)] text-[color:var(--sr-text-2)] hover:bg-[color:var(--sr-border)]'
-                            : 'bg-[color:var(--sr-accent)] text-white hover:bg-[color:var(--sr-accent-strong)]'
-                        }`}
-                      >
-                        {isExpanded ? 'Hide' : 'Details'}
-                      </button>
-                    </ReportTD>
-                  </ReportTR>
-                  {isExpanded ? (
-                    <ReportTR className="bg-[var(--surface-0)]/80">
-                      <ReportTD colSpan={6} className="border-b border-[oklch(0.9_0.01_90_/_0.5)] px-4 py-4">
-                        <div className="grid gap-4 lg:grid-cols-2">
-                          <DetailBlock label="Report" value={normalizeText(r.report || r.description, '-')} />
-                          <DetailBlock label="Root Caused" value={normalizeText(resolveRootCause(r), '-')} />
-                          <DetailBlock label="Action Taken" value={normalizeText(r.action_taken, '-')} />
-                          <DetailBlock label="Date of Event" value={formatDateLabel(r.date_of_event || r.created_at)} />
-                          <DetailBlock label="Station" value={normalizeText(resolveReportBranch(r), '-').toUpperCase()} />
-                          <DetailBlock label="Remarks Case" value={normalizeText(resolveJoumpaCategory(r), '-')} />
-                          <DetailBlock label="Case Joumpa" value={normalizeText(resolveJoumpaDetailCategory(r), '-')} />
-                          <DetailBlock label="Final Remarks" value={normalizeText(r.final_remarks || r.kps_remarks, '-')} />
-                          <EvidenceLinks urls={resolveEvidenceLinks(r)} />
-                        </div>
-                      </ReportTD>
-                    </ReportTR>
-                  ) : null}
-                </Fragment>
-              );
-            })}
-          </ReportTBody>
-        </ReportTable>
-      </div>
-      <div className="border-t border-[color:var(--sr-border)] bg-white px-3 py-2 text-[13px] font-semibold uppercase tracking-[0.12em] text-[#687673]">{data.length} records</div>
-    </div>
-  );
-}
-
-function CompLandsideDetailTable({ data }: { data: Report[] }) {
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
-  const toggleRow = (id: string) => setExpandedIds((c) => ({ ...c, [id]: !c[id] }));
-
-  const filtered = useMemo(() => data.filter(r => {
-    const v = normalize(resolveRootCause(r));
-    return v && v !== '-';
-  }), [data]);
-
-  const grouped = useMemo(() => {
-    const groups = new Map<string, Report[]>();
-    filtered.forEach(r => {
-      const branch = normalizeText(resolveReportBranch(r), '-').toUpperCase();
-      if (!groups.has(branch)) groups.set(branch, []);
-      groups.get(branch)!.push(r);
-    });
-    return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
-  }, [filtered]);
-
-  if (filtered.length === 0) return <p className="text-xs text-[var(--text-muted)] text-center py-4">No data available</p>;
-
-  let globalIdx = 0;
-  return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden border border-[color:var(--sr-border)] bg-white">
-      <div className="min-h-0 flex-1 overflow-auto">
-        <ReportTable density="compact" containerClassName="overflow-visible rounded-none border-0 shadow-none" className="min-w-full border-separate border-spacing-0 text-[11px]">
-          <ReportTHead className="sticky top-0 z-20 bg-white">
-            <ReportTR>
-              {['Station', 'Airlines', 'Identification of Root', 'Supporting Evidence', 'See Details'].map((label, i) => (
-                <ReportTH key={label} className={`border-b border-[oklch(0.88_0.02_145_/_0.75)] px-2 py-2 text-left text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)] ${i >= 4 ? 'text-right' : ''}`}>{label}</ReportTH>
-              ))}
-            </ReportTR>
-          </ReportTHead>
-          <ReportTBody>
-            {grouped.map(([branch, reports]) => reports.map((r, idx) => {
-              const rowId = String(r.id || globalIdx++);
-              const isExpanded = Boolean(expandedIds[rowId]);
-              const isLastRow = globalIdx === filtered.length && !isExpanded;
-              const border = !isLastRow ? 'border-b border-[oklch(0.9_0.01_90_/_0.5)]' : '';
-              const urls = resolveEvidenceLinks(r);
-              const showBranch = idx === 0;
-              return (
-                <Fragment key={rowId}>
-                  <ReportTR className="hover:bg-[var(--surface-2)]/60">
-                    {showBranch ? (
-                      <ReportTD rowSpan={reports.length} className={`px-2 py-2 align-top font-bold text-[var(--text-primary)] whitespace-nowrap border-b border-[oklch(0.9_0.01_90_/_0.5)] bg-[oklch(0.96_0.01_150_/_0.6)]`}>{branch}</ReportTD>
-                    ) : null}
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] ${border}`}>{normalizeText(resolveReportAirline(r), '-')}</ReportTD>
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] ${border}`}>{normalizeText(resolveRootCause(r), '-')}</ReportTD>
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] ${border}`}>
-                      {urls.length === 0 ? <span className="text-[var(--text-muted)]">-</span> : urls.map((link, i) => <a key={i} href={link} target="_blank" rel="noopener noreferrer" className="block truncate text-[var(--brand-emerald-700)] underline-offset-2 hover:underline">{link}</a>)}
-                    </ReportTD>
-                    <ReportTD className={`px-2 py-2 text-right align-top ${border}`}>
-                      <button
-                        type="button"
-                        onClick={() => toggleRow(rowId)}
-                        aria-label={isExpanded ? 'Hide details' : 'Show details'}
-                        className={`inline-flex h-6 items-center justify-center rounded-md px-2 text-[10px] font-bold uppercase tracking-[0.04em] transition-colors ${
-                          isExpanded
-                            ? 'bg-[color:var(--sr-sunken)] text-[color:var(--sr-text-2)] hover:bg-[color:var(--sr-border)]'
-                            : 'bg-[color:var(--sr-accent)] text-white hover:bg-[color:var(--sr-accent-strong)]'
-                        }`}
-                      >
-                        {isExpanded ? 'Hide' : 'Details'}
-                      </button>
-                    </ReportTD>
-                  </ReportTR>
-                  {isExpanded ? (
-                    <ReportTR className="bg-[var(--surface-0)]/80">
-                      <ReportTD colSpan={4} className="border-b border-[oklch(0.9_0.01_90_/_0.5)] px-4 py-4">
-                        <div className="grid gap-4 lg:grid-cols-2">
-                          <DetailBlock label="Report" value={normalizeText(r.report || r.description, '-')} />
-                          <DetailBlock label="Root Caused" value={normalizeText(resolveRootCause(r), '-')} />
-                          <DetailBlock label="Action Taken" value={normalizeText(r.action_taken, '-')} />
-                          <DetailBlock label="Date of Event" value={formatDateLabel(r.date_of_event || r.created_at)} />
-                          <DetailBlock label="Case Joumpa" value={normalizeText(resolveJoumpaDetailCategory(r), '-')} />
-                          <DetailBlock label="Final Remarks" value={normalizeText(r.final_remarks || r.kps_remarks, '-')} />
-                        </div>
-                      </ReportTD>
-                    </ReportTR>
-                  ) : null}
-                </Fragment>
-              );
-            }))}
-          </ReportTBody>
-        </ReportTable>
-      </div>
-      <div className="border-t border-[color:var(--sr-border)] bg-white px-3 py-2 text-[13px] font-semibold uppercase tracking-[0.12em] text-[#687673]">{filtered.length} records</div>
-    </div>
-  );
-}
-
-function VoiceDetailTable({ data }: { data: JoumpaRecord[] }) {
-  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
-  const toggleRow = (id: string) => setExpandedIds((c) => ({ ...c, [id]: !c[id] }));
-
-  if (data.length === 0) return <p className="text-xs text-[var(--text-muted)] text-center py-4">No data available</p>;
-
-  return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden border border-[color:var(--sr-border)] bg-white">
-      <div className="min-h-0 flex-1 overflow-auto">
-        <ReportTable density="compact" containerClassName="overflow-visible rounded-none border-0 shadow-none" className="min-w-full border-separate border-spacing-0 text-[11px]">
-          <ReportTHead className="sticky top-0 z-20 bg-white">
-            <ReportTR>
-              {['Report Type', 'Joumpa Service Type', 'Category Report', 'Station', 'Airlines', 'Report', 'See Details'].map((label, i) => (
-                <ReportTH key={label} className={`border-b border-[oklch(0.88_0.02_145_/_0.75)] px-2 py-2 text-left text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--text-secondary)] ${i >= 6 ? 'text-right' : ''}`}>{label}</ReportTH>
-              ))}
-            </ReportTR>
-          </ReportTHead>
-          <ReportTBody>
-            {data.map((r, idx) => {
-              const rowId = `${r.timestamp}-${idx}`;
-              const isExpanded = Boolean(expandedIds[rowId]);
-              const isLastRow = idx === data.length - 1 && !isExpanded;
-              const border = !isLastRow ? 'border-b border-[oklch(0.9_0.01_90_/_0.5)]' : '';
-              return (
-                <Fragment key={rowId}>
-                  <ReportTR className="hover:bg-[var(--surface-2)]/60">
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] whitespace-nowrap ${border}`}>{normalizeText(r.reportType, '-')}</ReportTD>
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] ${border}`}>{normalizeText(r.serviceType, '-')}</ReportTD>
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] whitespace-nowrap ${border}`}>{normalizeText(r.category, '-')}</ReportTD>
-                    <ReportTD className={`px-2 py-2 align-top font-semibold text-[var(--text-primary)] whitespace-nowrap ${border}`}>{normalizeText(r.branch, '-').toUpperCase()}</ReportTD>
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] whitespace-nowrap ${border}`}>{normalizeText(r.airlines, '-')}</ReportTD>
-                    <ReportTD className={`px-2 py-2 align-top text-[var(--text-primary)] ${border}`}><div className="max-w-[20rem] whitespace-normal line-clamp-2">{normalizeText(r.report, '-')}</div></ReportTD>
-                    <ReportTD className={`px-2 py-2 text-right align-top ${border}`}>
-                      <button
-                        type="button"
-                        onClick={() => toggleRow(rowId)}
-                        aria-label={isExpanded ? 'Hide details' : 'Show details'}
-                        className={`inline-flex h-6 items-center justify-center rounded-md px-2 text-[10px] font-bold uppercase tracking-[0.04em] transition-colors ${
-                          isExpanded
-                            ? 'bg-[color:var(--sr-sunken)] text-[color:var(--sr-text-2)] hover:bg-[color:var(--sr-border)]'
-                            : 'bg-[color:var(--sr-accent)] text-white hover:bg-[color:var(--sr-accent-strong)]'
-                        }`}
-                      >
-                        {isExpanded ? 'Hide' : 'Details'}
-                      </button>
-                    </ReportTD>
-                  </ReportTR>
-                  {isExpanded ? (
-                    <ReportTR className="bg-[var(--surface-0)]/80">
-                      <ReportTD colSpan={7} className="border-b border-[oklch(0.9_0.01_90_/_0.5)] px-4 py-4">
-                        <div className="grid gap-4 lg:grid-cols-2">
-                          <DetailBlock label="Full Report" value={normalizeText(r.report, '-')} />
-                          <DetailBlock label="Satisfaction Rating" value={normalizeText(r.satisfactionRating, '-')} />
-                          <DetailBlock label="Average Rating" value={normalizeText(r.averageRating, '-')} />
-                          <DetailBlock label="Customer Type" value={normalizeText(r.customerType, '-')} />
-                          <DetailBlock label="Customer Detail" value={normalizeText(r.customerDetail, '-')} />
-                          <DetailBlock label="Date of Event" value={formatDateLabel(r.date)} />
-                          <DetailBlock label="Flight Number" value={normalizeText(r.flightNumber, '-')} />
-                          <DetailBlock label="Report By" value={normalizeText(r.reportBy, '-')} />
-                          <DetailBlock label="Airport" value={normalizeText([r.airportCode, r.airportName].filter(Boolean).join(' - '), '-')} />
-                          <DetailBlock label="Final Remarks" value={normalizeText(r.finalRemarks, '-')} />
-                          <EvidenceLinks urls={resolveEvidenceLinks(r)} raw={normalizeText(r.evidence, '') || undefined} />
-                        </div>
-                      </ReportTD>
-                    </ReportTR>
-                  ) : null}
-                </Fragment>
-              );
-            })}
-          </ReportTBody>
-        </ReportTable>
-      </div>
-      <div className="border-t border-[color:var(--sr-border)] bg-white px-3 py-2 text-[13px] font-semibold uppercase tracking-[0.12em] text-[#687673]">{data.length} records</div>
-    </div>
-  );
-}
-
 function LookerQrCard({ title, url, qrUrl }: { title: string; url: string; qrUrl: string }) {
   const [showQrModal, setShowQrModal] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -1605,7 +1001,7 @@ function LookerQrCard({ title, url, qrUrl }: { title: string; url: string; qrUrl
           <div className="flex justify-center sm:justify-end">
             <button type="button" onClick={() => setShowQrModal(true)} className="rounded-lg border border-[color:var(--sr-border)] bg-[color:var(--sr-raised)] p-3 shadow-sm transition-all hover:border-[color:var(--sr-accent-soft-2)] hover:bg-[color:var(--sr-accent-tint)] hover:shadow-md" aria-label={`Show QR code ${title}`}>
               {}
-              <img src={qrUrl} alt={`QR code ${title}`} className="h-36 w-36 object-contain" loading="lazy" decoding="async" />
+              <Image src={qrUrl} alt={`QR code ${title}`} width={240} height={240} className="h-36 w-36 object-contain" />
             </button>
           </div>
         </div>
@@ -1626,7 +1022,7 @@ function LookerQrCard({ title, url, qrUrl }: { title: string; url: string; qrUrl
             <div className="mt-5 flex justify-center">
               <div className="border border-[color:var(--sr-border)] bg-white p-4 shadow-sm">
                 {}
-                <img src={qrUrl} alt={`QR code ${title}`} className="h-64 w-64 object-contain" loading="lazy" decoding="async" />
+                <Image src={qrUrl} alt={`QR code ${title}`} width={240} height={240} className="h-64 w-64 object-contain" />
               </div>
             </div>
             <a href={url} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex items-center gap-2 bg-[#007878] px-4 py-2 text-sm font-black uppercase tracking-[0.08em] text-white transition-all hover:bg-[#00676b] active:scale-[0.98]">
@@ -1781,159 +1177,6 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
       secondary: getCustomerName(report),
     })),
     [joumpaDashboardReports]
-  );
-
-  const serviceIssueDetailMatrix = useMemo(
-    () => buildJoumpaCategoryMatrix(joumpaDashboardReports, (report) => ({
-      primary: getJoumpaCaseGroup(report),
-      secondary: getJoumpaDetailIssue(report),
-      station: normalizeText(resolveReportBranch(report), '-'),
-      customerSegment: getCustomerSegment(report),
-      customer: getCustomerName(report),
-    })),
-    [joumpaDashboardReports]
-  );
-
-  const operationalReports = useMemo(
-    () => scopedMainReports.filter((r) => normalizeLower(resolveReportCategory(r)) !== 'compliment'),
-    [scopedMainReports]
-  );
-
-  const opMonthly = useMemo(
-    () => buildMonthlyRows(
-      operationalReports.filter((r) => {
-        const d = parseCalendarDate(r.date_of_event || r.created_at);
-        return d && d.getFullYear() === CURRENT_YEAR;
-      }),
-      (report) => report.date_of_event || report.created_at
-    ),
-    [operationalReports]
-  );
-
-  const opCategory = useMemo(
-    () => buildCountRows(operationalReports, (report) => normalizeText(resolveJoumpaCategory(report), '-')),
-    [operationalReports]
-  );
-
-  const opDist = useMemo(
-    () => buildPieSlices(operationalReports, (report) => normalizeText(resolveReportCategory(report), 'Unknown'), [
-      CHART_COLORS.teal, CHART_COLORS.emerald, CHART_COLORS.amber, CHART_COLORS.orange
-    ]),
-    [operationalReports]
-  );
-
-  const opStationAirlineMatrix = useMemo(
-    () => buildMatrixData(
-      operationalReports,
-      (report) => ({
-        primary: normalizeText(resolveReportAirline(report), '-'),
-      }),
-      (report) => normalizeText(resolveReportBranch(report), '-').toUpperCase()
-    ),
-    [operationalReports]
-  );
-
-  const opCauses = useMemo(
-    () => buildCountRows(operationalReports, (report) => normalizeText(resolveJoumpaDetailCategory(report) || resolveCaseClassification(report), '-')),
-    [operationalReports]
-  );
-
-  const opRootCauses = useMemo(
-    () => buildCountRows(operationalReports, (report) => normalizeText(resolveRootCause(report), '-')),
-    [operationalReports]
-  );
-
-  const compReports = useMemo(
-    () => scopedMainReports.filter(r => {
-      const cat = normalizeLower(resolveReportCategory(r));
-      return cat === 'compliment';
-    }),
-    [scopedMainReports]
-  );
-
-  const compLandside = useMemo(
-    () => buildCountRows(
-      compReports.filter(r => { const v = normalize(resolveRootCause(r)); return v && v !== '-'; }),
-      (report) => normalizeText(resolveRootCause(report), '-')
-    ),
-    [compReports]
-  );
-
-  const filteredVoice = useMemo(() => voiceRecords.filter((record) => normalize(record.reportType).length > 0 && normalize(record.serviceType).length > 0 && normalize(record.category).length > 0), [voiceRecords]);
-
-  const voiceMonthlyStacked = useMemo(() => {
-    const rowMap = new Map<string, { month: string, staff: number, customer: number, order: number }>();
-    filteredVoice.forEach(r => {
-      const parsed = parseCalendarDate(r.date || r.timestamp);
-      if (!parsed || parsed.getFullYear() !== CURRENT_YEAR) return;
-      const key = monthKey(parsed);
-      const label = monthLabel(parsed);
-      const isStaff = normalizeLower(r.reportType).includes('staff');
-      const existing = rowMap.get(key) || { month: label, staff: 0, customer: 0, order: parsed.getFullYear() * 100 + parsed.getMonth() };
-      if (isStaff) existing.staff++; else existing.customer++;
-      rowMap.set(key, existing);
-    });
-    return Array.from(rowMap.values()).sort((a,b) => b.order - a.order);
-  }, [filteredVoice]);
-
-  const voiceCategoryStacked = useMemo(() => {
-    const rowMap = new Map<string, { category: string, staff: number, customer: number }>();
-    filteredVoice.forEach(r => {
-      const cat = normalizeText(r.category, 'Unknown');
-      const isStaff = normalizeLower(r.reportType).includes('staff');
-      const existing = rowMap.get(cat) || { category: cat, staff: 0, customer: 0 };
-      if (isStaff) existing.staff++; else existing.customer++;
-      rowMap.set(cat, existing);
-    });
-    return Array.from(rowMap.values()).sort((a,b) => (b.staff+b.customer) - (a.staff+a.customer));
-  }, [filteredVoice]);
-
-  const voiceSummaryMatrix = useMemo(() => {
-    const rowMap = new Map<string, { type: string, service: string, comp: number, net: number, irreg: number, compl: number, total: number }>();
-    filteredVoice.forEach(r => {
-      const type = normalizeText(r.reportType, '-');
-      const service = normalizeText(r.serviceType, '-');
-      const cat = normalizeLower(r.category);
-      const id = `${type}::${service}`;
-      const existing = rowMap.get(id) || { type, service, comp: 0, net: 0, irreg: 0, compl: 0, total: 0 };
-      if (cat.includes('compliment')) existing.comp++;
-      else if (cat.includes('netral')) existing.net++;
-      else if (cat.includes('irregularity')) existing.irreg++;
-      else if (cat.includes('complain')) existing.compl++;
-      existing.total++;
-      rowMap.set(id, existing);
-    });
-    return Array.from(rowMap.values()).sort((a,b) => a.type.localeCompare(b.type) || a.service.localeCompare(b.service));
-  }, [filteredVoice]);
-
-  const voiceIrregCompl = useMemo(() => filteredVoice.filter(r => {
-    const c = normalizeLower(r.category);
-    return c.includes('irregularity') || c.includes('complain');
-  }), [filteredVoice]);
-
-  const voiceCompNetral = useMemo(() => filteredVoice.filter(r => {
-    const c = normalizeLower(r.category);
-    return c.includes('compliment') || c.includes('netral');
-  }), [filteredVoice]);
-
-  const voiceMonthlyRows = useMemo(
-    () => voiceMonthlyStacked.map((row) => ({
-      id: row.month,
-      label: row.month,
-      staff: row.staff,
-      customer: row.customer,
-    })),
-    [voiceMonthlyStacked]
-  );
-
-  const voiceCategoryRows = useMemo(
-    () => voiceCategoryStacked.map((row) => ({
-      id: row.category,
-      label: row.category,
-      staff: row.staff,
-      customer: row.customer,
-    })),
-    [voiceCategoryStacked]
   );
 
   return (

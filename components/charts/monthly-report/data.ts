@@ -91,10 +91,6 @@ interface BaseFilters {
   dateTo?: string;
 }
 
-const reportsCache: Record<string, { data: Report[], ts: number }> = {};
-const inflightRequests: Record<string, Promise<Report[]>> = {};
-const CACHE_DURATION = 1000 * 60 * 5;
-
 const CORE_FIELDS = [
   'id', 'date_of_event', 'created_at', 'hub', 'branch', 'reporting_branch', 'station_code',
   'area', 'terminal_area_category', 'apron_area_category', 'general_category',
@@ -104,14 +100,6 @@ const CORE_FIELDS = [
 ];
 
 export type { SeverityDistribution } from "../shared-types";
-
-const INVALID_CAUSE_VALUES = ['#n/a', 'unknown', 'nil', '-', '', 'null', 'none', 'na', 'n/a', 'tidak ada', 'belum diketahui'];
-
-function isValidRootCause(value: string | undefined | null): boolean {
-  if (!value) return false;
-  const normalized = String(value).trim().toLowerCase();
-  return !INVALID_CAUSE_VALUES.includes(normalized);
-}
 
 function normalizeCategory(category: string | undefined): string | null {
   if (!category) return null;
@@ -343,8 +331,7 @@ export async function fetchBranchByMonth(filters: BaseFilters = {}): Promise<Bra
     map.get(key)!.count++;
   });
 
-  return Array.from(map.entries())
-    .map(([_, data]) => data)
+  return Array.from(map.values())
     .sort((a, b) => b.count - a.count)
     .slice(0, 30);
 }
@@ -368,8 +355,7 @@ export async function fetchAirlineByMonth(filters: BaseFilters = {}): Promise<Ai
     map.get(key)!.count++;
   });
 
-  return Array.from(map.entries())
-    .map(([_, data]) => data)
+  return Array.from(map.values())
     .sort((a, b) => b.count - a.count)
     .slice(0, 30);
 }

@@ -11,22 +11,6 @@ export const AVIATION_CHART_COLORS = {
   compliment: 'oklch(0.7 0.15 200)',
 } as const;
 
-export const CHART_AXIS_STYLE = {
-  tick: {
-    fontFamily: 'var(--font-mono)',
-    fontSize: 12,
-    fontWeight: 500,
-    fill: 'var(--text-muted)',
-  },
-  axisLine: {
-    stroke: 'oklch(0.65 0.18 160 / 0.15)',
-  },
-  grid: {
-    stroke: 'oklch(0.65 0.18 160 / 0.08)',
-    strokeDasharray: '3 3',
-  },
-} as const;
-
 export const CHART_TOOLTIP_STYLE = {
   contentStyle: {
     backgroundColor: 'oklch(0.99 0.005 160 / 0.95)',

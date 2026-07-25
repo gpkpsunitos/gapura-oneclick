@@ -41,17 +41,28 @@ export function StatusDetailContent() {
 
   const [data, setData] = useState<ReportsResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchData = useCallback(async (signal?: AbortSignal) => {
     setLoading(true);
     try {
-      const url = statusFilter 
+      const url = statusFilter
         ? `/api/embed/reports?range=${range}&status=${encodeURIComponent(statusFilter)}`
         : `/api/embed/reports?range=${range}`;
       const res = await fetch(url, { signal });
-      setData(await res.json());
+      if (!res.ok) {
+        throw new Error(`Request failed with status ${res.status}`);
+      }
+      const payload = await res.json();
+      if (!payload || typeof payload !== 'object' || !payload.summary) {
+        throw new Error('Unexpected response shape');
+      }
+      setData(payload as ReportsResponse);
+      setError(null);
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
+      console.error('[StatusDetailContent] Failed to load report status:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -72,6 +83,17 @@ export function StatusDetailContent() {
 
   if (loading && !data) {
     return <div className="embed-loading"><div className="embed-spinner" /></div>;
+  }
+
+  if (error && !data) {
+    return (
+      <div className="embed-error">
+        <p>Error: {error}</p>
+        <button onClick={() => fetchData()} className="date-filter-btn" style={{ marginTop: '1rem' }}>
+          Try Again
+        </button>
+      </div>
+    );
   }
 
   const statusPieData = Object.entries(data?.summary.byStatus || {})
@@ -104,7 +126,7 @@ export function StatusDetailContent() {
 
       <header className="page-header">
         <h1 className="page-title">Report Status</h1>
-        <p className="page-subtitle">Pipeline dan SLA compliance</p>
+        <p className="page-subtitle">Pipeline and SLA compliance</p>
       </header>
 
       <DateRangeFilter />
@@ -129,7 +151,7 @@ export function StatusDetailContent() {
       </div>
 
       <div className="embed-grid embed-grid-2">
-        <EmbedCard title="Distribusi Status" subtitle="Pipeline overview">
+        <EmbedCard title="Status Distribution" subtitle="Pipeline overview">
           <div className="chart-container">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -179,12 +201,12 @@ export function StatusDetailContent() {
         <div className="embed-table-container">
           <table className="embed-table">
             <thead>
-              <tr><th>Date</th><th>Judul</th><th>Airline</th><th>Status</th><th>Severity</th></tr>
+              <tr><th>Date</th><th>Title</th><th>Airline</th><th>Status</th><th>Severity</th></tr>
             </thead>
             <tbody>
               {(data?.reports || []).slice(0, 50).map((r) => (
                 <tr key={r.id}>
-                  <td>{new Date(r.created_at).toLocaleDateString('id-ID')}</td>
+                  <td>{new Date(r.created_at).toLocaleDateString('en-GB')}</td>
                   <td>{r.title}</td>
                   <td>{r.airline || '-'}</td>
                   <td><span className={`status-badge ${STATUS_CONFIG[r.status]?.class || ''}`}>{STATUS_CONFIG[r.status]?.label || r.status}</span></td>

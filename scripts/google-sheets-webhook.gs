@@ -1,5 +1,11 @@
-const IRRS_WEBHOOK_URL = 'https://your-app.example.com/api/integrations/google-sheets/webhook';
-const IRRS_WEBHOOK_SECRET = 'replace-with-your-google-sheets-webhook-secret';
+/**
+ * SETUP:
+ * 1. Extensions -> Apps Script -> Project Settings -> Script Properties, add:
+ *      WEBHOOK_URL    = https://<your-vercel-domain>/api/integrations/google-sheets/webhook
+ *      WEBHOOK_SECRET = <same value as GOOGLE_SHEETS_WEBHOOK_SECRET in Vercel>
+ * 2. Run installIrrsWebhookTriggers() once (also removes any legacy triggers).
+ * 3. Edit a row in "NON CARGO" or "CGO" and check Vercel function logs.
+ */
 const IRRS_TARGET_SHEETS = ['NON CARGO', 'CGO'];
 const IRRS_MIN_NON_EMPTY_CELLS = 4;
 const IRRS_DEBOUNCE_MS = 15000;
@@ -28,6 +34,8 @@ function installIrrsWebhookTriggers() {
     .forSpreadsheet(spreadsheet)
     .onEdit()
     .create();
+
+  irrsVerifyWebhookConfig_();
 }
 
 function irrsOnEditInstalled(e) {
@@ -161,15 +169,38 @@ function irrsDeleteFlushTriggers_() {
 }
 
 function irrsPostWebhook_(payload) {
-  return UrlFetchApp.fetch(IRRS_WEBHOOK_URL, {
+  const config = irrsGetWebhookConfig_();
+  return UrlFetchApp.fetch(config.url, {
     method: 'post',
     contentType: 'application/json',
     muteHttpExceptions: true,
     headers: {
-      'X-IRRS-Webhook-Secret': IRRS_WEBHOOK_SECRET,
+      'X-IRRS-Webhook-Secret': config.secret,
     },
     payload: JSON.stringify(payload),
   });
+}
+
+function irrsGetWebhookConfig_() {
+  const props = PropertiesService.getScriptProperties();
+  const url = props.getProperty('WEBHOOK_URL');
+  const secret = props.getProperty('WEBHOOK_SECRET');
+
+  if (!url || !secret) {
+    throw new Error('Missing WEBHOOK_URL or WEBHOOK_SECRET in Script Properties (Project Settings -> Script Properties).');
+  }
+
+  return { url: url, secret: secret };
+}
+
+function irrsVerifyWebhookConfig_() {
+  const props = PropertiesService.getScriptProperties();
+  const url = props.getProperty('WEBHOOK_URL');
+  const secret = props.getProperty('WEBHOOK_SECRET');
+
+  if (!url) Logger.log('[IRRS_WEBHOOK] WARNING: WEBHOOK_URL is not set in Script Properties.');
+  if (!secret) Logger.log('[IRRS_WEBHOOK] WARNING: WEBHOOK_SECRET is not set in Script Properties.');
+  if (url && secret) Logger.log('[IRRS_WEBHOOK] Script Properties configured.');
 }
 
 function irrsReadQueue_(properties) {

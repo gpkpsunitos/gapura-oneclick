@@ -42,7 +42,7 @@ const normalizeUrlList = (value: unknown): string[] => {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function findSavedEditedWordUrl(report: any): string | null {
+function findSavedEditedWordUrl(report: any): string | null {
     const urls = [
         ...normalizeUrlList(report?.evidence_urls),
         ...normalizeUrlList(report?.evidence_url),
@@ -112,7 +112,7 @@ export async function persistEditedWordDocument(reportId: string, blob: Blob, fi
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function downloadSavedWordOrGenerate(report: any, signatureDataUrl?: string | null) {
+async function downloadSavedWordOrGenerate(report: any, signatureDataUrl?: string | null) {
     const savedUrl = findSavedEditedWordUrl(report);
     if (savedUrl) {
         try {

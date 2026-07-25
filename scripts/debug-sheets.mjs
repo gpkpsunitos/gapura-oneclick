@@ -76,7 +76,7 @@ function compareMapping(headers, writeMap) {
 
   const headersWithoutMapping = headers.filter((h, idx) => !mapHeaderSet.has(headersNorm[idx]));
   const mappingWithoutHeader = Object.entries(writeMap)
-    .filter(([_, hh]) => !headerSet.has(norm(hh)))
+    .filter(([, hh]) => !headerSet.has(norm(hh)))
     .map(([k, hh]) => ({ prop: k, header: hh }));
 
   return { headersWithoutMapping, mappingWithoutHeader };

@@ -74,8 +74,11 @@ export default function OCSQuickLinkCards() {
   }, [menuOpen]);
 
   const handleOpen = (link: QuickLink) => {
-    if (link.url.startsWith('/')) router.push(link.url);
-    else window.open(link.url, '_blank', 'noopener,noreferrer');
+    if (link.url.startsWith('/') && !link.url.startsWith('//')) {
+      router.push(link.url);
+    } else if (/^https?:\/\//i.test(link.url)) {
+      window.open(link.url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   const handleDelete = async (id: string) => {

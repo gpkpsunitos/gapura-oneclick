@@ -25,7 +25,7 @@ export interface AnalyticalChart {
   customChartType?: CustomChartType;
 }
 
-export interface AnalyticalChartsResult {
+interface AnalyticalChartsResult {
 
   charts: AnalyticalChart[];
 
@@ -68,23 +68,6 @@ const GAPURA_RED = '#ef5350';
 const GAPURA_ORANGE = '#ffa726';
 const GAPURA_GREY = '#bdbdbd';
 const GAPURA_AMBER = '#ffca28';
-const GAPURA_PURPLE = '#ab47bc';
-
-const SEMANTIC_COLORS: Record<string, string> = {
-  'irregularity': GAPURA_RED,
-  'complaint': GAPURA_ORANGE,
-  'compliment': GAPURA_GREEN_LIGHT,
-  'terminal': GAPURA_BLUE,
-  'terminal area': GAPURA_BLUE,
-  'apron': GAPURA_AMBER,
-  'apron area': GAPURA_AMBER,
-  'general': GAPURA_GREY,
-  'cargo': '#8d6e63',
-  'open': GAPURA_RED,
-  'closed': GAPURA_GREEN_LIGHT,
-  'in progress': GAPURA_YELLOW,
-  'done': GAPURA_GREEN_LIGHT,
-};
 
 const CROSS_ANALYSIS_PRIORITY = [
   'branch',

@@ -75,7 +75,11 @@ export default function AdminDrilldownPage() {
             }
         };
 
-        if (type && value) fetchReports();
+        if (type && value) {
+            fetchReports();
+        } else {
+            setLoading(false);
+        }
     }, [type, value]);
 
     const title = useMemo(() => {

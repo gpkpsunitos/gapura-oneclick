@@ -17,7 +17,7 @@ function normalizeIdentifier(value: unknown): string | null {
   return normalized || null;
 }
 
-export function getReportCommentIdentifiers(report: Pick<Report, 'id' | 'sheet_id' | 'original_id'>): string[] {
+function getReportCommentIdentifiers(report: Pick<Report, 'id' | 'sheet_id' | 'original_id'>): string[] {
   return Array.from(new Set([
     normalizeIdentifier(report.id),
     normalizeIdentifier(report.sheet_id),

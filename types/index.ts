@@ -23,6 +23,10 @@ export interface SessionPayload {
 
     station_id?: string;
 
+    station_code?: string;
+
+    station_name?: string;
+
     unit_id?: string;
 
     position_id?: string;

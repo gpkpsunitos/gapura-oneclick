@@ -18,25 +18,24 @@ interface FeedbackDonutChartProps {
 // Editorial accent cycle — teal, amber, coral, lime, slate (by rank).
 const CF_ACCENT_CYCLE = ['#0f766e', '#f59e0b', '#ef4444', '#65a30d', '#78716c'];
 
-export function FeedbackDonutChart({ title, data, colors = [], height = 170 }: FeedbackDonutChartProps) {
+function getSliceColor(colors: string[], index: number): string {
+  const palette = colors.length > 0 ? colors : CF_ACCENT_CYCLE;
+  return palette[index % palette.length];
+}
+
+export function FeedbackDonutChart({ data, colors = [], height = 170 }: FeedbackDonutChartProps) {
   const total = data.reduce((acc, cur) => acc + cur.value, 0);
   const isCompact = typeof height === 'number' && height <= 180;
 
   const innerR = isCompact ? 50 : 78;
   const outerR = isCompact ? 66 : 96;
 
-  const getSliceColor = (index: number): string => {
-    const palette = colors.length > 0 ? colors : CF_ACCENT_CYCLE;
-    return palette[index % palette.length];
-  };
-
-  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const rankedData = useMemo(() => {
     return [...data]
       .sort((a, b) => b.value - a.value)
       .map((entry, index) => ({
         ...entry,
-        fill: getSliceColor(index),
+        fill: getSliceColor(colors, index),
       }));
   }, [data, colors]);
 
@@ -47,7 +46,7 @@ export function FeedbackDonutChart({ title, data, colors = [], height = 170 }: F
   const legendValueSize = isCompact ? 'text-[9px]' : 'text-[11px]';
   const labelFontSize = isCompact ? 8 : 10;
   const centerOffset = isCompact ? 'translate-y-[-4px]' : 'translate-y-[-6px]';
-  const chartSize = typeof height === 'number' ? height : 170;
+  const chartSize = height;
 
   return (
     <div className="w-full h-full flex items-center gap-3">

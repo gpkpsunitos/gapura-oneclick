@@ -3,7 +3,7 @@ import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWork
 export default function OsCalendarLoading() {
   return (
     <DashboardWorkspaceSkeleton
-      title="OS Calendar"
+      title="Event Calendar"
       subtitle="Loading event calendar and contributors."
     />
   );

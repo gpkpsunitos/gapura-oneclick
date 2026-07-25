@@ -78,7 +78,8 @@ async function fetchStationMap(stationIds: string[]) {
     const ids = Array.from(new Set(stationIds.filter(Boolean)));
     if (ids.length === 0) return map;
 
-    const { data } = await supabaseAdmin.from('stations').select('id, code, name').in('id', ids);
+    const { data, error } = await supabaseAdmin.from('stations').select('id, code, name').in('id', ids);
+    if (error) throw error;
     for (const station of data || []) {
         map.set(station.id, { code: station.code, name: station.name });
     }
@@ -307,7 +308,17 @@ export async function POST(request: Request) {
 
         if (error) throw error;
 
-        const stationMap = await fetchStationMap([data.station_id]);
+        // The document is already committed at this point. A station lookup
+        // failure here is cosmetic (missing station code/name enrichment), not
+        // a failed creation — don't roll back the Drive upload or report a
+        // successful insert as an error over it.
+        let stationMap: Map<string, { code: string; name: string }>;
+        try {
+            stationMap = await fetchStationMap([data.station_id]);
+        } catch (stationError) {
+            console.error('[Division Documents API] Station lookup failed after successful insert:', stationError);
+            stationMap = new Map();
+        }
         return NextResponse.json(mapDocument(data, stationMap), { status: 201 });
     } catch (error) {
         if (uploadedDriveFileId) {

@@ -1,11 +1,11 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { reportsService } from '@/lib/services/reports-service';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
 
     const cookieStore = await cookies();

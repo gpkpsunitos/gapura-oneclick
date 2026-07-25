@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   fetchAirlineOverview,
   fetchCategoryCompositionByAirline,
@@ -44,6 +44,7 @@ function AutoInsight({ data }: { data: AirlineOverview[] }) {
   if (data.length === 0) return null;
 
   const topAirline = data[0];
+  const riskLeader = data.reduce((max, a) => (a.riskIndex > max.riskIndex ? a : max), data[0]);
   const highRiskAirlines = data.filter((a) => a.riskIndex >= 50);
   const negSentimentAirlines = data.filter((a) => a.netSentiment < 0);
 
@@ -65,7 +66,7 @@ function AutoInsight({ data }: { data: AirlineOverview[] }) {
     );
   }
 
-  const mainInsight = `Operational intelligence overview across ${data.length} airlines. ${topAirline.airline} currently represents the highest risk profile.`;
+  const mainInsight = `Operational intelligence overview across ${data.length} airlines. ${riskLeader.airline} currently represents the highest risk profile.`;
 
   return (
     <div className="cf-card p-4 sm:p-5" style={{ '--cf-spine': 'var(--cf-amber)' } as React.CSSProperties}>
@@ -105,9 +106,9 @@ function CategoryCompositionChart({ data }: { data: CategoryCompositionData[] })
           <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
           <Tooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
           <Legend wrapperStyle={{ fontSize: 10, paddingTop: 5 }} />
-          <Bar dataKey="Irregularity" fill="var(--cf-coral)" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="Complaint" fill="var(--cf-amber)" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="Compliment" fill="var(--cf-lime)" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Irregularity" stackId="composition" fill="var(--cf-coral)" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Complaint" stackId="composition" fill="var(--cf-amber)" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="Compliment" stackId="composition" fill="var(--cf-lime)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -226,7 +227,7 @@ function ManagementSummary({ data }: { data: AirlineOverview[] }) {
     `${topAirline.airline} leads with ${topAirline.total} reports (${topAirline.contribution.toFixed(1)}% of total), dominated by ${topAirline.dominantCategory}.`,
     `${highRiskCount} airline${highRiskCount !== 1 ? 's' : ''} identified as high risk (Risk Index >= 50).`,
     `Average irregularity rate across airlines: ${avgIrregRate.toFixed(1)}%.`,
-    `Total volume: ${totalReports.toLocaleString('id-ID')} reports across ${data.length} airlines.`,
+    `Total volume: ${totalReports.toLocaleString('en-GB')} reports across ${data.length} airlines.`,
     `Performance trend: ${improvingAirlines} improving, ${worseningAirlines} worsening (month-over-month).`,
   ];
 
@@ -267,42 +268,47 @@ export default function AirlineIntelligenceDetail({ filters = {} }: { filters?: 
     };
   }, [tableData]);
 
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      setError(null);
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
 
-      try {
-        const [airline, category, branch, area, trend, rootCause, table] = await Promise.all([
-          fetchAirlineOverview(filters),
-          fetchCategoryCompositionByAirline(filters),
-          fetchBranchDistributionByAirline(filters),
-          fetchAreaBreakdownByAirline(filters),
-          fetchMonthlyTrendByAirline(filters),
-          fetchRootCauseByAirline(filters),
-          fetchAllAirlineIntelReports(filters),
-        ]);
+    try {
+      const [airline, category, branch, area, trend, rootCause, table] = await Promise.all([
+        fetchAirlineOverview(filters),
+        fetchCategoryCompositionByAirline(filters),
+        fetchBranchDistributionByAirline(filters),
+        fetchAreaBreakdownByAirline(filters),
+        fetchMonthlyTrendByAirline(filters),
+        fetchRootCauseByAirline(filters),
+        fetchAllAirlineIntelReports(filters),
+      ]);
 
-        setAirlineData(airline);
-        setCategoryData(category);
-        setBranchData(branch);
-        setAreaData(area);
-        setTrendData(trend);
-        setRootCauseData(rootCause);
-        setTableData(table);
-      } catch (err) {
-        console.error('Failed to load data:', err);
-        setError('Failed to load data. Please try again.');
-      } finally {
-        setLoading(false);
-      }
+      setAirlineData(airline);
+      setCategoryData(category);
+      setBranchData(branch);
+      setAreaData(area);
+      setTrendData(trend);
+      setRootCauseData(rootCause);
+      setTableData(table);
+    } catch (err) {
+      console.error('Failed to load data:', err);
+      setError('Failed to load data. Please try again.');
+    } finally {
+      setLoading(false);
     }
+    // filters is destructured to primitive fields so this callback doesn't
+    // change identity on every parent re-render when filters gets a new
+    // object identity but the same values. All fields the fetch calls
+    // actually read are listed above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.sourceSheet, filters.dateFrom, filters.dateTo]);
 
+  useEffect(() => {
     loadData();
-  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo]);
+  }, [loadData]);
 
   if (loading) return <ReportLoading label="Loading airline intelligence…" />;
-  if (error) return <ReportError message={error} onRetry={() => window.location.reload()} />;
+  if (error) return <ReportError message={error} onRetry={loadData} />;
 
   const totalReports = airlineData.reduce((sum, a) => sum + a.total, 0);
   const totalIrreg = airlineData.reduce((sum, a) => sum + a.irregularity, 0);
@@ -322,7 +328,7 @@ export default function AirlineIntelligenceDetail({ filters = {} }: { filters?: 
   const rankColumns: CompactColumn<AirlineOverview>[] = [
     { key: 'rank', label: '#', align: 'left', numeric: true, render: (r) => `#${r.rank}` },
     { key: 'airline', label: 'Airline' },
-    { key: 'total', label: 'Total', align: 'right', numeric: true, render: (r) => r.total.toLocaleString('id-ID') },
+    { key: 'total', label: 'Total', align: 'right', numeric: true, render: (r) => r.total.toLocaleString('en-GB') },
     { key: 'irregularityRate', label: 'Irreg. Rate', align: 'right', numeric: true, hideBelow: 'sm', render: (r) => `${r.irregularityRate.toFixed(1)}%` },
     { key: 'complaintRate', label: 'Compl. Rate', align: 'right', numeric: true, hideBelow: 'md', render: (r) => `${r.complaintRate.toFixed(1)}%` },
     { key: 'netSentiment', label: 'Net Sent.', align: 'right', numeric: true, hideBelow: 'lg', render: (r) => `${r.netSentiment >= 0 ? '+' : ''}${r.netSentiment.toFixed(1)}%` },
@@ -347,7 +353,7 @@ export default function AirlineIntelligenceDetail({ filters = {} }: { filters?: 
       <AutoInsight data={airlineData} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <ReportStatCard label="Total Reports" value={totalReports.toLocaleString('id-ID')} subtitle={`Across ${airlineData.length} airlines`} tone="teal" />
+        <ReportStatCard label="Total Reports" value={totalReports.toLocaleString('en-GB')} subtitle={`Across ${airlineData.length} airlines`} tone="teal" />
         <ReportStatCard label="Top Airline" value={topAirline?.airline || '-'} subtitle={topAirline ? `${topAirline.contribution.toFixed(1)}% of system` : '-'} tone="coral" />
         <ReportStatCard label="Rank #1 Volume" value={topAirline?.total ?? 0} subtitle={topAirline ? `${topAirline.airline}` : '-'} tone="amber" />
         <ReportStatCard

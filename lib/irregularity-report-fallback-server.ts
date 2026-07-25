@@ -12,7 +12,7 @@ import {
 import { generatePDF, generateWord } from '@/lib/utils/document-generator';
 import type { Report } from '@/types';
 
-export interface GeneratedIrregularityReport {
+interface GeneratedIrregularityReport {
   buffer: Buffer;
   filename: string;
   mimeType: string;

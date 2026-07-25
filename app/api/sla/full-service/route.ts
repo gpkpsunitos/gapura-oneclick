@@ -37,7 +37,7 @@ function normalizeString(v: unknown): string {
   return (v ?? '').toString().trim();
 }
 
-function parseTable(headers: string[], rows: string[][]) {
+function parseTable(headers: string[]) {
   const h = headers.map((x) => normalizeString(x).toLowerCase());
   const idx = (name: string) => h.findIndex((x) => x === name.toLowerCase());
   return { h, idx };
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
 
     const s1Headers = sheet1Values[0]?.map((x) => normalizeString(x)) ?? [];
     const s1Rows = (sheet1Values.slice(1) as string[][]).filter((r) => r.some((c) => normalizeString(c)));
-    const { idx: s1idx } = parseTable(s1Headers, s1Rows);
+    const { idx: s1idx } = parseTable(s1Headers);
 
     const ncRows: NonComplianceRow[] = s1Rows.map((r) => ({
       Kategori: normalizeString(r[s1idx('Kategori')]),
@@ -110,7 +110,7 @@ export async function GET(request: NextRequest) {
 
     const avHeaders = avsecValues[0]?.map((x) => normalizeString(x)) ?? [];
     const avRows = (avsecValues.slice(1) as string[][]).filter((r) => r.some((c) => normalizeString(c)));
-    const { idx: avidx } = parseTable(avHeaders, avRows);
+    const { idx: avidx } = parseTable(avHeaders);
 
     const avsec: AvsecRow[] = avRows.map((r) => ({
       SecurityServicePerformance: normalizeString(r[avidx('Security Service Performance')]),
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
 
     const bhHeaders = bagValues[0]?.map((x) => normalizeString(x)) ?? [];
     const bhRows = (bagValues.slice(1) as string[][]).filter((r) => r.some((c) => normalizeString(c)));
-    const { idx: bhidx } = parseTable(bhHeaders, bhRows);
+    const { idx: bhidx } = parseTable(bhHeaders);
 
     const bagHandling: BagHandlingRow[] = bhRows.map((r) => ({
       BagHandlingPerformance: normalizeString(r[bhidx('Bag Handling Performance (Make up & Break down)')]),
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
 
     const dbHeaders = debriefValues[0]?.map((x) => normalizeString(x)) ?? [];
     const dbRows = (debriefValues.slice(1) as string[][]).filter((r) => r.some((c) => normalizeString(c)));
-    const { idx: dbidx } = parseTable(dbHeaders, dbRows);
+    const { idx: dbidx } = parseTable(dbHeaders);
 
     const debrief: DebriefRow[] = dbRows.map((r) => ({
       Finishing: normalizeString(r[dbidx('Finishing')]) || null,

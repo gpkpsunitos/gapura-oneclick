@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Bot, Sparkles, SlidersHorizontal, ChevronRight } from 'lucide-react';
+import { Bot, Sparkles, SlidersHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AIAnalysisFilterPanel, type AnalysisFilters } from '@/components/dashboard/ai-reports/AIAnalysisFilterPanel';
 import { AIAssistantChat } from '@/components/dashboard/ai-reports/AIAssistantChat';

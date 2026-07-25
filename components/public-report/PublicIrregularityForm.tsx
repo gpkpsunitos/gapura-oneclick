@@ -155,9 +155,10 @@ export default function PublicIrregularityForm({
 
   const addFiles = (incoming: FileList | null) => {
     if (!incoming) return;
+    setError('');
     const next = [...files];
     for (const f of Array.from(incoming)) {
-      if (next.length >= MAX_FILES) break;
+      if (next.length >= MAX_FILES) { setError(`Only ${MAX_FILES} images allowed; extra files were skipped.`); break; }
       if (!f.type.startsWith('image/')) { setError(`${f.name}: only images are supported`); continue; }
       if (f.size > MAX_FILE_BYTES) { setError(`${f.name} exceeds 10 MB`); continue; }
       next.push(f);

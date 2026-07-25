@@ -151,9 +151,6 @@ async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report
       const reports = data.reports || [];
       reportsCache[cacheKey] = { data: reports, ts: now };
       return reports;
-    } catch (error) {
-      console.error('Error fetching reports:', error);
-      return [];
     } finally {
       delete inflightRequests[cacheKey];
     }
@@ -299,6 +296,7 @@ export async function fetchBranchDistributionByAirline(filters: BaseFilters = {}
   });
 
   return Array.from(map.entries())
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     .map(([_, data]) => data)
     .sort((a, b) => b.count - a.count)
     .slice(0, 30);
@@ -324,6 +322,7 @@ export async function fetchAreaBreakdownByAirline(filters: BaseFilters = {}): Pr
   });
 
   return Array.from(map.entries())
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     .map(([_, data]) => data)
     .sort((a, b) => b.count - a.count)
     .slice(0, 30);

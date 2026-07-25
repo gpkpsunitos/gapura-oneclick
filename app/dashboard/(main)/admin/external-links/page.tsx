@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   Link2, RefreshCw, Copy, Check, Save, RotateCcw,
   ChevronDown, ChevronUp, ExternalLink, AlertCircle, Loader2,
-  Database, Plus, X, Trash2,
+  Database, Plus, X,
 } from 'lucide-react';
 import {
   DEFAULT_EXTERNAL_LINKS, CATEGORY_LABELS,
@@ -91,6 +91,7 @@ export default function ExternalLinksAdminPage() {
       const res = await fetch('/api/admin/external-links', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- isDirty is intentionally stripped out via rest destructuring before sending to the API
         body: JSON.stringify({ links: dirty.map(({ isDirty, ...l }) => l) }),
       });
       if (!res.ok) throw new Error('Save all failed');

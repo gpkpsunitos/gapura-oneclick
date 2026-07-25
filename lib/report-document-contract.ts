@@ -4,7 +4,7 @@ export const MAX_REPORT_DOCUMENT_SNAPSHOT_BYTES = 256 * 1024;
 export const DOCX_MIME_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 export const PDF_MIME_TYPE = 'application/pdf';
 
-export const REPORT_DOCUMENT_TYPES = ['IRREGULARITY', 'JOUMPA'] as const;
+const REPORT_DOCUMENT_TYPES = ['IRREGULARITY', 'JOUMPA'] as const;
 export type ReportDocumentType = typeof REPORT_DOCUMENT_TYPES[number];
 export type ReportDocumentFormat = 'docx' | 'pdf';
 

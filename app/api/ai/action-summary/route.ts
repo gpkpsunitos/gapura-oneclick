@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireElevatedAISession } from '@/lib/ai-route-helpers';
 import { resolveCachedAI } from '@/lib/ai-route-cache';
+import type { RiskEntry, RiskScoreResult } from '@/lib/ml-client';
+
+function entityName(entry: RiskEntry | undefined): string | null {
+  if (!entry) return null;
+  const nameField = Object.entries(entry).find(([, value]) => typeof value === 'string');
+  return nameField ? String(nameField[1]) : null;
+}
+
+// risk.rankings.category carries a single mean severity (0..1), not a
+// per-record distribution. Bucketing the category's whole count under the
+// nearest severity tier is an approximation — the ML service no longer
+// exposes the flat per-record classification the old /analyze-all did.
+function severityBucket(mean: number | undefined): 'TOP RISK' | 'HIGH RISK' | 'MEDIUM' | 'LOW' {
+  const v = typeof mean === 'number' ? mean : 0;
+  if (v >= 0.75) return 'TOP RISK';
+  if (v >= 0.5) return 'HIGH RISK';
+  if (v >= 0.25) return 'MEDIUM';
+  return 'LOW';
+}
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -21,34 +40,19 @@ export async function GET(req: NextRequest) {
     const branch = search.get('branch') || '';
     const esklasiRegex = search.get('esklasi_regex') || '';
 
-    const internalUrl = new URL('/api/ai/analyze-all', req.url);
-    if (division) internalUrl.searchParams.set('division', division);
-    if (branch) internalUrl.searchParams.set('branch', branch);
-    internalUrl.searchParams.set('esklasi_regex', esklasiRegex);
+    // NOTE: /api/ai/overview has no per-request division/branch/esklasi_regex
+    // filtering (unlike the old /analyze-all), so these params no longer scope
+    // the upstream fetch. Kept in the cache scope key to avoid collisions with
+    // any future filtered variant.
+    const internalUrl = new URL('/api/ai/overview', req.url);
 
     type SeverityDistribution = { 'TOP RISK': number; 'HIGH RISK': number; MEDIUM: number; LOW: number };
-    type ResultItem = {
-      classification?: { severity?: string; issueType?: string };
-      prediction?: { predictedDays?: number };
-      originalData?: { airline?: string; Airlines?: string; hub?: string; HUB?: string };
-    };
-    interface AnalyzeData {
-      results: ResultItem[];
-      summary?: { totalRecords: number; severityDistribution?: Partial<SeverityDistribution>; predictionStats?: { min: number; max: number; mean: number } };
-    }
-    const normSeverity = (s?: string): 'TOP RISK' | 'HIGH RISK' | 'MEDIUM' | 'LOW' => {
-      const v = String(s || 'Low').toLowerCase();
-      if (/crit|top.?risk|urgent/.test(v)) return 'TOP RISK';
-      if (/high/.test(v)) return 'HIGH RISK';
-      if (/med/.test(v)) return 'MEDIUM';
-      return 'LOW';
-    };
 
     const result = await resolveCachedAI({
       feature: 'action-summary',
       scope: { division, branch, esklasiRegex },
       resolver: async () => {
-        let analyzeData: AnalyzeData = { results: [], summary: { totalRecords: 0 } };
+        let risk: RiskScoreResult | null = null;
         try {
           const internalRes = await fetch(internalUrl.toString(), {
             headers: {
@@ -56,55 +60,15 @@ export async function GET(req: NextRequest) {
             }
           });
           if (internalRes.ok) {
-            analyzeData = await internalRes.json();
+            const overview = await internalRes.json();
+            risk = overview?.risk ?? null;
           }
         } catch {
 
         }
 
-        const results: ResultItem[] = Array.isArray(analyzeData?.results) ? analyzeData.results : [];
+        const categoryEntries: RiskEntry[] = risk?.rankings?.category ?? [];
         const overallDist = { 'TOP RISK': 0, 'HIGH RISK': 0, MEDIUM: 0, LOW: 0 };
-        let totalDays = 0;
-        let daysCount = 0;
-        const categoriesMap: Record<string, {
-          count: number;
-          severity: typeof overallDist;
-          totalDays: number;
-          daysCount: number;
-          airlines: Record<string, number>;
-          hubs: Record<string, number>;
-        }> = {};
-
-        for (const r of results) {
-          const sev = normSeverity(r.classification?.severity);
-          overallDist[sev] += 1;
-          const d = Number(r.prediction?.predictedDays ?? NaN);
-          if (!Number.isNaN(d) && Number.isFinite(d)) {
-            totalDays += d;
-            daysCount += 1;
-          }
-          const cat = (r.classification?.issueType || 'Unknown') as string;
-          if (!categoriesMap[cat]) {
-            categoriesMap[cat] = {
-              count: 0,
-              severity: { 'TOP RISK': 0, 'HIGH RISK': 0, MEDIUM: 0, LOW: 0 },
-              totalDays: 0,
-              daysCount: 0,
-              airlines: {},
-              hubs: {}
-            };
-          }
-          categoriesMap[cat].count += 1;
-          categoriesMap[cat].severity[sev] += 1;
-          if (!Number.isNaN(d) && Number.isFinite(d)) {
-            categoriesMap[cat].totalDays += d;
-            categoriesMap[cat].daysCount += 1;
-          }
-          const airline = String(r.originalData?.airline ?? r.originalData?.Airlines ?? '').trim();
-          const hub = String(r.originalData?.hub ?? r.originalData?.HUB ?? '').trim();
-          if (airline) categoriesMap[cat].airlines[airline] = (categoriesMap[cat].airlines[airline] || 0) + 1;
-          if (hub) categoriesMap[cat].hubs[hub] = (categoriesMap[cat].hubs[hub] || 0) + 1;
-        }
 
         type TopAction = { action: string; priority: 'HIGH' | 'MEDIUM' | 'LOW'; source?: string; rationale?: string; confidence: number };
         type CategoryDatum = {
@@ -120,27 +84,35 @@ export async function GET(req: NextRequest) {
           highPriorityCount: number;
         };
         const categories: Record<string, CategoryDatum> = {};
-        for (const [cat, info] of Object.entries(categoriesMap)) {
-          const topAirlines = Object.entries(info.airlines).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
-          const topHubs = Object.entries(info.hubs).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k]) => k);
-          const highPriorityCount = (info.severity['HIGH RISK'] || 0) + (info.severity['TOP RISK'] || 0);
+
+        for (const entry of categoryEntries) {
+          const cat = entityName(entry) || 'Unknown';
+          const count = Number(entry.incident_count) || 0;
+          const sev = severityBucket(entry.severity);
+          overallDist[sev] += count;
+
+          const severityDistribution: SeverityDistribution = { 'TOP RISK': 0, 'HIGH RISK': 0, MEDIUM: 0, LOW: 0 };
+          severityDistribution[sev] = count;
+          const highPriorityCount = sev === 'TOP RISK' || sev === 'HIGH RISK' ? count : 0;
+
           categories[cat] = {
-            count: info.count,
-            severityDistribution: info.severity,
+            count,
+            severityDistribution,
             topActions: [],
-            avgResolutionDays: info.daysCount > 0 ? info.totalDays / info.daysCount : 0,
-            topHubs,
-            topAirlines,
-            effectivenessScore: Math.min(1, highPriorityCount / Math.max(1, info.count)),
-            openCount: info.count,
+            // Per-record predicted-resolution-days isn't exposed by the risk-ranking
+            // endpoint (only available from the retired per-record /analyze-all).
+            avgResolutionDays: 0,
+            topHubs: [],
+            topAirlines: [],
+            effectivenessScore: Math.min(1, highPriorityCount / Math.max(1, count)),
+            openCount: count,
             closedCount: 0,
             highPriorityCount
           };
         }
 
-        const totalRecords = results.length;
+        const totalRecords = categoryEntries.reduce((sum, entry) => sum + (Number(entry.incident_count) || 0), 0);
         const highPriorityTotal = overallDist['HIGH RISK'] + overallDist['TOP RISK'];
-        const avgResolutionDays = daysCount > 0 ? totalDays / daysCount : 0;
         const categoriesCount = Object.keys(categories).length;
 
         const categoriesEntries = Object.entries(categories) as Array<[string, CategoryDatum]>;
@@ -153,14 +125,11 @@ export async function GET(req: NextRequest) {
           .sort((a, b) => b.count - a.count)
           .slice(0, 5);
 
-        const riskScore = (sev: SeverityDistribution) =>
-          sev['TOP RISK'] * 4 + sev['HIGH RISK'] * 3 + sev.MEDIUM * 2 + sev.LOW * 1;
-
-        const topCategoriesByRisk = categoriesEntries
-          .map(([category, cd]) => ({
-            category,
-            riskScore: riskScore(cd.severityDistribution),
-            count: cd.count
+        const topCategoriesByRisk = categoryEntries
+          .map((entry) => ({
+            category: entityName(entry) || 'Unknown',
+            riskScore: Number(entry.risk_score) || 0,
+            count: Number(entry.incident_count) || 0
           }))
           .sort((a, b) => b.riskScore - a.riskScore)
           .slice(0, 5);
@@ -183,9 +152,9 @@ export async function GET(req: NextRequest) {
             closedCount: 0,
             highPriorityCount: highPriorityTotal,
             severityDistribution: overallDist,
-            avgResolutionDays,
+            avgResolutionDays: 0,
             categoriesCount,
-            avgDaysSource: 'predictedDays'
+            avgDaysSource: 'unavailable'
           },
           topCategoriesByCount,
           topCategoriesByRisk,

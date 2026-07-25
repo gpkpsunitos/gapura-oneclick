@@ -1,5 +1,5 @@
 
-import type { QueryDefinition, QueryMeasure, ChartVisualization, DashboardTile } from '@/types/builder';
+import type { QueryDefinition, DashboardTile } from '@/types/builder';
 import { TABLES, JOINS, getFieldDef } from './schema';
 
 function mapReportsField(field: string): string {

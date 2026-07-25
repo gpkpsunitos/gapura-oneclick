@@ -1,29 +1,22 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { createPortal } from "react-dom";
 import Image from 'next/image';
 import { usePathname } from "next/navigation";
 import {
   AlertCircle,
-  Building2,
   Calendar,
   CheckCircle2,
-  ChevronLeft,
   Edit3,
-  ExternalLink,
   FileText,
   FileType,
   Image as ImageIcon,
   Link,
   Loader2,
-  MapPin,
   MessageSquare,
-  Plane,
   Plus,
   RotateCcw,
   Save,
-  Tag,
   User,
   X,
 } from "lucide-react";
@@ -32,12 +25,11 @@ import {
   STATUS_CONFIG,
   getAllowedTransitions,
   normalizeStatus,
-  type ReportStatus,
 } from "@/lib/constants/report-status";
 import { cn, formatDate } from "@/lib/utils";
 import { type Report, type UserRole } from "@/types";
 import { CommentInput } from "@/components/dashboard/reports/CommentInput";
-import { generatePDF, generateWord } from "@/lib/utils/document-generator";
+import { generatePDF } from "@/lib/utils/document-generator";
 import { DocxEditorModal } from "@/components/dashboard/DocxEditorModal";
 import { BriefingEditorModal } from "@/components/dashboard/BriefingEditorModal";
 import { EvidenceViewModal } from "@/components/dashboard/EvidenceViewModal";
@@ -70,12 +62,11 @@ export interface StatusUpdateDetails {
 
 const REMARKS_BY_DIVISIONS = ["OP", "UQ", "OT", "OS", "OCS", "HT", "HC"] as const;
 
-function DataField({ 
-  label, 
-  value, 
-  icon: Icon,
-  span = 1 
-}: { 
+function DataField({
+  label,
+  value,
+  span = 1
+}: {
   label: string; 
   value: React.ReactNode; 
   icon?: React.ElementType;
@@ -144,7 +135,6 @@ export function ReportDetailView({
   report,
   onUpdateStatus,
   onRefresh,
-  onClose,
   userRole = "PARTNER_ADMIN",
   divisionColor = "#10b981",
   currentUserId,
@@ -177,7 +167,7 @@ export function ReportDetailView({
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastCommentRef = useRef<HTMLDivElement>(null);
 
-  const [mounted, setMounted] = useState(false);
+  const [, setMounted] = useState(false);
 
   const resolveEscalationDivisionLabel = () => {
     if (pathname.startsWith('/dashboard/eskalasi/op') || pathname.startsWith('/dashboard/op')) return 'Division OP';
@@ -736,6 +726,12 @@ export function ReportDetailView({
                                   className="w-full h-full object-cover transition-transform group-hover:scale-[1.05]"
                                 />
                               ) : (
+                                // Deliberate fallback for external evidence URLs (arbitrary
+                                // hosts, not just the few in next.config's remotePatterns
+                                // allowlist) — next/image would throw for an unconfigured
+                                // host, isSafeLocalImage() already routes local/data/blob
+                                // URLs to next/image above.
+                                // eslint-disable-next-line @next/next/no-img-element
                                 <img
                                   src={url}
                                   alt={`evidence-${i}`}
@@ -810,7 +806,7 @@ export function ReportDetailView({
                 {!isClosed && (
                   <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm flex flex-col gap-3">
                     <div className="flex flex-col gap-1">
-                      <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Klasifikasi Lampiran</label>
+                      <label className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">Attachment Classification</label>
                       <p className="text-xs text-slate-500">
                         Select the type of evidence to upload for the corrective or preventive action.
                       </p>
@@ -820,8 +816,8 @@ export function ReportDetailView({
                         onChange={(e) => setLampiranActionType(e.target.value as LampiranActionType)}
                       >
                         <option value="" disabled>Select attachment evidence type</option>
-                        <option value="CORRECTIVE">Bukti Corrective Action</option>
-                        <option value="PREVENTIVE">Bukti Preventive Action</option>
+                        <option value="CORRECTIVE">Corrective Action Evidence</option>
+                        <option value="PREVENTIVE">Preventive Action Evidence</option>
                       </select>
                     </div>
 

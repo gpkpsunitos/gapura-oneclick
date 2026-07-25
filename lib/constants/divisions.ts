@@ -1,5 +1,5 @@
 
-export interface DivisionConfig {
+interface DivisionConfig {
 
     code: string;
 

@@ -119,7 +119,6 @@ export function FeedbackPivotTable({ title, result, rowKey, colKey, valueKey, co
   const containerHeight = compact ? '220px' : '300px';
   const cellHeight = compact ? 'h-6' : 'h-8';
   const headerFontSize = compact ? 'text-[8px]' : 'text-[9px]';
-  const cellFontSize = compact ? 'text-[8px]' : 'text-[10px]';
   const rowLabelFontSize = compact ? 'text-[8px]' : 'text-[10px]';
   const minColWidth = compact ? 'min-w-[60px]' : 'min-w-[78px]';
   const maxColWidth = compact ? 'max-w-[110px]' : 'max-w-[132px]';
@@ -168,7 +167,7 @@ export function FeedbackPivotTable({ title, result, rowKey, colKey, valueKey, co
                   return (
                     <td key={c} className={`${cellPad} ${minColWidth}`}>
                       <div
-                        className={`w-full ${cellHeight} flex items-center justify-center rounded-lg text-[${cellFontSize}] font-black transition-all hover:scale-105 hover:shadow-md cursor-pointer active:scale-95`}
+                        className={`w-full ${cellHeight} flex items-center justify-center rounded-lg font-black transition-all hover:scale-105 hover:shadow-md cursor-pointer active:scale-95`}
                         style={{ backgroundColor: intensity.bg, color: intensity.text, fontSize: compact ? 8 : 10 }}
                         title={`${formatAxisLabel(r)} \u2022 ${formatAxisLabel(c)}: ${val}`}
                         onClick={() => handleCellClick(r, c)}

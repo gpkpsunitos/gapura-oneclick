@@ -9,11 +9,8 @@ import { cn } from '@/lib/utils';
 import type { Report } from '@/types';
 import {
   CaseInsightResponse,
-  Severity,
   type Severity as SeverityT,
   type ForecastSeries,
-  type AnomalyPoint,
-  type RCADriver,
 } from '@/lib/schemas/insight';
 
 const SEVERITY_STYLE: Record<SeverityT, { bg: string; text: string; ring: string }> = {
@@ -67,7 +64,7 @@ function HeadlineBlock({ data }: { data: CaseInsightResponse }) {
 }
 
 function SeverityBadge({ sev, conf }: { sev: SeverityT; conf: number | null | undefined }) {
-  const s = SEVERITY_STYLE[sev];
+  const s = SEVERITY_STYLE[sev] ?? SEVERITY_STYLE.MEDIUM;
   return (
     <div className={cn('inline-flex items-center gap-2 px-3 py-1.5 rounded-lg ring-1', s.bg, s.text, s.ring)}>
       <AlertTriangle className="w-4 h-4" />
@@ -104,79 +101,6 @@ function ForecastCard({ series }: { series: ForecastSeries }) {
       </div>
       <div className="mt-2 text-[11px] text-slate-400">
         Periode {first.period} → {last.period}
-      </div>
-    </div>
-  );
-}
-
-function AnomalyCard({ point }: { point: AnomalyPoint }) {
-  const flagged = point.is_anomaly;
-  return (
-    <div className={cn(
-      'rounded-xl border p-4',
-      flagged ? 'border-red-200 bg-red-50' : 'border-slate-200 bg-white'
-    )}>
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Anomali · {point.period}
-        </span>
-        {flagged && (
-          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white">
-            FLAGGED
-          </span>
-        )}
-      </div>
-      <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
-        <div>
-          <p className="text-[10px] uppercase text-slate-400">Aktual</p>
-          <p className="font-bold tabular-nums">{point.actual.toFixed(1)}</p>
-        </div>
-        <div>
-          <p className="text-[10px] uppercase text-slate-400">Ekspektasi</p>
-          <p className="font-bold tabular-nums">{point.expected.toFixed(1)}</p>
-        </div>
-        <div>
-          <p className="text-[10px] uppercase text-slate-400">Z-score</p>
-          <p className={cn('font-bold tabular-nums', flagged && 'text-red-700')}>
-            {point.z_score.toFixed(2)}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function RCAList({ drivers }: { drivers: RCADriver[] }) {
-  if (drivers.length === 0) {
-    return (
-      <div className="rounded-xl border border-slate-200 bg-white p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">
-          Penyebab Utama
-        </p>
-        <Unavailable reason="model RCA belum tersedia" />
-      </div>
-    );
-  }
-  return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">
-        Penyebab Utama (SHAP)
-      </p>
-      <div className="space-y-2">
-        {drivers.slice(0, 5).map((d, i) => (
-          <div key={i} className="flex items-center gap-2">
-            <span className="shrink-0 w-5 h-5 rounded-full bg-slate-100 text-slate-700 text-[10px] font-bold flex items-center justify-center">
-              {i + 1}
-            </span>
-            <span className="flex-1 text-sm text-slate-700 truncate">{d.feature}</span>
-            <span className={cn(
-              'text-xs font-semibold tabular-nums',
-              d.direction === 'increases' ? 'text-red-700' : 'text-emerald-700'
-            )}>
-              {d.direction === 'increases' ? '↑' : '↓'} {d.contribution_pct.toFixed(0)}%
-            </span>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -285,38 +209,20 @@ export function AIInsightCard({ report, className }: Props) {
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {data.forecast
-              ? <ForecastCard series={data.forecast} />
-              : (
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Proyeksi</p>
-                  <Unavailable reason="seri tidak memenuhi minimum data" />
-                </div>
-              )}
-            {data.anomaly
-              ? <AnomalyCard point={data.anomaly} />
-              : (
-                <div className="rounded-xl border border-slate-200 bg-white p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Anomali</p>
-                  <Unavailable reason="" />
-                </div>
-              )}
-          </div>
-
-          <RCAList drivers={data.rca_top_drivers} />
+          {data.forecast
+            ? <ForecastCard series={data.forecast} />
+            : (
+              <div className="rounded-xl border border-slate-200 bg-white p-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Proyeksi</p>
+                <Unavailable reason="seri tidak memenuhi minimum data" />
+              </div>
+            )}
 
           {}
           <div className="text-[11px] text-slate-400 flex items-center gap-2 flex-wrap pt-2 border-t border-slate-100">
             <span>Berdasarkan {data.records_basis} data terprofil</span>
             <span>·</span>
             <span>per {new Date(data.as_of).toLocaleString('id-ID')}</span>
-            {data.model_versions.rca && (
-              <>
-                <span>·</span>
-                <span>model RCA n_train={data.model_versions.rca}</span>
-              </>
-            )}
             {data.warnings.length > 0 && (
               <span className="text-amber-600">· {data.warnings.length} peringatan</span>
             )}

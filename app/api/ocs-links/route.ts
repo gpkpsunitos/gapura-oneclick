@@ -26,6 +26,9 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => null);
     const { label, url, color, icon } = body ?? {};
     if (!label?.trim() || !url?.trim()) return NextResponse.json({ error: 'Missing label or url' }, { status: 400 });
+    if (!/^https?:\/\//i.test(url.trim())) {
+        return NextResponse.json({ error: 'A valid URL (starting with http:// or https://) is required' }, { status: 400 });
+    }
     const { data, error } = await supabaseAdmin
         .from('ocs_quick_links')
         .insert({ label: label.trim(), url: url.trim(), color: color ?? 'emerald', icon: icon ?? 'link', created_by: user.id })
@@ -44,7 +47,13 @@ export async function PATCH(request: Request) {
     if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
     const patch: Record<string, string> = {};
     if (label !== undefined) patch.label = String(label).trim();
-    if (url !== undefined) patch.url = String(url).trim();
+    if (url !== undefined) {
+        const trimmedUrl = String(url).trim();
+        if (!/^https?:\/\//i.test(trimmedUrl)) {
+            return NextResponse.json({ error: 'A valid URL (starting with http:// or https://) is required' }, { status: 400 });
+        }
+        patch.url = trimmedUrl;
+    }
     if (color !== undefined) patch.color = String(color);
     if (icon !== undefined) patch.icon = String(icon);
     const { data, error } = await supabaseAdmin

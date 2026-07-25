@@ -9,10 +9,9 @@ import {
     LabelList
 } from 'recharts';
 import { TrendingUp, PieChart as PieChartIcon, CalendarDays, ChevronLeft, ChevronRight } from 'lucide-react';
-import { PrismMultiSelect } from '@/components/ui/PrismMultiSelect';
 import { cn } from '@/lib/utils';
 import type { Report } from '@/types';
-import { AVIATION_CHART_COLORS, CHART_TOOLTIP_STYLE, CHART_LEGEND_STYLE } from '@/lib/aviation-chart-config';
+import { CHART_TOOLTIP_STYLE, CHART_LEGEND_STYLE } from '@/lib/aviation-chart-config';
 import { ChartTitle } from '@/components/charts/ChartTitle';
 import { ExecutiveSummaryTables } from '@/components/dashboard/analyst/ExecutiveSummaryTables';
 import { PresentationSlide } from '@/components/dashboard/PresentationSlide';
@@ -20,17 +19,14 @@ import { calculateComparisonData } from '@/lib/utils/comparison-utils';
 
 import {
     REFERENCE_COLORS,
-    CHART_PALETTE,
     COLORS,
     ResponsiveContainer,
     WrappedXAxisTick,
-    WrappedYAxisTick,
     CustomTooltip,
     heatColor,
     OS_CARD_CLASS,
     OS_TABLE_HEADER_CLASS,
     OS_BORDER_CLASS,
-    OS_HOVER_CLASS,
 } from './os-chart-utils';
 
 import {
@@ -139,8 +135,6 @@ export function OsTrendSection({
     apronAreaCategoryData,
     generalCategoryData,
     caseClassificationData = [],
-    analytics,
-    monthlyComparisonData,
     monthlyReportData,
     comparisonData,
     openDrawer,
@@ -281,14 +275,6 @@ export function OsTrendSection({
         return { ...base, monthlyTrend: base.monthlyTrend.slice(-take) };
     }, [safeComparison, customComparison, timeframe, branchFilter.length, airlineFilter.length, areaFilter.length]);
 
-    const chartKeys = useMemo(() => {
-        if (focus === 'Total') return ['total'] as const;
-        if (focus === 'Irregularity') return ['irregularity'] as const;
-        if (focus === 'Complaint') return ['complaint'] as const;
-        if (focus === 'Compliment') return ['compliment'] as const;
-        return ['total', 'irregularity', 'complaint', 'compliment'] as const;
-    }, [focus]);
-
     const allSubCategories = useMemo(() => {
         const cats = new Set<string>();
         areaSubCategoryData.forEach(item => {
@@ -349,48 +335,6 @@ export function OsTrendSection({
             compliment: Math.max(...rows.map(r => r.compliment), 1)
         };
     }, [pivotTableData]);
-
-    const safeTrendData = useMemo(() => {
-        if (analytics?.trendData?.length) return analytics.trendData;
-
-        if (monthlyComparisonData && monthlyComparisonData.length > 0) {
-            return monthlyComparisonData.map(item => ({
-                month: item.month,
-                total: item.masuk,
-                resolved: item.selesai
-            }));
-        }
-
-        return monthlyReportData.map(item => ({
-            month: item.month,
-            total: item.irregularity + item.complaint + item.compliment,
-            resolved: 0
-        }));
-    }, [analytics?.trendData, monthlyComparisonData, monthlyReportData]);
-
-    const completionStatusData = useMemo(() => {
-        const total = safeTrendData.reduce((acc, curr) => acc + curr.total, 0);
-        const resolved = safeTrendData.reduce((acc, curr) => acc + curr.resolved, 0);
-        const pending = total - resolved;
-        return [
-            { name: 'Selesai', value: resolved, fill: '#08ad6f' },
-            { name: 'Not Yet Complete', value: pending, fill: '#0f86c1' }
-        ];
-    }, [safeTrendData]);
-
-    const monthlyVolumeData = useMemo(() => {
-        return monthlyReportData
-            .map(item => ({
-                name: item.month,
-                value: item.irregularity + item.complaint + item.compliment
-            }))
-            .filter(item => item.value > 0)
-            .sort((a, b) => b.value - a.value)
-            .map((item, index) => ({
-                ...item,
-                fill: COLORS[index % COLORS.length]
-            }));
-    }, [monthlyReportData]);
 
     const caseReportByAreaData = useMemo(() => {
         const branchMap: Record<string, Record<string, { terminal: number; apron: number; general: number }>> = {};

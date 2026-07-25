@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
 import { cookies } from 'next/headers';
 import { readSessionPayload, evictSessionCache } from '@/lib/auth-utils';
 import { supabaseAdmin } from '@/lib/supabase-admin';
@@ -67,14 +67,14 @@ async function destroySession(request: Request) {
         );
     }
 
-    logSecurityEvent({
+    after(() => logSecurityEvent({
         source: 'auth-logout-api',
         event_type: 'access',
         severity: 'LOW',
         payload: { sessions_revoked: sidsToRevoke.length },
         ip_address: getClientIp(request),
         actor_id: actorId,
-    }).catch(() => undefined);
+    }).catch(() => undefined));
 
     const opts = {
         maxAge: 0,

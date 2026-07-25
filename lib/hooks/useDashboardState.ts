@@ -73,7 +73,7 @@ export function useDashboardState() {
   }, []);
 
   const resetTiles = useCallback(() => {
-
+    setTiles([]);
   }, []);
 
   const updateTile = useCallback((id: string, updates: Partial<Omit<DashboardTile, 'id'>>) => {
@@ -156,5 +156,3 @@ export function useDashboardState() {
     loadDashboard,
   };
 }
-
-export { LAYOUT_PRESETS };

@@ -1,5 +1,6 @@
 
-export const AREA_IDS = ['TERMINAL', 'APRON', 'CARGO', 'GENERAL', 'GSE'] as const;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- value unused; kept to derive the AreaId type below
+const AREA_IDS = ['TERMINAL', 'APRON', 'CARGO', 'GENERAL', 'GSE'] as const;
 export type AreaId = typeof AREA_IDS[number];
 
 export const AREA_LABELS: Record<AreaId, string> = {
@@ -31,7 +32,7 @@ export const AREA_CATEGORIES: Record<AreaId, string[]> = {
     'Flight Document Handling',
     'Safety and Security (Apron)',
     'Baggage/Special/Irregularities Handling (Apron)',
-    'Accurancy & Completeness of Service (Apron)',
+    'Accuracy & Completeness of Service (Apron)',
     'Officer Qualified Competencies (Apron)',
     'Procedure Compliance (Apron)',
     'Prompt Service and Certainty',
@@ -133,7 +134,7 @@ export const GSE_EQUIPMENT: Record<GseType, string[]> = {
     '(APC) - Aircraft Passenger Canopy',
     '(ATB) - A/C Tow Bar',
     '(ATJ) - Aircraft Tailjack',
-    '(BCT) - Baggaged Cart',
+    '(BCT) - Baggage Cart',
     '(CDL) - Container Dollies',
     '(CRK) - Container Rack',
     '(LPD) - Long Pallet Dollies',

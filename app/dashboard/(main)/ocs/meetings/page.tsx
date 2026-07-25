@@ -12,7 +12,7 @@ export default function OSMeetingCalendarPage() {
     <CalendarPage
       calendarType="meeting"
       title="Meeting Calendar"
-      description="Shared schedule for analyst and OS meetings"
+      description="Shared schedule for analyst and OCS meetings"
       canEdit={false}
     />
   );

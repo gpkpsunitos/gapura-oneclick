@@ -6,7 +6,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
             <h2 className="text-lg font-semibold">Embed Error</h2>
             <p className="text-sm text-[var(--text-muted)]">{error.message || 'Failed to load embed'}</p>
             <button onClick={reset} className="px-4 py-2 bg-[var(--brand-primary)] text-white rounded-lg text-sm font-medium">
-                Coba Lagi
+                Try Again
             </button>
         </div>
     );

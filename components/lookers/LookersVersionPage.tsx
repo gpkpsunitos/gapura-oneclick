@@ -45,21 +45,21 @@ export function LookersVersionPage() {
                         <LayoutDashboard className="h-8 w-8 text-cyan-600" />
                         <h2 className="mt-5 text-xl font-black text-[var(--text-primary)]">Akses Terpusat</h2>
                         <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                            Satu pintu ke semua dashboard Looker supaya user non-cabang tidak perlu menyimpan banyak link terpisah.
+                            Satu titik akses ke semua dashboard Looker sehingga user non-cabang tidak perlu melacak banyak link terpisah.
                         </p>
                     </GlassCard>
                     <GlassCard>
                         <Layers className="h-8 w-8 text-emerald-600" />
-                        <h2 className="mt-5 text-xl font-black text-[var(--text-primary)]">Siap Dibagi per Role</h2>
+                        <h2 className="mt-5 text-xl font-black text-[var(--text-primary)]">Siap Dipisah per Role</h2>
                         <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                            Halaman ini bisa diperluas menjadi daftar link berbeda untuk Analyst, HC, HT, atau divisi lain tanpa mengubah pola navigasi.
+                            Halaman ini bisa dikembangkan menjadi daftar link berbeda untuk Analyst, HC, HT, atau divisi lain tanpa mengubah pola navigasi.
                         </p>
                     </GlassCard>
                     <GlassCard>
                         <Link2 className="h-8 w-8 text-violet-600" />
-                        <h2 className="mt-5 text-xl font-black text-[var(--text-primary)]">Active Placeholder</h2>
+                        <h2 className="mt-5 text-xl font-black text-[var(--text-primary)]">Placeholder Aktif</h2>
                         <p className="mt-2 text-sm text-[var(--text-secondary)]">
-                            Sampai URL final tersedia, kartu tetap mengarah ke landing Looker Studio agar integrasi menu sudah siap dipakai.
+                            Sampai URL final tersedia, kartu ini tetap mengarah ke halaman utama Looker Studio agar integrasi menu sudah bisa digunakan.
                         </p>
                     </GlassCard>
                 </div>

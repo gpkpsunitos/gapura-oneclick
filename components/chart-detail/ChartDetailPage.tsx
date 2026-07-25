@@ -165,7 +165,8 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
       const rows = exportData.rows.map((row) =>
         exportData.columns.map((column) => {
           const cell = row[column];
-          return typeof cell === 'string' && cell.includes(',')
+          if (typeof cell !== 'string') return cell;
+          return /[",\n]/.test(cell)
             ? '"' + cell.replaceAll('"', '""') + '"'
             : cell;
         }).join(',')
@@ -274,7 +275,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
     );
     observer.observe(element);
     return () => observer.disconnect();
-  }, [supportingVisible]);
+  }, [supportingVisible, data]);
 
   useEffect(() => {
     if (

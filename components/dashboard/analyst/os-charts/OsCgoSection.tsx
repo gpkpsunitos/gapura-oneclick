@@ -21,7 +21,6 @@ import {
     OS_CARD_CLASS,
     OS_TABLE_HEADER_CLASS,
     OS_BORDER_CLASS,
-    OS_HOVER_CLASS,
 } from './os-chart-utils';
 import {
     type CaseReportByAreaAirlineItem,
@@ -590,7 +589,7 @@ export function OsCgoSection({
             {}
             <PresentationSlide
                 title="CGO - Detail Report"
-                subtitle="Detail laporan area dan kategori CGO"
+                subtitle="CGO area and category report detail"
                 icon={MapPin}
             >
                 <div className="grid grid-cols-1 gap-4">
@@ -755,7 +754,7 @@ export function OsCgoSection({
 
                          <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl flex flex-col")}>
                             <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">HUB Report</h3>
-                            <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Distribusi laporan berdasarkan HUB</p>
+                            <p className="text-[10px] font-medium text-[var(--text-muted)] mb-6">Report distribution by HUB</p>
                             {cgoHubData.length === 0 ? (
                                 <p className="text-xs text-gray-400 text-center py-6">No hub data</p>
                             ) : (
@@ -793,7 +792,7 @@ export function OsCgoSection({
                         {}
                         <div className={cn(OS_CARD_CLASS, "flex h-[34rem] min-h-0 flex-col p-6 group transition-all duration-500 hover:shadow-2xl")}>
                             <h3 className="shrink-0 text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-1 opacity-70">Detail Report CGO</h3>
-                            <p className="shrink-0 text-[10px] font-medium text-[var(--text-muted)] mb-4">Data laporan CGO diurutkan berdasarkan tanggal</p>
+                            <p className="shrink-0 text-[10px] font-medium text-[var(--text-muted)] mb-4">CGO report data sorted by date</p>
                             <DetailReportTable
                                 data={[...cgoReports].sort((a, b) => {
                                     const dA = a.date_of_event ? new Date(a.date_of_event).getTime() : 0;

@@ -17,7 +17,7 @@ import {
 } from '@/lib/report-page';
 import type { Report, SessionPayload } from '@/types';
 
-export interface ReportPageFilters {
+interface ReportPageFilters {
   status?: string | null;
   station?: string | null;
   search?: string | null;
@@ -32,7 +32,7 @@ export interface ReportPageFilters {
   targetDivision?: string | null;
 }
 
-export interface QueryReportPageOptions {
+interface QueryReportPageOptions {
   session: SessionPayload;
   scope?: 'standard' | 'admin';
   limit?: number;

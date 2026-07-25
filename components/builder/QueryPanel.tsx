@@ -34,10 +34,10 @@ interface QueryPanelProps {
 }
 
 const DATE_GRANULARITIES: { value: DateGranularity; label: string }[] = [
-  { value: 'day', label: 'Hari' },
+  { value: 'day', label: 'Day' },
   { value: 'week', label: 'Week' },
   { value: 'month', label: 'Month' },
-  { value: 'quarter', label: 'Kuartal' },
+  { value: 'quarter', label: 'Quarter' },
   { value: 'year', label: 'Year' },
 ];
 

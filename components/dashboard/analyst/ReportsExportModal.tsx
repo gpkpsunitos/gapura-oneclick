@@ -41,6 +41,10 @@ interface ReportsExportModalProps {
 
 type ExportFormat = "excel" | "pdf" | "docx";
 
+// Stable reference so a failed prefetch doesn't create a new [] every render
+// and cascade into re-running the memoized values derived from it.
+const EMPTY_REPORTS: Report[] = [];
+
 async function fetchAllDetailedReports(): Promise<Report[]> {
   const reports: Report[] = [];
   let cursor: string | null = null;
@@ -104,6 +108,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
   const [joumpaLoading, setJoumpaLoading] = useState(false);
   const [irrsReports, setIrrsReports] = useState<Report[] | null>(null);
   const [irrsLoading, setIrrsLoading] = useState(false);
+  const [irrsPrefetchFailed, setIrrsPrefetchFailed] = useState(false);
 
   const isJoumpa = filters.source === "JOUMPA";
 
@@ -111,25 +116,47 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
     if (!isJoumpa || !open) return;
     setJoumpaLoading(true);
     fetch("/api/joumpa")
-      .then((r) => r.json())
-      .then((data) => setJoumpaReports((data.reports as Report[]) || []))
-      .catch(() => setJoumpaReports([]))
+      .then((r) => {
+        if (!r.ok) throw new Error(`Failed to load JOUMPA reports (status ${r.status})`);
+        return r.json();
+      })
+      .then((data) => {
+        setJoumpaReports((data.reports as Report[]) || []);
+        setExportError(null);
+      })
+      .catch((err) => {
+        console.error('Failed to load JOUMPA reports for export:', err);
+        setJoumpaReports([]);
+        setExportError('Failed to load JOUMPA reports. Please try again.');
+      })
       .finally(() => setJoumpaLoading(false));
   }, [isJoumpa, open]);
 
   // The dashboard's `reports` prop reflects whatever the screen is currently
   // showing (empty outside the dashboard view). Export must see the complete
   // set regardless, so fetch it independently once the modal opens.
+  // `reports` is deliberately excluded from deps: the parent re-creates that
+  // array on every render, and including it here caused this effect to refire
+  // (and refetch) on every parent re-render instead of once per modal open.
   useEffect(() => {
-    if (!open || irrsReports) return;
+    if (!open || irrsReports || irrsPrefetchFailed) return;
     setIrrsLoading(true);
     fetchAllDetailedReports()
-      .then(setIrrsReports)
-      .catch(() => setIrrsReports(reports))
+      .then((data) => {
+        setIrrsReports(data);
+        setIrrsPrefetchFailed(false);
+      })
+      .catch((err) => {
+        console.error('Failed to prefetch detailed reports for export:', err);
+        setExportError('Failed to load complete report data for export.');
+        setIrrsPrefetchFailed(true);
+      })
       .finally(() => setIrrsLoading(false));
-  }, [open, irrsReports, reports]);
+  }, [open, irrsReports, irrsPrefetchFailed]);
 
-  const irrsActiveReports = irrsReports ?? reports;
+  // Never fall back to the (possibly partial) `reports` prop after a failed
+  // prefetch — an incomplete silent export is worse than a blocked one.
+  const irrsActiveReports = irrsReports ?? (irrsPrefetchFailed ? EMPTY_REPORTS : reports);
   const activeReports = isJoumpa ? joumpaReports : irrsActiveReports;
   const activeLoading = isJoumpa ? joumpaLoading : (irrsLoading && !irrsReports);
 
@@ -234,7 +261,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
             </label>
 
             {/* Common */}
-            <SelectField label="Station" value={filters.branch} options={options.branches} icon={Building2} emptyLabel="All branches" onChange={(v) => updateFilter("branch", v)} />
+            <SelectField label="Station" value={filters.branch} options={options.branches} icon={Building2} emptyLabel="All stations" onChange={(v) => updateFilter("branch", v)} />
             <SelectField label="Airlines" value={filters.airline} options={options.airlines} icon={Plane} emptyLabel="All airlines" onChange={(v) => updateFilter("airline", v)} />
 
             {/* Source — always visible, drives JOUMPA mode */}
@@ -301,8 +328,20 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
 
         <div className="flex shrink-0 flex-col gap-3 border-t border-slate-200 bg-white px-6 py-5 sm:flex-row sm:justify-end">
           {exportError && (
-            <p role="alert" className="mr-auto self-center text-sm font-semibold text-red-600">
+            <p role="alert" className="mr-auto flex items-center gap-3 self-center text-sm font-semibold text-red-600">
               {exportError}
+              {!isJoumpa && irrsPrefetchFailed && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setExportError(null);
+                    setIrrsPrefetchFailed(false);
+                  }}
+                  className="underline underline-offset-2 hover:text-red-700"
+                >
+                  Retry
+                </button>
+              )}
             </p>
           )}
           {[
@@ -315,7 +354,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
               <Button
                 key={item.format}
                 type="button"
-                disabled={exporting !== null || filteredReports.length === 0 || activeLoading}
+                disabled={exporting !== null || filteredReports.length === 0 || activeLoading || (!isJoumpa && irrsPrefetchFailed)}
                 onClick={() => handleExport(item.format)}
                 className={cn("h-14 rounded-2xl px-6 text-xs font-black uppercase tracking-[0.18em] text-white", item.className)}
               >

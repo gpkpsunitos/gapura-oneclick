@@ -31,7 +31,7 @@ function relativeTime(iso: string | null): string | null {
 }
 
 export function ModelHealthPill({ enabled }: { enabled: boolean }) {
-  const [info, setInfo] = useState<ModelInfo | null>(() => readClientCache<ModelInfo>(CACHE_KEY, CACHE_TTL_MS));
+  const [info, setInfo] = useState<ModelInfo | null>(() => (enabled ? readClientCache<ModelInfo>(CACHE_KEY, CACHE_TTL_MS) : null));
 
   useEffect(() => {
     if (!enabled || info) return;
@@ -47,7 +47,7 @@ export function ModelHealthPill({ enabled }: { enabled: boolean }) {
     return () => { cancelled = true; };
   }, [enabled, info]);
 
-  if (!info) return null;
+  if (!enabled || !info) return null;
 
   const degraded = info.ready === false || info.missingModels.length > 0;
   const dotTone = info.retrainRunning ? 'bg-amber-500' : degraded ? 'bg-rose-500' : 'bg-emerald-500';

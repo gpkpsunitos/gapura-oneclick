@@ -6,7 +6,7 @@ export interface JoumpaStatusUpdateInput {
   remarks_by?: unknown;
 }
 
-export interface JoumpaStatusUpdate {
+interface JoumpaStatusUpdate {
   status?: string;
   action_taken?: string;
   final_remarks?: string;
@@ -14,7 +14,7 @@ export interface JoumpaStatusUpdate {
   remarks_by?: string;
 }
 
-export interface ReportSourceIdentity {
+interface ReportSourceIdentity {
   source_spreadsheet_id?: unknown;
   source_sheet?: unknown;
   service_business_type?: unknown;

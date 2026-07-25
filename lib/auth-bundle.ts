@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'crypto';
 
-export interface AuthBundle {
+interface AuthBundle {
     active_uid: string;
     origin_uid: string;
     sessions: Record<string, string>;

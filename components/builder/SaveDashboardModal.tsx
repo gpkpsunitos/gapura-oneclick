@@ -1,10 +1,12 @@
 
 'use client';
 
-import { useState, useId } from 'react';
+import { useState, useId, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { X, Save, Link2, Check, Loader2, LayoutGrid, FileText } from 'lucide-react';
 import { QRCodeWithLogo } from '@/components/ui/QRCodeWithLogo';
+
+const FOCUSABLE_SELECTOR = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
 interface SaveDashboardModalProps {
   isOpen: boolean;
@@ -36,6 +38,38 @@ export function SaveDashboardModal({
   const [savedUrl, setSavedUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const folderListId = useId();
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const items = dialogRef.current.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      if (items.length === 0) return;
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused.current?.focus();
+    };
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
   if (typeof document === 'undefined') return null;
@@ -63,10 +97,16 @@ export function SaveDashboardModal({
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[var(--surface-1)] border border-[var(--surface-4)] rounded-2xl shadow-2xl w-full max-w-md mx-4 animate-scale-in">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="save-dashboard-modal-title"
+        className="relative bg-[var(--surface-1)] border border-[var(--surface-4)] rounded-2xl shadow-2xl w-full max-w-md mx-4 animate-scale-in"
+      >
         {}
         <div className="flex items-center justify-between p-4 border-b border-[var(--surface-4)]">
-          <h3 className="text-sm font-bold text-[var(--text-primary)]">Simpan Dashboard</h3>
+          <h3 id="save-dashboard-modal-title" className="text-sm font-bold text-[var(--text-primary)]">Simpan Dashboard</h3>
           <button onClick={onClose} className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
             <X size={16} />
           </button>

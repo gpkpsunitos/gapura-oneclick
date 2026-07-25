@@ -74,7 +74,7 @@ export default function OSDrilldownPage() {
             backHref="/dashboard/ocs"
             reports={filteredReports}
             loading={loading}
-            userRole="DIVISI_OS"
+            userRole="DIVISI_OCS"
         />
     );
 }

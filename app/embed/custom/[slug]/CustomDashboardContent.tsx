@@ -13,11 +13,11 @@ const CustomerFeedbackView = dynamic(
   () => import('@/components/dashboard/customer-feedback/CustomerFeedbackView').then(m => ({ default: m.CustomerFeedbackView })),
   { ssr: false, loading: () => <div className="h-[400px] animate-pulse rounded-2xl bg-slate-100" /> },
 );
-import { Loader2, AlertCircle, ChevronLeft, ChevronRight, ChevronDown as ChevronDownIcon, X, Download, FileSpreadsheet, Presentation, LayoutGrid, Box, Menu, Calendar } from 'lucide-react';
+import { Loader2, ChevronDown as ChevronDownIcon, X, Download, FileSpreadsheet, Presentation, LayoutGrid, Box, Menu, Calendar } from 'lucide-react';
 import { DynamicFilterHeader, type FilterData } from '@/components/builder/DynamicFilterHeader';
 import type { QueryDefinition, QueryResult, ChartType, ChartVisualization, DashboardTile, TileLayout } from '@/types/builder';
 import { cn } from '@/lib/utils';
-import { DASHBOARD_FILTER_FIELDS, type DashboardScopeFilters } from '@/lib/dashboard-query-scope';
+import { DASHBOARD_FILTER_FIELDS } from '@/lib/dashboard-query-scope';
 import { computeBento } from '@/lib/builder/bento-layout';
 
 const GREEN_PALETTE = ['#7cb342', '#558b2f', '#aed581', '#33691e', '#9ccc65', '#689f38', '#c5e1a5', '#43a047', '#81c784', '#4caf50'];
@@ -34,8 +34,6 @@ const FILTER_FIELDS = DASHBOARD_FILTER_FIELDS.map((field) => ({
     ? 'Airlines'
     : field.key === 'main_category'
     ? 'Kategori'
-    : field.key === 'target_division'
-    ? 'Divisi'
     : field.key.charAt(0).toUpperCase() + field.key.slice(1),
   table: field.table,
   field: field.field,
@@ -97,7 +95,6 @@ export function CustomDashboardContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filtersInitialized, setFiltersInitialized] = useState(false);
-  const dashboardRef = useRef<Dashboard | null>(null);
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');

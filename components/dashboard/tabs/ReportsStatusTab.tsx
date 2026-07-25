@@ -254,9 +254,9 @@ function StackedHBar({
   }
 
   const handleClick = (data: unknown, _index: number, isOpen: boolean) => {
-    const d = data as { label: string };
-    if (isOpen) onOpenClick(d.label);
-    else onClosedClick(d.label);
+    const d = data as { payload: { label: string } };
+    if (isOpen) onOpenClick(d.payload.label);
+    else onClosedClick(d.payload.label);
   };
 
   return (
@@ -321,9 +321,9 @@ type RecordRow = {
   raw: Report;
 };
 
-function buildRecordRow(r: Report): RecordRow {
+function buildRecordRow(r: Report, index: number): RecordRow {
   return {
-    id: r.id || r.original_id || String(r.row_number || Math.random()),
+    id: r.id || r.original_id || (r.row_number != null ? String(r.row_number) : `row-${index}`),
     date: fmtDate(r),
     branch: getBranch(r),
     airline: getAirline(r),
@@ -365,7 +365,7 @@ function RecordsTable({ rows, title, onRowClick }: { rows: RecordRow[]; title: s
                 key={row.id}
                 onClick={() => onRowClick(row)}
                 className="cursor-pointer transition-colors hover:!bg-[color:var(--sr-accent-soft)]"
-                title="Klik untuk lihat detail lengkap"
+                title="Click to view full details"
               >
                 <td className="font-mono tabular-nums" style={{ padding: '8px 10px', fontSize: 12, whiteSpace: 'normal', wordBreak: 'normal', overflowWrap: 'break-word' }}>{row.date}</td>
                 <td className="font-bold" style={{ padding: '8px 10px', fontSize: 12 }}>{row.branch}</td>
@@ -433,8 +433,10 @@ export function ReportsStatusTab({ reports }: ReportsStatusTabProps) {
         const severityRows = buildStatusRows(filtered, getSeverity).sort((a, b) => order.indexOf(a.label) - order.indexOf(b.label));
         const airlineRows = buildStatusRows(filtered, getAirline);
 
-        const openRecords = open.map(buildRecordRow).sort((a, b) => b.date.localeCompare(a.date));
-        const closedRecords = closed.map(buildRecordRow).sort((a, b) => b.date.localeCompare(a.date));
+        const byDateDesc = (a: RecordRow, b: RecordRow) =>
+          (getReportDate(b.raw)?.getTime() ?? 0) - (getReportDate(a.raw)?.getTime() ?? 0);
+        const openRecords = open.map(buildRecordRow).sort(byDateDesc);
+        const closedRecords = closed.map(buildRecordRow).sort(byDateDesc);
 
         const resolutionRate = total > 0 ? ((closedCount / total) * 100).toFixed(1) : '0.0';
         const topOpenCategory = buildStatusRows(open, getCategory)[0]?.label || '—';

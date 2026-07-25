@@ -28,11 +28,11 @@ export function clean(value: unknown): string {
   return ['', '-', '#n/a', 'n/a', 'null', 'undefined', 'nil'].includes(low) ? '' : text;
 }
 
-export function normalizeKey(value: unknown): string {
+function normalizeKey(value: unknown): string {
   return clean(value).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-export function normalizeCategory(value: unknown): string {
+function normalizeCategory(value: unknown): string {
   const normalized = normalizeKey(value);
   if (!normalized) return '';
   if (normalized.includes('accident') || normalized.includes('incident') || normalized.includes('insiden')) return 'Accident / Incident';
@@ -43,14 +43,14 @@ export function normalizeCategory(value: unknown): string {
   return normalized.split(' ').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 }
 
-export function normalizeStatus(value: unknown): string {
+function normalizeStatus(value: unknown): string {
   const normalized = normalizeKey(value).toUpperCase();
   if (!normalized) return 'OPEN';
   if (['CLOSED', 'SELESAI', 'DONE', 'RESOLVED'].includes(normalized)) return 'CLOSED';
   return 'OPEN';
 }
 
-export function normalizeSeverity(value: unknown): string {
+function normalizeSeverity(value: unknown): string {
   const normalized = normalizeKey(value).toUpperCase();
   if (!normalized) return 'LOW';
   if (normalized.includes('TOP RISK')) return 'TOP RISK';
@@ -60,7 +60,7 @@ export function normalizeSeverity(value: unknown): string {
   return 'LOW';
 }
 
-export function parseDate(value: unknown): Date | null {
+function parseDate(value: unknown): Date | null {
   if (!value) return null;
   if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
   if (typeof value === 'number') {
@@ -83,17 +83,17 @@ export function parseDate(value: unknown): Date | null {
   return Number.isNaN(fallback.getTime()) ? null : fallback;
 }
 
-export function isoDate(value: unknown): string | null {
+function isoDate(value: unknown): string | null {
   const date = parseDate(value);
   return date ? date.toISOString().slice(0, 10) : null;
 }
 
-export function isoTimestamp(value: unknown): string | null {
+function isoTimestamp(value: unknown): string | null {
   const date = parseDate(value);
   return date ? date.toISOString() : null;
 }
 
-export function evidenceUrls(value: unknown): string[] | null {
+function evidenceUrls(value: unknown): string[] | null {
   const raw = clean(value);
   if (!raw) return null;
   const urls = raw.match(/https?:\/\/[^\s|;,]+/gi) || [];
@@ -101,7 +101,7 @@ export function evidenceUrls(value: unknown): string[] | null {
 }
 
 // prop (Supabase column) -> possible sheet headers. Used for both read and write.
-export const CANDIDATES: Record<string, string[]> = {
+const CANDIDATES: Record<string, string[]> = {
   no: ['No'],
   timestamp_raw: ['Timestamp'],
   date_of_event: ['Date of Event'],
@@ -160,7 +160,7 @@ export function buildColumnMap(headers: string[]): Record<string, number> {
   return map;
 }
 
-export function buildFingerprint(row: JoumpaRow): string {
+function buildFingerprint(row: JoumpaRow): string {
   const parts = [
     row.source_spreadsheet_id,
     row.source_sheet,

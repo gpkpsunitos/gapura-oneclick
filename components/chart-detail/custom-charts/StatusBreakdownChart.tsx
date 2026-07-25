@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { CheckCircle2, Clock, XCircle, Hourglass, HelpCircle, Info } from 'lucide-react';
+import { CheckCircle2, Clock, Hourglass, Info } from 'lucide-react';
 
 interface StatusData {
   status: string;
@@ -66,7 +66,7 @@ export function StatusBreakdownChart({
               <Clock className="w-6 h-6 text-gray-400" />
             </div>
             <p className="text-[11px] text-gray-500">No status data</p>
-            <p className="text-[9px] text-gray-400 mt-1">Data mungkin belum tersedia atau kosong</p>
+            <p className="text-[9px] text-gray-400 mt-1">Data may not be available yet or is empty</p>
           </div>
         </div>
         {explanation && (

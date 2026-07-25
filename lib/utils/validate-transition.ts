@@ -7,7 +7,7 @@ const TRANSITION_RULES: Record<ReportStatus, ReportStatus[]> = {
     CLOSED: ['OPEN'],
 };
 
-export const ACTION_TO_STATUS: Record<string, ReportStatus> = {
+const ACTION_TO_STATUS: Record<string, ReportStatus> = {
     update_progress: 'ON PROGRESS',
     close: 'CLOSED',
     reopen: 'OPEN',

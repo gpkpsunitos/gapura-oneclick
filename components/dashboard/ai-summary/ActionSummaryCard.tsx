@@ -269,10 +269,10 @@ export function ActionSummaryCard({
                     side="top"
                     className="max-w-xs text-xs leading-relaxed"
                   >
-                    <p>Hitung per laporan, bukan per entitas.</p>
+                    <p>Counted per report, not per entity.</p>
                     <p className="mt-1">
-                      Total/Open/Closed = jumlah laporan. Severity = banyaknya
-                      laporan per tingkat keparahan.
+                      Total/Open/Closed = number of reports. Severity = number
+                      of reports per severity level.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -286,7 +286,7 @@ export function ActionSummaryCard({
           </span>
           <div className="px-2 py-1 rounded-lg bg-gray-100 text-gray-700">
             <span className="text-sm font-black">
-              {overallSummary?.totalRecords?.toLocaleString("id-ID")}
+              {overallSummary?.totalRecords?.toLocaleString()}
             </span>
             <span className="ml-1 text-[10px] font-medium">Reports</span>
           </div>
@@ -296,7 +296,7 @@ export function ActionSummaryCard({
       {}
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-bold text-gray-500 uppercase">
-          Ringkasan per laporan
+          Summary per report
         </p>
         <div className="flex items-center gap-2">
           <span className="px-2 py-1 rounded-full bg-amber-50 text-amber-700 text-[10px] font-semibold">

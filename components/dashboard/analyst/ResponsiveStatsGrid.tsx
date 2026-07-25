@@ -16,7 +16,7 @@ interface ResponsiveStatsGridProps {
   compact?: boolean;
 }
 
-export function ResponsiveStatsGrid({ stats, onStatClick, compact }: ResponsiveStatsGridProps) {
+export function ResponsiveStatsGrid({ stats, onStatClick }: ResponsiveStatsGridProps) {
   const yearsLabel =
     stats.years && stats.years.length > 0
       ? `Total Reports (${stats.years.join(', ')})`

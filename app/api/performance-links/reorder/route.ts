@@ -18,13 +18,13 @@ export async function PATCH(request: Request) {
             return NextResponse.json({ error: 'order is required' }, { status: 400 });
         }
 
-        const results = await Promise.all(
-            order.map((id: string, index: number) =>
-                supabaseAdmin.from('performance_links').update({ sort_order: index }).eq('id', id)
-            )
-        );
-        const failed = results.find((r) => r.error);
-        if (failed?.error) throw failed.error;
+        const { error } = await supabaseAdmin
+            .from('performance_links')
+            .upsert(
+                order.map((id: string, index: number) => ({ id, sort_order: index })),
+                { onConflict: 'id' }
+            );
+        if (error) throw error;
 
         return NextResponse.json({ success: true });
     } catch (error) {

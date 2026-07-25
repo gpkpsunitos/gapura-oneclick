@@ -18,10 +18,10 @@ const OPERATORS_BY_TYPE: Record<string, { value: FilterOperator; label: string }
   string: [
     { value: 'eq', label: '=' },
     { value: 'neq', label: '!=' },
-    { value: 'like', label: 'berisi' },
-    { value: 'in', label: 'salah satu dari' },
-    { value: 'is_null', label: 'kosong' },
-    { value: 'is_not_null', label: 'tidak kosong' },
+    { value: 'like', label: 'contains' },
+    { value: 'in', label: 'one of' },
+    { value: 'is_null', label: 'is empty' },
+    { value: 'is_not_null', label: 'is not empty' },
   ],
   number: [
     { value: 'eq', label: '=' },
@@ -30,32 +30,32 @@ const OPERATORS_BY_TYPE: Record<string, { value: FilterOperator; label: string }
     { value: 'gte', label: '>=' },
     { value: 'lt', label: '<' },
     { value: 'lte', label: '<=' },
-    { value: 'between', label: 'antara' },
-    { value: 'is_null', label: 'kosong' },
+    { value: 'between', label: 'between' },
+    { value: 'is_null', label: 'is empty' },
   ],
   date: [
     { value: 'eq', label: '=' },
-    { value: 'gt', label: 'setelah' },
-    { value: 'lt', label: 'sebelum' },
-    { value: 'between', label: 'antara' },
-    { value: 'is_null', label: 'kosong' },
-    { value: 'is_not_null', label: 'tidak kosong' },
+    { value: 'gt', label: 'after' },
+    { value: 'lt', label: 'before' },
+    { value: 'between', label: 'between' },
+    { value: 'is_null', label: 'is empty' },
+    { value: 'is_not_null', label: 'is not empty' },
   ],
   datetime: [
     { value: 'eq', label: '=' },
-    { value: 'gt', label: 'setelah' },
-    { value: 'lt', label: 'sebelum' },
-    { value: 'between', label: 'antara' },
-    { value: 'is_null', label: 'kosong' },
-    { value: 'is_not_null', label: 'tidak kosong' },
+    { value: 'gt', label: 'after' },
+    { value: 'lt', label: 'before' },
+    { value: 'between', label: 'between' },
+    { value: 'is_null', label: 'is empty' },
+    { value: 'is_not_null', label: 'is not empty' },
   ],
   boolean: [
     { value: 'eq', label: '=' },
   ],
   uuid: [
     { value: 'eq', label: '=' },
-    { value: 'is_null', label: 'kosong' },
-    { value: 'is_not_null', label: 'tidak kosong' },
+    { value: 'is_null', label: 'is empty' },
+    { value: 'is_not_null', label: 'is not empty' },
   ],
 };
 
@@ -67,9 +67,9 @@ function getOperatorsForField(table: string, field: string): { value: FilterOper
     return [
       { value: 'eq', label: '=' },
       { value: 'neq', label: '!=' },
-      { value: 'in', label: 'salah satu dari' },
-      { value: 'not_in', label: 'bukan' },
-      { value: 'is_null', label: 'kosong' },
+      { value: 'in', label: 'one of' },
+      { value: 'not_in', label: 'not one of' },
+      { value: 'is_null', label: 'is empty' },
     ];
   }
   return OPERATORS_BY_TYPE[def.type] || OPERATORS_BY_TYPE.string;
@@ -161,8 +161,8 @@ export function FilterBuilder({ filters, availableFields, onAdd, onRemove, onUpd
                     className="px-2 py-1 text-xs bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)]"
                   >
                     <option value="">Select...</option>
-                    <option value="true">Ya</option>
-                    <option value="false">Tidak</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
                   </select>
                 ) : (fieldDef?.type === 'date' || fieldDef?.type === 'datetime') ? (
                   filter.operator === 'between' ? (
@@ -177,7 +177,7 @@ export function FilterBuilder({ filters, availableFields, onAdd, onRemove, onUpd
                         }}
                         className="px-2 py-1 text-xs bg-[var(--surface-2)] border border-[var(--surface-4)] rounded-md text-[var(--text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--brand-primary)]"
                       />
-                      <span className="text-[10px] text-[var(--text-muted)]">s/d</span>
+                      <span className="text-[10px] text-[var(--text-muted)]">to</span>
                       <input
                         type="date"
                         value={Array.isArray(filter.value) ? String(filter.value[1] || '') : ''}

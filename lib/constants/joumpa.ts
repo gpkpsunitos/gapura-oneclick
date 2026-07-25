@@ -16,4 +16,3 @@ export const JOUMPA_CATEGORY_CASE = [
 ];
 export const JOUMPA_SEVERITY_LEVELS = ['TOP RISK', 'HIGH RISK', 'MEDIUM', 'LOW'];
 export const JOUMPA_STATUSES = ['OPEN', 'CLOSED'];
-export const JOUMPA_OTHER = '__other__';

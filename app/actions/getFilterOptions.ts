@@ -27,7 +27,8 @@ export async function getAvailableBranches(): Promise<string[]> {
           .filter((b) => b && b !== '-' && b.length > 0)
       )
     ).sort();
-  } catch {
+  } catch (error) {
+    console.error('[getAvailableBranches] Failed to load branches from Google Sheets:', error);
     return [];
   }
 }

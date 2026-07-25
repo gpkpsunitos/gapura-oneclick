@@ -1,6 +1,5 @@
 'use client';
 
-import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useViewport } from '@/hooks/useViewport';
 import { CardViewTable, TableColumn, TableAction, formatMobileDate, truncateMobile } from './CardViewTable';
@@ -105,7 +104,7 @@ function DataTable<T>({
               </th>
             ))}
             {actions && actions.length > 0 && (
-              <th className="px-4 py-3 text-right">Aksi</th>
+              <th className="px-4 py-3 text-right">Actions</th>
             )}
           </tr>
         </thead>

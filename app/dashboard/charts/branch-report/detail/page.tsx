@@ -1,8 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import BranchReportDetail from '@/components/charts/branch-report/BranchReportDetail';
 import DetailFilterHeader from '@/components/chart-detail/DetailFilterHeader';
@@ -16,7 +15,6 @@ interface FilterState {
 }
 
 export default function BranchReportPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const sourceSheet = searchParams.get('sourceSheet') === 'CGO' ? 'CGO' : 'NON CARGO';
   const sourcePage = searchParams.get('sourcePage') || 'customer-feedback-main';

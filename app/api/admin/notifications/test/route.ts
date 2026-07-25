@@ -58,8 +58,8 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, message: `Email test berhasil dikirim ke ${email}.` });
     } catch (err) {
         console.error('[NOTIFICATIONS] Test email failed:', err);
-        return NextResponse.json({ 
-            error: err instanceof Error ? err.message : 'Failed to send test email' 
+        return NextResponse.json({
+            error: 'Failed to send test email'
         }, { status: 500 });
     }
 }

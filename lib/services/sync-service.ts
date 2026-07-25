@@ -3,11 +3,11 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { reportsService } from '@/lib/services/reports-service';
 import { notifyNewRecordEmail } from '@/lib/notifications';
 import { buildReportFingerprint } from '@/lib/report-fingerprint';
-import { buildReportsSyncRow } from '@/lib/report-persistence';
+import { buildReportsSyncRow, persistReportMetadata } from '@/lib/report-persistence';
 import type { Report } from '@/types';
 import { acquireSyncLock, completeSyncState, getSyncState } from '@/lib/sync-state';
 
-export interface SyncResult {
+interface SyncResult {
   success: boolean;
   totalProcessed: number;
   inserted: number;
@@ -54,7 +54,7 @@ interface LegacyReportRecord {
   source_fingerprint: string | null;
 }
 
-export interface SyncStatus {
+interface SyncStatus {
   lastSyncAt: string | null;
   totalReports: number;
   syncVersion: number;
@@ -84,6 +84,50 @@ export class SyncService {
       if (this.activeSyncPromise === syncPromise) {
         this.activeSyncPromise = null;
       }
+    }
+  }
+
+  // Scoped counterpart to syncReportsFromSheets() for the edit webhook: pulls
+  // and upserts exactly the one row that changed instead of a full sheet pull
+  // plus the whole push-back-to-sheets backlog. Deletion detection and pushing
+  // *other* locally-dirty rows back to Sheets stay the job of the periodic
+  // full sync (login-triggered and the daily cron) — this only needs to get
+  // one freshly-edited sheet row into Supabase quickly.
+  static async syncSingleRowFromSheets(
+    sheetName: string,
+    rowNumber: number
+  ): Promise<{ success: boolean; changed: boolean; error?: string }> {
+    try {
+      const report = await reportsService.fetchSingleReportFromSheet(sheetName, rowNumber);
+      if (!report) {
+        return { success: true, changed: false };
+      }
+
+      report.source_fingerprint = report.source_fingerprint || buildReportFingerprint(report);
+      const sheetId = String(report.sheet_id || report.original_id || '');
+
+      const { data: existing } = sheetId
+        ? await supabaseAdmin
+            .from('ground_handling_irregularity_report')
+            .select('id')
+            .eq('sheet_id', sheetId)
+            .maybeSingle()
+        : { data: null };
+
+      await persistReportMetadata(report);
+      reportsService.invalidateCache();
+
+      if (!existing) {
+        await notifyNewRecordEmail(report, 'sheets-sync').catch((notificationError) => {
+          console.warn('[SyncService] New-record webhook notification failed:', notificationError);
+        });
+      }
+
+      return { success: true, changed: true };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[SyncService] syncSingleRowFromSheets failed for ${sheetName}!row_${rowNumber}:`, error);
+      return { success: false, changed: false, error: message };
     }
   }
 
@@ -488,20 +532,28 @@ export class SyncService {
     let pushed = 0;
     try {
 
-      const { data: dirtyReports, error } = await supabaseAdmin
+      const { data: candidates, error } = await supabaseAdmin
         .from('ground_handling_irregularity_report')
         .select('*')
-        .filter('updated_at', 'gt', 'synced_at')
         .order('updated_at', { ascending: false })
-        .limit(50);
+        .limit(500);
 
-      if (error || !dirtyReports || dirtyReports.length === 0) return 0;
+      if (error || !candidates || candidates.length === 0) return 0;
+
+      const dirtyReports = candidates
+        .filter((report) => !report.synced_at || new Date(report.updated_at) > new Date(report.synced_at))
+        .slice(0, 50);
+
+      if (dirtyReports.length === 0) return 0;
 
 
       for (const report of dirtyReports) {
         try {
 
-            const success = await reportsService.updateReport(report.sheet_id, report);
+            // report is the full DB row, so it's already the authoritative
+            // source being pushed out to Sheets here — no need to live-merge
+            // evidence/video URLs against a fresh Sheets read for every row.
+            const success = await reportsService.updateReport(report.sheet_id, report, { skipLiveFetch: true });
             if (success) {
 
                 await supabaseAdmin
@@ -692,5 +744,3 @@ export class SyncService {
     return { checked: overdue?.length || 0, notified };
   }
 }
-
-export const syncService = new SyncService();

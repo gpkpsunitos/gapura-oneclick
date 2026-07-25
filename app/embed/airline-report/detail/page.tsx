@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, Suspense } from 'react';
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import AirlineReportDetail from '@/components/charts/airline-report/AirlineReportDetail';
 import { EmbedDetailLayout } from '@/components/EmbedDetailLayout';

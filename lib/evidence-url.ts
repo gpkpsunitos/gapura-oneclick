@@ -3,7 +3,7 @@ const DRIVE_FILE_PATTERNS = [
   /docs\.google\.com\/(?:document|spreadsheets|presentation)\/d\/([a-zA-Z0-9_-]+)/i,
 ];
 
-export function extractGoogleDriveFileId(url: string) {
+function extractGoogleDriveFileId(url: string) {
   const value = String(url || '').trim();
   if (!value) return null;
 

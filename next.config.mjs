@@ -45,7 +45,7 @@ const nextConfig = {
 
     images: {
         formats: ['image/avif', 'image/webp'],
-        qualities: [75, 80],
+        qualities: [70, 75, 80],
         minimumCacheTTL: 86400,
         remotePatterns: [
             {
@@ -59,6 +59,10 @@ const nextConfig = {
             {
                 protocol: 'https',
                 hostname: 'gapura-my.sharepoint.com',
+            },
+            {
+                protocol: 'https',
+                hostname: 'api.qrserver.com',
             },
         ],
     },

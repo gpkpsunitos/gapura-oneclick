@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { callOpenRouterAI } from '@/lib/ai/openrouter';
+import { checkDbRateLimit } from '@/lib/security/rate-limit';
+
+const MAX_TILES = 20;
+const MAX_COLUMNS_PER_TILE = 30;
+const MAX_SAMPLE_ROWS_PER_TILE = 50;
+const MAX_STRING_LENGTH = 500;
+const MAX_REQUEST_BYTES = 200_000;
 
 interface TileSummary {
   id: string;
@@ -100,13 +107,80 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body: InsightRequest = await request.json();
-
-    if (!body.tiles || body.tiles.length === 0) {
-      return NextResponse.json({ error: 'No data tile' }, { status: 400 });
+    let rawText: string;
+    try {
+      rawText = await request.text();
+    } catch {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
     }
 
-    const prompt = buildInsightsPrompt(body);
+    if (Buffer.byteLength(rawText, 'utf8') > MAX_REQUEST_BYTES) {
+      return NextResponse.json({ error: 'Request payload is too large' }, { status: 413 });
+    }
+
+    let rawBody: unknown;
+    try {
+      rawBody = JSON.parse(rawText);
+    } catch {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+
+    if (!rawBody || typeof rawBody !== 'object') {
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
+
+    const body = rawBody as Partial<InsightRequest>;
+
+    if (typeof body.dashboardName !== 'string' || !body.dashboardName.trim()) {
+      return NextResponse.json({ error: 'dashboardName is required' }, { status: 400 });
+    }
+
+    if (!Array.isArray(body.tiles) || body.tiles.length === 0) {
+      return NextResponse.json({ error: 'No tiles provided' }, { status: 400 });
+    }
+
+    if (body.tiles.length > MAX_TILES) {
+      return NextResponse.json({ error: `Too many tiles (max ${MAX_TILES})` }, { status: 400 });
+    }
+
+    const isBoundedString = (value: unknown): value is string =>
+      typeof value === 'string' && value.length <= MAX_STRING_LENGTH;
+
+    const isValidTile = (tile: unknown): tile is TileSummary => {
+      if (!tile || typeof tile !== 'object') return false;
+      const t = tile as Partial<TileSummary>;
+      return (
+        isBoundedString(t.id) &&
+        isBoundedString(t.title) &&
+        isBoundedString(t.chartType) &&
+        Array.isArray(t.columns) &&
+        t.columns.length <= MAX_COLUMNS_PER_TILE &&
+        t.columns.every((c) => isBoundedString(c)) &&
+        Array.isArray(t.sampleRows) &&
+        t.sampleRows.length <= MAX_SAMPLE_ROWS_PER_TILE &&
+        t.sampleRows.every((r) => r !== null && typeof r === 'object' && !Array.isArray(r)) &&
+        typeof t.rowCount === 'number' &&
+        Number.isFinite(t.rowCount) &&
+        t.rowCount >= 0
+      );
+    };
+
+    if (!body.tiles.every(isValidTile)) {
+      return NextResponse.json({ error: 'One or more tiles are missing required fields or exceed size limits' }, { status: 400 });
+    }
+
+    const rateLimit = await checkDbRateLimit(`export-insights:${payload.id}`, 10, 60_000);
+    if (!rateLimit.success) {
+      return NextResponse.json({ error: 'Too many insight requests, please try again shortly' }, { status: 429 });
+    }
+
+    const insightRequest: InsightRequest = {
+      dashboardName: body.dashboardName,
+      subtitle: typeof body.subtitle === 'string' ? body.subtitle : undefined,
+      tiles: body.tiles,
+    };
+
+    const prompt = buildInsightsPrompt(insightRequest);
 
     let content;
     try {

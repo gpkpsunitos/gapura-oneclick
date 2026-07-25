@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { useData } from '@/lib/swr';
-import { RefreshCw, Loader2, Search, Filter, ChevronDown, ChevronUp, AlertTriangle, ExternalLink } from 'lucide-react';
+import { ChevronUp } from 'lucide-react';
 
 import { ResponsiveHeader } from '@/components/dashboard/analyst/ResponsiveHeader';
 import { ReportFilterBar } from '@/components/dashboard/analyst/ReportFilterBar';
@@ -33,32 +33,6 @@ import { fetchCompleteDashboardReports } from '@/lib/dashboard/client';
 import type { DivisionConfig } from '@/components/dashboard/AnalyticsDashboard';
 import { DashboardWorkspaceSkeleton } from '@/components/dashboard/DashboardWorkspaceSkeleton';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
-
-const ReportsTableSection = dynamic(
-  () =>
-    import('@/components/dashboard/analyst/ReportsTableSection').then(
-      (mod) => mod.ReportsTableSection
-    ),
-  {
-    ssr: false,
-    loading: () => (
-      <PresentationSlide
-        title="Today's Reports"
-        subtitle="Loading latest report list"
-        className="animate-fade-in-up"
-      >
-        <div className="space-y-3 rounded-[24px] border border-[var(--surface-3)] bg-[var(--surface-1)] p-4">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <div
-              key={index}
-              className="h-16 animate-pulse rounded-2xl bg-[var(--surface-2)]"
-            />
-          ))}
-        </div>
-      </PresentationSlide>
-    ),
-  }
-);
 
 const ReportsDetailTable = dynamic(
   () => import('@/components/dashboard/analyst/ReportsDetailTable').then((mod) => mod.ReportsDetailTable),
@@ -138,7 +112,7 @@ export function OCSDivisionDashboard({
       : 'dashboard';
 
   const [refreshing, setRefreshing] = useState(false);
-  const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
+  const [exporting] = useState<'excel' | 'pdf' | null>(null);
   const [showReportsExportModal, setShowReportsExportModal] = useState(false);
   const [dateRange, setDateRange] = useState<'all' | 'week' | 'month' | { from: string; to: string }>('all');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -349,7 +323,7 @@ export function OCSDivisionDashboard({
     }
 
     return result;
-  }, [reports, dateRange, globalFilters, division.code]);
+  }, [reports, dateRange, globalFilters, lockedBranches]);
   const listFilterOptions = useMemo(() => {
     const uniqueSorted = (values: string[]) => Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
     return {
@@ -499,35 +473,6 @@ export function OCSDivisionDashboard({
     },
     [division.code, router, searchParams]
   );
-
-  const filteredStats = useMemo(() => {
-    const total = filteredReports.length;
-    const resolved = filteredReports.filter((r) => cleanReportValue(r.status).toUpperCase() === 'CLOSED').length;
-    const pending = filteredReports.filter(
-      (r) => cleanReportValue(r.status).toUpperCase() === 'OPEN'
-    ).length;
-    const highSeverity = filteredReports.filter((r) => {
-      const severity = cleanReportValue(r.severity || r.severity_level).toUpperCase();
-      return severity === 'TOP RISK' || severity === 'HIGH RISK';
-    }).length;
-    const resolutionRate = total > 0 ? Math.round((resolved / total) * 100) : 0;
-    const years = Array.from(
-      new Set(
-        filteredReports
-          .map((r) => {
-            const d = reportDateValue(r);
-            return d ? new Date(d).getFullYear() : null;
-          })
-          .filter((y): y is number => y !== null && !Number.isNaN(y))
-      )
-    ).sort((a, b) => a - b);
-    return { total, resolved, pending, highSeverity, resolutionRate, years };
-  }, [filteredReports]);
-
-  const drilldownUrl = (type: string, value: string) =>
-    `/dashboard/analyst/drilldown?type=${type}&value=${encodeURIComponent(
-      value
-    )}&period=${dateRange}`;
 
   const availableOptions = useMemo(() => {
     const hubs = new Set<string>();

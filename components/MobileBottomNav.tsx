@@ -68,7 +68,7 @@ export function MobileBottomNav({ role, division }: MobileBottomNavProps) {
 
         window.addEventListener('scroll', handleScroll, { passive: true });
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [isMenuOpen]);
+    }, [isMenuOpen, pathname]);
 
     const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
     const handleLogout = useCallback(() => {

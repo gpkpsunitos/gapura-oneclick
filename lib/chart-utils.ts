@@ -29,7 +29,7 @@ const MonthMap: Record<string, number> = {
   desember: 11, des: 11
 };
 
-export function parseDate(val: unknown): Date | null {
+function parseDate(val: unknown): Date | null {
   if (!val) return null;
   if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
   if (typeof val !== 'string') return null;

@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, Suspense } from 'react';
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import MonthlyReportDetail from '@/components/charts/monthly-report/MonthlyReportDetail';
 import { EmbedDetailLayout } from '@/components/EmbedDetailLayout';

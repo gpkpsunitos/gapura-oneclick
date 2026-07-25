@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import PivotReportDetail from '@/components/charts/pivot-report/PivotReportDetail';
 import DetailFilterHeader from '@/components/chart-detail/DetailFilterHeader';
@@ -15,7 +15,6 @@ interface FilterState {
 }
 
 function PivotReportContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const pivotTitle = searchParams.get('title') || 'Pivot Report';
   const sourceSheet = searchParams.get('sourceSheet') === 'CGO' ? 'CGO' : 'NON CARGO';

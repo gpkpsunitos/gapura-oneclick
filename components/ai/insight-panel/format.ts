@@ -105,7 +105,7 @@ export function buildExecutiveSummaryEn(data: MLOverview): string[] {
   }
   if (topFalling) {
     sentences.push(
-      `Improving: ${topFalling.entity} is down ${fmtSignedPct(signedChange(topFalling))} over the same period.`,
+      `Improving: ${topFalling.entity} is down ${Math.abs(signedChange(topFalling)).toFixed(0)}% over the same period.`,
     );
   }
 

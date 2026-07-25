@@ -222,7 +222,12 @@ export default function PivotReportDetail({ filters = {}, pivotTitle = '' }: { f
     }
 
     loadData();
-  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo]);
+    // filters is destructured to primitive fields so this effect doesn't
+    // re-fire on every parent re-render when filters gets a new object
+    // identity but the same values. All fields the fetch calls actually
+    // read are listed above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.sourceSheet, filters.dateFrom, filters.dateTo]);
 
   const matrix = useMemo(() => buildPivotMatrix(reports, rowField, colField), [reports, rowField, colField]);
   const rowBreakdown = useMemo(() => fetchDimensionBreakdown(reports, rowField), [reports, rowField]);

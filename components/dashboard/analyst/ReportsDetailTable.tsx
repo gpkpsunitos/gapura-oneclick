@@ -184,8 +184,12 @@ function StatusEditorModal({ report, onSubmit, onClose }: StatusEditorModalProps
     <div
       className="fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm"
       onClick={onClose}
+      onKeyDown={(event) => { if (event.key === 'Escape') onClose(); }}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Change report status"
         className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_32px_90px_-28px_rgba(15,23,42,0.55)]"
         onClick={(event) => event.stopPropagation()}
       >
@@ -317,7 +321,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
   onStatusUpdate,
   loading,
   emptyTitle = 'No reports found',
-  emptySubtitle = 'Coba sesuaikan filter Anda untuk melihat hasil lain.',
+  emptySubtitle = 'Try adjusting your filters to see other results.',
   toolbarFilter,
   fullHeight = false,
 }: ReportsDetailTableProps) {

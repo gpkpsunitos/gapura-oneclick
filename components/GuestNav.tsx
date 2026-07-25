@@ -1,11 +1,10 @@
 
 'use client';
 
-import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
-import { QrCode, ClipboardList, BookOpen, ChevronUp, Menu as MenuIcon, Bot, Monitor, BarChart3, Lock, AlertTriangle } from 'lucide-react';
+import { QrCode, ClipboardList, BookOpen, ChevronUp, Menu as MenuIcon, Bot, Monitor, Lock, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { QuickAccessPasswordModal } from '@/components/QuickAccessPasswordModal';
 import { useExternalLinks } from '@/lib/hooks/useExternalLinks';
@@ -24,12 +23,6 @@ type GuestLinkItem = GuestItemBase & { href: string; action?: never; protected?:
 type GuestActionItem = GuestItemBase & { href?: never; action: () => void; protected?: never };
 
 type GuestItem = GuestLinkItem | GuestActionItem;
-
-const PROTECTED_LABELS = new Set([
-    'Chat Bot I\'m In Charge',
-    'Handbook SLA',
-    'WSN Dashboard',
-]);
 
 const isLinkItem = (item: GuestItem): item is GuestLinkItem => 'href' in item && !!item.href;
 

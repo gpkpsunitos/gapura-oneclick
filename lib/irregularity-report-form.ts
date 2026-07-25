@@ -1,17 +1,17 @@
 import type { Report } from '@/types';
 
-export interface IrregularityFormOfficer {
+interface IrregularityFormOfficer {
   name: string;
   company: string;
   function: string;
 }
 
-export interface IrregularityFormChronology {
+interface IrregularityFormChronology {
   time: string;
   description: string;
 }
 
-export interface IrregularityFormData {
+interface IrregularityFormData {
   doc_title: string;
   reference_no: string;
   to: string;

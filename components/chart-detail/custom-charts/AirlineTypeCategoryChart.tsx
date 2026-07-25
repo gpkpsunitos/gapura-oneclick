@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Plane, Info, TrendingUp, AlertCircle, MessageSquare, ThumbsUp } from 'lucide-react';
+import { Plane, Info, AlertCircle, MessageSquare, ThumbsUp } from 'lucide-react';
 
 interface AirlineTypeCategoryData {
   airlineType: string;
@@ -102,7 +102,6 @@ export function AirlineTypeCategoryChart({
   });
 
   const categories = ['IRREGULARITY', 'COMPLAINT', 'COMPLIMENT'];
-  const maxTotal = groupedByType[sortedTypes[0]]?.total || 1;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] flex flex-col overflow-hidden h-full">
@@ -190,7 +189,7 @@ export function AirlineTypeCategoryChart({
 
                 {}
                 <div className="relative h-2.5 bg-slate-100 rounded-full overflow-hidden flex w-full">
-                  {categories.map((cat, idx) => {
+                  {categories.map((cat) => {
                     const count = typeStats.categories[cat] || 0;
                     const pct = (count / typeStats.total) * 100;
                     if (pct === 0) return null;

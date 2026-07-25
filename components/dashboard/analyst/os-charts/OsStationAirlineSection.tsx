@@ -21,7 +21,6 @@ import {
     OS_CARD_CLASS,
     OS_TABLE_HEADER_CLASS,
     OS_BORDER_CLASS,
-    OS_HOVER_CLASS,
 } from './os-chart-utils';
 import {
     type BranchReportItem,

@@ -8,11 +8,10 @@
  * the LLM only writes grounded prose. See that module for the pipeline.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
 import { callOpenRouterAI, OPENROUTER_MODEL } from '@/lib/ai/openrouter';
 import { buildAICacheKey, readAICache, writeAICache } from '@/lib/ai-cache';
-import { verifySession } from '@/lib/auth-utils';
+import { requireAISession, unauthorizedResponse } from '@/lib/ai-route-helpers';
 import {
   buildSectionSummary, cleanDatasets, legacyDataset, type SectionSummaryPayload,
 } from '@/lib/ai/section-summary-core';
@@ -53,12 +52,10 @@ async function writeCached(cacheKey: string, payload: SectionSummaryPayload) {
 
 export async function POST(req: NextRequest) {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get('session')?.value;
-    const session = token ? await verifySession(token) : null;
+    const session = await requireAISession();
 
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return unauthorizedResponse();
     }
 
     const body = await req.json();

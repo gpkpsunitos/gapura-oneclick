@@ -89,7 +89,7 @@ export function EventModal({
     }
 
     if (isMultiDay && eventEndDate && eventEndDate < eventDate) {
-      setError('End date must be the same as or after the start date');
+      setError('Tanggal selesai harus sama dengan atau setelah tanggal mulai');
       return;
     }
 
@@ -127,8 +127,16 @@ export function EventModal({
       }
 
       if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Failed to save event');
+        let message = 'Failed to save event';
+        try {
+          const err = await response.json();
+          if (err && typeof err.error === 'string' && err.error) {
+            message = err.error;
+          }
+        } catch {
+          // Response body wasn't valid JSON — keep the fallback message.
+        }
+        throw new Error(message);
       }
 
       await onSave();
@@ -201,7 +209,7 @@ export function EventModal({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label htmlFor="event-date" className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-                  {isMultiDay ? 'Start Date' : 'Date'} <span className="text-[oklch(0.6_0.22_25)]">*</span>
+                  {isMultiDay ? 'Tanggal Mulai' : 'Tanggal'} <span className="text-[oklch(0.6_0.22_25)]">*</span>
                 </label>
                 <PrismInput
                   id="event-date"
@@ -213,7 +221,7 @@ export function EventModal({
               {isMultiDay ? (
                 <div>
                   <label htmlFor="event-end-date" className="block text-sm font-medium text-[var(--text-secondary)] mb-1.5">
-                    End Date <span className="text-[oklch(0.6_0.22_25)]">*</span>
+                    Tanggal Selesai <span className="text-[oklch(0.6_0.22_25)]">*</span>
                   </label>
                   <PrismInput
                     id="event-end-date"
@@ -321,15 +329,15 @@ export function EventModal({
                     <PrismSelect
                       options={[
                         { value: 'daily', label: 'Harian' },
-                        { value: 'weekly', label: 'Weekly' },
-                        { value: 'monthly', label: 'Monthly' },
+                        { value: 'weekly', label: 'Mingguan' },
+                        { value: 'monthly', label: 'Bulanan' },
                       ]}
                       value={recurrencePattern}
                       onChange={(value) => setRecurrencePattern(value as RecurrencePattern)}
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-[var(--text-muted)] mb-1">End Date</label>
+                    <label className="block text-xs text-[var(--text-muted)] mb-1">Tanggal Selesai</label>
                     <PrismInput
                       type="date"
                       value={recurrenceEndDate}

@@ -112,7 +112,6 @@ export interface AnalystChartsProps {
 }
 
 export default function AnalystCharts({
-    allReports,
     filteredReports,
     globalFilters,
     setGlobalFilters,
@@ -187,11 +186,10 @@ export default function AnalystCharts({
                 <AnimatePresence>
                     {!isGlobalFilterCollapsed && (
                         <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: 'auto', opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
+                            initial={{ height: 0, opacity: 0, overflow: 'hidden' }}
+                            animate={{ height: 'auto', opacity: 1, transitionEnd: { overflow: 'visible' } }}
+                            exit={{ height: 0, opacity: 0, overflow: 'hidden' }}
                             transition={{ duration: 0.3, ease: 'easeInOut' }}
-                            style={{ overflow: isGlobalFilterCollapsed ? 'hidden' : 'visible' }}
                         >
                             <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 bg-[var(--surface-0)]/30 rounded-b-2xl">
                                 <PrismMultiSelect
@@ -216,7 +214,7 @@ export default function AnalystCharts({
                                     onChange={(vals) => setGlobalFilters(prev => ({ ...prev, airlines: vals }))}
                                 />
                                 <PrismMultiSelect
-                                    label="Kategori"
+                                    label="Category"
                                     placeholder="All Categories..."
                                     options={availableOptions.categories.map(c => ({ label: c, value: c }))}
                                     values={globalFilters.categories}

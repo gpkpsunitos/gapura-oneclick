@@ -1,7 +1,7 @@
 import 'server-only';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-export interface RegisteredReporter {
+interface RegisteredReporter {
   userId: string;
   fullName: string | null;
 }

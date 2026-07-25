@@ -262,9 +262,13 @@ function LinkModal({
     const [shared, setShared] = useState(false);
 
     const copyLink = useCallback(async () => {
-        await navigator.clipboard.writeText(link.url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1600);
+        try {
+            await navigator.clipboard.writeText(link.url);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1600);
+        } catch {
+            /* clipboard unavailable */
+        }
     }, [link.url]);
 
     const shareLink = useCallback(async () => {

@@ -220,7 +220,10 @@ export function DashboardComposer({
             {}
             <div className="px-6 py-5">
               {contentTiles.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 lg:[grid-auto-rows:220px]">
+                <div
+                  style={{ ['--gc' as string]: gridCols }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:[grid-template-columns:repeat(var(--gc),minmax(0,1fr))] gap-5 lg:[grid-auto-rows:220px]"
+                >
                   {contentTiles.map(tile => (
                     <div
                       key={tile.id}

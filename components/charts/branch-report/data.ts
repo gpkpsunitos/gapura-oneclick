@@ -63,10 +63,6 @@ interface BaseFilters {
   dateTo?: string;
 }
 
-const reportsCache: Record<string, { data: Report[], ts: number }> = {};
-const inflightRequests: Record<string, Promise<Report[]>> = {};
-const CACHE_DURATION = 1000 * 60 * 5;
-
 const CORE_FIELDS = [
   'id', 'date_of_event', 'created_at', 'hub', 'branch', 'reporting_branch', 'station_code',
   'area', 'terminal_area_category', 'apron_area_category', 'general_category',
@@ -358,8 +354,7 @@ export async function fetchAirlineByBranch(filters: BaseFilters = {}): Promise<A
     map.get(key)!.count++;
   });
 
-  return Array.from(map.entries())
-    .map(([_, data]) => data)
+  return Array.from(map.values())
     .sort((a, b) => b.count - a.count)
     .slice(0, 30);
 }
@@ -383,8 +378,7 @@ export async function fetchAreaByBranch(filters: BaseFilters = {}): Promise<Area
     map.get(key)!.count++;
   });
 
-  return Array.from(map.entries())
-    .map(([_, data]) => data)
+  return Array.from(map.values())
     .sort((a, b) => b.count - a.count)
     .slice(0, 30);
 }

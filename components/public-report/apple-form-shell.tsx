@@ -29,7 +29,8 @@ export function compressImage(file: File): Promise<File> {
       canvas.toBlob((blob) => {
         URL.revokeObjectURL(url);
         if (!blob) return reject(new Error('Compression failed'));
-        resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.webp'), { type: blob.type }));
+        const ext = blob.type === 'image/webp' ? '.webp' : blob.type === 'image/png' ? '.png' : '.jpg';
+        resolve(new File([blob], file.name.replace(/\.[^.]+$/, ext), { type: blob.type }));
       }, 'image/webp', 0.8);
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Image load error')); };

@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { normalizeQuery, normalizeVisualization } from '@/lib/builder/normalization';
 import { callOpenRouterAI } from '@/lib/ai/openrouter';
-import { TABLES, JOINS, getFieldDef } from '@/lib/builder/schema';
+import { TABLES, JOINS } from '@/lib/builder/schema';
 import type { DashboardDefinition, DashboardTile } from '@/types/builder';
 
 function buildSchemaContext(): string {
@@ -175,10 +175,6 @@ function postProcessDashboard(def: DashboardDefinition): DashboardDefinition {
   return def;
 }
 
-function formatColumnLabel(col: string): string {
-  return col.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-}
-
 function processTile(tile: DashboardTile, idx: number): DashboardTile {
   tile.id = tile.id || `tile-${Date.now()}-${idx + 1}`;
 
@@ -206,7 +202,7 @@ function processTile(tile: DashboardTile, idx: number): DashboardTile {
      return 'reports'; 
    };
 
-   const fixField = (f: string, func?: string) => {
+   const fixField = (f: string) => {
      if (f === 'total_reports' || f === 'jumlah_laporan' || f === 'total' || f === 'total_laporan' || f === 'jumlah' || f === 'jumlah_data' || f === 'monthly_compliments' || f === 'compliments_count' || f === 'total_compliments') return 'id';
      return f;
    };
@@ -226,7 +222,7 @@ function processTile(tile: DashboardTile, idx: number): DashboardTile {
      tile.query.measures.forEach(m => {
        m.table = fixTable(m.table);
        const originalField = m.field;
-       m.field = fixField(m.field, m.function);
+       m.field = fixField(m.field);
 
        if (m.field === 'id' && (originalField !== 'id' || m.function === 'SUM')) {
            m.function = 'COUNT';
@@ -350,7 +346,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
        console.error('AI API error:', error);
        return NextResponse.json(
-        { error: 'Gagal menghubungi AI. Try again later.' },
+        { error: 'Failed to reach AI. Try again later.' },
         { status: 502 }
       );
     }

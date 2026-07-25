@@ -11,7 +11,7 @@ import {
   type ReportDocumentType,
 } from '@/lib/report-document-contract';
 
-export interface ReportDocumentBundle {
+interface ReportDocumentBundle {
   id: string;
   report_type: ReportDocumentType;
   report_id: string;

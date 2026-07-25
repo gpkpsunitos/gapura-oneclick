@@ -18,7 +18,7 @@ export function useCardYear(reports: Report[]) {
   }, [reports]);
   const latest = availableYears[availableYears.length - 1] ?? new Date().getFullYear();
   const [selected, setSelected] = useState<number | null>(null);
-  const year = selected ?? latest;
+  const year = selected != null && availableYears.includes(selected) ? selected : latest;
   const filtered = useMemo(
     () => reports.filter((r) => yearOf(r) === year),
     [reports, year]

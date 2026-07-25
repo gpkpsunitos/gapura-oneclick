@@ -26,6 +26,6 @@ function legacyLinksToMaterialLinks(doc: LegacyLinkFields): MaterialLink[] {
 // ponytail: material_links is the source of truth going forward; the 4 fixed
 // columns only feed entries created before that column existed.
 export function resolveMaterialLinks(doc: DivisionDocument | LegacyLinkFields & { material_links?: MaterialLink[] | null }): MaterialLink[] {
-    if (doc.material_links && doc.material_links.length > 0) return doc.material_links;
+    if (Array.isArray(doc.material_links)) return doc.material_links;
     return legacyLinksToMaterialLinks(doc);
 }

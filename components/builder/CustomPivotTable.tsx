@@ -23,7 +23,6 @@ interface CustomPivotTableProps {
 export function CustomPivotTable({
   result,
   title,
-  viewMode = 'values',
   normalization = 'none',
   compact = false
 }: CustomPivotTableProps) {

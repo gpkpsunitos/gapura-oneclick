@@ -3,9 +3,9 @@ import 'server-only';
 import { randomUUID } from 'crypto';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-export type EvidenceMode = 'public' | 'internal';
+type EvidenceMode = 'public' | 'internal';
 
-export interface EvidenceActorInput {
+interface EvidenceActorInput {
   mode: EvidenceMode;
   userId?: string | null;
   reporterEmail?: string | null;
@@ -13,7 +13,7 @@ export interface EvidenceActorInput {
   quickAccessSessionId?: string | null;
 }
 
-export interface RecordEvidenceUploadInput extends EvidenceActorInput {
+interface RecordEvidenceUploadInput extends EvidenceActorInput {
   submissionId?: string | null;
   googleDriveFileId: string;
   googleDriveFolderId: string;
@@ -29,7 +29,7 @@ export interface RecordEvidenceUploadInput extends EvidenceActorInput {
   reportId?: string | null;
 }
 
-export interface EvidenceValidationInput {
+interface EvidenceValidationInput {
   evidenceFileIds?: unknown;
   evidenceUrls?: unknown;
   submissionId?: string | null;

@@ -16,7 +16,9 @@ export async function GET(
   try {
     const resolved = await params;
     const reportType = resolved.reportType.toUpperCase();
-    const reportId = decodeURIComponent(resolved.reportId);
+    // Next.js already URL-decodes dynamic route segments; decoding again would
+    // throw on malformed percent-encoding and turn a client error into a 500.
+    const reportId = resolved.reportId;
     const format = resolved.format.toLowerCase();
     if (!isReportDocumentType(reportType) || !isReportDocumentFormat(format)) {
       return NextResponse.json({ error: 'Invalid report document request' }, { status: 400 });
@@ -26,6 +28,9 @@ export async function GET(
     if (access.ok === false) return NextResponse.json({ error: access.error }, { status: access.status });
 
     const bundle = await getReportDocumentBundle(reportType, reportId);
+    if (!bundle && reportType !== 'IRREGULARITY') {
+      return NextResponse.json({ error: 'Report document not found' }, { status: 404 });
+    }
     const file = bundle
       ? await downloadReportDocument(bundle, format)
       : await generateIrregularityReportFallback(access.report, reportId, format);

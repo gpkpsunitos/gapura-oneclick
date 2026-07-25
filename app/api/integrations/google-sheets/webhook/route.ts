@@ -88,7 +88,23 @@ export async function POST(request: NextRequest) {
 
     after(async () => {
       try {
-        await SyncService.syncReportsFromSheets('google-sheets-webhook');
+        // A normal Apps Script edit notification always carries sheetName +
+        // rowNumber — use them to sync just that row instead of a full pull
+        // plus the whole push-back-to-sheets backlog on every single edit.
+        // Falls back to a full sync only when a caller sends an unscoped
+        // ping (no row info) — the periodic full sync (login/cron) remains
+        // the safety net for deletions and reconciling anything missed.
+        if (sheetName && Number.isFinite(rowNumber) && rowNumber > 0) {
+          const result = await SyncService.syncSingleRowFromSheets(sheetName, rowNumber);
+          if (!result.success) {
+            console.warn(
+              `[GOOGLE_SHEETS_WEBHOOK] Scoped sync failed for ${sheetName}!row_${rowNumber}, leaving it for the next full sync:`,
+              result.error
+            );
+          }
+        } else {
+          await SyncService.syncReportsFromSheets('google-sheets-webhook');
+        }
       } catch (error) {
         console.error('[GOOGLE_SHEETS_WEBHOOK] Background sync failed:', error);
       }

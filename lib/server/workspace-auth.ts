@@ -3,9 +3,8 @@ import 'server-only';
 
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
-import { supabaseAdmin } from '@/lib/supabase-admin';
 
-export interface WorkspaceUser {
+interface WorkspaceUser {
 
     id: string;
 
@@ -24,7 +23,18 @@ export interface WorkspaceUser {
     station_name?: string | null;
 }
 
-export const BRANCH_ROLES = ['MANAGER_CABANG', 'STAFF_CABANG', 'CABANG', 'EMPLOYEE'] as const;
+const BRANCH_ROLES = ['MANAGER_CABANG', 'STAFF_CABANG', 'CABANG', 'EMPLOYEE'] as const;
+
+const SHARED_DOCUMENT_MANAGER_ROLES = [
+    'SUPER_ADMIN',
+    'ANALYST',
+    'DIVISI_HC',
+    'DIVISI_HT',
+    'DIVISI_OCS',
+    'DIVISI_OS',
+    'DIVISI_OP',
+    'DIVISI_ESKALASI',
+] as const;
 
 export function normalizeRole(role: string | null | undefined): string {
     return String(role || '').trim().toUpperCase();
@@ -34,16 +44,15 @@ export function isBranchRole(role: string | null | undefined): boolean {
     return BRANCH_ROLES.some((item) => item === normalizeRole(role));
 }
 
-export function isBranchManager(role: string | null | undefined): boolean {
-    return normalizeRole(role) === 'MANAGER_CABANG';
-}
-
 export function canManageDivisionDocuments(role: string | null | undefined, division: 'HC' | 'HT' | 'ANALYST'): boolean {
     const normalized = normalizeRole(role);
     if (normalized === 'SUPER_ADMIN' || normalized === 'ANALYST') return true;
-    // Circulars & Materials (division='ANALYST') is shared across every non-branch
-    // role that can reach /dashboard/eskalasi/documents, not just analysts.
-    if (division === 'ANALYST') return Boolean(normalized) && !isBranchRole(normalized);
+    // Circulars & Materials (division='ANALYST') is shared across the central
+    // roles that can reach /dashboard/eskalasi/documents, not just analysts.
+    // Explicit allowlist so new/unrecognized roles require deliberate inclusion.
+    if (division === 'ANALYST') {
+        return SHARED_DOCUMENT_MANAGER_ROLES.some((item) => item === normalized);
+    }
     return normalized === `DIVISI_${division}` || normalized === `PARTNER_${division}`;
 }
 
@@ -88,53 +97,19 @@ export async function getWorkspaceUser(): Promise<WorkspaceUser | null> {
     const token = cookieStore.get('session')?.value;
     if (!token) return null;
 
+    // verifySession() already resolves role/division/station via a DB-verified
+    // join (or the trusted header proxy.ts forwards) — no separate query needed.
     const payload = await verifySession(token);
     if (!payload) return null;
 
-    const { data: userData, error } = await supabaseAdmin
-        .from('users')
-        .select(`
-            id,
-            email,
-            role,
-            division,
-            full_name,
-            station_id,
-            stations:station_id (
-                id,
-                code,
-                name
-            )
-        `)
-        .eq('id', payload.id)
-        .single();
-
-    if (error || !userData) {
-        return {
-            id: String(payload.id),
-            email: String(payload.email || ''),
-            role: normalizeRole(String(payload.role || '')),
-            division: payload.division || null,
-            full_name: payload.full_name || null,
-            station_id: null,
-            station_code: null,
-            station_name: null,
-        };
-    }
-
-    const stationRelation = (userData as { stations?: { id: string; code: string; name: string } | Array<{ id: string; code: string; name: string }> | null }).stations;
-    const station = Array.isArray(stationRelation)
-        ? stationRelation[0]
-        : stationRelation;
-
     return {
-        id: String(userData.id),
-        email: String(userData.email || ''),
-        role: normalizeRole(String(userData.role || payload.role || '')),
-        division: userData.division || payload.division || null,
-        full_name: userData.full_name || payload.full_name || null,
-        station_id: userData.station_id || null,
-        station_code: station?.code || null,
-        station_name: station?.name || null,
+        id: String(payload.id),
+        email: String(payload.email || ''),
+        role: normalizeRole(String(payload.role || '')),
+        division: payload.division || null,
+        full_name: payload.full_name || null,
+        station_id: payload.station_id || null,
+        station_code: payload.station_code || null,
+        station_name: payload.station_name || null,
     };
 }

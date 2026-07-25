@@ -5,11 +5,11 @@ import {
   PWA_QUEUE_STORE,
 } from "@/lib/pwa/constants";
 
-export type OfflineQueueStatus = "queued" | "syncing" | "synced" | "failed";
+type OfflineQueueStatus = "queued" | "syncing" | "synced" | "failed";
 
-export type OfflineQueueKind = "internal-report" | "public-report";
+type OfflineQueueKind = "internal-report" | "public-report";
 
-export interface OfflineAttachment {
+interface OfflineAttachment {
 
   id: string;
 
@@ -24,7 +24,7 @@ export interface OfflineAttachment {
   blob: Blob;
 }
 
-export interface OfflineQueueItem {
+interface OfflineQueueItem {
 
   id: string;
 
@@ -55,7 +55,7 @@ export interface OfflineQueueItem {
   responseData?: Record<string, unknown> | null;
 }
 
-export interface OfflineQueueSummary {
+interface OfflineQueueSummary {
 
   queued: number;
 
@@ -83,7 +83,7 @@ export interface EnqueueOfflineReportInput {
   attachments: OfflineAttachment[];
 }
 
-export interface ProcessOfflineQueueResult {
+interface ProcessOfflineQueueResult {
 
   processed: number;
 
@@ -195,7 +195,7 @@ export function toOfflineAttachments(files: File[]) {
   return files.map(buildAttachmentDescriptor);
 }
 
-export async function listOfflineQueueItems() {
+async function listOfflineQueueItems() {
   const { db, store } = await getStore("readonly");
   try {
     const items = await requestToPromise(store.getAll());
@@ -267,17 +267,7 @@ async function deleteOfflineQueueItem(id: string) {
   }
 }
 
-export async function clearOfflineQueue() {
-  const { db, transaction, store } = await getStore("readwrite");
-  try {
-    store.clear();
-    await txDone(transaction);
-  } finally {
-    db.close();
-  }
-}
-
-export async function cleanupOfflineQueue() {
+async function cleanupOfflineQueue() {
   const items = await listOfflineQueueItems();
   const expiry = Date.now() - SYNCED_RETENTION_MS;
 

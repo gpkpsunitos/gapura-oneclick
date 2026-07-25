@@ -2,7 +2,6 @@
 
 import { Report } from '@/types';
 import {
-  normalizeReportCategory,
   resolveReportAirline,
   resolveReportBranch,
   resolveReportCategory,
@@ -22,11 +21,6 @@ function isValidRootCause(value: string | undefined | null): boolean {
   if (!value) return false;
   const normalized = String(value).trim().toLowerCase();
   return !INVALID_CAUSE_VALUES.includes(normalized);
-}
-
-function normalizeCategory(category: string | undefined): string | null {
-  const normalized = normalizeReportCategory(category);
-  return normalized ? String(normalized) : null;
 }
 
 function getCategory(report: Report): string | null {
@@ -96,10 +90,6 @@ interface BaseFilters {
   dateFrom?: string;
   dateTo?: string;
 }
-
-const reportsCache: Record<string, { data: Report[], ts: number }> = {};
-const inflightRequests: Record<string, Promise<Report[]>> = {};
-const CACHE_DURATION = 1000 * 60 * 5;
 
 const CORE_FIELDS = [
   'id', 'date_of_event', 'created_at', 'incident_date', 'hub', 'branch', 'reporting_branch', 'station_code',

@@ -318,7 +318,12 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
     return () => {
       controller.abort();
     };
-  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo, focusedBranch, focusedArea, isFocused]);
+    // filters is destructured to primitive fields so this effect doesn't
+    // re-fire on every parent re-render when filters gets a new object
+    // identity but the same values. All fields the fetch calls actually
+    // read are listed above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.sourceSheet, filters.dateFrom, filters.dateTo, focusedBranch, focusedArea, isFocused]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -360,7 +365,12 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
 
     loadDeferredData();
     return () => controller.abort();
-  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo, focusedBranch, focusedArea]);
+    // filters is destructured to primitive fields so this effect doesn't
+    // re-fire on every parent re-render when filters gets a new object
+    // identity but the same values. All fields the fetch calls actually
+    // read are listed above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.sourceSheet, filters.dateFrom, filters.dateTo, focusedBranch, focusedArea]);
 
   if (loading) return <ReportLoading label="Loading area report…" />;
   if (error) return <ReportError message={error} onRetry={() => window.location.reload()} />;

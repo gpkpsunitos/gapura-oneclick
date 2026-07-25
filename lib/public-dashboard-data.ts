@@ -53,13 +53,13 @@ interface LegacyStatsPayload {
   trendData: { date: string; count: number }[];
 }
 
-export interface PublicDashboardChartResult {
+interface PublicDashboardChartResult {
   type: 'legacy' | 'query';
   stats?: LegacyStatsPayload;
   queryResult?: QueryResult;
 }
 
-export interface PublicDashboardPagePayload {
+interface PublicDashboardPagePayload {
   dashboard: DashboardRow;
   chartResults: Record<string, PublicDashboardChartResult>;
   investigativeResult?: QueryResult;
@@ -316,25 +316,30 @@ export async function getPublicDashboardPageData(options: {
 
   const investigativeTask = investigativeCacheKey
     ? (async () => {
-        const cached = await readDashboardSnapshot<QueryResult>(investigativeCacheKey, syncVersion);
-        if (cached?.payload) {
-          investigativeResult = cached.payload;
-          return;
+        try {
+          const cached = await readDashboardSnapshot<QueryResult>(investigativeCacheKey, syncVersion);
+          if (cached?.payload) {
+            investigativeResult = cached.payload;
+            return;
+          }
+          const reports = await loadReportsOnce(reportsRef);
+          investigativeResult = processQuery(
+            applyDashboardScopeToQuery(buildInvestigativeQuery(), { filters, dateFrom, dateTo, activePage: pageIndex }),
+            reports,
+          );
+          await writeDashboardSnapshot({
+            cacheKey: investigativeCacheKey,
+            scopeKey,
+            dashboardSlug: slug,
+            tileId: null,
+            payload: investigativeResult,
+            syncVersion,
+            ttlSeconds: 300,
+          });
+        } catch (investigativeError) {
+          console.error(`[Dashboard] Error processing investigative query for "${slug}":`, investigativeError);
+          investigativeResult = { columns: [], rows: [], rowCount: 0, executionTimeMs: 0 };
         }
-        const reports = await loadReportsOnce(reportsRef);
-        investigativeResult = processQuery(
-          applyDashboardScopeToQuery(buildInvestigativeQuery(), { filters, dateFrom, dateTo, activePage: pageIndex }),
-          reports,
-        );
-        await writeDashboardSnapshot({
-          cacheKey: investigativeCacheKey,
-          scopeKey,
-          dashboardSlug: slug,
-          tileId: null,
-          payload: investigativeResult,
-          syncVersion,
-          ttlSeconds: 300,
-        });
       })()
     : Promise.resolve();
 

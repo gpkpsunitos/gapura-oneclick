@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
 import { X, Image as ImageIcon, ChevronLeft, ChevronRight, ExternalLink, FileText } from 'lucide-react';
 import { useState } from 'react';
+import NextImage from 'next/image';
 import { Button } from '@/components/ui/button';
 import { getEvidencePreviewUrl } from '@/lib/evidence-url';
 
@@ -69,27 +70,29 @@ export function EvidenceViewModal({ isOpen, onClose, evidenceUrls }: EvidenceVie
               <div className="relative w-full h-full flex flex-col items-center justify-center group">
                 {}
                 <div className="relative w-full h-[50vh] sm:h-[60vh] flex items-center justify-center bg-black/5 rounded-xl sm:rounded-2xl overflow-hidden">
-                  {previewFailed ? (
+                  {previewFailed || !previewUrl ? (
                     <div className="flex flex-col items-center gap-4 px-6 text-center text-gray-600">
                       <FileText className="h-14 w-14 text-gray-300" />
                       <p className="text-sm font-medium">Preview gambar tidak tersedia untuk file ini.</p>
-                      <a
-                        href={previewUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                      >
-                        <ExternalLink className="h-4 w-4" />
-                        Buka file
-                      </a>
+                      {previewUrl && (
+                        <a
+                          href={previewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                          Buka file
+                        </a>
+                      )}
                     </div>
                   ) : (
-                    <img
+                    <NextImage
                       src={previewUrl}
                       alt={`Evidence ${safeCurrentIndex + 1}`}
-                      className="max-w-full max-h-full object-contain"
-                      loading="lazy"
-                      decoding="async"
+                      fill
+                      sizes="(max-width: 640px) 100vw, 80vw"
+                      className="object-contain"
                       onError={() => setFailedPreviews((prev) => ({ ...prev, [currentUrl]: true }))}
                     />
                   )}

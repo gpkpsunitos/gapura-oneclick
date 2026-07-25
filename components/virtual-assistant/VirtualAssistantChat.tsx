@@ -58,8 +58,20 @@ function cleanSourceName(filename: string): string {
     return filename.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim();
 }
 
-const STORAGE_KEY = (email: string) => `va_chat_v1_${email}`;
+// One-way, non-reversible hash — the storage key must not embed the plaintext
+// email so a shared/inspected browser profile doesn't leak it.
+function hashEmail(email: string): string {
+    let hash = 0;
+    for (let i = 0; i < email.length; i++) {
+        hash = (Math.imul(31, hash) + email.charCodeAt(i)) | 0;
+    }
+    return Math.abs(hash).toString(36);
+}
+const STORAGE_KEY = (email: string) => `va_chat_v2_${hashEmail(email)}`;
 const MAX_STORED_MESSAGES = 40;
+const STORAGE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+type StoredChat = { messages: ChatMessage[]; expiresAt: number };
 
 function parseSseChunk(buffer: string): { events: StreamEvent[]; rest: string } {
     const parts = buffer.split('\n\n');
@@ -138,23 +150,37 @@ export function VirtualAssistantChat({
     const [waitingSeconds, setWaitingSeconds] = useState(0);
     const abortRef = useRef<AbortController | null>(null);
     const isSendingRef = useRef(false);
+    const skipNextPersistRef = useRef(true);
     const endRef = useRef<HTMLDivElement | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
     useEffect(() => {
+        skipNextPersistRef.current = true;
         try {
             const raw = localStorage.getItem(STORAGE_KEY(userEmail));
             if (raw) {
-                const stored = JSON.parse(raw) as ChatMessage[];
-                const clean = stored.filter((m) => m.status !== 'streaming');
-                if (clean.length > 0) setMessages([INITIAL_MESSAGE, ...clean]);
+                const stored = JSON.parse(raw) as StoredChat;
+                if (stored.expiresAt && stored.expiresAt > Date.now()) {
+                    const clean = stored.messages.filter((m) => m.status !== 'streaming');
+                    setMessages(clean.length > 0 ? [INITIAL_MESSAGE, ...clean] : [INITIAL_MESSAGE]);
+                } else {
+                    localStorage.removeItem(STORAGE_KEY(userEmail));
+                    setMessages([INITIAL_MESSAGE]);
+                }
+            } else {
+                setMessages([INITIAL_MESSAGE]);
             }
         } catch {
+            setMessages([INITIAL_MESSAGE]);
             // ignore parse/quota errors
         }
     }, [userEmail]);
 
     useEffect(() => {
+        if (skipNextPersistRef.current) {
+            skipNextPersistRef.current = false;
+            return;
+        }
         if (messages.some((m) => m.status === 'streaming')) return;
         const toStore = messages
             .filter((m) => m.id !== INITIAL_MESSAGE.id)
@@ -163,7 +189,8 @@ export function VirtualAssistantChat({
             if (toStore.length === 0) {
                 localStorage.removeItem(STORAGE_KEY(userEmail));
             } else {
-                localStorage.setItem(STORAGE_KEY(userEmail), JSON.stringify(toStore));
+                const record: StoredChat = { messages: toStore, expiresAt: Date.now() + STORAGE_TTL_MS };
+                localStorage.setItem(STORAGE_KEY(userEmail), JSON.stringify(record));
             }
         } catch {
             // ignore quota errors

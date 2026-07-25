@@ -154,72 +154,6 @@ const PROP_TO_HEADER: Partial<Record<keyof Report, string[]>> = {
 
 };
 
-const WRITE_MAPPING: Record<string, string> = {
-  date_of_event: 'Date of Event',
-  jenis_maskapai: 'Jenis Maskapai',
-  airline: 'Airlines',
-  flight_number: 'Flight Number',
-  branch: 'Branch',
-  reporting_branch: 'Reporting Branch',
-  route: 'Route',
-  main_category: 'Report Category',
-  irregularity_complain_category: 'Irregularity/Complain Category',
-  description: 'Report',
-  root_caused: 'Root Caused',
-  action_taken: 'Action Taken',
-  kps_remarks: 'Final Remarks',
-  remarks_by: 'Remarks By',
-  gapura_kps_action_taken: 'Gapura KPS Action Taken',
-  preventive_action: 'Preventive Action',
-  reporter_name: 'Report By',
-  reporter_email: 'Reporter Email',
-
-  evidence_urls: 'Upload Irregularity Photo',
-  evidence_url: 'Upload Irregularity Photo',
-  evidence_file_ids: 'Evidence File IDs',
-  evidence_submission_id: 'Evidence Submission ID',
-  video_urls: 'Upload Irregularity Photo',
-  video_url: 'Upload Irregularity Photo',
-  area: 'Area',
-  terminal_area_category: 'Terminal Area Category',
-  apron_area_category: 'Apron Area Category',
-  general_category: 'General Category',
-  status: 'Status',
-  hub: 'Hub',
-  week_in_month: 'Per Week in Month',
-  delay_code: 'Delay Code',
-  delay_duration: 'Delay Duration',
-  case_classification: 'Case Classification',
-  identification_of_root: 'Identification of Root',
-  accident_incident: 'Accident / Incident',
-  issue_caused: 'Issue Caused',
-  breakdown_caused: 'Breakdown Caused',
-  remarks_case: 'Remarks Case',
-  gse_available_requirement: 'GSE Available & Requirement',
-  gse_requirement: 'GSE Requirement',
-  gse_motorized: 'GSE MOTORIZED',
-  gse_non_motorized: 'GSE NON - MOTORIZED',
-  category_case_gse: 'Category Case GSE',
-  case_category: 'Case Category',
-  service_business_type: 'Service Business Type',
-  kode_cabang: 'KODE CABANG (VLOOKUP)',
-  kode_hub: 'KODE HUB (VLOOKUP)',
-  maskapai_lookup: 'MASKAPAI (VLOOKUP)',
-  lokal_mpa_lookup: 'Lokal / MPA (VLOOKUP)',
-
-  primary_tag: 'Primary Tag',
-  sub_category_note: 'Sub Category Note',
-  esklasi_divisi: 'ESKLASI DIVISI',
-  target_division: 'ESKLASI DIVISI',
-
-  user_id: 'User ID',
-  created_at: 'Created At',
-  updated_at: 'Updated At',
-  specific_location: 'Location of Incident',
-  severity: 'Severity Level',
-  priority: 'Priority',
-};
-
 const CACHE_KEY_ALL_REPORTS = 'reports:all:v3';
 const CACHE_TTL = 1000 * 60 * 5;
 const GSE_KEYWORDS = [
@@ -243,7 +177,7 @@ const GSE_KEYWORDS = [
   'uld',
 ];
 
-export type SupportedDivision = 'OP' | 'OS' | 'HT' | 'HC';
+type SupportedDivision = 'OP' | 'OS' | 'HT' | 'HC';
 
 export interface ReportQueryFilters {
   dateFrom?: string;
@@ -259,7 +193,7 @@ export interface ReportQueryFilters {
   status?: string;
 }
 
-export const REPORT_SYNC_FIELDS = [
+const REPORT_SYNC_FIELDS = [
   'id',
   'user_id',
   'title',
@@ -338,15 +272,15 @@ export const REPORT_SYNC_FIELDS = [
   'target_division',
 ] as const;
 
-export type ReportSyncField = typeof REPORT_SYNC_FIELDS[number];
+type ReportSyncField = typeof REPORT_SYNC_FIELDS[number];
 
 /**
  * Any selectable column on a Report. Projections/fetches may read columns that
  * aren't part of the (narrower) sheet-sync field set, so they use this type.
  */
-export type ReportColumn = keyof Report;
+type ReportColumn = keyof Report;
 
-export const REPORT_PROJECTIONS = {
+const REPORT_PROJECTIONS = {
   list: [
     'id',
     'sheet_id',
@@ -511,7 +445,7 @@ export const REPORT_PROJECTIONS = {
   ],
 } as const satisfies Record<string, readonly ReportColumn[]>;
 
-export type ReportProjectionName = keyof typeof REPORT_PROJECTIONS;
+type ReportProjectionName = keyof typeof REPORT_PROJECTIONS;
 export type ProjectedReport<P extends ReportProjectionName> = Pick<
   Report,
   'id' | typeof REPORT_PROJECTIONS[P][number]
@@ -519,7 +453,7 @@ export type ProjectedReport<P extends ReportProjectionName> = Pick<
 
 const REPORT_SYNC_FIELD_SET = new Set<string>(REPORT_SYNC_FIELDS);
 
-export function isReportSyncField(value: string): value is ReportSyncField {
+function isReportSyncField(value: string): value is ReportSyncField {
   return REPORT_SYNC_FIELD_SET.has(value);
 }
 
@@ -620,10 +554,6 @@ export function normalizeDivisionCode(value?: string | null): SupportedDivision 
   return match?.[1] as SupportedDivision | undefined;
 }
 
-export function resolveReportEscalationDivision(report: Partial<Report>): SupportedDivision | undefined {
-  return normalizeDivisionCode(report.esklasi_divisi || report.target_division);
-}
-
 function syncEscalationDivisionAliases<T extends Partial<Report>>(report: T): T {
   const rawDivision = [report.esklasi_divisi, report.target_division]
     .find((value) => typeof value === 'string' && value.trim());
@@ -656,7 +586,7 @@ function matchesEsklasiRegex(report: Partial<Report>, pattern?: string): boolean
   }
 }
 
-export function isGseRelatedReport(report: Partial<Report>): boolean {
+function isGseRelatedReport(report: Partial<Report>): boolean {
   if (report.is_gse_related) return true;
   if (report.gse_number || report.gse_name) return true;
   if (report.gse_available_requirement || report.gse_requirement || report.gse_motorized || report.gse_non_motorized || report.category_case_gse) return true;
@@ -714,7 +644,7 @@ function firstMeaningfulSheetValue(...values: unknown[]): string | undefined {
   return undefined;
 }
 
-export class ReportsService {
+class ReportsService {
 
   private hubMap: Record<string, string> = {};
   private hubMapTs = 0;
@@ -1123,7 +1053,7 @@ export class ReportsService {
       // because the create route populated a synonym field. ponytail: fixes
       // Report Category / Severity Level / Airlines mapping in one place.
       const candidateProps = Object.entries(PROP_TO_HEADER)
-        .filter(([_, names]) => (names as string[]).some(name => name.toLowerCase() === normalizedHeader))
+        .filter(([, names]) => (names as string[]).some(name => name.toLowerCase() === normalizedHeader))
         .map(([prop]) => prop as keyof Report);
 
       for (const prop of candidateProps) {
@@ -1369,6 +1299,29 @@ export class ReportsService {
 
   public async fetchSheetsReports(): Promise<Report[]> {
     return this.fetchGoogleSheetsReports();
+  }
+
+  // Scoped counterpart to fetchGoogleSheetsReports() for the edit webhook: one
+  // Sheets read for the row (getHeaderRow() is hour-cached, so a warm sheet
+  // costs nothing extra) instead of pulling every row on every edit.
+  public async fetchSingleReportFromSheet(sheetName: string, rowNumber: number): Promise<Report | null> {
+    if (!REPORT_SHEETS.includes(sheetName)) return null;
+    if (!SPREADSHEET_ID) throw new Error('GOOGLE_SHEET_ID is not defined');
+    if (!Number.isFinite(rowNumber) || rowNumber < 2) return null;
+
+    const sheets = await this.getSheets();
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: `${sheetName}!${rowNumber}:${rowNumber}`,
+    });
+
+    const row = response.data.values?.[0];
+    const isBlankRow = !row || row.every((cell) => cell === undefined || cell === null || String(cell).trim() === '');
+    if (isBlankRow) return null;
+
+    const headers = await this.getHeaderRow(sheetName);
+    const columnMapping = this.buildColumnMapping(headers);
+    return this.mapRowToReport(row, columnMapping, sheetName, rowNumber - 2);
   }
 
   private async fetchGoogleSheetsReports(): Promise<Report[]> {
@@ -1712,7 +1665,7 @@ export class ReportsService {
     return this.assignSheetIdentity(newReport, targetSheet, parseInt(updatedRowNumber, 10));
   }
 
-  async getReportById(id: string): Promise<Report | null> {
+  async getReportById(id: string, options: { skipLiveFetch?: boolean } = {}): Promise<Report | null> {
     const safeId = `"${id.replace(/"/g, '""')}"`;
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
@@ -1729,7 +1682,7 @@ export class ReportsService {
       const dbRow = data[0];
 
       const originalId = dbRow.sheet_id || dbRow.original_id;
-      if (originalId && originalId.includes('!row_')) {
+      if (!options.skipLiveFetch && originalId && originalId.includes('!row_')) {
           try {
               const liveData = await this.fetchLiveFromSheet(originalId);
               if (liveData) {
@@ -1812,11 +1765,9 @@ export class ReportsService {
     const rows = response.data.values;
     if (!rows || rows.length === 0) return null;
 
-    const headerResponse = await sheets.spreadsheets.values.get({
-        spreadsheetId: SPREADSHEET_ID,
-        range: `${info.sheetName}!1:1`,
-    });
-    const headers = headerResponse.data.values?.[0] || [];
+    // getHeaderRow() is cached for an hour — this used to re-fetch the header
+    // row live on every call, doubling this method's Sheets API read cost.
+    const headers = await this.getHeaderRow(info.sheetName);
 
     return this.mapLiveRowToReport(rows[0], headers);
   }
@@ -1872,7 +1823,7 @@ export class ReportsService {
     return report?.original_id || null;
   }
 
-  async updateReport(id: string, updates: Partial<Report>): Promise<Report | null> {
+  async updateReport(id: string, updates: Partial<Report>, options: { skipLiveFetch?: boolean } = {}): Promise<Report | null> {
     const originalId = await this.resolveIdToOriginal(id);
     if (!originalId) {
         console.error('Invalid ID format for update:', id);
@@ -1925,7 +1876,14 @@ export class ReportsService {
     }
 
     if (['evidence_urls', 'evidence_url', 'video_urls', 'video_url'].some(k => k in effectiveUpdates)) {
-        const currentReport = await this.getReportById(id);
+        // Callers pushing a full DB row (the sync push-back loop) always have
+        // these keys present, even when null — so without skipLiveFetch this
+        // fires a live Sheets read on every dirty row regardless of whether
+        // evidence actually changed. Callers pushing genuine partial edits
+        // (user-facing PATCH routes) still default to skipLiveFetch: false,
+        // keeping the live merge that guards against clobbering a URL someone
+        // just pasted directly into the sheet.
+        const currentReport = await this.getReportById(id, options);
         if (currentReport) {
             const existingUrls = [
                 ...(Array.isArray(currentReport.evidence_urls) ? currentReport.evidence_urls : []),
@@ -2005,7 +1963,12 @@ export class ReportsService {
     }
 
     this.invalidateCache();
-    const existing = await this.getReportById(id);
+    // We just wrote effectiveUpdates to the sheet ourselves, so there's nothing
+    // fresher to protect against by reading it live back — that round-trip was
+    // costing every caller (notably the up-to-50-row sync push-back loop) 2
+    // extra Google Sheets API reads per report for a return value most callers
+    // don't even use, and was blowing through the per-minute read quota.
+    const existing = await this.getReportById(id, { skipLiveFetch: true });
     if (existing) {
         return syncEscalationDivisionAliases({ ...existing, ...effectiveUpdates });
     }
@@ -2128,7 +2091,7 @@ export class ReportsService {
     const order = ['low', 'medium', 'high', 'urgent'];
     const result = order
       .map((s) => ({ severity: s, count: map.get(s) ?? 0 }))
-      .filter((x) => true);
+      .filter(() => true);
 
     return result
       .sort((a, b) => b.count - a.count)

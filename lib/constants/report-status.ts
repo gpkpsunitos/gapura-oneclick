@@ -123,8 +123,6 @@ export const SEVERITY_CONFIG = {
     'LOW': { label: 'LOW', color: 'oklch(0.55 0.14 160)', bg: 'oklch(0.55 0.14 160 / 0.12)', icon: Shield },
 };
 
-export const SEVERITY_LEVELS = ['TOP RISK', 'HIGH RISK', 'MEDIUM', 'LOW'] as const;
-
 export type SeverityLevel = keyof typeof SEVERITY_CONFIG;
 
 export function normalizeSeverityLevel(value: unknown): string {
@@ -154,45 +152,6 @@ export function calculateSlaDeadline(createdAt: Date | string, priority: ReportP
     const created = typeof createdAt === 'string' ? new Date(createdAt) : createdAt;
     const slaHours = PRIORITY_CONFIG[priority].slaHours;
     return new Date(created.getTime() + slaHours * 60 * 60 * 1000);
-}
-
-export function getSlaStatus(slaDeadline: Date | string | null): {
-
-    isBreached: boolean;
-
-    remainingMs: number;
-
-    remainingText: string;
-} {
-    if (!slaDeadline) {
-        return { isBreached: false, remainingMs: 0, remainingText: '-' };
-    }
-
-    const deadline = typeof slaDeadline === 'string' ? new Date(slaDeadline) : slaDeadline;
-    const now = new Date();
-    const remainingMs = deadline.getTime() - now.getTime();
-    const isBreached = remainingMs < 0;
-
-    const absMs = Math.abs(remainingMs);
-    const hours = Math.floor(absMs / (1000 * 60 * 60));
-    const days = Math.floor(hours / 24);
-    const remainingHours = hours % 24;
-
-    let remainingText: string;
-    if (days > 0) {
-        remainingText = `${days}d ${remainingHours}h`;
-    } else if (hours > 0) {
-        remainingText = `${hours}h`;
-    } else {
-        const minutes = Math.floor(absMs / (1000 * 60));
-        remainingText = `${minutes}m`;
-    }
-
-    return {
-        isBreached,
-        remainingMs,
-        remainingText: isBreached ? `Overdue ${remainingText}` : remainingText,
-    };
 }
 
 export function normalizeStatus(status: unknown): ReportStatus {

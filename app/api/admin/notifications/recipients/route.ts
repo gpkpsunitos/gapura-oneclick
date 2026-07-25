@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     const payload = await getSessionPayload();
 
     if (!payload) {
-        return NextResponse.json([]);
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const role = String(payload.role || '').trim().toUpperCase();

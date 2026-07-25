@@ -63,10 +63,6 @@ interface BaseFilters {
   dateTo?: string;
 }
 
-const reportsCache: Record<string, { data: Report[], ts: number }> = {};
-const inflightRequests: Record<string, Promise<Report[]>> = {};
-const CACHE_DURATION = 1000 * 60 * 5;
-
 const CORE_FIELDS = [
   'id', 'date_of_event', 'created_at', 'hub', 'branch', 'reporting_branch', 'station_code',
   'area', 'terminal_area_category', 'apron_area_category', 'general_category',
@@ -359,6 +355,7 @@ export async function fetchAirlineByHub(filters: BaseFilters = {}): Promise<Airl
   });
 
   return Array.from(map.entries())
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     .map(([_, data]) => data)
     .sort((a, b) => b.count - a.count)
     .slice(0, 30);
@@ -384,9 +381,57 @@ export async function fetchAreaByHub(filters: BaseFilters = {}): Promise<AreaByH
   });
 
   return Array.from(map.entries())
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     .map(([_, data]) => data)
     .sort((a, b) => b.count - a.count)
     .slice(0, 30);
+}
+
+function escapeHtmlAttr(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function toSafeHttpUrl(candidate: string): string | null {
+  try {
+    const parsed = new URL(candidate);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? parsed.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildEvidenceLinkHtml(evidenceUrls: unknown): string {
+  if (!evidenceUrls) return '-';
+
+  const rawCandidates: string[] = Array.isArray(evidenceUrls)
+    ? evidenceUrls.map(String)
+    : typeof evidenceUrls === 'string'
+      ? (() => {
+          const trimmed = evidenceUrls.trim();
+          if (!trimmed) return [];
+          // A single URL can legitimately contain commas (query strings, path
+          // segments) — only split on delimiters when the whole value isn't
+          // already one valid URL by itself. Comma is deliberately excluded
+          // from the delimiter set once we do split.
+          if (toSafeHttpUrl(trimmed)) return [trimmed];
+          return trimmed.split(/[;\s]+/).filter(Boolean);
+        })()
+      : [];
+
+  const urls = rawCandidates
+    .map((candidate) => toSafeHttpUrl(candidate.trim()))
+    .filter((url): url is string => url !== null);
+
+  if (urls.length === 0) return '-';
+
+  return urls
+    .map((url, i) => `<a href="${escapeHtmlAttr(url)}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Evidence ${i + 1}</a>`)
+    .join(', ');
 }
 
 export async function fetchAllHubReports(filters: BaseFilters = {}): Promise<HubReportRecord[]> {
@@ -395,30 +440,7 @@ export async function fetchAllHubReports(filters: BaseFilters = {}): Promise<Hub
 
   return filtered.map(report => {
     const evidenceUrls = report.evidence_url || report.evidence_urls;
-    let evidenceLink = '-';
-    if (evidenceUrls) {
-      if (Array.isArray(evidenceUrls) && evidenceUrls.length > 0) {
-
-        const url = evidenceUrls[0];
-        evidenceLink = url;
-      } else if (typeof evidenceUrls === 'string') {
-        const trimmed = evidenceUrls.trim();
-
-        if (trimmed.includes(';') || trimmed.includes(',') || trimmed.includes(' ')) {
-          const urls = trimmed.split(/[;,\s]+/).filter(u => u.startsWith('http'));
-          if (urls.length > 0) {
-
-             evidenceLink = urls.map((url, i) => 
-               `<a href="${url}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline">Evidence ${i + 1}</a>`
-             ).join(', ');
-          } else if (trimmed.startsWith('http')) {
-            evidenceLink = trimmed;
-          }
-        } else if (trimmed.startsWith('http')) {
-          evidenceLink = trimmed;
-        }
-      }
-    }
+    const evidenceLink = buildEvidenceLinkHtml(evidenceUrls);
 
     return {
       Date: (report.date_of_event || report.created_at) ? new Date(report.date_of_event || report.created_at || '').toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '-',

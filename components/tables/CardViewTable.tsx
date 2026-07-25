@@ -3,7 +3,6 @@
 import { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
 
 export interface TableColumn<T> {
   key: string;
@@ -175,9 +174,9 @@ export function formatMobileDate(date: string | Date): string {
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7) return `${diffDays} hari lalu`;
+  if (diffDays < 7) return `${diffDays} days ago`;
 
-  return format(d, 'dd MMM', { locale: id });
+  return format(d, 'dd MMM');
 }
 
 export function truncateMobile(text: string, maxLength: number = 50): string {

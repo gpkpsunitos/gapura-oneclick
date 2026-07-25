@@ -3,9 +3,9 @@ import 'server-only';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-export const REPORTS_SYNC_SOURCE = 'reports';
+const REPORTS_SYNC_SOURCE = 'reports';
 
-export interface SyncStateRecord {
+interface SyncStateRecord {
 
   source: string;
 
@@ -53,11 +53,6 @@ export async function getSyncState(source = REPORTS_SYNC_SOURCE): Promise<SyncSt
   }
 
   return data as SyncStateRecord;
-}
-
-export async function getSyncVersion(source = REPORTS_SYNC_SOURCE): Promise<number> {
-  const state = await getSyncState(source);
-  return Number(state.sync_version || 0);
 }
 
 export async function acquireSyncLock(

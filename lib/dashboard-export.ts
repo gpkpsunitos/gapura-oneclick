@@ -134,10 +134,12 @@ export async function exportToXlsx(payload: ExportPayload): Promise<void> {
       const cr = payload.chartsData.get(tile.id);
       if (!cr) continue;
       const tileTitleRow = worksheet.addRow([tile.title]);
+      let tileCols = 1;
 
       if (cr.queryResult) {
         const cols = cr.queryResult.columns;
-        if (cols.length > maxCols) maxCols = cols.length;
+        tileCols = cols.length;
+        if (tileCols > maxCols) maxCols = tileCols;
         const rows = cr.queryResult.rows as Record<string, unknown>[];
         const tableColumns: AdvancedExcelColumn[] = cols.map((column) => {
           const values = rows.map((row) => row[column]).filter((value) => value !== null && value !== '');
@@ -166,7 +168,8 @@ export async function exportToXlsx(payload: ExportPayload): Promise<void> {
           emptyMessage: `No data available for ${tile.title}`,
         });
       } else if (cr.stats) {
-        if (3 > maxCols) maxCols = 3;
+        tileCols = 3;
+        if (tileCols > maxCols) maxCols = tileCols;
         addAdvancedExcelTable({
           workbook,
           worksheet,
@@ -182,7 +185,7 @@ export async function exportToXlsx(payload: ExportPayload): Promise<void> {
           emptyMessage: `No data available for ${tile.title}`,
         });
       }
-      styleExcelSectionHeader(worksheet, tileTitleRow.number, 1, maxCols, tile.title);
+      styleExcelSectionHeader(worksheet, tileTitleRow.number, 1, tileCols, tile.title);
       worksheet.addRow([]);
     }
 

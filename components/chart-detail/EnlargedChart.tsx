@@ -25,7 +25,6 @@ export function EnlargedChart({ tile, result, viewMode, normalization }: Enlarge
 
   const renderChart = () => {
     const isHorizontalBar = chartType === 'horizontal_bar';
-    const isPieOrDonut = chartType === 'pie' || chartType === 'donut';
     const isPivot = chartType === 'pivot' || chartType === 'table' || chartType === 'branch_area_grid';
 
     const containerStyle: React.CSSProperties = {

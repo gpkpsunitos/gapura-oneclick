@@ -41,7 +41,7 @@ export interface NavGroupConfig {
     items: NavItemConfig[];
 }
 
-export const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
+const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
 
     'ADMIN': [
         {
@@ -260,7 +260,7 @@ export const resolveNavGroups = (role: string, division?: string | null): NavGro
     return groups;
 };
 
-export const GET_LINKS_KEY = (role: string): string => {
+const GET_LINKS_KEY = (role: string): string => {
     const r = (role || '').toUpperCase();
 
     if (r.includes('SUPER') || r === 'ADMIN') return 'SUPER_ADMIN';

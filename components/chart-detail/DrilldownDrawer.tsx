@@ -80,6 +80,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
       if (statusUpdateSuccess) {
         setStatusUpdateSuccess(null);
         setShowStatusForm((previous) => ({ ...previous, [statusUpdateSuccess.rowKey]: false }));
+        setStatusForms((previous) => ({ ...previous, [statusUpdateSuccess.rowKey]: { ...previous[statusUpdateSuccess.rowKey], success: false } }));
         return;
       }
       onClose();
@@ -514,14 +515,14 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
 
                         <div className="mb-4 flex min-w-0 flex-col gap-1.5">
                           <span className={`flex w-full min-w-0 items-center whitespace-nowrap rounded-full border px-3 py-1.5 font-bold leading-none ${getCategoryChipTone(category)}`}>
-                            <span className="text-[clamp(10px,1.25vw,12px)]">{category}</span>
+                            <span className="min-w-0 truncate text-[clamp(10px,1.25vw,12px)]">{category}</span>
                           </span>
                           {areaCategoryItems.map((item) => {
                             const tone = getAreaChipTone(item.label);
                             return (
                               <span key={item.label} className={`flex w-full min-w-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 leading-none ${tone.wrap}`}>
                                 <span className={`shrink-0 text-[10px] font-black uppercase tracking-wide ${tone.label}`}>{item.label}</span>
-                                <span className={`min-w-0 text-[clamp(10px,1.25vw,12px)] font-bold ${tone.value}`}>{item.value}</span>
+                                <span className={`min-w-0 truncate text-[clamp(10px,1.25vw,12px)] font-bold ${tone.value}`}>{item.value}</span>
                               </span>
                             );
                           })}
@@ -630,7 +631,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                       <AlertTriangle size={32} />
                     </div>
                     <div className="text-slate-500 font-bold text-lg">No reports found</div>
-                    <div className="text-slate-400 text-sm mt-1">Segmen ini tidak memiliki data detail.</div>
+                    <div className="text-slate-400 text-sm mt-1">This segment has no detail data.</div>
                   </div>
                 )}
               </div>
@@ -643,6 +644,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
             onClose={() => {
               if (statusUpdateSuccess) {
                 setShowStatusForm((previous) => ({ ...previous, [statusUpdateSuccess.rowKey]: false }));
+                setStatusForms((previous) => ({ ...previous, [statusUpdateSuccess.rowKey]: { ...previous[statusUpdateSuccess.rowKey], success: false } }));
               }
               setStatusUpdateSuccess(null);
             }}

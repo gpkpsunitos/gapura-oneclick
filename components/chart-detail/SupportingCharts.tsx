@@ -17,9 +17,6 @@ import { MonthlyTrendChart } from './custom-charts/MonthlyTrendChart';
 import { CategoryDistributionChart } from './custom-charts/CategoryDistributionChart';
 import { AreaAnalysisChart } from './AreaAnalysisChart';
 import { CategoryByBranchChart } from './custom-charts/CategoryByBranchChart';
-import { ShieldAlert, Loader2, RefreshCcw, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
 export type CustomChartType = 
   | 'status_breakdown'
   | 'subcategory_detail'

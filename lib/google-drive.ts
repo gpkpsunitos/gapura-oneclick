@@ -54,7 +54,7 @@ function getLegacyDrive() {
 
 // ---- Shared result shape (unchanged) ---------------------------------------
 
-export interface UploadEvidenceToDriveResult {
+interface UploadEvidenceToDriveResult {
   fileId: string;        // now the Supabase Storage object path
   folderId: string;      // now the storage folder prefix
   webViewLink: string;   // public Supabase URL
@@ -86,7 +86,7 @@ export async function deleteDriveFile(idOrPath: string): Promise<void> {
 
 // ---- Uploads (fully Supabase Storage) --------------------------------------
 
-export interface UploadEvidenceToDriveInput {
+interface UploadEvidenceToDriveInput {
   buffer: Buffer;
   mimeType: string;
   originalName: string;
@@ -114,7 +114,7 @@ export async function uploadEvidenceToDrive(input: UploadEvidenceToDriveInput): 
   };
 }
 
-export interface UploadPerformanceLinkThumbnailInput {
+interface UploadPerformanceLinkThumbnailInput {
   buffer: Buffer;
   mimeType: string;
   originalName: string;
@@ -140,7 +140,7 @@ export async function uploadPerformanceLinkThumbnailToDrive(
   };
 }
 
-export interface UploadDivisionDocumentToDriveInput {
+interface UploadDivisionDocumentToDriveInput {
   buffer: Buffer;
   mimeType: string;
   originalName: string;
@@ -150,7 +150,7 @@ export interface UploadDivisionDocumentToDriveInput {
   userId: string;
 }
 
-export type UploadDivisionDocumentToDriveResult = UploadEvidenceToDriveResult;
+type UploadDivisionDocumentToDriveResult = UploadEvidenceToDriveResult;
 
 export async function uploadDivisionDocumentToDrive(
   input: UploadDivisionDocumentToDriveInput

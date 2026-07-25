@@ -161,9 +161,13 @@ export function PerformanceLinksManagementPage() {
     }, []);
 
     const copyLink = useCallback(async (link: PerformanceLink) => {
-        await navigator.clipboard.writeText(link.url);
-        setCopiedId(link.id);
-        setTimeout(() => setCopiedId((cur) => (cur === link.id ? null : cur)), 1500);
+        try {
+            await navigator.clipboard.writeText(link.url);
+            setCopiedId(link.id);
+            setTimeout(() => setCopiedId((cur) => (cur === link.id ? null : cur)), 1500);
+        } catch {
+            setError('Unable to copy link to clipboard');
+        }
     }, []);
 
     const handleDragEnd = useCallback(() => {
@@ -513,7 +517,7 @@ export function PerformanceLinksManagementPage() {
                                         ) : null}
                                     </div>
                                     <p className="text-xs font-normal text-slate-400">
-                                        Shown as the card cover on the eskalasi monitoring page. If left empty, an abstract gradient is used instead.
+                                        Shown as the card cover on the escalation monitoring page. If left empty, an abstract gradient is used instead.
                                     </p>
                                 </div>
                             </div>

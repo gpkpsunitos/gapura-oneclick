@@ -98,7 +98,7 @@ async function main() {
         });
         
         const duplicated = Object.entries(sheetIdCounts)
-          .filter(([id, count]) => count > 1)
+          .filter(([, count]) => count > 1)
           .map(([id, count]) => `${id} (${count}x)`);
         
         console.error('   Duplicated sheet_ids:', duplicated.slice(0, 5).join(', '));

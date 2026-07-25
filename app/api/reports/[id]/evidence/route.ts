@@ -69,12 +69,14 @@ export async function POST(
     let uploadBuffer: Buffer;
     let contentType = file.type;
 
+    let compressed = false;
     if (isImage) {
       try {
 
         const result = await compressToExactSize(arrayBuffer);
         uploadBuffer = result.buffer;
         contentType = 'image/webp';
+        compressed = true;
       } catch (error) {
         console.error('[EVIDENCE UPLOAD] Compression failed, using original:', error);
         uploadBuffer = Buffer.from(arrayBuffer);
@@ -84,7 +86,7 @@ export async function POST(
       uploadBuffer = Buffer.from(arrayBuffer);
     }
 
-    const ext = isImage ? 'webp' : (file.name.split('.').pop() || 'tmp');
+    const ext = compressed ? 'webp' : (file.name.split('.').pop() || 'tmp');
     let fileName = file.name.replace(/\.[^.]+$/, "");
     fileName = `${fileName}_${randomUUID().slice(0, 8)}.${ext}`;
 

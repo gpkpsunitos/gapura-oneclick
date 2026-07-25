@@ -287,9 +287,16 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
 
     loadAggregatedData();
     return () => controller.abort();
-  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo]);
+    // filters is destructured to primitive fields so this effect doesn't
+    // re-fire on every parent re-render when filters gets a new object
+    // identity but the same values. All fields the fetch calls actually
+    // read are listed above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.sourceSheet, filters.dateFrom, filters.dateTo]);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadDeferredData() {
       try {
         const [branch, rootCause, table, area, pareto] = await Promise.all([
@@ -304,14 +311,21 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchRootCausePareto(filters as any),
         ]);
+        if (cancelled) return;
         setChartData((prev) => ({ ...prev, branchData: branch, rootCauseData: rootCause, tableData: table, areaData: area, paretoData: pareto }));
       } catch (err) {
-        console.error('Failed to load deferred airline data:', err);
+        if (!cancelled) console.error('Failed to load deferred airline data:', err);
       }
     }
 
     loadDeferredData();
-  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo]);
+    return () => { cancelled = true; };
+    // filters is destructured to primitive fields so this effect doesn't
+    // re-fire on every parent re-render when filters gets a new object
+    // identity but the same values. All fields the fetch calls actually
+    // read are listed above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.sourceSheet, filters.dateFrom, filters.dateTo]);
 
   if (loading) return <ReportLoading label="Loading airline report…" />;
   if (error) return <ReportError message={error} onRetry={() => window.location.reload()} />;

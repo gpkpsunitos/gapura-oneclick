@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, Suspense } from 'react';
+import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import BranchReportDetail from '@/components/charts/branch-report/BranchReportDetail';
 import { EmbedDetailLayout } from '@/components/EmbedDetailLayout';

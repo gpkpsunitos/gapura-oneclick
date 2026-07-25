@@ -9,7 +9,6 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { motion } from 'framer-motion';
 import {
   RefreshCw, Sparkles, ArrowUpRight, ArrowDownRight, TrendingUp, TrendingDown,
   Minus, ChevronRight, Info, Plane, Building2, MapPin, Layers, Tag,
@@ -518,7 +517,6 @@ export function HeroFigures({ data }: { data: MLOverview }) {
 
 export function ForecastChart({
   forecast,
-  dailyWape: _dailyWape, // kept for backward-compat, unused (model info hidden)
 }: {
   forecast: ForecastResult;
   dailyWape?: number | null;
@@ -799,28 +797,6 @@ function SeverityChip({ score }: { score: number }) {
   );
 }
 
-function riskRowDescription(entry: RiskEntry, dim: RiskTabKey): string {
-  const name = riskEntityName(entry);
-  const parts: string[] = [];
-  parts.push(`${fmtNumber(entry.incident_count)} laporan tercatat sepanjang waktu`);
-  if (typeof entry.recent_30d === 'number') {
-    parts.push(`${entry.recent_30d} laporan dalam 30 hari terakhir`);
-  }
-  if (typeof entry.severity === 'number') {
-    parts.push(`tingkat keparahan ${severityLabel(entry.severity).toLowerCase()}`);
-  }
-  if (typeof entry.momentum === 'number') {
-    parts.push(`momentum ${momentumLabel(entry.momentum)}`);
-  }
-  const label = dim === 'airline' ? 'maskapai'
-    : dim === 'branch' ? 'stasiun'
-    : dim === 'area' ? 'area'
-    : dim === 'category' ? 'kategori'
-    : dim === 'subcategory' ? 'kategori area'
-    : 'klasifikasi kasus';
-  return `${name} — sebagai ${label}, ${parts.join(', ')}.`;
-}
-
 export function RiskTable({ risk }: { risk: RiskScoreResult }) {
   const tabs = useMemo(
     () => RISK_TABS.filter((t) => (risk.rankings?.[t.key]?.length ?? 0) > 0),
@@ -965,7 +941,7 @@ export function RiskTable({ risk }: { risk: RiskScoreResult }) {
       <p className={cn(CAPTION, 'mt-5 pt-4 border-t border-black/[0.06]')}>
         <Info size={12} className="inline text-neutral-400 mr-1 -mt-0.5" />
         <span className="font-semibold text-neutral-700">Cara membaca:</span> Total laporan menghitung seluruh laporan sejak awal
-        pencatatan, sementara "30 hari terakhir" adalah aktivitas terkini. Momentum
+        pencatatan, sementara &ldquo;30 hari terakhir&rdquo; adalah aktivitas terkini. Momentum
         menunjukkan apakah situasinya sedang membaik, memburuk, atau stabil dalam beberapa minggu terakhir.
       </p>
     </Card>
@@ -1193,7 +1169,7 @@ export function ReportCountForecast({ reportCounts }: { reportCounts: ReportCoun
         <p className={cn(CAPTION, 'mt-5 pt-4 border-t border-black/[0.06]')}>
           <Info size={12} className="inline text-neutral-400 mr-1 -mt-0.5" />
           {hidden > 0 && <>{hidden} entitas disembunyikan karena rentang kemungkinannya terlalu lebar. </>}
-          {dim.aggregated_tail && <>Entitas yang jarang muncul digabung sebagai "Lainnya".</>}
+          {dim.aggregated_tail && <>Entitas yang jarang muncul digabung sebagai &ldquo;Lainnya&rdquo;.</>}
         </p>
       )}
     </Card>
@@ -1382,8 +1358,10 @@ export function CaseRecurrencePanel({ recurrence }: { recurrence: ReportCountDim
 // Backward-compat exports (kept as no-ops or aliases so nothing else breaks)
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const ModelConfidenceRow = (_: { health: MLHealthResult }) => null;
 export const ModelConfidenceStrip = ModelConfidenceRow;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const Colophon = (_: { generatedAt?: string }) => null;
 
 export const SubcategoryOutlook = ({ outlook }: { outlook: DimensionForecastResult }) =>

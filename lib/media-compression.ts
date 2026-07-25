@@ -9,9 +9,9 @@ import os from 'os';
 
 const execAsync = promisify(exec);
 
-export type MediaType = 'image' | 'video';
+type MediaType = 'image' | 'video';
 
-export interface MediaCompressionOptions {
+interface MediaCompressionOptions {
 
   maxSizeKB?: number;
 
@@ -22,7 +22,7 @@ export interface MediaCompressionOptions {
   videoCRF?: number;
 }
 
-export interface MediaCompressionResult {
+interface MediaCompressionResult {
 
   buffer: Buffer;
 
@@ -43,7 +43,7 @@ export interface MediaCompressionResult {
   compressionRatio: number;
 }
 
-export function detectMediaType(mimeType: string): MediaType {
+function detectMediaType(mimeType: string): MediaType {
   if (mimeType.startsWith('image/')) return 'image';
   if (mimeType.startsWith('video/')) return 'video';
   throw new Error(`Unsupported media type: ${mimeType}`);

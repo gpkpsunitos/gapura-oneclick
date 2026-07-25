@@ -237,7 +237,14 @@ export function DivisionAnalystDashboard({
   const [listSearch, setListSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [showOSDashboardModal, setShowOSDashboardModal] = useState(false);
-  const [osDashboardLink, setOsDashboardLink] = useState<string>(getLinkUrl(externalLinks, 'os-dashboard-analyst'));
+  const [osDashboardLink, setOsDashboardLink] = useState<string>(() => {
+    if (typeof window === 'undefined') return getLinkUrl(externalLinks, 'os-dashboard-analyst');
+    try {
+      return localStorage.getItem('os_dashboard_link') || getLinkUrl(externalLinks, 'os-dashboard-analyst');
+    } catch {
+      return getLinkUrl(externalLinks, 'os-dashboard-analyst');
+    }
+  });
 
   const needsCustomerFeedbackData = realDivisionCode === 'OS' && showFilterModal;
 
@@ -784,11 +791,9 @@ export function DivisionAnalystDashboard({
     setShowReportsExportModal(true);
   };
 
-  const handleStatClick = (type: string) => {
-    if (!hasCompleteReports) {
-      setShouldLoadCompleteReports(true);
-      return;
-    }
+  const [pendingStatClick, setPendingStatClick] = useState<string | null>(null);
+
+  const runStatClick = useCallback((type: string) => {
     const open = (items: Report[], title: string) => {
       openDrilldown(items, title);
     };
@@ -813,7 +818,23 @@ export function DivisionAnalystDashboard({
         );
         break;
     }
+  }, [filteredReports, openDrilldown]);
+
+  const handleStatClick = (type: string) => {
+    if (!hasCompleteReports) {
+      setPendingStatClick(type);
+      setShouldLoadCompleteReports(true);
+      return;
+    }
+    runStatClick(type);
   };
+
+  useEffect(() => {
+    if (hasCompleteReports && pendingStatClick) {
+      runStatClick(pendingStatClick);
+      setPendingStatClick(null);
+    }
+  }, [hasCompleteReports, pendingStatClick, runStatClick]);
 
   const isOpDivision = division.code === 'OP';
   // ANALYST reuses this component (previously it was routed through
@@ -1067,8 +1088,7 @@ export function DivisionAnalystDashboard({
               setShowOSDashboardModal(false);
             }}
             onResetOS={() => {
-              const saved = typeof window !== 'undefined' ? localStorage.getItem('os_dashboard_link') : null;
-              setOsDashboardLink(saved || getLinkUrl(externalLinks, 'os-dashboard-analyst'));
+              setOsDashboardLink(getLinkUrl(externalLinks, 'os-dashboard-analyst'));
             }}
           />
         )}

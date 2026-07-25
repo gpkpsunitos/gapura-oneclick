@@ -7,9 +7,9 @@ import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { WizardStep } from '@/components/ui/WizardStep';
 import GuestNav from '@/components/GuestNav';
-import { PRIORITY_CONFIG, SEVERITY_CONFIG } from '@/lib/constants/report-status';
+import { SEVERITY_CONFIG } from '@/lib/constants/report-status';
 import { AIRLINES } from '@/lib/constants/airlines';
-import { GSE_TYPES, GSE_EQUIPMENT, type AreaId, type GseType } from '@/lib/constants/incident-areas';
+import { GSE_TYPES, GSE_EQUIPMENT } from '@/lib/constants/incident-areas';
 import {
   PUBLIC_SEVERITY_OPTIONS,
   AREA_OPTIONS,
@@ -24,13 +24,11 @@ import {
   type QuickAccessCategory,
   type FormData,
   type CreatedReport,
-  type ChronologyEntry,
-  type OfficerEntry,
   type DocEdits,
   type EvidenceUploadStatus,
   type DuplicateCandidate,
 } from './wizard-shared';
-import { AlertTriangle, Calendar, CheckCircle, Ship, Plane, Package, MessageSquare, X, ChevronRight, ChevronLeft, ArrowRight, Upload, Loader2, MapPin, QrCode, ClipboardCheck, ExternalLink, BookOpen, Activity, Bot, PenLine, Eye, EyeOff, Wrench, Shirt } from 'lucide-react';
+import { AlertTriangle, Calendar, CheckCircle, MessageSquare, X, ChevronRight, ChevronLeft, ArrowRight, Upload, Loader2, QrCode, ClipboardCheck, ExternalLink, BookOpen, Activity, Bot, PenLine, Eye, EyeOff, Shirt } from 'lucide-react';
 import { LazyMotion, domAnimation, m, AnimatePresence } from 'framer-motion';
 import { GlassCard } from '@/components/ui/GlassCard';
 import { NoiseTexture } from '@/components/ui/NoiseTexture';
@@ -45,7 +43,6 @@ import { generatePDF, generateWord } from '@/lib/utils/document-generator';
 import { finalizeReportDocuments } from '@/lib/report-documents-client';
 import { toLocalDateInput } from './apple-form-shell';
 import {
-  normalizeFlightNumber,
   validatePublicReportFlightStation,
   type PublicReportValidationErrors,
 } from '@/lib/validations/public-report';
@@ -581,7 +578,7 @@ export function PublicReportWizard() {
       const data = await res.json().catch(() => null);
       setDuplicateCandidates(Array.isArray(data?.candidates) ? data.candidates : []);
       setDuplicateCheckDone(true);
-    } catch (err) {
+    } catch {
       setDuplicateCandidates([]);
       setDuplicateCheckDone(false);
     } finally {

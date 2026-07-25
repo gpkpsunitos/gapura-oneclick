@@ -73,8 +73,8 @@ export function DrilldownDetailView({
             {}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <SummaryCard icon={FileText} label="Total" value={totalCount} color="blue" />
-                <SummaryCard icon={CheckCircle2} label="Selesai" value={resolvedCount} color="green" />
-                <SummaryCard icon={Clock} label="Menunggu" value={pendingCount} color="amber" />
+                <SummaryCard icon={CheckCircle2} label="Resolved" value={resolvedCount} color="green" />
+                <SummaryCard icon={Clock} label="Pending" value={pendingCount} color="amber" />
                 <SummaryCard icon={AlertTriangle} label="High Severity" value={highCount} color="red" />
             </div>
 
@@ -104,7 +104,7 @@ export function DrilldownDetailView({
                             <thead>
                                 <tr className="border-b border-[var(--surface-4)]">
                                     <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">ID</th>
-                                    <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Judul</th>
+                                    <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Title</th>
                                     <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Status</th>
                                     <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Severity</th>
                                     <th className="text-left text-xs font-bold uppercase tracking-wider text-[var(--text-muted)] p-4">Station</th>

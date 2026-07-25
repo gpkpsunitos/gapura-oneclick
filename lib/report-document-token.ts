@@ -12,7 +12,7 @@ const key = new TextEncoder().encode(secret);
 const AUDIENCE = 'report-document-finalization';
 const PURPOSE = 'finalize-report-documents';
 
-export interface ReportDocumentTokenPayload {
+interface ReportDocumentTokenPayload {
   reportId: string;
   reportType: ReportDocumentType;
 }

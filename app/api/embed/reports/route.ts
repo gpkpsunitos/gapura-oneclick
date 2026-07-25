@@ -18,8 +18,12 @@ function sameValue(actual: unknown, expected: string) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const range = searchParams.get('range') || '7d';
-    const limit = Math.min(parseInt(searchParams.get('limit') || '500', 10), 5000);
+    const requestedRange = searchParams.get('range');
+    const range = requestedRange === '30d' ? '30d' : '7d';
+    const parsedLimit = Number.parseInt(searchParams.get('limit') || '500', 10);
+    const limit = Number.isFinite(parsedLimit)
+      ? Math.min(Math.max(parsedLimit, 1), 5000)
+      : 500;
 
     const filters: FilterParams = {
       airline: searchParams.get('airline') || undefined,

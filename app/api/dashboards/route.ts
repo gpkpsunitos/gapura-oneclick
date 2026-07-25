@@ -15,10 +15,6 @@ const PRIVATE_DASHBOARD_CACHE_HEADERS = {
   'Cache-Control': 'private, no-store, max-age=0',
 } as const;
 
-function isRestrictedDashboardSlug(slug: string | null | undefined): boolean {
-  return String(slug || '').toLowerCase().includes('customer-feedback');
-}
-
 interface DashboardConfig {
 
   dateRange?: string;
@@ -79,7 +75,6 @@ export async function GET(request: NextRequest) {
           airline: searchParams.get('airline') || undefined,
           main_category: searchParams.get('main_category') || undefined,
           area: searchParams.get('area') || undefined,
-          target_division: searchParams.get('target_division') || undefined,
           severity: searchParams.get('severity') || undefined,
           status: searchParams.get('status') || undefined,
         };

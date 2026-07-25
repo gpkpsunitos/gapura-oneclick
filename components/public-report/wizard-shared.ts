@@ -2,7 +2,7 @@ import type { CSSProperties, ComponentType } from 'react';
 import { AIRLINES } from '@/lib/constants/airlines';
 import { AREA_CATEGORIES as AREA_CATEGORIES_SHARED, AREA_LABELS, ROOT_CAUSE_CLASSIFICATIONS as ROOT_CAUSE_CLASSIFICATIONS_SHARED, type GseType } from '@/lib/constants/incident-areas';
 import { Plane, Ship, Package, MapPin, Wrench } from 'lucide-react';
-import type { ReportPriority, SeverityLevel } from '@/lib/constants/report-status';
+import type { SeverityLevel } from '@/lib/constants/report-status';
 
 export type QuickAccessLink = { label: string; url: string; sublabel?: string };
 
@@ -135,7 +135,7 @@ export type DocEdits = {
 };
 
 export type TextDocEditKey = {
-  [K in keyof DocEdits]: DocEdits[K] extends string ? K : never
+  [K in keyof DocEdits]: NonNullable<DocEdits[K]> extends string ? K : never
 }[keyof DocEdits];
 
 export type EvidenceUploadStatus = {

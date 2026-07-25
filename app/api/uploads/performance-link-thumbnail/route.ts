@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { canManagePerformanceLinks, getWorkspaceUser } from '@/lib/server/workspace-auth';
 import { uploadPerformanceLinkThumbnailToDrive } from '@/lib/google-drive';
 import { compressMedia, validateMedia } from '@/lib/media-compression';
+import { validateImageFile } from '@/lib/security/file-validation';
 
 export const runtime = 'nodejs';
 
@@ -29,7 +30,13 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: validation.error }, { status: 400 });
         }
 
-        const compressed = await compressMedia(Buffer.from(await file.arrayBuffer()), file.type, {
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const contentValidation = validateImageFile(buffer, file.type);
+        if (!contentValidation.valid) {
+            return NextResponse.json({ error: 'Invalid image file' }, { status: 400 });
+        }
+
+        const compressed = await compressMedia(buffer, file.type, {
             maxSizeKB: 400,
             quality: 80,
         });

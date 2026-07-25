@@ -12,24 +12,21 @@ import type { ChartType } from '@/types/builder';
  * before calling this.
  */
 
-export interface BentoItem {
+interface BentoItem {
   id: string;
   chartType: ChartType;
   /** row count of the underlying result, when known — drives width/height */
   rows?: number;
 }
 
-export interface BentoSpan {
+interface BentoSpan {
   id: string;
   /** columns out of 12 */
   colSpan: number;
-  /** row units (1 unit ≈ BENTO_ROW_UNIT px) */
   rowSpan: number;
 }
 
-/** base height (px) of one row unit — multiply by rowSpan */
-export const BENTO_ROW_UNIT = 150;
-export const BENTO_COLS = 12;
+const BENTO_COLS = 12;
 
 function baseSize(item: BentoItem): { colSpan: number; rowSpan: number } {
   const r = item.rows ?? 6;

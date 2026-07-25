@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useEffect, useDeferredValue, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useDeferredValue, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -15,10 +15,6 @@ import {
   YAxis,
 } from 'recharts';
 import {
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  ChevronUp,
   ExternalLink,
 } from 'lucide-react';
 import type { Report } from '@/types';
@@ -50,11 +46,13 @@ const NOISY_CARGO_VALUES = new Set(['unknown', '#n/a', 'n/a', '-', '_', '–', '
 // newer fine-grained taxonomy used by the public report form. Accept both so
 // legacy CGO reports aren't silently dropped from the cargo category charts.
 const LEGACY_CARGO_CATEGORIES = ['Cargo Problems', 'Operation', 'Baggage Handling', 'GSE'];
-const VALID_CARGO_CATEGORIES = new Set([...AREA_CATEGORIES.CARGO, ...LEGACY_CARGO_CATEGORIES]);
+const VALID_CARGO_CATEGORIES = new Set(
+  [...AREA_CATEGORIES.CARGO, ...LEGACY_CARGO_CATEGORIES].map((c) => c.toLowerCase())
+);
 function readCargoCategory(r: Report): string {
   const raw = val(r.category_case_cargo) || val(r.supporting_evidence);
   if (!raw || raw.length <= 1 || NOISY_CARGO_VALUES.has(raw.toLowerCase())) return '';
-  if (!VALID_CARGO_CATEGORIES.has(raw)) return '';
+  if (!VALID_CARGO_CATEGORIES.has(raw.toLowerCase())) return '';
   return raw;
 }
 
@@ -319,7 +317,7 @@ function BarList({
 
   return (
     <ol className={`flex flex-col gap-1.5 p-2.5 ${scrollable ? 'h-full overflow-y-auto' : ''}`}>
-      {visibleRows.map((row, idx) => {
+      {visibleRows.map((row) => {
         const barPct = Math.max(4, (row.total / max) * 100);
         const sharePct = (row.total / totalValue) * 100;
         return (
@@ -734,7 +732,7 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={8} className="!py-10 text-center text-[12px] font-medium text-[color:var(--sr-text-3)]">
-                  No data
+                  No data available
                 </td>
               </tr>
             ) : (

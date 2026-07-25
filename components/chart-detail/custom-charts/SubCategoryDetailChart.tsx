@@ -161,7 +161,7 @@ export function SubCategoryDetailChart({
             {expanded ? (
               <>Show Less <ChevronUp size={12} /></>
             ) : (
-              <>View All ({sortedData.length - limit} lainnya) <ChevronDown size={12} /></>
+              <>View All ({sortedData.length - limit} more) <ChevronDown size={12} /></>
             )}
           </button>
         )}

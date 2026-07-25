@@ -119,7 +119,6 @@ export async function POST(request: Request) {
             delay_duration,
 
             station_code,
-            hub,
             airline_type,
             jenis_maskapai,
             report_content,

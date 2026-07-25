@@ -55,28 +55,28 @@ export async function compressForUpload(buffer: Buffer, mimeType: string, origin
       pipeline.resize({ width: MAX_EDGE, height: MAX_EDGE, fit: 'inside', withoutEnlargement: true });
     }
 
+    // Always return the re-encoded output, even if it isn't smaller: the
+    // pipeline's job is metadata stripping (EXIF/GPS) as much as size, and
+    // evidence photos in particular must not leak location/device metadata
+    // through a "smaller original wins" passthrough.
     if (mime.includes('png')) {
       const out = await pipeline.png({ compressionLevel: 9, palette: true, quality: 90, effort: 8 }).toBuffer();
-      return out.length < buffer.length ? { buffer: out, mimeType: 'image/png', ext: 'png' } : passthrough;
+      return { buffer: out, mimeType: 'image/png', ext: 'png' };
     }
     if (mime.includes('webp')) {
       const out = await pipeline.webp({ quality: WEBP_QUALITY }).toBuffer();
-      return out.length < buffer.length ? { buffer: out, mimeType: 'image/webp', ext: 'webp' } : passthrough;
+      return { buffer: out, mimeType: 'image/webp', ext: 'webp' };
     }
     // jpeg/jpg and everything else raster (incl. heic/heif) -> jpeg
     const out = await pipeline.jpeg({ quality: JPEG_QUALITY, mozjpeg: true }).toBuffer();
-    const keepsJpeg = mime.includes('jpeg') || mime.includes('jpg');
-    if (out.length < buffer.length || !keepsJpeg) {
-      return { buffer: out, mimeType: 'image/jpeg', ext: 'jpg' };
-    }
-    return passthrough;
+    return { buffer: out, mimeType: 'image/jpeg', ext: 'jpg' };
   } catch {
     // Corrupt/unsupported image — store the original rather than fail the upload.
     return passthrough;
   }
 }
 
-export function publicUrl(path: string): string {
+function publicUrl(path: string): string {
   const { data } = supabaseAdmin.storage.from(STORAGE_BUCKET).getPublicUrl(path);
   return data.publicUrl;
 }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import BranchIntelligenceDetail from '@/components/charts/case-category-by-branch/BranchIntelligenceDetail';
 import DetailFilterHeader from '@/components/chart-detail/DetailFilterHeader';
@@ -15,7 +15,6 @@ interface FilterState {
 }
 
 export default function CaseCategoryByBranchPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const sourceSheet = searchParams.get('sourceSheet') === 'CGO' ? 'CGO' : 'NON CARGO';
   const sourcePage = searchParams.get('sourcePage') || 'customer-feedback-main';

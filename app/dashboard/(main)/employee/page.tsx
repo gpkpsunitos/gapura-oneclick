@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 
 import {
     Plus, MapPin, FileText,
-    CheckCircle2, AlertCircle,
-    Search, LayoutDashboard, History, MoreHorizontal, FileType, Eye
+    CheckCircle2,
+    Search, History, MoreHorizontal, FileType, Eye
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
@@ -35,7 +35,7 @@ async function getWordExporter() {
 export default function EmployeeDashboard() {
     const router = useRouter();
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
-    const [exportingId, setExportingId] = useState<string | null>(null);
+    const [, setExportingId] = useState<string | null>(null);
 
     const { reports } = useReportsData('/api/reports');
 
@@ -204,7 +204,7 @@ export default function EmployeeDashboard() {
                                 </div>
                             </div>
                         ) : (
-                            reports.map((report, idx) => {
+                            reports.map((report) => {
                                 const statusConfig = STATUS_CONFIG[report.status as ReportStatus] || STATUS_CONFIG.OPEN;
                                 const dateObj = new Date(report.date_of_event || report.event_date || report.created_at);
 

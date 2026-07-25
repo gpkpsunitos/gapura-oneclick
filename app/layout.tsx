@@ -125,7 +125,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="id" className={`${plusJakartaSans.variable} ${bricolageGrotesque.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}>
+        <html lang="id" data-scroll-behavior="smooth" className={`${plusJakartaSans.variable} ${bricolageGrotesque.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}>
             <body>
                 {children}
             </body>

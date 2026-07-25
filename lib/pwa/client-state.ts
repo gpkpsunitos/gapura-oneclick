@@ -29,7 +29,7 @@ export function buildPwaScopedStorageKey(base: string) {
   return `${PWA_STORAGE_PREFIX}:${PWA_VERSION}:${getPwaAuthScope()}:${base}`;
 }
 
-export function isPwaStorageKey(key: string) {
+function isPwaStorageKey(key: string) {
   return key.startsWith(`${PWA_STORAGE_PREFIX}:`);
 }
 

@@ -38,6 +38,8 @@ export function checkRateLimit(
     return { success: true, remaining: limit - entry.count, resetAt: entry.resetTime };
 }
 
+const RATE_LIMIT_RPC_TIMEOUT_MS = 3_000;
+
 export async function checkDbRateLimit(
     key: string,
     limit: number = 5,
@@ -48,13 +50,35 @@ export async function checkDbRateLimit(
     const normalizedWindowMs = Math.max(1_000, Math.floor(windowMs));
     const fallbackResetAt = Date.now() + normalizedWindowMs;
 
-    const { data, error } = await supabaseAdmin
-        .rpc('consume_rate_limit', {
-            p_key: key.slice(0, 512),
-            p_limit: normalizedLimit,
-            p_reset_at: new Date(fallbackResetAt).toISOString(),
-        })
-        .single();
+    // Fail closed on any RPC error or timeout: a hung/erroring DB call must
+    // never block the request indefinitely or silently let it through.
+    let data: unknown;
+    let error: { message: string } | null;
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    try {
+        const rpcPromise = supabaseAdmin
+            .rpc('consume_rate_limit', {
+                p_key: key.slice(0, 512),
+                p_limit: normalizedLimit,
+                p_reset_at: new Date(fallbackResetAt).toISOString(),
+            })
+            .single();
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            timeoutHandle = setTimeout(
+                () => reject(new Error('consume_rate_limit RPC timed out')),
+                RATE_LIMIT_RPC_TIMEOUT_MS,
+            );
+        });
+        ({ data, error } = await Promise.race([rpcPromise, timeoutPromise]));
+    } catch (rpcError) {
+        console.error(
+            '[Rate Limit] Atomic RPC failed:',
+            rpcError instanceof Error ? rpcError.message : String(rpcError),
+        );
+        return { success: false, remaining: 0, resetAt: fallbackResetAt };
+    } finally {
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+    }
 
     if (error || !data) {
         console.error('[Rate Limit] Atomic RPC failed:', error?.message || 'empty response');

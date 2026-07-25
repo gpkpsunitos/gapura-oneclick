@@ -248,10 +248,6 @@ export const JOINS: JoinDef[] = [
 const tableMap = new Map(TABLES.map(t => [t.name, t]));
 const joinMap = new Map(JOINS.map(j => [j.key, j]));
 
-export function getTable(name: string): TableDef | undefined {
-  return tableMap.get(name);
-}
-
 export function getFieldsForTable(tableName: string): FieldDef[] {
   return tableMap.get(tableName)?.fields ?? [];
 }
@@ -278,25 +274,3 @@ export function isValidTable(table: string): boolean {
   return tableMap.has(table);
 }
 
-export function getAllTableNames(): string[] {
-  return TABLES.map(t => t.name);
-}
-
-export function buildSchemaContextForAI(): string {
-  const tableDescriptions = TABLES.map(t => {
-    const fields = t.fields.map(f => {
-      let desc = `    - ${f.name} (${f.type}, label: "${f.label}")`;
-      if (f.enumValues && f.enumValues.length > 0) {
-        desc += ` — enum: [${f.enumValues.map(v => `"${v}"`).join(', ')}]`;
-      }
-      return desc;
-    }).join('\n');
-    return `  Table: "${t.name}" (label: "${t.label}")\n  Fields:\n${fields}`;
-  }).join('\n\n');
-
-  const joinDescriptions = JOINS.map(j =>
-    `  - key: "${j.key}" — ${j.from}.${j.fromField} (FK) → ${j.to}.${j.toField} (PK) (label: "${j.label}")`
-  ).join('\n');
-
-  return `DATABASE SCHEMA (GROUND TRUTH):\n\n${tableDescriptions}\n\nRELATIONAL GRAPH (JOINS):\n${joinDescriptions}\n\nRULES:\n1. Use "reports"."id" for counting report volume (BIGINT).\n2. Use JOINS to fetch readable names for stations, units, etc.\n3. Always prefer "created_at" for time-series analysis.`;
-}

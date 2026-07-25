@@ -2,7 +2,6 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { reportsService } from '@/lib/services/reports-service';
-import { Report } from '@/types';
 import { GAPURA_STATIONS, HEAD_OFFICE_CODE } from '@/data/stations';
 
 function mergeStationsWithCanonical(dbStations: Array<{ id: string; code: string; name: string }>) {

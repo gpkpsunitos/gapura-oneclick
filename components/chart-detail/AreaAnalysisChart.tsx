@@ -31,9 +31,7 @@ const AREA_LABELS: Record<string, string> = {
   GENERAL: 'General Area'
 };
 
-const CATEGORIES = ['Irregularity', 'Complaint', 'Compliment'];
-
-export function AreaAnalysisChart({ visualization, result, title, explanation }: AreaAnalysisChartProps) {
+export function AreaAnalysisChart({ result, title, explanation }: AreaAnalysisChartProps) {
 
   const areaData = useMemo(() => {
     if (!result || !result.rows.length) return [];

@@ -18,11 +18,9 @@ import { SectionAiSummaryInsightButton } from '@/components/dashboard/ai/Section
 import { YearCard } from '@/components/dashboard/year-context';
 import {
   isCargoReport,
-  resolveCaseClassification,
   resolveReportAirline,
   resolveReportBranch,
   resolveReportCategory,
-  resolveRootCause,
 } from '@/lib/report-normalization';
 
 interface SummaryReportTabProps {
@@ -159,20 +157,6 @@ function resolveBranchLabel(report: Report) {
 function resolveAirlineLabel(report: Report) {
   return normalizeText(resolveReportAirline(report), 'Non Airline Case');
 }
-
-type DrilldownSingleContext =
-  | 'landside-category'
-  | 'airside-category'
-  | 'general-category'
-  | 'case-classification'
-  | 'root-cause';
-
-type DrilldownHierarchyContext =
-  | 'summary-station'
-  | 'summary-airlines'
-  | 'landside-airlines'
-  | 'airside-airlines'
-  | 'general-airlines';
 
 type SourceFilter = 'all' | 'landside' | 'airside' | 'general' | 'gse';
 
@@ -788,60 +772,6 @@ function buildYearComparisonRows(
   });
 }
 
-function matchesSingleContext(report: Report, context: DrilldownSingleContext, primaryValue: string) {
-  switch (context) {
-    case 'landside-category':
-      return normalizeText(report.terminal_area_category, '-') === primaryValue;
-    case 'airside-category':
-      return normalizeText(resolveAirsideApronCategory(report), '-') === primaryValue;
-    case 'general-category':
-      return normalizeText(report.general_category, '-') === primaryValue;
-    case 'case-classification':
-      return normalizeText(resolveCaseClassification(report), '-') === primaryValue;
-    case 'root-cause':
-      return normalizeText(resolveRootCause(report), '-') === primaryValue;
-    default:
-      return false;
-  }
-}
-
-function matchesHierarchyContext(
-  report: Report,
-  context: DrilldownHierarchyContext,
-  primaryValue: string,
-  secondaryValue: string
-) {
-  switch (context) {
-    case 'summary-station':
-      return (
-        resolveBranchLabel(report) === primaryValue &&
-        resolveCategory(report) === secondaryValue
-      );
-    case 'summary-airlines':
-      return (
-        resolveAirlineLabel(report) === primaryValue &&
-        resolveCategory(report) === secondaryValue
-      );
-    case 'landside-airlines':
-      return (
-        resolveAirlineLabel(report) === primaryValue &&
-        normalizeText(report.terminal_area_category, '-') === secondaryValue
-      );
-    case 'airside-airlines':
-      return (
-        resolveAirlineLabel(report) === primaryValue &&
-        normalizeText(resolveAirsideApronCategory(report), '-') === secondaryValue
-      );
-    case 'general-airlines':
-      return (
-        resolveAirlineLabel(report) === primaryValue &&
-        normalizeText(report.general_category, '-') === secondaryValue
-      );
-    default:
-      return false;
-  }
-}
-
 export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryReportTabProps) {
 
   const reports = useMemo(() => rawReports.filter((r) => !isCargoReport(r)), [rawReports]);
@@ -964,167 +894,6 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
         : [],
     [previousYearSummary, currentYearSummary]
   );
-
-  const landsideReports = useMemo(
-    () => currentYearReports.filter((report) => hasMeaningfulValue(report.terminal_area_category)),
-    [currentYearReports]
-  );
-
-  const landsideCategorySummary = useMemo(
-    () =>
-      buildSingleDimensionRows(
-        landsideReports,
-        currentYearMonthColumns,
-        (report) => normalizeText(report.terminal_area_category)
-      ),
-    [landsideReports, currentYearMonthColumns]
-  );
-
-  const landsideAirlineSummary = useMemo(
-    () =>
-      buildHierarchicalRows(
-        landsideReports,
-        currentYearMonthColumns,
-        (report) => resolveAirlineLabel(report),
-        (report) => normalizeText(report.terminal_area_category)
-      ),
-    [landsideReports, currentYearMonthColumns]
-  );
-
-  const airsideReports = useMemo(
-    () => currentYearReports.filter((report) => hasMeaningfulValue(report.apron_area_category)),
-    [currentYearReports]
-  );
-
-  const airsideCategorySummary = useMemo(
-    () =>
-      buildSingleDimensionRows(
-        airsideReports,
-        currentYearMonthColumns,
-        (report) => normalizeText(report.apron_area_category)
-      ),
-    [airsideReports, currentYearMonthColumns]
-  );
-
-  const airsideAirlineSummary = useMemo(
-    () =>
-      buildHierarchicalRows(
-        airsideReports,
-        currentYearMonthColumns,
-        (report) => resolveAirlineLabel(report),
-        (report) => normalizeText(report.apron_area_category)
-      ),
-    [airsideReports, currentYearMonthColumns]
-  );
-
-  const generalServiceReports = useMemo(
-    () => currentYearReports.filter((report) => hasMeaningfulValue(report.general_category)),
-    [currentYearReports]
-  );
-
-  const generalServiceCategorySummary = useMemo(
-    () =>
-      buildSingleDimensionRows(
-        generalServiceReports,
-        currentYearMonthColumns,
-        (report) => normalizeText(report.general_category)
-      ),
-    [generalServiceReports, currentYearMonthColumns]
-  );
-
-  const generalServiceAirlineSummary = useMemo(
-    () =>
-      buildHierarchicalRows(
-        generalServiceReports,
-        currentYearMonthColumns,
-        (report) => resolveAirlineLabel(report),
-        (report) => normalizeText(report.general_category)
-      ),
-    [generalServiceReports, currentYearMonthColumns]
-  );
-
-  const handleYearMonthCategoryClick = (
-    year: number,
-    monthIndex: number,
-    metricId: SummaryMetricId
-  ) => {
-    const filteredReports = filteredSummaryReports.filter((report) => {
-      const month = extractMonthColumn(report);
-      return Boolean(
-        month &&
-        month.year === year &&
-        month.monthIndex === monthIndex &&
-        matchesSummaryMetric(report, metricId)
-      );
-    });
-
-    if (filteredReports.length > 0) {
-      const monthLabel = new Date(year, monthIndex, 1).toLocaleString('en-US', { month: 'long' });
-      const metricLabel = metricId === 'total' ? 'Total Reports' : SUMMARY_METRIC_BY_ID[metricId]?.label || metricId;
-      openDrilldown(filteredReports, `${monthLabel} ${year} - ${metricLabel}`);
-    }
-  };
-
-  const handleYearComparisonClick = (metricId: SummaryMetricId) => {
-    if (previousYear === null || comparisonCurrentYear === null) return;
-
-    const filteredReports = filteredSummaryReports.filter((report) => {
-      const month = extractMonthColumn(report);
-      return Boolean(
-        month &&
-        (month.year === previousYear || month.year === comparisonCurrentYear) &&
-        matchesSummaryMetric(report, metricId)
-      );
-    });
-
-    if (filteredReports.length > 0) {
-      const metricLabel = metricId === 'total' ? 'Total Reports' : SUMMARY_METRIC_BY_ID[metricId]?.label || metricId;
-      openDrilldown(filteredReports, `${previousYear} vs ${comparisonCurrentYear} - ${metricLabel}`);
-    }
-  };
-
-  const handleSingleDimensionCellClick = (
-    context: DrilldownSingleContext,
-    monthKey: string,
-    primaryValue: string
-  ) => {
-    const filteredReports = currentYearReports.filter((report) => {
-      const month = extractMonthColumn(report);
-      const monthMatch = month && month.key === monthKey;
-      if (!monthMatch) return false;
-
-      return matchesSingleContext(report, context, primaryValue);
-    });
-
-    if (filteredReports.length > 0) {
-      const monthColumn = currentYearMonthColumns.find((m) => m.key === monthKey);
-      const monthLabel = monthColumn ? `${monthColumn.label} ${monthColumn.year}` : monthKey;
-      const title = `${monthLabel} - ${primaryValue}`;
-      openDrilldown(filteredReports, title);
-    }
-  };
-
-  const handleHierarchicalCellClick = (
-    context: DrilldownHierarchyContext,
-    monthKey: string,
-    primaryValue: string,
-    secondaryValue: string
-  ) => {
-    const filteredReports = currentYearReports.filter((report) => {
-      const month = extractMonthColumn(report);
-      const monthMatch = month && month.key === monthKey;
-      if (!monthMatch) return false;
-
-      return matchesHierarchyContext(report, context, primaryValue, secondaryValue);
-    });
-
-    if (filteredReports.length > 0) {
-      const monthColumn = currentYearMonthColumns.find((m) => m.key === monthKey);
-      const monthLabel = monthColumn ? `${monthColumn.label} ${monthColumn.year}` : monthKey;
-      const title = `${monthLabel} - ${primaryValue} / ${secondaryValue}`;
-      openDrilldown(filteredReports, title);
-    }
-  };
 
   const sectionAiContext = useMemo(() => ({
     section: 'Summary Report',
@@ -1251,7 +1020,7 @@ export function SummaryReportTab({ reports: rawReports, selectedYear }: SummaryR
           }}</SourceCard>
         ) : selectedSummaryBranch !== 'all' || selectedSummaryAirline !== 'all' ? (
           <div className="border border-[color:color-mix(in_oklch,var(--sr-border)_60%,transparent)] bg-white px-4 py-3 text-sm font-medium text-[color:var(--sr-text)]">
-            Filter saat ini tidak memiliki data yang cukup untuk membandingkan dua tahun.
+            The current filter doesn&apos;t have enough data to compare two years.
           </div>
         ) : null}
       </section>
@@ -1701,6 +1470,7 @@ function HeroCard({
       className={`sr-card-hero relative flex min-w-0 flex-col justify-between gap-6 p-8 sm:p-10 text-left cursor-pointer hover:brightness-[0.97] transition-all ${primary ? 'sr-card-hero-primary' : ''}`}
       onClick={onTotalClick}
       onKeyDown={(event) => {
+        if (event.target !== event.currentTarget) return;
         if (event.key === 'Enter' || event.key === ' ') onTotalClick();
       }}
       title={`View ${label} reports`}

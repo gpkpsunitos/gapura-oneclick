@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 import { reportsService } from '@/lib/services/reports-service';
-import type { Report } from '@/types';
 import { REPORT_STATUS } from '@/lib/constants/report-status';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
@@ -43,7 +42,6 @@ export async function GET(request: Request) {
         const period = searchParams.get('period');
         const from = searchParams.get('from');
         const to = searchParams.get('to');
-        const division = searchParams.get('division');
         const sourceParam = searchParams.get('source');
         const source: 'sheets' | 'sync' = sourceParam === 'sheets' ? 'sheets' : 'sync';
 

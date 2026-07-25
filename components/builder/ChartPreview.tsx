@@ -165,6 +165,40 @@ function useIsMobile() {
   return isMobile;
 }
 
+function cleanString(str: string) {
+  if (!str) return '';
+
+  return str.replace(/_/g, ' ')
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+function cleanChartData(rows: Record<string, unknown>[]) {
+  return rows
+    .map(row => {
+      const newRow: Record<string, unknown> = { ...row };
+      Object.keys(newRow).forEach(key => {
+        const val = newRow[key];
+        if (typeof val === 'string') {
+
+          if (val.toUpperCase() === 'CLOSED') {
+            newRow[key] = 'Closed';
+          } else if (val === '#N/A') {
+            newRow[key] = null;
+          } else {
+
+            if (val === val.toUpperCase() && val.includes('_')) {
+              newRow[key] = cleanString(val);
+            }
+          }
+        }
+      });
+      return newRow;
+    });
+}
+
 export function ChartPreview({ visualization, result, compact = false, tile, dashboardId, viewMode = 'values', normalization = 'none', isThumbnail = false }: ChartPreviewProps) {
   const { colorField, showLabels, colors } = visualization;
   let { chartType } = visualization;
@@ -178,44 +212,6 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
   }
 
   const palette = (colors && colors.length > 0) ? colors : DEFAULT_COLORS;
-
-  const cleanString = (str: string) => {
-    if (!str) return '';
-
-    return str.replace(/_/g, ' ')
-      .toLowerCase()
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-  };
-
-  const cleanChartData = (rows: Record<string, unknown>[]) => {
-    return rows
-      .filter(row => {
-
-        return !Object.values(row).some(val => val === '#N/A');
-      })
-      .map(row => {
-        const newRow: Record<string, unknown> = { ...row };
-        Object.keys(newRow).forEach(key => {
-          const val = newRow[key];
-          if (typeof val === 'string') {
-
-            if (val.toUpperCase() === 'CLOSED') {
-              newRow[key] = 'Closed';
-            } else if (val === '#N/A') {
-              newRow[key] = null;
-            } else {
-
-              if (val === val.toUpperCase() && val.includes('_')) {
-                newRow[key] = cleanString(val);
-              }
-            }
-          }
-        });
-        return newRow;
-      });
-  };
 
   const rawData = React.useMemo(() => cleanChartData(result.rows as Record<string, unknown>[]), [result.rows]);
 
@@ -430,6 +426,12 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
     const cellHeight = compact ? 'h-7' : 'h-10';
     const rowHeaderWidth = compact ? 'w-20' : 'w-28';
 
+    const heatmapMaxVal = Math.max(...rawData.map(r => {
+      const v = r[valueKey];
+      const num = (typeof v === 'number') ? v : Number(v);
+      return isNaN(num) ? 0 : num;
+    }), 1);
+
     return (
       <>
       <div className="w-full h-full overflow-auto p-1 custom-scrollbar bg-white">
@@ -456,13 +458,7 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
                 const val = (typeof rawVal === 'number') ? rawVal : (rawVal ? Number(rawVal) : 0);
                 const displayVal = isNaN(val) ? '0' : val.toLocaleString('id-ID');
 
-                const maxVal = Math.max(...rawData.map(r => {
-                  const v = r[valueKey];
-                  const num = (typeof v === 'number') ? v : Number(v);
-                  return isNaN(num) ? 0 : num;
-                }), 1);
-
-                const intensity = !isNaN(val) && val > 0 ? Math.max(10, (val / maxVal) * 100) : 0;
+                const intensity = !isNaN(val) && val > 0 ? Math.max(10, (val / heatmapMaxVal) * 100) : 0;
 
                 return (
                   <div 
@@ -760,7 +756,7 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
               }) as any}
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               label={(showLabels || isDonut) ? (props: any) => {
-                const { cx, cy, midAngle, innerRadius, outerRadius, percent, value, name } = props;
+                const { cx, cy, midAngle, outerRadius, percent, value, name } = props;
                 const RADIAN = Math.PI / 180;
 
                 const radius = outerRadius + (isDonut ? 14 : 20); 
@@ -829,7 +825,7 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
 
   let bottomMargin = shouldRotateX ? (compact ? 45 : 65) : (compact ? 30 : 20);
   if (chartType === 'bar') {
-      bottomMargin = 70;
+      bottomMargin = compact ? 30 : 70;
   }
 
   if (chartType === 'kpi') {

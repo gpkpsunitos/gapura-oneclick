@@ -5,7 +5,6 @@ import { reportsService } from '@/lib/services/reports-service';
 import type { Report } from '@/types';
 import type {
   DashboardFilterOptions,
-  DashboardInitialData,
   DashboardOverview,
   DashboardStats,
 } from './contracts';
@@ -104,10 +103,10 @@ function normalizeOverview(value: unknown): DashboardOverview | null {
         : [],
     },
     filterOptions: {
-      hubs: sortedUnique(candidate.filterOptions.hubs),
-      branches: sortedUnique(candidate.filterOptions.branches),
-      airlines: sortedUnique(candidate.filterOptions.airlines),
-      categories: sortedUnique(candidate.filterOptions.categories),
+      hubs: sortedUnique(Array.isArray(candidate.filterOptions.hubs) ? candidate.filterOptions.hubs : []),
+      branches: sortedUnique(Array.isArray(candidate.filterOptions.branches) ? candidate.filterOptions.branches : []),
+      airlines: sortedUnique(Array.isArray(candidate.filterOptions.airlines) ? candidate.filterOptions.airlines : []),
+      categories: sortedUnique(Array.isArray(candidate.filterOptions.categories) ? candidate.filterOptions.categories : []),
     },
   } as DashboardOverview;
 }
@@ -131,12 +130,4 @@ export async function getDashboardOverview(stationCodes?: readonly string[]): Pr
     ? reports
     : reports.filter((report) => normalizedStations.includes(reportBranch(report).toUpperCase()));
   return buildOverviewFromReports(scopedReports);
-}
-
-export async function getDashboardInitialData(options: {
-  stationCodes?: readonly string[];
-  latestReports: Report[];
-}): Promise<DashboardInitialData> {
-  const overview = await getDashboardOverview(options.stationCodes);
-  return { overview, latestReports: options.latestReports.slice(0, 10) };
 }

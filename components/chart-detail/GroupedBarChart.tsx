@@ -10,8 +10,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
-  Cell,
   LabelList
 } from 'recharts';
 import { Info } from 'lucide-react';
@@ -173,7 +171,7 @@ export function GroupedBarChart({ visualization, result, title, explanation, cla
             />
 
             {}
-            {CATEGORIES.map((cat, index) => {
+            {CATEGORIES.map((cat) => {
               const color = COLORS[cat.toLowerCase() as keyof typeof COLORS] || COLORS.default;
 
               return (

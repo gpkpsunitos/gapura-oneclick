@@ -1,8 +1,7 @@
 import 'server-only';
 
 import { createHash, timingSafeEqual } from 'crypto';
-import { SignJWT, jwtVerify } from 'jose';
-import type { SessionPayload } from '@/types';
+import { jwtVerify } from 'jose';
 import { DEFAULT_EXTERNAL_LINKS } from '@/lib/external-links';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
@@ -15,7 +14,7 @@ type VirtualAssistantClaims = {
     sessionId: string;
 };
 
-export type VirtualAssistantQuota = {
+type VirtualAssistantQuota = {
     allowed: boolean;
     remaining: number;
     resetAt: Date;
@@ -34,7 +33,7 @@ function getAccessTokenSecret(): Uint8Array {
     return new TextEncoder().encode(getRequiredEnv('VA_ACCESS_TOKEN_SECRET'));
 }
 
-export function getVirtualAssistantChatbotUrl(): string {
+function getVirtualAssistantChatbotUrl(): string {
     return (
         process.env.VA_CHATBOT_URL?.trim() ||
         DEFAULT_EXTERNAL_LINKS['ai-virtual-assistant'].url
@@ -62,33 +61,6 @@ export function getVirtualAssistantDailyLimit(): number {
 
     const parsed = Number(raw);
     return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 5;
-}
-
-function getVirtualAssistantTokenTtlSeconds(): number {
-    const raw = process.env.VA_ACCESS_TOKEN_TTL_SECONDS?.trim();
-    if (!raw) return 2 * 60 * 60;
-
-    const parsed = Number(raw);
-    return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 2 * 60 * 60;
-}
-
-export async function signVirtualAssistantToken(
-    session: SessionPayload,
-): Promise<string> {
-    if (!session.sid) {
-        throw new Error('Current session has no session id');
-    }
-
-    return new SignJWT({
-        type: TOKEN_TYPE,
-        sid: session.sid,
-    })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setSubject(session.id)
-        .setAudience(TOKEN_AUDIENCE)
-        .setIssuedAt()
-        .setExpirationTime(`${getVirtualAssistantTokenTtlSeconds()}s`)
-        .sign(getAccessTokenSecret());
 }
 
 export async function verifyVirtualAssistantToken(

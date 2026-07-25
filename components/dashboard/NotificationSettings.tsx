@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
     Mail, Plus, Trash2, ToggleLeft, ToggleRight, 
     RefreshCw, AlertCircle, CheckCircle2, Send,
@@ -34,14 +34,15 @@ export default function NotificationSettings() {
     const [testEmail, setTestEmail] = useState('');
     const [testLoading, setTestLoading] = useState(false);
 
-    useEffect(() => {
-        fetchRecipients();
-    }, [selectedEntity]);
+    const showMsg = useCallback((type: 'success' | 'error', text: string) => {
+        setMessage({ type, text });
+        setTimeout(() => setMessage(null), 5000);
+    }, []);
 
-    const fetchRecipients = async () => {
+    const fetchRecipients = useCallback(async () => {
         setLoading(true);
         try {
-            const url = selectedEntity 
+            const url = selectedEntity
                 ? `/api/admin/notifications/recipients?entity=${encodeURIComponent(selectedEntity)}`
                 : '/api/admin/notifications/recipients';
 
@@ -64,17 +65,16 @@ export default function NotificationSettings() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [selectedEntity, showMsg]);
 
-    const showMsg = (type: 'success' | 'error', text: string) => {
-        setMessage({ type, text });
-        setTimeout(() => setMessage(null), 5000);
-    };
+    useEffect(() => {
+        fetchRecipients();
+    }, [fetchRecipients]);
 
     const handleAddRecipient = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newEmail || !newEmail.includes('@')) {
-            showMsg('error', 'Email tidak valid');
+            showMsg('error', 'Invalid email address');
             return;
         }
 
@@ -92,7 +92,7 @@ export default function NotificationSettings() {
             }
 
             setNewEmail('');
-            showMsg('success', 'Penerima berhasil ditambahkan');
+            showMsg('success', 'Recipient added successfully');
             fetchRecipients();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {
@@ -112,10 +112,10 @@ export default function NotificationSettings() {
 
             if (!res.ok) throw new Error('Failed to update status');
 
-            setRecipients(recipients.map(r => 
+            setRecipients(current => current.map(r =>
                 r.id === id ? { ...r, enabled: !currentStatus } : r
             ));
-        } catch (err) {
+        } catch {
             showMsg('error', 'Failed to change status');
         }
     };
@@ -130,16 +130,16 @@ export default function NotificationSettings() {
 
             if (!res.ok) throw new Error('Failed to delete');
 
-            showMsg('success', 'Penerima berhasil dihapus');
-            setRecipients(recipients.filter(r => r.id !== id));
-        } catch (err) {
+            showMsg('success', 'Recipient removed successfully');
+            setRecipients(current => current.filter(r => r.id !== id));
+        } catch {
             showMsg('error', 'Failed to delete recipient');
         }
     };
 
     const handleSendTest = async () => {
         if (!testEmail || !testEmail.includes('@')) {
-            showMsg('error', 'Email test tidak valid');
+            showMsg('error', 'Invalid test email address');
             return;
         }
 
@@ -154,7 +154,7 @@ export default function NotificationSettings() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed to send test email');
 
-            showMsg('success', `Email test berhasil dikirim ke ${testEmail}`);
+            showMsg('success', `Test email sent successfully to ${testEmail}`);
             setTestEmail('');
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } catch (err: any) {

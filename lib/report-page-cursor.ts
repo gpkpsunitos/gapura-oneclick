@@ -1,4 +1,4 @@
-export interface ReportCursor {
+interface ReportCursor {
   createdAt: string;
   id: string;
 }

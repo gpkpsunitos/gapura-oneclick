@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useDeferredValue, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { Fragment, useDeferredValue, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   Bar,
   BarChart,
@@ -47,7 +47,6 @@ const PANEL_FRAME = 'sr-table-card flex min-h-0 min-w-0 flex-col';
 const DONUT_COLORS = ['var(--sr-accent)', 'var(--sr-gold)', 'var(--sr-chart-3)', 'var(--sr-chart-4)', 'var(--sr-chart-5)', 'var(--sr-neg)'];
 
 const REPORT_CATEGORIES = ['Irregularity', 'Complaint', 'Compliment', 'Occurrence', 'Accident / Incident'] as const;
-const AREA_KEYS = ['TERMINAL', 'APRON', 'CARGO', 'GENERAL', 'GSE'] as const;
 const AREA_LABELS: Record<string, string> = {
   TERMINAL: 'Terminal Area',
   APRON: 'Apron Area',
@@ -999,8 +998,7 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
   }, [filteredSourceReports, dateFrom, dateTo]);
 
   const currentYear = new Date().getFullYear();
-  const previousYear = currentYear - 1;
-  const [monthlyYear, setMonthlyYear] = useState<number>(currentYear);
+  const [monthlyYear] = useState<number>(currentYear);
 
   const monthlyRows = useMemo<CountRow[]>(() => {
     const counts = new Array(12).fill(0);
@@ -1016,18 +1014,6 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     }));
   }, [scopedReports, monthlyYear]);
 
-  const reportCategoryRows = useMemo<CountRow[]>(() => {
-    const bucket: Record<string, number> = {};
-    scopedReports.forEach((r) => {
-      const c = getCategory(r);
-      bucket[c] = (bucket[c] || 0) + 1;
-    });
-    return REPORT_CATEGORIES
-      .map((name) => ({ id: name.toLowerCase(), label: name, total: bucket[name] || 0 }))
-      .filter((r) => r.total > 0);
-  }, [scopedReports]);
-
-  const areaRows = useMemo<CountRow[]>(() => aggregate(scopedReports, getArea), [scopedReports]);
   const caseClassRows = useMemo<CountRow[]>(() => aggregate(scopedReports, getCaseClass), [scopedReports]);
   const branchRows = useMemo<CountRow[]>(() => aggregate(scopedReports, getBranch), [scopedReports]);
   const airlineRows = useMemo<CountRow[]>(() => aggregate(scopedReports, getAirline), [scopedReports]);
@@ -1036,207 +1022,6 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
     const nonCompliment = scopedReports.filter((r) => !getCategory(r).toLowerCase().includes('compliment'));
     return aggregate(nonCompliment, getRoot);
   }, [scopedReports]);
-
-  const caseByArea = useMemo(() => {
-    const cells: Record<string, Record<string, MatrixCell>> = {};
-    scopedReports.forEach((r) => {
-      const cc = getCaseClass(r);
-      const area = getArea(r);
-      if (!hasValue(cc) || !hasValue(area)) return;
-      const ck = cc.toLowerCase();
-      if (!cells[ck]) cells[ck] = {};
-      if (!cells[ck][area]) cells[ck][area] = { total: 0, reports: [] };
-      cells[ck][area].total += 1;
-      cells[ck][area].reports.push(r);
-    });
-    return cells;
-  }, [scopedReports]);
-
-  const branchByCategory = useMemo(() => {
-    const cells: Record<string, Record<string, MatrixCell>> = {};
-    scopedReports.forEach((r) => {
-      const branch = getBranch(r);
-      const cat = getCategory(r);
-      if (!hasValue(branch)) return;
-      const bk = branch.toLowerCase();
-      if (!cells[bk]) cells[bk] = {};
-      if (!cells[bk][cat]) cells[bk][cat] = { total: 0, reports: [] };
-      cells[bk][cat].total += 1;
-      cells[bk][cat].reports.push(r);
-    });
-    return cells;
-  }, [scopedReports]);
-
-  const caseClassKeys = useMemo(() => caseClassRows.slice(0, 12).map((r) => ({ id: r.id, label: r.label })), [caseClassRows]);
-  const presentCategoryCols = useMemo(
-    () => reportCategoryRows.map((r) => ({ id: r.label, label: r.label })),
-    [reportCategoryRows]
-  );
-  const presentAreaCols = useMemo(() => areaRows.map((r) => ({ id: r.label, label: r.label })), [areaRows]);
-  const branchKeys = useMemo(() => branchRows.slice(0, 12).map((r) => ({ id: r.id, label: r.label })), [branchRows]);
-
-  const detailRows = useMemo(
-    () => scopedReports.map(buildDetailRow).sort((a, b) => b.ts - a.ts),
-    [scopedReports]
-  );
-
-  const caseClassByMonth = useMemo(() => {
-    const monthSet = new Set<string>();
-    const buckets = new Map<string, Map<string, number>>();
-    scopedReports.forEach((r) => {
-      if (getCategory(r).toLowerCase().includes('compliment')) return;
-      const cc = getCaseClass(r);
-      const mk = getMonthKey(r);
-      if (!hasValue(cc) || !mk) return;
-      monthSet.add(mk);
-      const inner = buckets.get(cc) || new Map<string, number>();
-      inner.set(mk, (inner.get(mk) || 0) + 1);
-      buckets.set(cc, inner);
-    });
-    const monthKeys = Array.from(monthSet).sort();
-    const monthLabel = (mk: string) => {
-      const [y, m] = mk.split('-').map(Number);
-      return new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
-    };
-    const rows = Array.from(buckets.entries()).map(([cc, inner]) => {
-      const values = monthKeys.map((mk) => inner.get(mk) || 0);
-      return { caseClass: cc, values, total: values.reduce((a, b) => a + b, 0) };
-    }).sort((a, b) => b.total - a.total);
-    const monthTotals = monthKeys.map((_, i) => rows.reduce((s, r) => s + r.values[i], 0));
-    const grandTotal = monthTotals.reduce((a, b) => a + b, 0);
-    return { monthKeys, monthLabel, rows, monthTotals, grandTotal };
-  }, [scopedReports]);
-
-  type ChronicRow = {
-    branch: string;
-    subCategory: string;
-    caseClass: string;
-    area: string;
-    monthsCount: number;
-    total: number;
-    firstSeen: string;
-    lastSeen: string;
-    trend: 'up' | 'down' | 'flat';
-    trendDelta: number;
-    topRootCause: string;
-    topSeverity: string;
-    openCount: number;
-    closedCount: number;
-    openPct: number;
-    reports: Report[];
-  };
-  const chronicIssueRows = useMemo<ChronicRow[]>(() => {
-    const subCategoryOf = (r: Report): string =>
-      val(r.terminal_area_category) || val(r.apron_area_category) || val(r.general_category) || '';
-    const areaOf = (r: Report): string => {
-      if (hasValue(r.terminal_area_category)) return 'Terminal';
-      if (hasValue(r.apron_area_category)) return 'Apron';
-      if (hasValue(r.general_category)) return 'General';
-      return getArea(r);
-    };
-    const buckets = new Map<string, { branch: string; subCategory: string; area: string; months: Map<string, number>; reports: Report[] }>();
-
-    scopedReports
-      .filter((r) => !getCategory(r).toLowerCase().includes('compliment'))
-      .forEach((r) => {
-      const branch = getBranch(r);
-      const sub = subCategoryOf(r);
-      const monthKey = getMonthKey(r);
-      if (!hasValue(branch) || !hasValue(sub) || !monthKey) return;
-      const key = `${branch.toLowerCase()}::${sub.toLowerCase()}`;
-      const bucket = buckets.get(key) || { branch, subCategory: sub, area: areaOf(r), months: new Map<string, number>(), reports: [] };
-      bucket.months.set(monthKey, (bucket.months.get(monthKey) || 0) + 1);
-      bucket.reports.push(r);
-      buckets.set(key, bucket);
-    });
-    const monthLabel = (key: string) => {
-      const [y, m] = key.split('-').map(Number);
-      return new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
-    };
-    const topOf = (rs: Report[], fn: (r: Report) => string): string => {
-      const c: Record<string, number> = {};
-      rs.forEach((r) => {
-        const v = fn(r);
-        if (hasValue(v)) c[v] = (c[v] || 0) + 1;
-      });
-      const entries = Object.entries(c).sort((a, b) => b[1] - a[1]);
-      return entries[0]?.[0] || '—';
-    };
-    return Array.from(buckets.values())
-      .filter((b) => b.months.size >= 3)
-      .map((b) => {
-        const sortedKeys = Array.from(b.months.keys()).sort();
-        const recent = sortedKeys.slice(-3).reduce((s, k) => s + (b.months.get(k) || 0), 0);
-        const prior = sortedKeys.slice(-6, -3).reduce((s, k) => s + (b.months.get(k) || 0), 0);
-        const trendDelta = recent - prior;
-        const trend: 'up' | 'down' | 'flat' = trendDelta > 0 ? 'up' : trendDelta < 0 ? 'down' : 'flat';
-        const openCount = b.reports.filter((r) => getStatus(r) !== 'CLOSED').length;
-        const closedCount = b.reports.length - openCount;
-        return {
-          branch: b.branch,
-          subCategory: b.subCategory,
-          caseClass: topOf(b.reports, getCaseClass),
-          area: b.area,
-          monthsCount: b.months.size,
-          total: b.reports.length,
-          firstSeen: monthLabel(sortedKeys[0]),
-          lastSeen: monthLabel(sortedKeys[sortedKeys.length - 1]),
-          trend,
-          trendDelta,
-          topRootCause: topOf(b.reports, getRoot),
-          topSeverity: topOf(b.reports, getSeverity),
-          openCount,
-          closedCount,
-          openPct: Math.round((openCount / b.reports.length) * 100),
-          reports: b.reports,
-        };
-      })
-      .sort((a, b) => b.monthsCount - a.monthsCount || b.total - a.total);
-  }, [scopedReports]);
-
-  const yoyMonthlyRows = useMemo(() => {
-    const buckets = { current: new Array(12).fill(0), previous: new Array(12).fill(0) };
-    scopedReports.forEach((r) => {
-      const d = getReportDate(r);
-      if (!d) return;
-      if (d.getFullYear() === currentYear) buckets.current[d.getMonth()] += 1;
-      else if (d.getFullYear() === previousYear) buckets.previous[d.getMonth()] += 1;
-    });
-    return Array.from({ length: 12 }, (_, i) => ({
-      month: new Date(Date.UTC(currentYear, i, 1)).toLocaleString('en-US', { month: 'short', timeZone: 'UTC' }),
-      current: buckets.current[i],
-      previous: buckets.previous[i],
-    }));
-  }, [scopedReports, currentYear, previousYear]);
-
-  const terminalSubRows = useMemo<CountRow[]>(
-    () => aggregate(scopedReports, (r) => val(r.terminal_area_category)),
-    [scopedReports]
-  );
-  const apronSubRows = useMemo<CountRow[]>(
-    () => aggregate(scopedReports, (r) => val(r.apron_area_category)),
-    [scopedReports]
-  );
-  const generalSubRows = useMemo<CountRow[]>(
-    () => aggregate(scopedReports, (r) => val(r.general_category)),
-    [scopedReports]
-  );
-
-  const airlineByCategory = useMemo(() => {
-    const cells: Record<string, Record<string, MatrixCell>> = {};
-    scopedReports.forEach((r) => {
-      const airline = getAirline(r);
-      const cat = getCategory(r);
-      if (!hasValue(airline)) return;
-      const ak = airline.toLowerCase();
-      if (!cells[ak]) cells[ak] = {};
-      if (!cells[ak][cat]) cells[ak][cat] = { total: 0, reports: [] };
-      cells[ak][cat].total += 1;
-      cells[ak][cat].reports.push(r);
-    });
-    return cells;
-  }, [scopedReports]);
-  const airlineKeys = useMemo(() => airlineRows.slice(0, 12).map((r) => ({ id: r.id, label: r.label })), [airlineRows]);
 
   const closed = scopedReports.filter((r) => getStatus(r) === 'CLOSED').length;
   const open = scopedReports.length - closed;

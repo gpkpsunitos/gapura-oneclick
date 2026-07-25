@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import type { QueryResult } from '@/types/builder';
 import { motion } from 'framer-motion';
-import { ArrowRight, TrendingUp, BarChart3, ChevronDown, ChevronUp } from 'lucide-react';
+import { TrendingUp } from 'lucide-react';
 import { ViewMode, Normalization } from '@/components/chart-detail/GlobalControlBar';
 
 interface ExecutivePivotViewProps {
@@ -26,9 +26,7 @@ const EXEC_COLORS = {
 
 export function ExecutivePivotView({
   result,
-  title,
   viewMode = 'values',
-  normalization = 'none',
   isTile = false
 }: ExecutivePivotViewProps) {
 
@@ -99,11 +97,10 @@ export function ExecutivePivotView({
 
   if (!processedData) return null;
 
-  const { rows, cols, matrix, rowStats, colStats, grandTotal, rowField } = processedData;
+  const { rows, cols, matrix, rowStats, grandTotal, rowField } = processedData;
 
   const topAirline = rows[0];
   const topAirlineShare = (rowStats[topAirline].total / grandTotal * 100).toFixed(1);
-  const totalCases = grandTotal.toLocaleString('id-ID');
 
   const top5 = rows.slice(0, 5);
 

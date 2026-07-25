@@ -9,25 +9,32 @@ export function LiveSecurityFeed({ className }: { className?: string }) {
     const [events, setEvents] = useState<SecurityEvent[]>([]);
 
     useEffect(() => {
-        const controller = new AbortController();
+        let cancelled = false;
         let timer: ReturnType<typeof setTimeout> | undefined;
 
         async function fetchLastEvents(): Promise<void> {
+            const requestController = new AbortController();
+            const requestTimeout = setTimeout(() => requestController.abort(), 8_000);
             try {
                 const response = await fetch('/api/security/events', {
                     cache: 'no-store',
-                    signal: controller.signal,
+                    signal: requestController.signal,
                 });
-                if (response.ok) {
-                    const payload = await response.json() as { events?: SecurityEvent[] };
-                    setEvents(payload.events || []);
+                if (!cancelled) {
+                    if (response.ok) {
+                        const payload = await response.json() as { events?: SecurityEvent[] };
+                        setEvents(payload.events || []);
+                    } else {
+                        console.error(`[Security Feed] Poll failed with status ${response.status}`);
+                    }
                 }
             } catch (error) {
-                if (!controller.signal.aborted) {
+                if (!cancelled) {
                     console.error('[Security Feed] Poll failed:', error);
                 }
             } finally {
-                if (!controller.signal.aborted) {
+                clearTimeout(requestTimeout);
+                if (!cancelled) {
                     timer = setTimeout(fetchLastEvents, 10_000);
                 }
             }
@@ -36,7 +43,7 @@ export function LiveSecurityFeed({ className }: { className?: string }) {
         void fetchLastEvents();
 
         return () => {
-            controller.abort();
+            cancelled = true;
             if (timer) clearTimeout(timer);
         };
     }, []);

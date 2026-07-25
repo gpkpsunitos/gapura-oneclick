@@ -241,7 +241,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
         const driveFileId = sourceType === 'upload'
             ? (body.drive_file_id ?? existing.drive_file_id ?? null)
             : null;
-        if (sourceType === 'upload' && (!fileUrl || !driveFileId)) {
+        const hasStorage = Boolean(driveFileId || existing.storage_path);
+        if (sourceType === 'upload' && (!fileUrl || !hasStorage)) {
             return NextResponse.json({ error: 'Google Drive file metadata is required for uploaded documents' }, { status: 400 });
         }
         if (sourceType === 'link' && !externalUrl && materialLinks.length === 0) {

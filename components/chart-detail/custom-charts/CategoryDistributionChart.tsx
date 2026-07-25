@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { PieChart, BarChart3, Info } from 'lucide-react';
+import { PieChart, Info } from 'lucide-react';
 
 interface CategoryDistributionData {
   category: string;
@@ -62,7 +62,7 @@ export function CategoryDistributionChart({
               <PieChart className="w-6 h-6 text-gray-400" />
             </div>
             <p className="text-[11px] text-gray-500">No category data</p>
-            <p className="text-[9px] text-gray-400 mt-1">Data mungkin belum tersedia atau kosong</p>
+            <p className="text-[9px] text-gray-400 mt-1">Data may not be available yet or is empty</p>
           </div>
         </div>
         {explanation && (

@@ -2,8 +2,6 @@
 
 import React, { useMemo } from 'react';
 import { Plane, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import type { QueryResult } from '@/types/builder';
 
 interface CategoryByBranchChartProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

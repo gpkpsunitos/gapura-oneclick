@@ -53,7 +53,6 @@ export function AIAnalysisFilterPanel({
   availableBranches,
   availableAirlines,
   availableCategories,
-  hasData,
 }: AIAnalysisFilterPanelProps) {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');

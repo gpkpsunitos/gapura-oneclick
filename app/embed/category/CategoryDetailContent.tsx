@@ -412,7 +412,7 @@ export function CategoryDetailContent() {
         <div className="embed-table-container">
           <table className="embed-table">
             <thead>
-              <tr><th>Date</th><th>Judul</th><th>Kategori</th><th>Station</th><th>Airlines</th><th>Area</th><th>Status</th><th>Severity</th></tr>
+              <tr><th>Date</th><th>Title</th><th>Category</th><th>Station</th><th>Airlines</th><th>Area</th><th>Status</th><th>Severity</th></tr>
             </thead>
             <tbody>
               {reports.slice(0, 50).map((report) => (

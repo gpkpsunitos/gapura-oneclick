@@ -5,7 +5,7 @@ export const DEFAULT_REPORT_PAGE_LIMIT = 50;
 export const MAX_REPORT_PAGE_LIMIT = 100;
 export const REPORT_PAGE_CACHE_SCHEMA = 1;
 export const REPORT_PAGE_FRESH_MS = 5 * 60 * 1000;
-export const REPORT_PAGE_MAX_STALE_MS = 24 * 60 * 60 * 1000;
+const REPORT_PAGE_MAX_STALE_MS = 24 * 60 * 60 * 1000;
 
 export type ReportListItem = ProjectedReport<'list'> & {
   comments: NonNullable<Report['comments']>;
@@ -32,7 +32,7 @@ export interface PersistedReportPage<TItem> {
   page: ReportPage<TItem>;
 }
 
-export type ReportPageAccess =
+type ReportPageAccess =
   | { kind: 'company' }
   | { kind: 'division'; division: string }
   | { kind: 'employee' }
@@ -69,7 +69,7 @@ export function parseReportLimit(value: string | null | undefined): number {
   return Math.min(Math.max(parsed, 1), MAX_REPORT_PAGE_LIMIT);
 }
 
-export function isReportPage<TItem = Report>(value: unknown): value is ReportPage<TItem> {
+function isReportPage<TItem = Report>(value: unknown): value is ReportPage<TItem> {
   if (!isRecord(value) || !Array.isArray(value.reports)) return false;
   if (!isRecord(value.pagination) || !isRecord(value.meta)) return false;
 

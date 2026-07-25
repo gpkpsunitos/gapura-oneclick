@@ -31,6 +31,8 @@ const LEGACY_PROTECTED_CACHE_NAMES = [
   "gapura-pages",
   "gapura-readonly-apis",
   "gapura-documents",
+  "gapura-next-image",
+  "gapura-images",
 ] as const;
 
 function sameOriginNotificationPath(value: string | undefined): string {

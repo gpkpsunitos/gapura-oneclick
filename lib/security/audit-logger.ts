@@ -1,7 +1,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-export interface AuditEntry {
+interface AuditEntry {
     actorId: string;
     action: string;
     entityType: string;

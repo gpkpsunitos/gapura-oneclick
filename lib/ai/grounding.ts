@@ -1,8 +1,17 @@
 
-const NUMBER_RE = /(?<![A-Za-z_])(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(?:\s*%)?/g;
+const NUMBER_RE = /(?<![A-Za-z_])(\d{1,3}(?:,\d{3})+|\d+,\d{1,2}(?!\d)|\d+(?:\.\d+)?)(?:\s*%)?/g;
 
 function parseNumber(token: string): number | null {
-  let cleaned = token.replace(/,/g, '').replace(/%$/, '').trim();
+  const trimmed = token.replace(/%$/, '').trim();
+
+  // Decimal comma: "12,5" means 12.5, distinct from the ",\d{3}" thousands
+  // grouping handled below.
+  if (/^\d+,\d{1,2}$/.test(trimmed)) {
+    const n = Number(trimmed.replace(',', '.'));
+    return Number.isFinite(n) ? n : null;
+  }
+
+  let cleaned = trimmed.replace(/,/g, '');
   // Indonesian thousands separator: "5.000" means 5000, not 5.0.
   if (/^\d{1,3}(?:\.\d{3})+$/.test(cleaned)) {
     cleaned = cleaned.replace(/\./g, '');

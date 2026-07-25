@@ -5,7 +5,7 @@ import crypto from 'crypto';
 
 import { supabaseAdmin } from '@/lib/supabase-admin';
 
-export interface DashboardCacheEntry<T = unknown> {
+interface DashboardCacheEntry<T = unknown> {
 
   cache_key: string;
 

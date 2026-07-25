@@ -1,7 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { QueryResult } from '@/types/builder';
-import { ArrowRight, ChevronDown, ChevronUp, LayoutGrid, List } from 'lucide-react';
 import { ViewMode, Normalization } from '@/components/chart-detail/GlobalControlBar';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
 
@@ -41,8 +40,8 @@ const AREA_COLORS_HEX: Record<string, string> = {
   'General': '#6ee7b7',
 };
 
-export function BranchAreaGrid({ data, config, viewMode = 'values', normalization = 'none' }: BranchAreaGridProps) {
-  const [hoveredBranch, setHoveredBranch] = useState<string | null>(null);
+export function BranchAreaGrid({ data, config, viewMode = 'values' }: BranchAreaGridProps) {
+  const [, setHoveredBranch] = useState<string | null>(null);
   const { openDrilldown, DrilldownRenderer } = useDrilldown();
 
   const processedData = useMemo(() => {

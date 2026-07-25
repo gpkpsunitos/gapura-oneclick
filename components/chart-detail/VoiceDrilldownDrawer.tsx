@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, MapPin, Plane, AlertTriangle, Link as LinkIcon, FileText, ChevronDown, ChevronUp, CalendarDays, Star, Users, Tag, MessageSquare } from 'lucide-react';
+import { X, MapPin, Plane, AlertTriangle, Link as LinkIcon, FileText, ChevronDown, ChevronUp, CalendarDays, Star, Users, MessageSquare } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { VoiceDrawerRecord } from './useVoiceDrilldown';
@@ -154,7 +154,7 @@ export function VoiceDrilldownDrawer({ isOpen, onClose, title, data }: VoiceDril
 
                 const dateVal = getText(record, ['date', 'date_of_event', 'Date of Event', 'timestamp']);
                 const dateLabel = formatDate(dateVal);
-                const branch = getText(record, ['branch', 'Station', 'branch_code'], 'N/A').toUpperCase();
+                const branch = getText(record, ['branch', 'Branch', 'Station', 'branch_code'], 'N/A').toUpperCase();
                 const airline = getText(record, ['airlines', 'airline', 'Airlines'], '-');
                 const flightNumber = getText(record, ['flightNumber', 'flight_number', 'Flight Number', 'No Penerbangan'], '-');
                 const category = getText(record, ['category', 'categoryReport', 'case_category', 'Category'], 'N/A');

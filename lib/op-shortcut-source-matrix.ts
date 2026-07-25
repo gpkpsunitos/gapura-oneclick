@@ -1,5 +1,3 @@
-export type AnalyticsSourceKind = 'real' | 'ai';
-
 export interface AnalyticsSourceDescriptor {
   label: string;
   route: string;
@@ -20,7 +18,7 @@ export interface AnalyticsRuntimeStatus {
   count?: number | null;
 }
 
-export interface ShortcutSourceConfig {
+interface ShortcutSourceConfig {
   key: string;
   title: string;
   pagePath: string;
@@ -28,7 +26,7 @@ export interface ShortcutSourceConfig {
   aiSource?: AnalyticsSourceDescriptor;
 }
 
-export const OP_SHORTCUT_SOURCE_MATRIX: Record<string, ShortcutSourceConfig> = {
+const OP_SHORTCUT_SOURCE_MATRIX: Record<string, ShortcutSourceConfig> = {
   topIrregularityComplaint: {
     key: 'topIrregularityComplaint',
     title: 'Top Irregularity & Complaint',

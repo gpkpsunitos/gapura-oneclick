@@ -60,7 +60,7 @@ async function canAccessReportComments(reportId: string, userId: string, role: U
         }
 
         const { data: report } = await supabaseAdmin
-            .from('reports')
+            .from('ground_handling_irregularity_report')
             .select('station_id')
             .eq('id', reportId)
             .single();
@@ -75,7 +75,7 @@ async function canAccessReportComments(reportId: string, userId: string, role: U
         }
 
         const { data: report, error } = await supabaseAdmin
-            .from('reports')
+            .from('ground_handling_irregularity_report')
             .select('user_id')
             .eq('id', reportId)
             .single();
@@ -201,7 +201,7 @@ export async function POST(request: Request, { params }: RouteParams) {
                 report_id: stableUuid,
                 user_id: payload.id,
                 content: content?.trim() || '',
-                attachments: null,
+                attachments: attachments.length > 0 ? attachments : null,
                 is_system_message: false,
                 sheet_id: sheetId,
             })

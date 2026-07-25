@@ -40,19 +40,19 @@ function AIPanel({ reportId, accent }: { reportId: string; accent: string }) {
         body: JSON.stringify({ reportId }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Gagal memuat rekomendasi AI');
+      if (!res.ok) throw new Error(data.error || 'Failed to load AI recommendation');
       setRec(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Gagal memuat rekomendasi AI');
+      setError(e instanceof Error ? e.message : 'Failed to load AI recommendation');
     } finally { setLoading(false); }
   };
 
   return (
-    <Section title="AI Recommendation" subtitle="Saran eskalasi, pencegahan, dan penanganan berbasis AI">
+    <Section title="AI Recommendation" subtitle="AI-based escalation, prevention, and handling suggestions">
       <div className="jm-ai">
         <button type="button" onClick={run} disabled={loading} className="jm-ai__btn" style={{ background: accent }}>
           {loading ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-          {loading ? 'Menganalisis…' : rec ? 'Buat ulang rekomendasi' : 'Minta rekomendasi AI'}
+          {loading ? 'Analyzing…' : rec ? 'Regenerate recommendation' : 'Request AI recommendation'}
         </button>
 
         {error && <div className="jm-error"><AlertCircle size={16} />{error}</div>}
@@ -60,15 +60,15 @@ function AIPanel({ reportId, accent }: { reportId: string; accent: string }) {
         {rec && (
           <div className="jm-ai__grid">
             <div className="jm-ai__card">
-              <span className="jm-ai__card-head"><ArrowUpRight size={14} /> Eskalasi</span>
+              <span className="jm-ai__card-head"><ArrowUpRight size={14} /> Escalation</span>
               <p>{rec.escalation || '—'}</p>
             </div>
             <div className="jm-ai__card">
-              <span className="jm-ai__card-head"><ShieldCheck size={14} /> Pencegahan</span>
+              <span className="jm-ai__card-head"><ShieldCheck size={14} /> Prevention</span>
               <p>{rec.preventive || '—'}</p>
             </div>
             <div className="jm-ai__card">
-              <span className="jm-ai__card-head"><Wrench size={14} /> Penanganan</span>
+              <span className="jm-ai__card-head"><Wrench size={14} /> Handling</span>
               <p>{rec.handling || '—'}</p>
             </div>
           </div>
@@ -96,7 +96,7 @@ function CaseManagement({ report }: { report: Report }) {
   const shown = rows.filter(([, v]) => v && String(v).trim());
   if (!shown.length) return null;
   return (
-    <Section title="Case Management" subtitle="Status, eskalasi, dan jejak penanganan">
+    <Section title="Case Management" subtitle="Status, escalation, and handling trail">
       <div className="jm-kv">
         {shown.map(([k, v]) => (
           <div key={k} className="jm-kv__cell">

@@ -354,6 +354,7 @@ export async function fetchAreaBreakdownByBranch(filters: BaseFilters = {}): Pro
   });
 
   return Array.from(map.entries())
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     .map(([_, data]) => data)
     .sort((a, b) => b.count - a.count)
     .slice(0, 30);

@@ -3,10 +3,9 @@
 import { useEffect, useState, useCallback, useDeferredValue, useMemo } from 'react';
 import {
     FileText, Search, Filter, ChevronDown,
-    MapPin, AlertTriangle,
-    Plane, Building2
+    AlertTriangle,
+    Building2
 } from 'lucide-react';
-import { STATUS_CONFIG, SEVERITY_CONFIG, ReportStatus } from '@/lib/constants/report-status';
 import { Report } from '@/types';
 import { useReportsData } from '@/hooks/use-reports-cache';
 import { DashboardHeader } from '@/components/dashboard/DashboardHeader';

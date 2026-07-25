@@ -62,6 +62,7 @@ export function SegmentedControl<K extends string>({
           <button
             key={opt.key}
             type="button"
+            aria-pressed={on}
             onClick={() => onChange(opt.key)}
             className={cn(
               'rounded-md border-0 px-3 py-1.5 text-[11.5px] font-bold transition-colors',

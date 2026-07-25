@@ -48,7 +48,7 @@ function toTitleCase(value: string): string {
         .join(' ');
 }
 
-export function normalizeReportCategory(value: unknown): string {
+function normalizeReportCategory(value: unknown): string {
     const normalized = normalizeText(value);
     if (!normalized) return '';
     if (normalized.includes('accident') || normalized.includes('incident') || normalized.includes('insiden') || normalized.includes('kecelakaan')) return 'Accident / Incident';
@@ -77,11 +77,11 @@ export function resolveReportBranch(report: Partial<Report>): string {
     );
 }
 
-export function resolveReportAirline(report: Partial<Report>): string {
+function resolveReportAirline(report: Partial<Report>): string {
     return normalizeText(report.airline || report.airlines);
 }
 
-export function resolveAreaCategory(report: Partial<Report>): string {
+function resolveAreaCategory(report: Partial<Report>): string {
     const normalizedArea = normalizeText(report.area);
 
     if (normalizedArea.includes('terminal') && report.terminal_area_category) {
@@ -103,7 +103,7 @@ export function resolveAreaCategory(report: Partial<Report>): string {
     );
 }
 
-export function resolveReportNarrative(report: Partial<Report>): string {
+function resolveReportNarrative(report: Partial<Report>): string {
     return normalizeText(report.report || report.description || report.title);
 }
 
@@ -121,6 +121,13 @@ export function buildReportFingerprint(report: Partial<Report>): string {
         resolveAreaCategory(report),
         resolveReportNarrative(report),
         normalizeText(report.reporter_name),
+        // The "Report" column (resolveReportNarrative) is a short categorical
+        // label (e.g. "DENTED", "TORN"), not free text — distinct incidents on
+        // the same flight/day/category routinely share it. Root Caused / Action
+        // Taken hold the actual descriptive text and are what usually tells two
+        // such incidents apart.
+        normalizeText(report.root_caused),
+        normalizeText(report.action_taken),
     ];
 
     return crypto.createHash('sha256').update(parts.join('|')).digest('hex');

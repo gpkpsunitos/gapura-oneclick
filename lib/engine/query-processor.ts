@@ -1,6 +1,5 @@
 
 import type { QueryDefinition } from '@/types/builder';
-import type { Report } from '@/types';
 
 interface QueryResult {
 
@@ -67,7 +66,7 @@ const getDateKey = (dateStr: string, granularity?: string) => {
       return `${d.getFullYear()} Q${q}`;
     }
     return dateStr;
-  } catch (e) {
+  } catch {
     return dateStr;
   }
 };

@@ -27,7 +27,8 @@ export default async function OCSDashboard() {
       });
       initialReports = Array.from(page.reports) as Report[];
       lockedBranches = [stationCode];
-    } catch {
+    } catch (err) {
+      console.error('Failed to load OCS dashboard reports:', err);
       initialReports = [];
     }
   }

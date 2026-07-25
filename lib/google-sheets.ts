@@ -2,12 +2,12 @@
 import 'server-only';
 import { google } from 'googleapis';
 
-export const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
+const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let authClient: any = null;
 
-export function getGoogleAuth() {
+function getGoogleAuth() {
   if (authClient) return authClient;
 
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;

@@ -369,7 +369,7 @@ export function EskalasiDocumentsViewerPage({ hideNav = false }: { hideNav?: boo
             <button
                 type="button"
                 onClick={(e) => toggleSort(sortKeyValue, e.shiftKey)}
-                title="Klik untuk sort · Shift+klik untuk multi-sort"
+                title="Click to sort · Shift+click for multi-sort"
                 className={cn(
                     'inline-flex items-center gap-1 text-left text-xs font-bold uppercase tracking-wide transition-colors',
                     rule
@@ -578,7 +578,7 @@ export function EskalasiDocumentsViewerPage({ hideNav = false }: { hideNav?: boo
                         </button>
                     )}
                     <span className="ml-auto hidden text-[11px] font-medium text-slate-400 sm:block">
-                        Shift+klik header kolom untuk multi-sort
+                        Shift+click a column header for multi-sort
                     </span>
                 </div>
 
@@ -776,7 +776,7 @@ export function EskalasiDocumentsViewerPage({ hideNav = false }: { hideNav?: boo
                                             <div key={idx} className="flex gap-2">
                                                 <div className="grid flex-1 gap-3 sm:grid-cols-2">
                                                     <label className="space-y-2 text-sm font-semibold text-slate-700">
-                                                        Judul
+                                                        Title
                                                         <input
                                                             value={link.title}
                                                             onChange={(e) => setForm((c) => ({

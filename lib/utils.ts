@@ -6,7 +6,7 @@ export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
 }
 
-export function isDemoMode() {
+function isDemoMode() {
     if (typeof window === 'undefined') return false;
     return localStorage.getItem('demo_mode') === 'true' || 
            new URLSearchParams(window.location.search).get('demo') === '1';

@@ -41,7 +41,7 @@ interface EmailMessage {
     payload?: Record<string, unknown>;
 }
 
-export type NewRecordNotificationSource = 'internal' | 'public' | 'batch' | 'sheets-sync';
+type NewRecordNotificationSource = 'internal' | 'public' | 'batch' | 'sheets-sync';
 
 interface TestEmailOptions {
 
@@ -118,7 +118,8 @@ async function reserveDelivery(
             const { error: resetError } = await supabaseAdmin
                 .from('notification_delivery_log')
                 .update({ status: 'pending', error_message: null, payload, subject })
-                .eq('fingerprint', fingerprint);
+                .eq('fingerprint', fingerprint)
+                .neq('status', 'sent');
             return !resetError;
         }
 
@@ -406,7 +407,7 @@ const NOTIFICATION_ENTITY: Record<NotificationPayload['type'], string> = {
     COMMENT: 'IRRS_COMMENT',
 };
 
-export async function sendNotification(payload: NotificationPayload): Promise<void> {
+async function sendNotification(payload: NotificationPayload): Promise<void> {
     const entity = payload.targetDivision
         ? `${NOTIFICATION_ENTITY[payload.type]}_${payload.targetDivision.toUpperCase()}`
         : NOTIFICATION_ENTITY[payload.type];

@@ -207,7 +207,7 @@ function ReportDocumentDownloads({ reportId, isJoumpa }: { reportId: string; isJ
           className="jm-document-btn jm-document-btn--docx"
           onClick={() => download('docx')}
           disabled={controlsDisabled}
-          aria-label="Download the DOCX irregularity report form"
+          aria-label={`Download the DOCX ${isJoumpa ? 'JOUMPA' : 'irregularity'} report form`}
         >
           {loadingFormat === 'docx' ? <Loader2 size={14} className="animate-spin" /> : <FileText size={14} />}
           DOCX
@@ -218,7 +218,7 @@ function ReportDocumentDownloads({ reportId, isJoumpa }: { reportId: string; isJ
           className="jm-document-btn jm-document-btn--pdf"
           onClick={() => download('pdf')}
           disabled={controlsDisabled}
-          aria-label="Download the PDF irregularity report form"
+          aria-label={`Download the PDF ${isJoumpa ? 'JOUMPA' : 'irregularity'} report form`}
         >
           {loadingFormat === 'pdf' ? <Loader2 size={14} className="animate-spin" /> : <FileType2 size={14} />}
           PDF

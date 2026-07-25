@@ -69,10 +69,6 @@ interface BaseFilters {
   dateTo?: string;
 }
 
-const reportsCache: Record<string, { data: Report[], ts: number }> = {};
-const inflightRequests: Record<string, Promise<Report[]>> = {};
-const CACHE_DURATION = 1000 * 60 * 5;
-
 const CORE_FIELDS = [
   'id', 'date_of_event', 'created_at', 'hub', 'branch', 'reporting_branch', 'station_code',
   'area', 'terminal_area_category', 'apron_area_category', 'general_category',
@@ -286,6 +282,7 @@ export async function fetchBranchByAirline(filters: BaseFilters = {}): Promise<B
   });
 
   return Array.from(map.entries())
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     .map(([_, data]) => data)
     .sort((a, b) => b.count - a.count)
     .slice(0, 30);
@@ -313,6 +310,7 @@ export async function fetchRootCauseByAirline(filters: BaseFilters = {}): Promis
   });
 
   return Array.from(map.entries())
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     .map(([_, data]) => data)
     .sort((a, b) => b.count - a.count)
     .slice(0, 15);

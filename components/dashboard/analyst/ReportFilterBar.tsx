@@ -151,7 +151,7 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
               />
             </FilterInput>
             <FilterSelect label="Hub" icon={Building2} value={hub} onChange={onHub} emptyLabel="All hubs" options={options.hubs} />
-            <FilterSelect label="Station" icon={Building2} value={branch} onChange={onBranch} emptyLabel="All branches" options={options.branches} />
+            <FilterSelect label="Station" icon={Building2} value={branch} onChange={onBranch} emptyLabel="All stations" options={options.branches} />
             <FilterSelect label="Airlines" icon={Plane} value={airline} onChange={onAirline} emptyLabel="All airlines" options={options.airlines} />
             <FilterSelect label="Category" icon={Tag} value={category} onChange={onCategory} emptyLabel="All categories" options={options.categories} />
             <FilterSelect label="Case Classification" icon={Tag} value={caseClassification} onChange={onCaseClassification} emptyLabel="All classifications" options={options.caseClassifications} />

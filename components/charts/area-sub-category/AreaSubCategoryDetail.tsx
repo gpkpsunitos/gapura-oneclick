@@ -358,49 +358,6 @@ export default function AreaSubCategoryDetail({
     return filteredReports.filter((r) => cleanLabel(r[categoryField]) === focusedCategory);
   }, [filteredReports, focusedCategory, categoryField]);
 
-  const rootCausePareto = useMemo(() => {
-    const map = new Map<string, number>();
-    focusedReports.forEach((r) => {
-      const cause = cleanLabel(r.root_caused);
-      if (!isValidLabel(cause)) return;
-      map.set(cause, (map.get(cause) || 0) + 1);
-    });
-
-    const total = focusedReports.length || 1;
-    let running = 0;
-    return Array.from(map.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 10)
-      .map(([cause, count]) => {
-        running += count;
-        return {
-          cause,
-          count,
-          cumulative: (running / total) * 100,
-        };
-      });
-  }, [focusedReports]);
-
-  const severityData = useMemo(() => {
-    const map = new Map<string, number>();
-    focusedReports.forEach((r) => {
-      const key = cleanLabel(r.severity || 'Unknown').toUpperCase();
-      map.set(key, (map.get(key) || 0) + 1);
-    });
-    return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-  }, [focusedReports]);
-
-  const statusData = useMemo(() => {
-    const map = new Map<string, number>();
-    focusedReports.forEach((r) => {
-      const key = cleanLabel(r.status || 'Unknown');
-      map.set(key, (map.get(key) || 0) + 1);
-    });
-    return Array.from(map.entries())
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-  }, [focusedReports]);
-
   const queryResult = useMemo<QueryResult>(() => {
     const columns = [
       'date_of_event',

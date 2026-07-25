@@ -14,6 +14,7 @@ import {
 } from '@/lib/pwa/offline-queue';
 import { PWA_QUEUE_EVENT } from '@/lib/pwa/constants';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function logQueueError(action: string, error: unknown) {
 }
 
@@ -160,7 +161,7 @@ export default function PWAProvider({ children }: { children: React.ReactNode })
             void ok;
           });
         });
-      }).catch((err) => {
+      }).catch(() => {
       });
     }
   }, []);

@@ -46,7 +46,6 @@ export const DEFAULT_REPORT_EXPORT_FILTERS: ReportExportFilters = {
   search: "",
 };
 
-// eslint-disable-next-line no-control-regex
 const ILLEGAL_XML_CHARS = /[\x00-\x08\x0b\x0c\x0e-\x1f\uD800-\uDFFF\ufffe\uffff]/g;
 
 function stripIllegalXmlChars(text: string): string {
@@ -110,19 +109,19 @@ export function resolveReportSource(report: Report): string {
     || "Manual";
 }
 
-export function resolveReportArea(report: Report): string {
+function resolveReportArea(report: Report): string {
   return cleanReportValue(report.area);
 }
 
-export function resolveCustomerType(report: Report): string {
+function resolveCustomerType(report: Report): string {
   return cleanReportValue(report.customer_joumpa);
 }
 
-export function resolveJoumpaCategory(report: Report): string {
+function resolveJoumpaCategory(report: Report): string {
   return cleanReportValue(report.category_case_joumpa);
 }
 
-export function resolveReportAreaCategory(report: Report): string {
+function resolveReportAreaCategory(report: Report): string {
   return cleanReportValue(report.primary_tag)
     || cleanReportValue(report.terminal_area_category)
     || cleanReportValue(report.apron_area_category)
@@ -130,13 +129,13 @@ export function resolveReportAreaCategory(report: Report): string {
     || resolveReportArea(report);
 }
 
-export function resolveReportRootCause(report: Report): string {
+function resolveReportRootCause(report: Report): string {
   return cleanReportValue(report.root_cause)
     || cleanReportValue(report.root_caused)
     || cleanReportValue(report.identification_of_root);
 }
 
-export function resolveReportActionTaken(report: Report): string {
+function resolveReportActionTaken(report: Report): string {
   return cleanReportValue(report.action_taken)
     || cleanReportValue(report.immediate_action)
     || cleanReportValue(report.gapura_kps_action_taken);
@@ -283,7 +282,7 @@ function uniqueReportLinks(values: unknown[]): string[] {
     .filter(Boolean)));
 }
 
-export interface ReportColumn {
+interface ReportColumn {
   header: string;
   kind: ExcelColumnKind;
   get: (report: Report) => string;

@@ -158,7 +158,7 @@ export function CustomerFeedbackFilterModal({
                             type="text" 
                             value={folder}
                             onChange={(e) => setFolder(e.target.value)}
-                            placeholder="Contoh: Quarterly Reports, Station Analytics"
+                            placeholder="Example: Quarterly Reports, Station Analytics"
                             list="filter-folder-list"
                             className="w-full px-3 py-2 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
                         />

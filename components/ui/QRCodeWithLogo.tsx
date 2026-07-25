@@ -1,7 +1,6 @@
 'use client';
 
 import { QRCodeSVG } from 'qrcode.react';
-import Image from 'next/image';
 
 interface QRCodeWithLogoProps {
   value: string;

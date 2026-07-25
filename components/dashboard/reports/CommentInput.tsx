@@ -18,7 +18,7 @@ interface CommentInputProps {
 export function CommentInput({
     reportId,
     onSuccess,
-    placeholder = "Ketik pesan...",
+    placeholder = "Type a message...",
 }: CommentInputProps) {
     const [content, setContent] = useState('');
     const [sending, setSending] = useState(false);
@@ -57,7 +57,7 @@ export function CommentInput({
             }
         } catch (err) {
             console.error('Failed to send comment', err);
-            setError('Terjadi kesalahan koneksi');
+            setError('Connection error occurred');
         } finally {
             setSending(false);
         }
@@ -108,7 +108,7 @@ export function CommentInput({
                     )}
                 >
                     {sending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                    <span>Kirim</span>
+                    <span>Send</span>
                 </button>
             </div>
         </div>

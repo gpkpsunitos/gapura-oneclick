@@ -111,7 +111,7 @@ export function AirlineDetailContent() {
     .map(([name, count]) => ({ name, count }))
     .sort((a, b) => b.count - a.count);
 
-  const title = airlineName ? `Detail: ${airlineName}` : 'Distribusi per Airline';
+  const title = airlineName ? `Detail: ${airlineName}` : 'Distribution by Airline';
 
   return (
     <>
@@ -121,7 +121,7 @@ export function AirlineDetailContent() {
 
       <header className="page-header">
         <h1 className="page-title">{title}</h1>
-        <p className="page-subtitle">{data?.summary.total || 0} laporan dalam {range === '7d' ? '7 hari' : '30 hari'} terakhir</p>
+        <p className="page-subtitle">{data?.summary.total || 0} reports in the last {range === '7d' ? '7 days' : '30 days'}</p>
       </header>
 
       <DateRangeFilter />

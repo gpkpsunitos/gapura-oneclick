@@ -138,6 +138,7 @@ export default function PublicJoumpaForm({
 
   const addFiles = (incoming: FileList | null) => {
     if (!incoming) return;
+    setError('');
     const next = [...files];
     for (const f of Array.from(incoming)) {
       if (next.length >= MAX_FILES) break;

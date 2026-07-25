@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import useSWR from 'swr';
 import { useData } from '@/lib/swr';
-import { RefreshCw, Loader2, Search, Filter, ChevronDown, ChevronUp, AlertTriangle, Link as LinkIcon, ExternalLink } from 'lucide-react';
+import { ChevronUp, Link as LinkIcon } from 'lucide-react';
 
 import { ResponsiveHeader } from '@/components/dashboard/analyst/ResponsiveHeader';
 import { ReportFilterBar } from '@/components/dashboard/analyst/ReportFilterBar';
@@ -98,8 +98,6 @@ const DashboardLinkModals = dynamic(
   ),
   { ssr: false }
 );
-
-import { AnalystCharts } from '@/components/dashboard/analyst/ChartSection';
 
 import { ChartSection } from '@/components/dashboard/analyst/ChartSection';
 
@@ -210,7 +208,7 @@ export function OSDivisionDashboard({
 
   const [refreshing, setRefreshing] = useState(false);
   const [shouldLoadCompleteReports, setShouldLoadCompleteReports] = useState(false);
-  const [exporting, setExporting] = useState<'excel' | 'pdf' | null>(null);
+  const [exporting] = useState<'excel' | 'pdf' | null>(null);
   const [showReportsExportModal, setShowReportsExportModal] = useState(false);
   const [dateRange, setDateRange] = useState<'all' | 'week' | 'month' | { from: string; to: string }>('all');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
@@ -423,7 +421,7 @@ export function OSDivisionDashboard({
     }
 
     return result;
-  }, [reports, dateRange, globalFilters, division.code]);
+  }, [reports, dateRange, globalFilters, lockedBranches]);
   const listFilterOptions = useMemo(() => {
     const uniqueSorted = (values: string[]) => Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b));
     return {
@@ -612,7 +610,9 @@ export function OSDivisionDashboard({
   const drilldownUrl = (type: string, value: string) =>
     `/dashboard/analyst/drilldown?type=${type}&value=${encodeURIComponent(
       value
-    )}&period=${dateRange}`;
+    )}&period=${encodeURIComponent(
+      typeof dateRange === 'object' ? `${dateRange.from}:${dateRange.to}` : dateRange
+    )}`;
 
   const availableOptions = useMemo(() => {
     if (!hasCompleteReports && initialOverview) return initialOverview.filterOptions;

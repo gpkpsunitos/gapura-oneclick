@@ -1,6 +1,6 @@
 'use client';
 
-export interface ReportAnalyticsFilters {
+interface ReportAnalyticsFilters {
   dateFrom?: string;
   dateTo?: string;
   hub?: string;
@@ -14,7 +14,7 @@ export interface ReportAnalyticsFilters {
   gseOnly?: boolean;
 }
 
-export interface ReportAnalyticsResponse<T> {
+interface ReportAnalyticsResponse<T> {
   timestamp: number;
   count: number;
   reports: T[];
@@ -53,11 +53,11 @@ export function getReportDate(value?: string | number | null): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-export function formatMonthKey(date: Date): string {
+function formatMonthKey(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
-export function formatMonthLabel(monthKey: string): string {
+function formatMonthLabel(monthKey: string): string {
   const [year, month] = monthKey.split('-').map(Number);
   if (!year || !month) return monthKey;
   return new Intl.DateTimeFormat('id-ID', { month: 'short', year: 'numeric' }).format(new Date(year, month - 1, 1));
@@ -72,55 +72,6 @@ export function normalizeIssueCategory(value?: string | null): 'Irregularity' | 
   return 'Other';
 }
 
-export function classifyReportSource(report: {
-  reporter_email?: string | null;
-  reporter_name?: string | null;
-  category?: string | null;
-  main_category?: string | null;
-  irregularity_complain_category?: string | null;
-  case_classification?: string | null;
-  report?: string | null;
-  description?: string | null;
-}): 'Customer' | 'Internal' {
-  const category = normalizeIssueCategory(
-    report.case_classification ||
-      report.main_category ||
-      report.category ||
-      report.irregularity_complain_category ||
-      report.description ||
-      report.report
-  );
-
-  if (category === 'Irregularity' || category === 'Accidents / Incidents') return 'Internal';
-  if (category === 'Complaint' || category === 'Compliment') return 'Customer';
-
-  const email = String(report.reporter_email || '').toLowerCase();
-  const name = String(report.reporter_name || '').toLowerCase();
-  if (email.includes('@gapura') || email.includes('@appsdev') || email.includes('@sis') || name.includes('gapura')) {
-    return 'Internal';
-  }
-  return 'Customer';
-}
-
-export function normalizeStatus(value?: string | null): 'OPEN' | 'PROGRESS' | 'CLOSED' {
-  const normalized = String(value || '').toLowerCase();
-  if (normalized.includes('closed') || normalized.includes('selesai') || normalized.includes('done')) {
-    return 'CLOSED';
-  }
-  if (normalized.includes('progress') || normalized.includes('verifikasi') || normalized.includes('pending') || normalized.includes('menunggu')) {
-    return 'PROGRESS';
-  }
-  return 'OPEN';
-}
-
-export function normalizeSeverity(value?: string | null): 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW' {
-  const normalized = String(value || '').toLowerCase();
-  if (normalized.includes('critical')) return 'CRITICAL';
-  if (normalized.includes('high')) return 'HIGH';
-  if (normalized.includes('medium')) return 'MEDIUM';
-  return 'LOW';
-}
-
 export function pickBranch<T extends Record<string, unknown>>(report: T): string {
   return String(
     report.branch ||
@@ -133,13 +84,6 @@ export function pickBranch<T extends Record<string, unknown>>(report: T): string
 
 export function pickAirline<T extends Record<string, unknown>>(report: T): string {
   return String(report.airlines || report.airline || report.jenis_maskapai || 'Unknown').trim() || 'Unknown';
-}
-
-export function topEntries(map: Map<string, number>, limit = 5) {
-  return Array.from(map.entries())
-    .map(([name, value]) => ({ name, value }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, limit);
 }
 
 export function buildMonthlySeries<T>(

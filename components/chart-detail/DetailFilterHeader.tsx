@@ -2,17 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Filter, RefreshCcw } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useFilterOptions } from '@/hooks/useFilterOptions';
 import { cn } from '@/lib/utils';
-
-interface FilterState {
-  hub: string;
-  branch: string;
-  airlines: string;
-  area: string;
-  sourceSheet: 'NON CARGO' | 'CGO';
-}
 
 interface DetailFilterHeaderProps {
   title: string;
@@ -38,7 +30,7 @@ export default function DetailFilterHeader({
   extraFilters
 }: DetailFilterHeaderProps) {
   const router = useRouter();
-  const { hubs, branches, airlines, areas, isLoading } = useFilterOptions(filters.sourceSheet);
+  const { hubs, branches, airlines, isLoading } = useFilterOptions(filters.sourceSheet);
 
   const getBackUrl = () => {
     if (sourcePage && sourcePage !== 'main') {

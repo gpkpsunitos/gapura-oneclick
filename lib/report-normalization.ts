@@ -9,7 +9,7 @@ export type CanonicalReportCategory =
 
 const EMPTY_VALUES = new Set(['', '-', '#n/a', '#n/a ()', 'null', 'undefined', 'nil']);
 
-export function cleanReportValue(value: unknown): string {
+function cleanReportValue(value: unknown): string {
   if (value === null || value === undefined) return '';
   const text = Array.isArray(value) ? value.join(' ') : String(value);
   const normalized = text.trim();
@@ -24,7 +24,7 @@ export function normalizeReportKey(value: unknown): string {
   return cleanReportValue(value).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
-export function toTitleCase(value: string): string {
+function toTitleCase(value: string): string {
   return value
     .split(/\s+/)
     .filter(Boolean)
@@ -182,7 +182,7 @@ export function resolveAreaType(report: Partial<Report>): string {
   return firstReportValue(report.area, report.primary_tag, 'General');
 }
 
-export function resolveAreaCategory(report: Partial<Report>): string {
+function resolveAreaCategory(report: Partial<Report>): string {
   return firstReportValue(
     report.terminal_area_category,
     report.apron_area_category,

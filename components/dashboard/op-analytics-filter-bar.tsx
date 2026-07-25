@@ -31,8 +31,8 @@ interface OpAnalyticsFilterBarProps {
 }
 
 const TIME_PRESETS = [
-  { key: '30d', label: '30 Hari' },
-  { key: '90d', label: '90 Hari' },
+  { key: '30d', label: '30 Days' },
+  { key: '90d', label: '90 Days' },
   { key: '6m', label: '6 Months' },
   { key: '1y', label: '1 Year' },
   { key: 'all', label: 'All' },

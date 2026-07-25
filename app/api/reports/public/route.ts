@@ -5,7 +5,6 @@ import { notifyNewRecordEmail, notifyNewReport } from '@/lib/notifications';
 import { persistReportMetadata } from '@/lib/report-persistence';
 import { checkDbRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
 import { linkEvidenceFilesToReport, normalizeEvidenceSubmissionId, validateEvidenceForReport } from '@/lib/evidence-files';
-import { findRegisteredUserByEmail } from '@/lib/user-lookup';
 import type { Report } from '@/types';
 import { signReportDocumentToken } from '@/lib/report-document-token';
 import { bumpSyncVersion } from '@/lib/sync-state';
@@ -23,6 +22,7 @@ export async function POST(request: Request) {
     const email = String(body.reporter_email || '').trim();
     const title = String(body.title || '').trim();
     const description = String(body.description || '').trim();
+    const reporterName = String(body.reporter_name || '').trim().slice(0, 200);
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Email tidak valid' }, { status: 400 });
@@ -80,14 +80,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Evidence wajib diunggah sebelum laporan dikirim' }, { status: 400 });
     }
 
-    // If the reporter e-mail belongs to a registered user, attribute the report
-    // to that account (owner + display name) instead of leaving it anonymous.
-    const registered = await findRegisteredUserByEmail(email);
-
+    // This is an unauthenticated public endpoint: the caller has not proven
+    // ownership of `email`, so a match against a registered account must not
+    // grant that account's identity or report visibility. Never auto-link
+    // user_id/full name from an unverified email — use only submitted values.
     const reportData: Partial<Report> = {
       reporter_email: email,
-      reporter_name: registered?.fullName || body.reporter_name || email,
-      user_id: registered?.userId || undefined,
+      reporter_name: reporterName || email,
+      user_id: undefined,
       title,
       description,
       location: body.location || '',
@@ -162,19 +162,22 @@ export async function POST(request: Request) {
     ]);
 
     const targetDivision = newReport.target_division || newReport.esklasi_divisi;
-    if (targetDivision) {
-      notifyNewReport(
-        String(newReport.id || newReport.original_id || ''),
-        targetDivision,
-        newReport.title || newReport.report || 'Untitled report',
-        String(newReport.priority || 'medium'),
-        newReport.sla_deadline || ''
-      ).catch((notificationError) => {
-        console.warn('[Public Report] Division new-report notification failed:', notificationError);
-      });
-    }
 
+    // Scheduled via after() rather than fire-and-forget: an un-awaited promise
+    // outside the request lifecycle risks being killed mid-flight once the
+    // response is sent on serverless. after() guarantees it runs to completion.
     after(async () => {
+      if (targetDivision) {
+        await notifyNewReport(
+          String(newReport.id || newReport.original_id || ''),
+          targetDivision,
+          newReport.title || newReport.report || 'Untitled report',
+          String(newReport.priority || 'medium'),
+          newReport.sla_deadline || ''
+        ).catch((notificationError) => {
+          console.warn('[Public Report] Division new-report notification failed:', notificationError);
+        });
+      }
       try {
         const state = await bumpSyncVersion('reports');
         await purgeDashboardSnapshots({ maxSyncVersion: Number(state.sync_version) });
@@ -184,11 +187,19 @@ export async function POST(request: Request) {
       }
     });
 
+    // The report is already committed by this point. A token-signing failure
+    // here must not surface as a submission failure (client could retry and
+    // create a duplicate report) — degrade to a missing token instead.
     const reportId = String(newReport.id || newReport.original_id || newReport.sheet_id || '');
-    const documentFinalizationToken = await signReportDocumentToken({
-      reportId,
-      reportType: 'IRREGULARITY',
-    });
+    let documentFinalizationToken: string | null = null;
+    try {
+      documentFinalizationToken = await signReportDocumentToken({
+        reportId,
+        reportType: 'IRREGULARITY',
+      });
+    } catch (tokenError) {
+      console.error('[Public Report] Document finalization token signing failed:', tokenError);
+    }
 
     return NextResponse.json({
       success: true,

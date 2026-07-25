@@ -4,6 +4,7 @@ import { SessionPayload } from '@/types';
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
 import { cache } from 'react';
+import { headers } from 'next/headers';
 
 const SECRET_KEY = process.env.JWT_SECRET;
 if (!SECRET_KEY) {
@@ -59,6 +60,26 @@ export function evictSessionCache(sid: string): void {
     sessionCache.delete(sid);
 }
 
+// proxy.ts verifies the session once per request and forwards the result via
+// this header so downstream layouts/pages/route handlers don't each re-verify
+// (JWT decode + a security_sessions/users DB join) independently. proxy.ts is
+// responsible for stripping any client-supplied copy before setting its own.
+export const TRUSTED_SESSION_HEADER = 'x-irrs-verified-session';
+
+async function getTrustedHeaderPayload(): Promise<SessionPayload | null> {
+    try {
+        // headers() throws when called outside a Server Component/Route
+        // Handler request scope — notably from inside proxy.ts itself, which
+        // is exactly where we must fall through to real verification instead.
+        const hdrs = await headers();
+        const raw = hdrs.get(TRUSTED_SESSION_HEADER);
+        if (!raw) return null;
+        return JSON.parse(raw) as SessionPayload;
+    } catch {
+        return null;
+    }
+}
+
 export async function hashPassword(password: string): Promise<string> {
     const salt = await bcrypt.genSalt(10);
     return bcrypt.hash(password, salt);
@@ -84,7 +105,30 @@ export async function signSession(
         .sign(key);
 }
 
+function mergeUserIntoSession(session: SessionPayload, u: Record<string, unknown>): SessionPayload {
+    const stationRelation = u.stations as
+        | { id: string; code: string; name: string }
+        | Array<{ id: string; code: string; name: string }>
+        | null
+        | undefined;
+    const station = Array.isArray(stationRelation) ? stationRelation[0] : stationRelation;
+
+    return {
+        ...session,
+        role: (u.role as string) || session.role,
+        division: (u.division as string) ?? session.division,
+        full_name: (u.full_name as string) ?? session.full_name,
+        email: (u.email as string) ?? session.email,
+        station_id: (u.station_id as string) ?? session.station_id,
+        station_code: station?.code ?? session.station_code,
+        station_name: station?.name ?? session.station_name,
+    };
+}
+
 async function verifySessionUncached(token: string): Promise<SessionPayload | null> {
+    const trusted = await getTrustedHeaderPayload();
+    if (trusted) return trusted;
+
     try {
         let session = await readSessionPayload(token);
         if (!session) {
@@ -106,10 +150,18 @@ async function verifySessionUncached(token: string): Promise<SessionPayload | nu
                 return cached;
             }
 
-            // Single query: join users via security_sessions.user_id to avoid a second round-trip
+            // Single query: join users (and stations) via security_sessions.user_id to
+            // avoid extra round-trips — this is the one DB-verified source of truth that
+            // getWorkspaceUser() and other call sites rely on via the returned payload.
             const { data, error: dbError } = await supabaseAdmin
                 .from('security_sessions')
-                .select('is_revoked, last_active, expires_at, user:users!user_id(role, status)')
+                .select(`
+                    is_revoked, last_active, expires_at,
+                    user:users!user_id (
+                        role, status, division, full_name, email, station_id,
+                        stations:station_id ( id, code, name )
+                    )
+                `)
                 .eq('session_id', session.sid)
                 .single();
 
@@ -129,7 +181,10 @@ async function verifySessionUncached(token: string): Promise<SessionPayload | nu
                 try {
                     const { data: userData } = await supabaseAdmin
                         .from('users')
-                        .select('role, status')
+                        .select(`
+                            role, status, division, full_name, email, station_id,
+                            stations:station_id ( id, code, name )
+                        `)
                         .eq('id', session.id)
                         .single();
 
@@ -144,6 +199,7 @@ async function verifySessionUncached(token: string): Promise<SessionPayload | nu
 
                     const remainingSeconds = Math.ceil(remainingMs / 1000);
                     await registerSession(session.id, session.sid, null, null, remainingSeconds);
+                    session = mergeUserIntoSession(session, userData as Record<string, unknown>);
                     setCachedSession(session.sid, session);
                 } catch (reregErr) {
                     console.warn(`[AUTH_UTILS] Session re-register failed:`, reregErr instanceof Error ? reregErr.message : reregErr);
@@ -171,9 +227,7 @@ async function verifySessionUncached(token: string): Promise<SessionPayload | nu
                 evictSessionCache(session.sid);
                 return null;
             }
-            if (u.role && u.role !== session.role) {
-                session = { ...session, role: u.role as string };
-            }
+            session = mergeUserIntoSession(session, u);
 
             setCachedSession(session.sid, session);
 

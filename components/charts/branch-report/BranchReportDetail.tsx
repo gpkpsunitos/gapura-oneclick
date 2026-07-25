@@ -110,7 +110,7 @@ function MonthlyTrendChart({ data }: { data: TrendDataPoint[] }) {
 }
 
 function CategoryStackedBar({ data }: { data: BranchCategoryData[] }) {
-  const rechartsData = data.slice(0, 10).map((d) => ({ name: d.branch.split(' '), Irregularity: d.Irregularity, Complaint: d.Complaint, Compliment: d.Compliment }));
+  const rechartsData = data.slice(0, 10).map((d) => ({ name: d.branch, Irregularity: d.Irregularity, Complaint: d.Complaint, Compliment: d.Compliment }));
   return (
     <div className="h-[240px] sm:h-[280px]">
       <ResponsiveContainer width="100%" height="100%">
@@ -304,6 +304,11 @@ export default function BranchReportDetail({ filters = {} }: { filters?: FilterP
     loadDeferredData();
 
     return () => controller.abort();
+    // filters is destructured to primitive fields so this effect doesn't
+    // re-fire on every parent re-render when filters gets a new object
+    // identity but the same values. All fields the fetch calls actually
+    // read are listed above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo, filters.sourceSheet]);
 
   if (loading) return <ReportLoading label="Loading station report…" />;

@@ -317,6 +317,11 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
     return () => {
       controller.abort();
     };
+    // filters is destructured to primitive fields so this effect doesn't
+    // re-fire on every parent re-render when filters gets a new object
+    // identity but the same values. All fields the fetch calls actually
+    // read are listed above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo, filters.sourceSheet]);
 
   if (loading) return <ReportLoading label="Loading hub report…" />;

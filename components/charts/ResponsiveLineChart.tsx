@@ -34,7 +34,6 @@ export function ResponsiveLineChart({
   data,
   xAxisKey = 'name',
   dataKeys,
-  title,
   className,
   height = 'h-[35vh] min-h-[180px] sm:min-h-[200px] lg:min-h-[240px] lg:h-[300px]',
   showLegend = true,

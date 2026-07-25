@@ -44,7 +44,7 @@ function normalizeTextArray(value: unknown, separator = /\s*(?:\||;|\n+)\s*/): s
     return values.length > 0 ? [...new Set(values)] : null;
 }
 
-export function resolveReportSheetId(report: Partial<Report>): string | null {
+function resolveReportSheetId(report: Partial<Report>): string | null {
     const sheetId = report.sheet_id || report.original_id || report.id;
     if (!sheetId) return null;
 
@@ -52,7 +52,7 @@ export function resolveReportSheetId(report: Partial<Report>): string | null {
     return trimmed || null;
 }
 
-export function resolveReportSourceFingerprint(report: Partial<Report>): string {
+function resolveReportSourceFingerprint(report: Partial<Report>): string {
     return String(report.source_fingerprint || buildReportFingerprint(report));
 }
 
@@ -193,7 +193,7 @@ export function buildReportsSyncRow(report: Partial<Report>): Record<string, unk
     };
 }
 
-export function buildLegacyReportRow(
+function buildLegacyReportRow(
     report: Partial<Report>,
     options?: { userId?: string | null }
 ): Record<string, unknown> {

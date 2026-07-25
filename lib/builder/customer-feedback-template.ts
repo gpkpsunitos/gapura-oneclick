@@ -17,7 +17,7 @@ function dateFilters(dateFrom: string, dateTo: string): QueryFilter[] {
 let tileCounter = 0;
 function tileId() { return `cft-${Date.now()}-${++tileCounter}`; }
 
-export interface DashboardOptions {
+interface DashboardOptions {
   filters?: {
     hubs?: string[];
     branches?: string[];
@@ -40,15 +40,6 @@ function arrayFilter(field: string, values: string[] | undefined): QueryFilter[]
 
 export function generateCustomerFeedbackDashboard(dateFrom: string, dateTo: string, options?: DashboardOptions): DashboardDefinition {
   tileCounter = 0;
-
-  const parseDate = (dateStr: string): Date => {
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-      const [year, month, day] = dateStr.split('-').map(Number);
-      return new Date(year, month - 1, day);
-    }
-    return new Date(dateStr);
-  };
 
   const df = dateFilters(dateFrom, dateTo);
 
@@ -77,13 +68,6 @@ export function generateCustomerFeedbackDashboard(dateFrom: string, dateTo: stri
 
   const baseFilters = [...df, nonCargoFilter, ...hubFilters, ...branchFilters, ...airlineFilters, ...categoryFilters, ...divisionFilter];
   const cgoBaseFilters = [...df, cgoFilter, ...hubFilters, ...branchFilters, ...airlineFilters, ...categoryFilters, ...divisionFilter];
-
-  const fromDate = parseDate(dateFrom);
-  const toDate = parseDate(dateTo);
-
-  const fromYear = fromDate.getFullYear();
-  const toYear = toDate.getFullYear();
-  const yearRange = fromYear === toYear ? `${fromYear}` : `${fromYear} - ${toYear}`;
 
   const displayTitle = 'Customer Feedback Dashboard';
   const displayDescription = 'Comprehensive Customer Feedback Dashboard – Irregularity, Complaint & Compliment Report';

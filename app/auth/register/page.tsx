@@ -268,6 +268,7 @@ export default function RegisterPage() {
                             width={140}
                             height={50}
                             className="mx-auto object-contain w-[100px] sm:w-[140px] h-auto"
+                            style={{ height: 'auto' }}
                             priority
                         />
                     </div>

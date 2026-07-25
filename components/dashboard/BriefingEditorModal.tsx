@@ -33,7 +33,7 @@ export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, d
   const [signatureData, setSignatureData] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [, setUploadedUrl] = useState<string | null>(null);
 
   if (!isOpen) return null;
   if (typeof document === 'undefined') return null;

@@ -135,7 +135,7 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
       const filtered = structured.filter((row) => {
 
         if (filters.dateFrom || filters.dateTo) {
-          const dateField = row['Date of Event'] || row['Date_of_Event'] || row['Date'] || row['Date'] || '';
+          const dateField = row['Date of Event'] || row['Date_of_Event'] || row['Date'] || '';
           if (!dateField) return false;
 
           let rowDate: Date;

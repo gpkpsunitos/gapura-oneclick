@@ -136,7 +136,7 @@ export function DashboardHeader({
                         onClick={() => onCardClick?.('pending')}
                     />
                     <StatCard
-                        label="Selesai"
+                        label="Resolved"
                         value={resolvedReports}
                         icon={CheckCircle2}
                         variant="success"

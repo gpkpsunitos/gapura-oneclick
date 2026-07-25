@@ -77,7 +77,6 @@ export default function LoginForm() {
             }
 
             const normalizedRole = data?.role ? String(data.role).trim().toUpperCase() : '';
-            const normalizedDivision = data?.division ? String(data.division).trim().toUpperCase() : '';
             const dest = roleRedirects[normalizedRole] || '/dashboard/employee';
             router.push(dest);
         } catch (err: unknown) {

@@ -92,8 +92,6 @@ const excelSerialToDate = (val: string | number): Date | null => {
 const parseDateOnly = (val: string | number): string | null => {
 
   if (typeof val === 'string' && val.match(/^\d{1,2}\/\d{1,2}\/\d{4}/)) {
-      const parts = val.split('/');
-
       const d = new Date(val);
       if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
   }
@@ -314,7 +312,7 @@ export default function ImportDataPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Import Report Data</h1>
           <p className="text-gray-500 mt-1">
-              Mode Administrator untuk import data massal dari Google Sheets/Excel.
+              Administrator mode for bulk data import from Google Sheets/Excel.
           </p>
         </div>
 
@@ -325,7 +323,7 @@ export default function ImportDataPage() {
             className="flex items-center gap-2 px-4 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl font-bold hover:bg-emerald-100 transition-colors"
         >
             <FileSpreadsheet size={18} />
-            Menuju Excel
+            Open in Excel
         </a>
       </div>
 
@@ -480,7 +478,7 @@ export default function ImportDataPage() {
                       `}
                   >
                       {isUploading && <Loader2 size={18} className="animate-spin" />}
-                      {uploadStatus === 'success' ? 'Selesai' : isUploading ? 'Mengimport...' : 'Import Data Sekarang'}
+                      {uploadStatus === 'success' ? 'Done' : isUploading ? 'Importing...' : 'Import Data Now'}
                   </button>
               </div>
           </div>

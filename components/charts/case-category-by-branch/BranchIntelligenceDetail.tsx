@@ -285,7 +285,12 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
     }
 
     loadData();
-  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.dateFrom, filters.dateTo]);
+    // filters is destructured to primitive fields so this effect doesn't
+    // re-fire on every parent re-render when filters gets a new object
+    // identity but the same values. All fields the fetch calls actually
+    // read are listed above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.sourceSheet, filters.dateFrom, filters.dateTo]);
 
   if (loading) return <ReportLoading label="Loading station intelligence…" />;
   if (error) return <ReportError message={error} onRetry={() => window.location.reload()} />;
@@ -317,10 +322,10 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
       align: 'center',
       render: (r) => {
         const tone = r.riskIndex >= 50
-          ? { label: 'Critical', cls: 'bg-[#fee2e2] text-[var(--cf-coral)]' }
+          ? { label: 'High', cls: 'bg-[#fee2e2] text-[var(--cf-coral)]' }
           : r.riskIndex >= 20
-            ? { label: 'Elevated', cls: 'bg-[#fef3c7] text-[var(--cf-amber)]' }
-            : { label: 'Stable', cls: 'bg-[#ecfccb] text-[var(--cf-lime)]' };
+            ? { label: 'Medium', cls: 'bg-[#fef3c7] text-[var(--cf-amber)]' }
+            : { label: 'Low', cls: 'bg-[#ecfccb] text-[var(--cf-lime)]' };
         return <span className={`cf-chip ${tone.cls}`}>{tone.label}</span>;
       },
     },

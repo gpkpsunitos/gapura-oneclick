@@ -11,8 +11,6 @@ import Image from 'next/image';
 import { STATUS_CONFIG, canPerformAction, type ReportStatus } from '@/lib/constants/report-status';
 import { DocxEditorModal } from '@/components/dashboard/DocxEditorModal';
 import { canEditReport } from '@/lib/permissions';
-import { generateWord } from '@/lib/utils/document-generator';
-import type { UserRole } from '@/types';
 
 import { supabase } from '@/lib/supabase';
 

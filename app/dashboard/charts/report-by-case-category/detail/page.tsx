@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import ReportByCaseCategoryDetail from '@/components/charts/report-by-case-category/ReportByCaseCategoryDetail';
 import DetailFilterHeader from '@/components/chart-detail/DetailFilterHeader';
@@ -15,7 +15,6 @@ interface FilterState {
 }
 
 export default function ReportByCaseCategoryPage() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const sourceSheet = searchParams.get('sourceSheet') === 'CGO' ? 'CGO' : 'NON CARGO';
   const sourcePage = searchParams.get('sourcePage') || searchParams.get('originSlug') || 'customer-feedback-main';

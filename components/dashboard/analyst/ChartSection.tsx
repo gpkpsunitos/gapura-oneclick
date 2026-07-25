@@ -2,7 +2,7 @@
 
 import { useMemo } from 'react';
 import { calculateComparisonData } from '@/lib/utils/comparison-utils';
-import type { Report, AnalyticsData, ComparisonData } from '@/types';
+import type { Report, AnalyticsData } from '@/types';
 import type { DivisionConfig } from '@/components/dashboard/AnalyticsDashboard';
 
 import dynamic from 'next/dynamic';
@@ -236,7 +236,7 @@ export function ChartSection({
       .slice(0, 10);
     result.monthlyReportData = Array.from(dataMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([_, val]) => ({
+      .map(([, val]) => ({
         month: `${val.date.getFullYear()} ${val.date.toLocaleString('en-US', { month: 'short' })}`,
         irregularity: val.irregularity,
         complaint: val.complaint,
@@ -259,7 +259,7 @@ export function ChartSection({
 
     result.monthlyComparisonData = Array.from(monthlyCompMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([_, val]) => {
+      .map(([, val]) => {
         const rate = val.masuk > 0 ? Math.round((val.selesai / val.masuk) * 100) : 0;
         return {
           month: `${val.date.getFullYear()} ${val.date.toLocaleString('en-US', { month: 'short' })}`,

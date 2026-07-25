@@ -348,7 +348,7 @@ export async function PATCH(
             updates.status !== undefined &&
             String(updates.status).trim().toUpperCase() !== String(existingReport?.status || '').trim().toUpperCase();
 
-        if (updates.status !== undefined) {
+        if (isStatusChange) {
             try {
                 const actorName = payload.full_name || payload.email || 'Unknown';
                 const actorDivision = payload.division || payload.role || '-';

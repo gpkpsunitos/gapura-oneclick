@@ -30,7 +30,7 @@ function EmbedCaseCategoryByAirlineContent() {
 
   const isStatic = searchParams.get('viewMode') === 'static';
 
-  const [filters, setFilters] = useState<FilterState>({
+  const [filters] = useState<FilterState>({
     hub: searchParams.get('hub') || 'all',
     branch: searchParams.get('branch') || 'all',
     airlines: searchParams.get('airlines') || 'all',

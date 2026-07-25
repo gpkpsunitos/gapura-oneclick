@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useRef, useEffect, type ReactNode } from 'react';
-import { Bot, Send, Sparkles, Loader2, BarChart3, AlertTriangle, Shield, FileText, Search, Clock, Trash2 } from 'lucide-react';
+import { Bot, Send, Loader2, BarChart3, AlertTriangle, Shield, FileText, Search, Clock, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AnalysisFilters } from './AIAnalysisFilterPanel';
 import { 
@@ -226,7 +226,7 @@ function renderMarkdown(content: string): ReactNode {
             </pre>
           );
         }
-      } catch (err) {
+      } catch {
 
         elements.push(
           <div key={`chart-error-${index}`} className="p-4 my-4 bg-red-50 text-red-600 text-[10px] rounded-xl border border-red-200 font-mono">
@@ -387,6 +387,8 @@ function renderInline(text: string): ReactNode {
   return <>{parts}</>;
 }
 
+const DAILY_QUOTA = 5;
+
 export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -430,7 +432,7 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
         const limitMsg: ChatMessage = {
           id: crypto.randomUUID(),
           role: 'assistant',
-          content: `⚠️ **Batas harian tercapai.** Anda telah menggunakan 5/5 pertanyaan hari ini.${resetMsg}`,
+          content: `⚠️ **Daily limit reached.** You've used ${DAILY_QUOTA}/${DAILY_QUOTA} questions today.${resetMsg}`,
           ts: Date.now(),
         };
         setMessages((prev) => [...prev, limitMsg]);
@@ -540,7 +542,7 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
 
         {}
         <div className="space-y-8">
-          {messages.map((msg, idx) => (
+          {messages.map((msg) => (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -691,7 +693,7 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
               'text-[9px] font-mono tracking-widest uppercase',
               rateLimitExhausted ? 'text-red-400' : rateLimit.remaining <= 1 ? 'text-amber-500' : 'text-slate-400'
             )}>
-              {rateLimitExhausted ? 'Batas harian tercapai' : `${rateLimit.remaining + 1}/5 pertanyaan hari ini`}
+              {rateLimitExhausted ? 'Daily limit reached' : `${rateLimit.remaining + 1}/${DAILY_QUOTA} questions today`}
             </p>
           )}
         </div>

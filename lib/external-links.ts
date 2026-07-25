@@ -230,11 +230,3 @@ export function getLinkUrl(links: ExternalLinksMap | null, id: string): string {
 
 // NOTE: getExternalLinks() (server-side DB query) lives in lib/external-links-server.ts
 // to avoid importing supabaseAdmin (which depends on 'server-only') into client bundles.
-
-/**
- * Get all unique categories from defaults.
- */
-export function getCategories(): string[] {
-  const cats = new Set(Object.values(DEFAULT_EXTERNAL_LINKS).map((l) => l.category));
-  return Array.from(cats);
-}

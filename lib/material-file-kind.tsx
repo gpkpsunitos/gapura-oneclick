@@ -1,7 +1,7 @@
 import { FileSpreadsheet, FileText, Image as ImageIcon, Music, Paperclip, Video } from 'lucide-react';
 import type { ComponentType } from 'react';
 
-export interface FileKind {
+interface FileKind {
     ext: string;
     icon: ComponentType<{ className?: string }>;
     className: string;

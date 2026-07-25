@@ -26,6 +26,7 @@ export default function LoginPage() {
                         width={180}
                         height={68}
                         className="object-contain brightness-0 invert h-auto w-[140px] xl:w-[180px]"
+                        style={{ height: 'auto' }}
                     />
                 </div>
 
@@ -88,6 +89,7 @@ export default function LoginPage() {
                             width={200}
                             height={75}
                             className="object-contain w-[132px] h-auto"
+                            style={{ height: 'auto' }}
                         />
                         <div className="mt-5">
                             <h1 className="text-[1.9rem] font-bold tracking-[-0.04em] text-slate-900">Welcome Back</h1>

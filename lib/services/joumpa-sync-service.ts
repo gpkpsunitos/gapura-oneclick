@@ -19,8 +19,9 @@ import { buildJoumpaStatusUpdate, type JoumpaStatusUpdateInput } from '@/lib/jou
 const UPSERT_BATCH = 100;
 const DELETE_BATCH = 500;
 const PUSH_LIMIT = 50;
+const ORPHAN_SCAN_PAGE = 1000;
 
-export interface JoumpaSyncResult {
+interface JoumpaSyncResult {
   success: boolean;
   rows: number;
   upsertErrors: number;
@@ -62,6 +63,15 @@ export class JoumpaSyncService {
     }
   }
 
+  private static async fetchHeaders(): Promise<string[]> {
+    const sheets = await getGoogleSheets();
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: JOUMPA_SHEET_ID,
+      range: `'${JOUMPA_SHEET_NAME}'!1:1`,
+    });
+    return ((res.data.values?.[0] || []) as string[]).map((h) => clean(h));
+  }
+
   private static async fetchSheet(): Promise<{ headers: string[]; rows: JoumpaRow[] }> {
     const sheets = await getGoogleSheets();
     const res = await sheets.spreadsheets.values.get({
@@ -82,9 +92,15 @@ export class JoumpaSyncService {
   private static async performSync(): Promise<JoumpaSyncResult> {
     const started = Date.now();
     try {
-      const { headers, rows } = await this.fetchSheet();
+      const headers = await this.fetchHeaders();
 
-      // 1. Pull: Sheets -> Supabase (upsert by sheet_id, deterministic id)
+      // 1. Push: Supabase edits -> Sheets (updated_at > synced_at) first, so the
+      // pull below upserts a sheet snapshot that already reflects pending local
+      // edits instead of overwriting them with stale sheet values.
+      const pushed = await this.pushLocalUpdatesToSheets(headers);
+
+      // 2. Pull: Sheets -> Supabase (upsert by sheet_id, deterministic id)
+      const { rows } = await this.fetchSheet();
       let upsertErrors = 0;
       for (let i = 0; i < rows.length; i += UPSERT_BATCH) {
         const batch = rows.slice(i, i + UPSERT_BATCH);
@@ -97,11 +113,8 @@ export class JoumpaSyncService {
         }
       }
 
-      // 2. Delete rows removed from the sheet
+      // 3. Delete rows removed from the sheet
       const deleted = await this.deleteOrphans(rows);
-
-      // 3. Push: Supabase edits -> Sheets (updated_at > synced_at)
-      const pushed = await this.pushLocalUpdatesToSheets(headers);
 
       return {
         success: upsertErrors === 0,
@@ -118,6 +131,27 @@ export class JoumpaSyncService {
     }
   }
 
+  // The default PostgREST/Supabase row cap (1000) means a single unpaginated
+  // select silently truncates on large tables, making every row past the cap
+  // look orphaned. Page through with a stable order until a short page ends it.
+  private static async fetchAllSyncRowIds(): Promise<{ id: string; sheet_id: string }[]> {
+    const allRows: { id: string; sheet_id: string }[] = [];
+    let from = 0;
+    for (;;) {
+      const { data, error } = await supabaseAdmin
+        .from('joumpa_reports_sync')
+        .select('id, sheet_id')
+        .order('id', { ascending: true })
+        .range(from, from + ORPHAN_SCAN_PAGE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      allRows.push(...data);
+      if (data.length < ORPHAN_SCAN_PAGE) break;
+      from += ORPHAN_SCAN_PAGE;
+    }
+    return allRows;
+  }
+
   private static async deleteOrphans(rows: JoumpaRow[]): Promise<number> {
     // Fail closed: an empty fetch is far more likely a transient Sheets error
     // (429/5xx, quota, hidden sheet) than the user deleting every row. Deleting
@@ -128,12 +162,14 @@ export class JoumpaSyncService {
       return 0;
     }
     const currentSheetIds = new Set(rows.map((row) => row.sheet_id));
-    const { data, error } = await supabaseAdmin.from('joumpa_reports_sync').select('id, sheet_id');
-    if (error) {
-      console.warn('[JoumpaSync] orphan fetch failed:', error.message);
+    let allRows: { id: string; sheet_id: string }[];
+    try {
+      allRows = await this.fetchAllSyncRowIds();
+    } catch (error) {
+      console.warn('[JoumpaSync] orphan fetch failed:', error instanceof Error ? error.message : String(error));
       return 0;
     }
-    const orphans = (data || []).filter((row) => !currentSheetIds.has(row.sheet_id));
+    const orphans = allRows.filter((row) => !currentSheetIds.has(row.sheet_id));
     let deleted = 0;
     for (let i = 0; i < orphans.length; i += DELETE_BATCH) {
       const ids = orphans.slice(i, i + DELETE_BATCH).map((row) => row.id);
@@ -150,13 +186,21 @@ export class JoumpaSyncService {
 
   private static async pushLocalUpdatesToSheets(headers: string[]): Promise<number> {
     if (headers.length === 0) return 0;
-    const { data, error } = await supabaseAdmin
+    const { data: candidates, error } = await supabaseAdmin
       .from('joumpa_reports_sync')
       .select('*')
-      .filter('updated_at', 'gt', 'synced_at')
       .order('updated_at', { ascending: false })
-      .limit(PUSH_LIMIT);
-    if (error || !data || data.length === 0) return 0;
+      .limit(PUSH_LIMIT * 10);
+    if (error) {
+      console.warn('[JoumpaSync] dirty-row fetch failed:', error.message);
+      return 0;
+    }
+    if (!candidates || candidates.length === 0) return 0;
+
+    const data = (candidates as JoumpaRow[])
+      .filter((row) => !row.synced_at || new Date(row.updated_at) > new Date(row.synced_at))
+      .slice(0, PUSH_LIMIT);
+    if (data.length === 0) return 0;
 
     const sheets = await getGoogleSheets();
     const lastCol = columnLetter(headers.length - 1);
@@ -172,10 +216,18 @@ export class JoumpaSyncService {
           valueInputOption: 'RAW',
           requestBody: { values: [values] },
         });
-        await supabaseAdmin
+        // Guard on the updated_at observed at read time: if the row changed
+        // concurrently (another edit landed mid-push), skip the stamp so the
+        // row stays dirty and gets re-pushed on the next sync instead of the
+        // concurrent edit being silently marked as already synced.
+        const { error: stampError } = await supabaseAdmin
           .from('joumpa_reports_sync')
           .update({ synced_at: new Date().toISOString() })
-          .eq('id', row.id);
+          .eq('id', row.id)
+          .eq('updated_at', row.updated_at);
+        if (stampError) {
+          console.warn(`[JoumpaSync] synced_at stamp failed for row ${row.sheet_id}:`, stampError.message);
+        }
         pushed++;
       } catch (err) {
         console.warn(`[JoumpaSync] push row ${row.sheet_id} failed:`, err);
@@ -185,24 +237,34 @@ export class JoumpaSyncService {
   }
 
   static async updateReport(id: string, input: JoumpaStatusUpdateInput): Promise<JoumpaRow | null> {
-    const safeId = `"${id.replace(/"/g, '""')}"`;
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-    const filter = isUuid
-      ? `id.eq.${safeId},sheet_id.eq.${safeId}`
-      : `sheet_id.eq.${safeId}`;
 
-    const { data: rows, error: lookupError } = await supabaseAdmin
-      .from('joumpa_reports_sync')
-      .select('*')
-      .or(filter)
-      .limit(1);
-
-    if (lookupError) {
-      throw new Error(`Failed to load JOUMPA report: ${lookupError.message}`);
+    let currentRow: JoumpaRow | null = null;
+    try {
+      if (isUuid) {
+        const { data, error } = await supabaseAdmin
+          .from('joumpa_reports_sync')
+          .select('*')
+          .eq('id', id)
+          .limit(1);
+        if (error) throw error;
+        if (data && data.length > 0) currentRow = data[0] as JoumpaRow;
+      }
+      if (!currentRow) {
+        const { data, error } = await supabaseAdmin
+          .from('joumpa_reports_sync')
+          .select('*')
+          .eq('sheet_id', id)
+          .limit(1);
+        if (error) throw error;
+        if (data && data.length > 0) currentRow = data[0] as JoumpaRow;
+      }
+    } catch (lookupError) {
+      const message = lookupError instanceof Error ? lookupError.message : String(lookupError);
+      throw new Error(`Failed to load JOUMPA report: ${message}`);
     }
-    if (!rows || rows.length === 0) return null;
 
-    const currentRow = rows[0] as JoumpaRow;
+    if (!currentRow) return null;
     const rowNumber = Number(currentRow.row_number)
       || Number(String(currentRow.sheet_id || '').match(/!row_(\d+)$/)?.[1]);
     if (!rowNumber) {
@@ -284,31 +346,48 @@ export class JoumpaSyncService {
       insertDataOption: 'INSERT_ROWS',
       requestBody: { values: [buildSheetRowValues(headers, record)] },
     });
+    const appendedRange = appendRes.data.updates?.updatedRange;
 
-    const rowNumber = rowNumberFromRange(appendRes.data.updates?.updatedRange);
-    if (!rowNumber) {
-      throw new Error('Could not determine appended JOUMPA row number');
+    try {
+      const rowNumber = rowNumberFromRange(appendedRange);
+      if (!rowNumber) {
+        throw new Error('Could not determine appended JOUMPA row number');
+      }
+
+      const sheetId = `${JOUMPA_SHEET_NAME}!row_${rowNumber}`;
+      const nowIso = new Date().toISOString();
+      const fullRow: JoumpaRow = {
+        ...record,
+        id: joumpaIdFromSheetId(sheetId),
+        sheet_id: sheetId,
+        row_number: rowNumber,
+        created_at: nowIso,
+        updated_at: nowIso,
+        synced_at: nowIso,
+      };
+
+      const { error } = await supabaseAdmin
+        .from('joumpa_reports_sync')
+        .upsert(fullRow, { onConflict: 'sheet_id', ignoreDuplicates: false });
+      if (error) throw error;
+
+      return fullRow;
+    } catch (error) {
+      // The sheet append already committed a row before this failure. A caller
+      // retry would otherwise append a second row on top of this orphaned one,
+      // duplicating the JOUMPA entry. Best-effort clear it so retries stay clean.
+      if (appendedRange) {
+        try {
+          await sheets.spreadsheets.values.clear({
+            spreadsheetId: JOUMPA_SHEET_ID,
+            range: appendedRange,
+          });
+        } catch (cleanupError) {
+          console.error(`[JoumpaSync] Failed to clean up orphaned append at ${appendedRange}:`, cleanupError);
+        }
+      }
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`JOUMPA report creation failed after sheet append (range ${appendedRange ?? 'unknown'}): ${message}`);
     }
-
-    const sheetId = `${JOUMPA_SHEET_NAME}!row_${rowNumber}`;
-    const nowIso = new Date().toISOString();
-    const fullRow: JoumpaRow = {
-      ...record,
-      id: joumpaIdFromSheetId(sheetId),
-      sheet_id: sheetId,
-      row_number: rowNumber,
-      created_at: nowIso,
-      updated_at: nowIso,
-      synced_at: nowIso,
-    };
-
-    const { error } = await supabaseAdmin
-      .from('joumpa_reports_sync')
-      .upsert(fullRow, { onConflict: 'sheet_id', ignoreDuplicates: false });
-    if (error) throw error;
-
-    return fullRow;
   }
 }
-
-export const joumpaSyncService = new JoumpaSyncService();

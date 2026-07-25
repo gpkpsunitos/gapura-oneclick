@@ -105,7 +105,7 @@ export function Calendar({
           </div>
           <div className="text-center">
             <p className="text-[var(--text-secondary)] text-sm font-medium">Loading calendar...</p>
-            <p className="text-[var(--text-muted)] text-xs mt-0.5">Mengambil data kegiatan</p>
+            <p className="text-[var(--text-muted)] text-xs mt-0.5">Fetching event data</p>
           </div>
         </div>
       </div>
@@ -114,17 +114,17 @@ export function Calendar({
 
   const messages = {
     today: 'Today',
-    previous: 'Sebelumnya',
-    next: 'Selanjutnya',
+    previous: 'Previous',
+    next: 'Next',
     month: 'Month',
     week: 'Week',
-    day: 'Hari',
+    day: 'Day',
     agenda: 'Agenda',
     date: 'Date',
-    time: 'Waktu',
-    event: 'Kegiatan',
+    time: 'Time',
+    event: 'Event',
     noEventsInRange: 'No events in this range.',
-    showMore: (total: number) => `+${total} lainnya`,
+    showMore: (total: number) => `+${total} more`,
   };
 
   return (

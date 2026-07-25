@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifySession } from '@/lib/auth-utils';
+import { verifySession, TRUSTED_SESSION_HEADER } from '@/lib/auth-utils';
 
 // Division roles land on the escalation select screen first; from there they
 // navigate to their own dashboard (or the green Customer Service card for OS/OCS).
@@ -88,13 +88,10 @@ export default async function proxy(request: NextRequest) {
     const isAuthPath = isAuthPagePath || isAuthApiPath;
     const isSyncEndpoint = path === '/api/admin/sync-reports';
     const isGoogleSheetsWebhook = path === '/api/integrations/google-sheets/webhook';
-    const isVirtualAssistantApi = path === '/api/virtual-assistant/launch' || path === '/api/virtual-assistant/consume';
     const isDevelopment = process.env.NODE_ENV === 'development';
-    const isPublicEmbedPath = path.startsWith('/embed') || 
+    const isPublicEmbedPath = path.startsWith('/embed') ||
                              path.startsWith('/api/embed') ||
                              path.startsWith('/api/master-data') ||
-                             isVirtualAssistantApi ||
-
                              path.startsWith('/api/reports/public') ||
                              path.startsWith('/api/reports/duplicates/check') ||
                              path.startsWith('/api/uploads/evidence/token') ||
@@ -112,6 +109,16 @@ export default async function proxy(request: NextRequest) {
         if (process.env.NODE_ENV === 'development') console.warn(`[MIDDLEWARE] Invalid session for path: ${path}`);
     }
 
+    // Forward the already-verified payload to the origin function so
+    // downstream layouts/pages/route handlers don't each re-verify (JWT +
+    // DB) independently. Always strip any client-supplied copy first so a
+    // request can never spoof this header — proxy.ts is the only writer.
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.delete(TRUSTED_SESSION_HEADER);
+    if (payload) {
+        requestHeaders.set(TRUSTED_SESSION_HEADER, JSON.stringify(payload));
+    }
+
     if (!isPublicPath && !payload && !isDemo) {
 
         if (path.startsWith('/api/')) {
@@ -125,7 +132,7 @@ export default async function proxy(request: NextRequest) {
     }
 
     if (isDemo && !payload) {
-        return NextResponse.next();
+        return NextResponse.next({ request: { headers: requestHeaders } });
     }
 
     if (payload) {
@@ -139,7 +146,7 @@ export default async function proxy(request: NextRequest) {
         }
 
         if (isAuthApiPath) {
-            return NextResponse.next();
+            return NextResponse.next({ request: { headers: requestHeaders } });
         }
 
         if (path === '/dashboard/employee') {
@@ -197,7 +204,7 @@ export default async function proxy(request: NextRequest) {
         }
     }
 
-    return NextResponse.next();
+    return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
 export const config = {

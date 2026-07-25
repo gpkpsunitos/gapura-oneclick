@@ -45,7 +45,7 @@ export function EventDetailModal({
   if (!event) return null;
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('id-ID', {
+    return new Date(dateStr).toLocaleDateString('en-GB', {
       weekday: 'long',
       year: 'numeric',
       month: 'long',
@@ -94,7 +94,7 @@ export function EventDetailModal({
               {event.is_recurring && (
                 <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-[oklch(0.55_0.18_280/0.1)] text-[oklch(0.55_0.18_280)] text-xs font-semibold">
                   <Repeat className="w-3 h-3" />
-                  Berulang ({event.recurrence_pattern === 'daily' ? 'Harian' : event.recurrence_pattern === 'weekly' ? 'Weekly' : 'Monthly'})
+                  Recurring ({event.recurrence_pattern === 'daily' ? 'Daily' : event.recurrence_pattern === 'weekly' ? 'Weekly' : 'Monthly'})
                 </div>
               )}
             </div>

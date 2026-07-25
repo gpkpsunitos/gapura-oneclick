@@ -193,7 +193,6 @@ function MonthBarChart({
       </div>
     );
   }
-  const max = Math.max(...rows.map((r) => r.total), 1);
   return (
     <div className="h-[280px] px-2 py-3">
       <ResponsiveContainer width="100%" height="100%">
@@ -227,7 +226,7 @@ function MonthBarChart({
               );
             }}
           />
-          <Bar dataKey="total" radius={[3, 3, 0, 0]} fill="var(--sr-accent)" onClick={(d: unknown) => { const row = d as { month: string; total: number; reports: Report[] }; onOpen(row.reports, `Month: ${row.month}`); }} style={{ cursor: 'pointer' }}>
+          <Bar dataKey="total" radius={[3, 3, 0, 0]} fill="var(--sr-accent)" onClick={(d: unknown) => { const row = (d as { payload: { month: string; total: number; reports: Report[] } }).payload; onOpen(row.reports, `Month: ${row.month}`); }} style={{ cursor: 'pointer' }}>
             <LabelList dataKey="total" position="top" style={{ fontSize: 11, fontWeight: 700, fill: 'var(--sr-text)' }} />
           </Bar>
         </BarChart>

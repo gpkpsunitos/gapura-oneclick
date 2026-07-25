@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { BuilderLayout, type SaveTile, type SaveConfig } from '@/components/builder/BuilderLayout';
-import { Trash2, ExternalLink, Clock, ChevronDown, ChevronUp, BarChart3, Pencil, FolderInput, Check } from 'lucide-react';
+import { Trash2, ExternalLink, Clock, ChevronDown, ChevronUp, BarChart3, Pencil, FolderInput } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface SavedDashboard {

@@ -97,6 +97,15 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
   const [aiStep, setAiStep] = useState(0);
   const [mobilePanel, setMobilePanel] = useState<null | 'fields' | 'config'>(null);
 
+  useEffect(() => {
+    if (!mobilePanel) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setMobilePanel(null);
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [mobilePanel]);
+
   const [cfDateFrom, setCfDateFrom] = useState('');
   const [cfDateTo, setCfDateTo] = useState('');
   const [cfFolder, setCfFolder] = useState('');
@@ -206,8 +215,8 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
         if (tile.query.dimensions.length > 0 || tile.query.measures.length > 0) {
           try {
 
-            const globalFields = globalFilterDefs.map(gf => gf.field);
-            const filteredTileFilters = tile.query.filters.filter(tf => !globalFields.includes(tf.field));
+            const globalFilterKeys = new Set(globalFilterDefs.map(gf => `${gf.table}:${gf.field}`));
+            const filteredTileFilters = tile.query.filters.filter(tf => !globalFilterKeys.has(`${tf.table}:${tf.field}`));
 
             const blendedQuery = {
               ...tile.query,
@@ -459,10 +468,16 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
             className={cn(
               "z-40 w-[85%] max-w-[320px] shrink-0 overflow-hidden bg-[var(--surface-1)] shadow-2xl transition-transform duration-300 ease-out",
               "fixed inset-y-0 left-0",
-              "xl:static xl:z-auto xl:w-[300px] xl:max-w-none xl:translate-x-0 xl:shadow-none",
-              mobilePanel === 'fields' ? "translate-x-0" : "-translate-x-full"
+              "xl:static xl:z-auto xl:w-[300px] xl:max-w-none xl:translate-x-0 xl:shadow-none xl:visible xl:pointer-events-auto",
+              mobilePanel === 'fields' ? "translate-x-0 visible pointer-events-auto" : "-translate-x-full invisible pointer-events-none"
             )}
           >
+            <div className="xl:hidden flex items-center justify-between px-3 py-2 border-b border-[var(--surface-4)]">
+              <span className="text-xs font-bold text-[var(--text-primary)]">Sumber Data</span>
+              <button onClick={() => setMobilePanel(null)} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg">
+                <X size={16} />
+              </button>
+            </div>
             <FieldSidebar
               source={qb.query.source}
               activeJoins={qb.query.joins.map(j => j.joinKey)}
@@ -710,8 +725,8 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
               className={cn(
                 "z-40 w-[85%] max-w-[320px] shrink-0 overflow-hidden bg-[var(--surface-1)] shadow-2xl transition-transform duration-300 ease-out",
                 "fixed inset-y-0 right-0",
-                "xl:static xl:z-auto xl:w-[280px] xl:max-w-none xl:translate-x-0 xl:shadow-none",
-                mobilePanel === 'config' ? "translate-x-0" : "translate-x-full"
+                "xl:static xl:z-auto xl:w-[280px] xl:max-w-none xl:translate-x-0 xl:shadow-none xl:visible xl:pointer-events-auto",
+                mobilePanel === 'config' ? "translate-x-0 visible pointer-events-auto" : "translate-x-full invisible pointer-events-none"
               )}
             >
               {}

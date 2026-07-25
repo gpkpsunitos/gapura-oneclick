@@ -16,11 +16,9 @@ import {
     Clock,
     LayoutGrid,
     List,
-    ChevronRight,
     Loader2,
     Move,
-    Filter,
-    ArrowRight
+    Filter
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
