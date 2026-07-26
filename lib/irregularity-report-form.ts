@@ -53,7 +53,14 @@ function toDateOnlyString(value: string): string {
   if (/^\d{4}-\d{2}-\d{2}/.test(value)) return value.slice(0, 10);
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toISOString().slice(0, 10);
+  // Non-ISO date-only strings (e.g. "March 15, 2026") parse as local
+  // midnight. Reading back local Y/M/D — instead of toISOString(), which
+  // converts to UTC — avoids shifting to the previous/next day for
+  // timezones east/west of UTC.
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function monthName(date: Date): string {

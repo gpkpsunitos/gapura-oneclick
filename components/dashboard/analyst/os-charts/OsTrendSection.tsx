@@ -57,7 +57,7 @@ function CategoryBarList({ data, color = '#08ad6f', title }: { data: readonly { 
             <div className="space-y-2">
                 {pageItems.map((item) => (
                     <div key={item.name} className="flex items-center gap-2">
-                        <span className="text-[11px] font-medium text-slate-600 w-[140px] shrink-0 whitespace-normal break-words leading-tight" title={item.name}>
+                        <span className="text-[11px] font-medium text-slate-600 w-[100px] sm:w-[140px] shrink-0 whitespace-normal break-words leading-tight" title={item.name}>
                             {item.name}
                         </span>
                         <div className="flex-1 flex items-center gap-1.5">
@@ -274,6 +274,17 @@ export function OsTrendSection({
         const take = timeframe === '3m' ? 3 : timeframe === '6m' ? 6 : 12;
         return { ...base, monthlyTrend: base.monthlyTrend.slice(-take) };
     }, [safeComparison, customComparison, timeframe, branchFilter.length, airlineFilter.length, areaFilter.length]);
+
+    // Was previously derived from the unfiltered `monthlyReportData` prop, so
+    // the Station/Airline/Area/Timeframe selectors above had no effect on
+    // this chart. displayComparison is already the correctly filtered,
+    // timeframe-scoped monthly series (see filteredReportsForCalc above); the
+    // extra slice(-12) only matters for 'all'/'custom' timeframes, which
+    // displayComparison otherwise leaves unbounded.
+    const trendChartData = useMemo(
+        () => (displayComparison?.monthlyTrend ?? []).slice(-12),
+        [displayComparison],
+    );
 
     const allSubCategories = useMemo(() => {
         const cats = new Set<string>();
@@ -594,11 +605,13 @@ export function OsTrendSection({
 
                         {}
                         <div className={cn(OS_CARD_CLASS, "p-6 group transition-all duration-500 hover:shadow-2xl")}>
-                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-6 opacity-70">Monthly Trend (Irregularity, Complaint, Compliment)</h3>
+                            <h3 className="text-[11px] font-black uppercase tracking-[0.2em] text-[#007073] mb-6 opacity-70">
+                                Monthly Trend ({focus === 'all' ? 'Irregularity, Complaint, Compliment' : focus === 'Total' ? 'Total' : focus})
+                            </h3>
                             <div className="h-[280px]">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <LineChart
-                                        data={monthlyReportData.slice(-12)}
+                                        data={trendChartData}
                                         margin={{ top: 5, right: 20, left: 0, bottom: 5 }}
                                     >
                                         <CartesianGrid strokeDasharray="2 6" vertical={false} stroke="#dfe7dd" />
@@ -614,49 +627,78 @@ export function OsTrendSection({
                                             tick={{ fill: 'var(--text-muted)', fontSize: 10, fontWeight: 600 }}
                                         />
                                         <Tooltip content={<CustomTooltip />} />
-                                        <Line
-                                            type="monotone"
-                                            dataKey="irregularity"
-                                            name="Irregularity"
-                                            stroke={REFERENCE_COLORS.irregularity}
-                                            strokeWidth={3}
-                                            dot={{ fill: REFERENCE_COLORS.irregularity, strokeWidth: 0, r: 4 }}
-                                            activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
-                                        />
-                                        <Line
-                                            type="monotone"
-                                            dataKey="complaint"
-                                            name="Complaint"
-                                            stroke={REFERENCE_COLORS.complaint}
-                                            strokeWidth={3}
-                                            dot={{ fill: REFERENCE_COLORS.complaint, strokeWidth: 0, r: 4 }}
-                                            activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
-                                        />
-                                        <Line
-                                            type="monotone"
-                                            dataKey="compliment"
-                                            name="Compliment"
-                                            stroke={REFERENCE_COLORS.compliment}
-                                            strokeWidth={3}
-                                            dot={{ fill: REFERENCE_COLORS.compliment, strokeWidth: 0, r: 4 }}
-                                            activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
-                                        />
+                                        {(focus === 'all' || focus === 'Irregularity') && (
+                                            <Line
+                                                type="monotone"
+                                                dataKey="irregularity"
+                                                name="Irregularity"
+                                                stroke={REFERENCE_COLORS.irregularity}
+                                                strokeWidth={3}
+                                                dot={{ fill: REFERENCE_COLORS.irregularity, strokeWidth: 0, r: 4 }}
+                                                activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
+                                            />
+                                        )}
+                                        {(focus === 'all' || focus === 'Complaint') && (
+                                            <Line
+                                                type="monotone"
+                                                dataKey="complaint"
+                                                name="Complaint"
+                                                stroke={REFERENCE_COLORS.complaint}
+                                                strokeWidth={3}
+                                                dot={{ fill: REFERENCE_COLORS.complaint, strokeWidth: 0, r: 4 }}
+                                                activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
+                                            />
+                                        )}
+                                        {(focus === 'all' || focus === 'Compliment') && (
+                                            <Line
+                                                type="monotone"
+                                                dataKey="compliment"
+                                                name="Compliment"
+                                                stroke={REFERENCE_COLORS.compliment}
+                                                strokeWidth={3}
+                                                dot={{ fill: REFERENCE_COLORS.compliment, strokeWidth: 0, r: 4 }}
+                                                activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
+                                            />
+                                        )}
+                                        {focus === 'Total' && (
+                                            <Line
+                                                type="monotone"
+                                                dataKey="total"
+                                                name="Total"
+                                                stroke={REFERENCE_COLORS.trend}
+                                                strokeWidth={3}
+                                                dot={{ fill: REFERENCE_COLORS.trend, strokeWidth: 0, r: 4 }}
+                                                activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
+                                            />
+                                        )}
                                     </LineChart>
                                 </ResponsiveContainer>
                             </div>
                             <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mt-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-lg shadow-emerald-500/20" style={{ background: REFERENCE_COLORS.irregularity }} />
-                                    <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Irregularity</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-lg shadow-blue-500/20" style={{ background: REFERENCE_COLORS.complaint }} />
-                                    <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Complaint</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-lg shadow-amber-500/20" style={{ background: REFERENCE_COLORS.compliment }} />
-                                    <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Compliment</span>
-                                </div>
+                                {(focus === 'all' || focus === 'Irregularity') && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-lg shadow-emerald-500/20" style={{ background: REFERENCE_COLORS.irregularity }} />
+                                        <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Irregularity</span>
+                                    </div>
+                                )}
+                                {(focus === 'all' || focus === 'Complaint') && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-lg shadow-blue-500/20" style={{ background: REFERENCE_COLORS.complaint }} />
+                                        <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Complaint</span>
+                                    </div>
+                                )}
+                                {(focus === 'all' || focus === 'Compliment') && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-lg shadow-amber-500/20" style={{ background: REFERENCE_COLORS.compliment }} />
+                                        <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Compliment</span>
+                                    </div>
+                                )}
+                                {focus === 'Total' && (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shadow-lg" style={{ background: REFERENCE_COLORS.trend }} />
+                                        <span className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)]">Total</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

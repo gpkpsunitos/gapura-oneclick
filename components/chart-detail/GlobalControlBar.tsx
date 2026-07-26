@@ -22,27 +22,27 @@ export function GlobalControlBar({
     <motion.div 
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white border-b border-[#e0e0e0] sticky top-16 z-40 w-full px-6 py-3 shadow-sm flex items-center justify-between"
+      className="bg-white border-b border-[#e0e0e0] sticky top-16 z-40 w-full px-3 sm:px-6 py-3 shadow-sm flex items-center gap-4 overflow-x-auto"
     >
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4 sm:gap-6 shrink-0">
         {}
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-[#666] uppercase tracking-wider">Data View</span>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs font-semibold text-[#666] uppercase tracking-wider whitespace-nowrap">Data View</span>
           <div className="flex bg-[#f5f5f5] rounded-lg p-1 border border-[#e0e0e0]">
-            <ToggleButton 
-              active={viewMode === 'values'} 
+            <ToggleButton
+              active={viewMode === 'values'}
               onClick={() => setViewMode('values')}
               icon={<Hash size={14} />}
               label="Values"
             />
-            <ToggleButton 
-              active={viewMode === 'percentage'} 
+            <ToggleButton
+              active={viewMode === 'percentage'}
               onClick={() => setViewMode('percentage')}
               icon={<Percent size={14} />}
               label="%"
             />
-            <ToggleButton 
-              active={viewMode === 'ratio'} 
+            <ToggleButton
+              active={viewMode === 'ratio'}
               onClick={() => setViewMode('ratio')}
               icon={<Divide size={14} />}
               label="Ratio"
@@ -50,25 +50,25 @@ export function GlobalControlBar({
           </div>
         </div>
 
-        <div className="h-8 w-px bg-[#e0e0e0]" />
+        <div className="h-8 w-px bg-[#e0e0e0] shrink-0" />
 
         {}
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-[#666] uppercase tracking-wider">Normalize</span>
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs font-semibold text-[#666] uppercase tracking-wider whitespace-nowrap">Normalize</span>
           <div className="flex bg-[#f5f5f5] rounded-lg p-1 border border-[#e0e0e0]">
-            <ToggleButton 
-              active={normalization === 'none'} 
+            <ToggleButton
+              active={normalization === 'none'}
               onClick={() => setNormalization('none')}
               label="None"
             />
-            <ToggleButton 
-              active={normalization === 'row'} 
+            <ToggleButton
+              active={normalization === 'row'}
               onClick={() => setNormalization('row')}
               icon={<ArrowRightLeft size={14} />}
               label="Row"
             />
-            <ToggleButton 
-              active={normalization === 'col'} 
+            <ToggleButton
+              active={normalization === 'col'}
               onClick={() => setNormalization('col')}
               icon={<ArrowUpFromLine size={14} />}
               label="Col"
@@ -77,7 +77,7 @@ export function GlobalControlBar({
         </div>
       </div>
 
-      <div className="text-xs text-[#888] italic hidden lg:block">
+      <div className="text-xs text-[#888] italic hidden lg:block ml-auto shrink-0">
         * Global controls affect all pivot tables and heatmaps below
       </div>
     </motion.div>

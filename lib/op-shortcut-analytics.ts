@@ -9,8 +9,6 @@ interface ReportAnalyticsFilters {
   airlines?: string;
   sourceSheet?: string;
   esklasiRegex?: string;
-  esklasiDivision?: string;
-  targetDivision?: string;
   gseOnly?: boolean;
 }
 

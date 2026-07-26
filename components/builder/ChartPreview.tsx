@@ -668,7 +668,7 @@ export function ChartPreview({ visualization, result, compact = false, tile, das
         <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm mb-3">
           <span className="text-lg">🥧</span>
         </div>
-        <p className="text-[11px] font-bold text-slate-600 uppercase tracking-tight mb-1">Failed to Load Pie Chart</p>
+        <p className="text-[11px] font-bold text-slate-600 uppercase tracking-tight mb-1">Gagal Memuat Pie Chart</p>
         <p className="text-[10px] text-slate-400 mb-2">Kolom data numerik tidak ditemukan dalam hasil query.</p>
         <div className="flex flex-wrap justify-center gap-1 mt-1">
           {result.columns.map(c => (

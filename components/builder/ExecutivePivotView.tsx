@@ -27,6 +27,7 @@ const EXEC_COLORS = {
 export function ExecutivePivotView({
   result,
   viewMode = 'values',
+  normalization = 'none',
   isTile = false
 }: ExecutivePivotViewProps) {
 
@@ -97,15 +98,19 @@ export function ExecutivePivotView({
 
   if (!processedData) return null;
 
-  const { rows, cols, matrix, rowStats, grandTotal, rowField } = processedData;
+  const { rows, cols, matrix, rowStats, colStats, grandTotal, rowField } = processedData;
 
-  const topAirline = rows[0];
-  const topAirlineShare = (rowStats[topAirline].total / grandTotal * 100).toFixed(1);
+  const topAirline: string | undefined = rows[0];
+  const topAirlineShare = (topAirline && grandTotal > 0)
+    ? (rowStats[topAirline].total / grandTotal * 100).toFixed(1)
+    : '0.0';
 
   const top5 = rows.slice(0, 5);
 
-  const formatValue = (val: number, total: number) => {
-    if (viewMode === 'percentage') return `${((val / total) * 100).toFixed(1)}%`;
+  const formatValue = (val: number, rowTotal: number, colTotal: number) => {
+    if (normalization === 'row') return rowTotal > 0 ? `${((val / rowTotal) * 100).toFixed(1)}%` : '0.0%';
+    if (normalization === 'col') return colTotal > 0 ? `${((val / colTotal) * 100).toFixed(1)}%` : '0.0%';
+    if (viewMode === 'percentage') return rowTotal > 0 ? `${((val / rowTotal) * 100).toFixed(1)}%` : '0.0%';
     return val.toLocaleString('id-ID');
   };
 
@@ -126,7 +131,7 @@ export function ExecutivePivotView({
         <div className="grid grid-cols-1 gap-3">
           {top5.map((r, i) => {
             const stats = rowStats[r];
-            const pct = (stats.total / grandTotal) * 100;
+            const pct = grandTotal > 0 ? (stats.total / grandTotal) * 100 : 0;
             return (
               <div key={r} className="relative group">
                 <div className="flex items-center justify-between text-xs mb-1 relative z-10">
@@ -206,7 +211,7 @@ export function ExecutivePivotView({
                                  ${isMax ? 'text-emerald-700 font-bold' : (val === 0 ? 'text-gray-300' : 'text-gray-600')}
                                `}
                              >
-                               {val === 0 ? '-' : val.toLocaleString('id-ID')}
+                               {val === 0 ? '-' : formatValue(val, stats.total, colStats[c])}
                              </span>
                           </div>
                        </td>
@@ -214,8 +219,8 @@ export function ExecutivePivotView({
                    })}
 
                    <td className="px-6 py-3 text-right font-bold text-xs text-gray-900 border-l border-dashed border-gray-100 bg-white sticky right-0 z-10 group-hover:bg-gray-50 transition-colors">
-                     {viewMode === 'percentage' 
-                        ? `${((stats.total / grandTotal) * 100).toFixed(1)}%` 
+                     {viewMode === 'percentage'
+                        ? `${(grandTotal > 0 ? (stats.total / grandTotal) * 100 : 0).toFixed(1)}%`
                         : stats.total.toLocaleString('id-ID')
                      }
                    </td>

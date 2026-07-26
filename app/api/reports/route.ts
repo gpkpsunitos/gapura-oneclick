@@ -45,7 +45,6 @@ export async function GET(request: Request) {
                 airline: url.searchParams.get('airline') || url.searchParams.get('airlines'),
                 area: url.searchParams.get('area'),
                 sourceSheet: url.searchParams.get('sourceSheet'),
-                targetDivision: url.searchParams.get('targetDivision'),
             },
         });
 
@@ -266,7 +265,7 @@ export async function POST(request: Request) {
             }),
         ]);
 
-        const targetDivision = newReport.target_division || newReport.esklasi_divisi;
+        const targetDivision = newReport.esklasi_divisi;
         if (targetDivision) {
             notifyNewReport(
                 String(newReport.id || newReport.original_id || ''),

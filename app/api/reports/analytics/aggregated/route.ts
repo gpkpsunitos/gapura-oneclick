@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
-import { normalizeDivisionCode, reportsService, type ReportQueryFilters } from '@/lib/services/reports-service';
+import { reportsService, type ReportQueryFilters } from '@/lib/services/reports-service';
 import { AnalyticsProcessor } from '@/lib/services/analytics-processor';
 import { applyReportsRbacFilter } from '@/lib/reports-rbac';
 
@@ -26,15 +26,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing "view" parameter' }, { status: 400 });
     }
 
-    const divisionParam = searchParams.get('esklasiDivision') || searchParams.get('targetDivision');
-    const normalizedDivision = divisionParam ? normalizeDivisionCode(divisionParam) : undefined;
-    if (divisionParam && !normalizedDivision) {
-      return NextResponse.json(
-        { error: 'Invalid "esklasiDivision/targetDivision" parameter. Use one of: OP, OS, HT, HC.' },
-        { status: 400 }
-      );
-    }
-
     const filters: ReportQueryFilters = {
       dateFrom: searchParams.get('dateFrom') || undefined,
       dateTo: searchParams.get('dateTo') || undefined,
@@ -44,7 +35,6 @@ export async function GET(request: NextRequest) {
       airlines: searchParams.get('airlines') || undefined,
       sourceSheet: searchParams.get('sourceSheet') || undefined,
       esklasiRegex: searchParams.get('esklasiRegex') || searchParams.get('esklasi_regex') || undefined,
-      targetDivision: normalizedDivision,
       gseOnly: searchParams.get('gseOnly') === 'true',
     };
 

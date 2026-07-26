@@ -200,10 +200,14 @@ const PAGE_SIZE = 5;
 export function CategoryBarList({ data, color = '#4ade80', title, onClick }: { data: readonly { name: string; value: number }[]; color?: string; title?: string; onClick?: (item: { name: string; value: number }) => void }) {
   const [page, setPage] = useState(0);
   const totalPages = Math.ceil(data.length / PAGE_SIZE);
-  const pageItems = data.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  // Clamp instead of trusting `page` directly — if a filter change shrinks
+  // `data` while the user is on a later page, an unclamped index would slice
+  // past the end and render an empty page instead of the last valid one.
+  const safePage = Math.min(page, Math.max(0, totalPages - 1));
+  const pageItems = data.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
   const maxValue = data[0]?.value || 1;
-  const startIdx = page * PAGE_SIZE + 1;
-  const endIdx = Math.min((page + 1) * PAGE_SIZE, data.length);
+  const startIdx = safePage * PAGE_SIZE + 1;
+  const endIdx = Math.min((safePage + 1) * PAGE_SIZE, data.length);
 
   return (
     <div>
@@ -245,8 +249,8 @@ export function CategoryBarList({ data, color = '#4ade80', title, onClick }: { d
           </span>
           <button
             className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors"
-            disabled={page === 0}
-            onClick={() => setPage((p) => p - 1)}
+            disabled={safePage === 0}
+            onClick={() => setPage(safePage - 1)}
           >
             <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -254,8 +258,8 @@ export function CategoryBarList({ data, color = '#4ade80', title, onClick }: { d
           </button>
           <button
             className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors"
-            disabled={page >= totalPages - 1}
-            onClick={() => setPage((p) => p + 1)}
+            disabled={safePage >= totalPages - 1}
+            onClick={() => setPage(safePage + 1)}
           >
             <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -405,9 +409,13 @@ export function DetailReportTable<T extends Record<string, unknown>>({
 }) {
   const [page, setPage] = useState(0);
   const totalPages = Math.ceil(data.length / DETAIL_PAGE_SIZE);
-  const pageItems = data.slice(page * DETAIL_PAGE_SIZE, (page + 1) * DETAIL_PAGE_SIZE);
-  const startIdx = page * DETAIL_PAGE_SIZE + 1;
-  const endIdx = Math.min((page + 1) * DETAIL_PAGE_SIZE, data.length);
+  // Clamp instead of trusting `page` directly — if a filter change shrinks
+  // `data` while the user is on a later page, an unclamped index would slice
+  // past the end and render an empty page instead of the last valid one.
+  const safePage = Math.min(page, Math.max(0, totalPages - 1));
+  const pageItems = data.slice(safePage * DETAIL_PAGE_SIZE, (safePage + 1) * DETAIL_PAGE_SIZE);
+  const startIdx = safePage * DETAIL_PAGE_SIZE + 1;
+  const endIdx = Math.min((safePage + 1) * DETAIL_PAGE_SIZE, data.length);
 
   if (data.length === 0) {
     return <p className="text-xs text-gray-400 text-center py-4">No data</p>;
@@ -457,13 +465,13 @@ export function DetailReportTable<T extends Record<string, unknown>>({
             {startIdx}&ndash;{endIdx} / {data.length} records
           </span>
           <div className="flex items-center gap-2">
-            <button className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+            <button className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
               <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
             </button>
-            <span className="text-[10px] font-semibold text-gray-600 tabular-nums">Page {page + 1} / {totalPages}</span>
-            <button className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+            <span className="text-[10px] font-semibold text-gray-600 tabular-nums">Page {safePage + 1} / {totalPages}</span>
+            <button className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30 transition-colors" disabled={safePage >= totalPages - 1} onClick={() => setPage(safePage + 1)}>
               <svg className="w-4 h-4 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>

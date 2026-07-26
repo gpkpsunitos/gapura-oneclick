@@ -297,9 +297,25 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
 
         if (isFocused) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fetchCellIntelligence(focusedBranch!, focusedArea!, activeFilters as any, signal).then(setCellIntel);
+          fetchCellIntelligence(focusedBranch!, focusedArea!, activeFilters as any, signal)
+            .then((data) => {
+              if (!signal.aborted) setCellIntel(data);
+            })
+            .catch((err) => {
+              if (err?.name === 'AbortError') return;
+              console.error('Failed to load cell intelligence:', err);
+            });
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fetchBranchAreaPareto(activeFilters as any, signal).then((d) => setChartData((prev) => ({ ...prev, paretoData: d })));
+          fetchBranchAreaPareto(activeFilters as any, signal)
+            .then((d) => {
+              if (!signal.aborted) {
+                setChartData((prev) => ({ ...prev, paretoData: d }));
+              }
+            })
+            .catch((err) => {
+              if (err?.name === 'AbortError') return;
+              console.error('Failed to load branch/area pareto:', err);
+            });
         }
       } catch (err) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -349,6 +365,8 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           fetchAllAreaReports(activeFilters as any),
         ]);
+
+        if (controller.signal.aborted) return;
         setChartData((prev) => ({
           ...prev,
           rootCauseData: rootCause,
@@ -359,7 +377,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
       } catch (err) {
         console.error('Failed to load deferred area data:', err);
       } finally {
-        setTableLoading(false);
+        if (!controller.signal.aborted) setTableLoading(false);
       }
     }
 
@@ -424,7 +442,7 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
                   const params = new URLSearchParams(window.location.search);
                   params.delete('branch');
                   params.delete('area');
-                  window.location.href = `/dashboard/charts/area-report/detail?${params.toString()}`;
+                  window.location.href = `${window.location.pathname}?${params.toString()}`;
                 }}
                 className="cf-eyebrow mb-2 cursor-pointer"
               >

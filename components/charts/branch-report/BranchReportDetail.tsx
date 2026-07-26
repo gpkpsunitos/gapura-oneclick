@@ -249,7 +249,8 @@ export default function BranchReportDetail({ filters = {} }: { filters?: FilterP
       setLoading(true);
       setError(null);
       try {
-        const aggregated = await fetchAggregatedBranchReport(filters);
+        const aggregated = await fetchAggregatedBranchReport(filters, controller.signal);
+        if (controller.signal.aborted) return;
         if (aggregated && aggregated.branchData) {
           setChartData((prev) => ({
             ...prev,
@@ -289,6 +290,7 @@ export default function BranchReportDetail({ filters = {} }: { filters?: FilterP
           fetchAllBranchReports(filters),
         ]);
 
+        if (controller.signal.aborted) return;
         setChartData((prev) => ({ ...prev, rootCauseData: rootCause, airlineData: airline, areaData: area, tableData: table }));
       } catch (err) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -40,6 +40,26 @@ export function SaveDashboardModal({
   const folderListId = useId();
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
+  const savingRef = useRef(false);
+  const saveSessionRef = useRef(0);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    // Reset on every open, not just first mount — the modal stays mounted
+    // between opens, so without this a cancelled/saved session leaks its
+    // stale name/description or success screen into the next open. Bumping
+    // saveSessionRef also invalidates any save still in flight from the
+    // previous open, so its result can't paint over this fresh session.
+    saveSessionRef.current += 1;
+    savingRef.current = false;
+    setName(initialName);
+    setDescription(initialDescription);
+    setFolder(initialFolder);
+    setSaving(false);
+    setSavedUrl(null);
+    setCopied(false);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -75,12 +95,26 @@ export function SaveDashboardModal({
   if (typeof document === 'undefined') return null;
 
   const handleSave = async () => {
-    if (!name.trim()) return;
+    // setSaving() doesn't take effect until the next render, so a fast
+    // double-click can fire handleSave twice before the button disables —
+    // guard synchronously with a ref instead of relying on state.
+    if (!name.trim() || savingRef.current) return;
+    const session = saveSessionRef.current;
+    savingRef.current = true;
     setSaving(true);
-    const result = await onSave(name, description, folder.trim() || null);
-    setSaving(false);
-    if (result) {
-      setSavedUrl(result.embedUrl);
+    try {
+      const result = await onSave(name, description, folder.trim() || null);
+      // The modal may have been closed and reopened (new session) while this
+      // was in flight — don't paint a stale result over the fresh session.
+      if (session !== saveSessionRef.current) return;
+      if (result) {
+        setSavedUrl(result.embedUrl);
+      }
+    } finally {
+      if (session === saveSessionRef.current) {
+        savingRef.current = false;
+        setSaving(false);
+      }
     }
   };
 

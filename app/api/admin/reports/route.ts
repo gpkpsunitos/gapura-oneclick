@@ -52,7 +52,6 @@ export async function GET(request: Request) {
                 airline: searchParams.get('airline') || searchParams.get('airlines'),
                 area: searchParams.get('area'),
                 sourceSheet: searchParams.get('sourceSheet'),
-                targetDivision: searchParams.get('targetDivision'),
             },
         });
 

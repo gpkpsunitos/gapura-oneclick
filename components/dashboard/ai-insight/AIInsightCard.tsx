@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AlertTriangle, TrendingUp, TrendingDown, Sparkles, RefreshCw,
   CheckCircle2, AlertCircle, Activity, Info,
@@ -123,9 +123,32 @@ export function AIInsightCard({ report, className }: Props) {
     airline: report.airlines || report.airline || null,
     hub: report.hub || null,
     severity_observed: report.severity_level || report.severity || null,
-  }), [report]);
+    // Depend on the primitive fields actually read above, not the `report`
+    // object identity — a caller re-creating that object every render (a
+    // very common pattern) would otherwise retrigger the insight fetch on
+    // every render instead of only on real content changes.
+  }), [
+    report.report,
+    report.description,
+    report.title,
+    report.main_category,
+    report.irregularity_complain_category,
+    report.category,
+    report.area,
+    report.airlines,
+    report.airline,
+    report.hub,
+    report.severity_level,
+    report.severity,
+  ]);
 
-  async function fetchInsight() {
+  // A newer request (new report, or manual "Muat ulang") can resolve before
+  // an older in-flight one. Without a sequence guard, the older response can
+  // land last and overwrite state with insight data for the wrong report.
+  const requestSeqRef = useRef(0);
+
+  const fetchInsight = useCallback(async () => {
+    const seq = ++requestSeqRef.current;
     setLoading(true);
     setError(null);
     setData(null);
@@ -137,6 +160,7 @@ export function AIInsightCard({ report, className }: Props) {
         signal: AbortSignal.timeout(28_000),
       });
       const j = await r.json();
+      if (seq !== requestSeqRef.current) return;
       if (!r.ok) {
         setError(j?.error || `HTTP ${r.status}`);
         return;
@@ -148,16 +172,16 @@ export function AIInsightCard({ report, className }: Props) {
       }
       setData(parsed.data);
     } catch (e) {
+      if (seq !== requestSeqRef.current) return;
       setError(e instanceof Error ? e.message : 'Failed to load insight');
     } finally {
-      setLoading(false);
+      if (seq === requestSeqRef.current) setLoading(false);
     }
-  }
+  }, [payload]);
 
   useEffect(() => {
     fetchInsight();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [report.id]);
+  }, [fetchInsight]);
 
   return (
     <div className={cn('space-y-4', className)}>

@@ -43,7 +43,7 @@ function normalizeCategory(value: unknown): string {
   return normalized.split(' ').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 }
 
-function normalizeStatus(value: unknown): string {
+export function normalizeStatus(value: unknown): string {
   const normalized = normalizeKey(value).toUpperCase();
   if (!normalized) return 'OPEN';
   if (['CLOSED', 'SELESAI', 'DONE', 'RESOLVED'].includes(normalized)) return 'CLOSED';
@@ -69,14 +69,19 @@ function parseDate(value: unknown): Date | null {
   }
   const raw = clean(value);
   if (!raw) return null;
+  // UTC-based construction: new Date(y, m, d) builds local midnight, which
+  // isoDate()'s toISOString() then converts to UTC — shifting the calendar
+  // day for any host timezone with a non-zero offset (e.g. WIB, UTC+7,
+  // pushes local midnight back to the previous UTC day). Date.UTC keeps the
+  // parsed calendar day host-timezone-independent.
   const dmy = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})/);
   if (dmy) {
-    const date = new Date(+dmy[3], +dmy[2] - 1, +dmy[1]);
+    const date = new Date(Date.UTC(+dmy[3], +dmy[2] - 1, +dmy[1]));
     if (!Number.isNaN(date.getTime())) return date;
   }
   const iso = raw.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
   if (iso) {
-    const date = new Date(+iso[1], +iso[2] - 1, +iso[3]);
+    const date = new Date(Date.UTC(+iso[1], +iso[2] - 1, +iso[3]));
     if (!Number.isNaN(date.getTime())) return date;
   }
   const fallback = new Date(raw);

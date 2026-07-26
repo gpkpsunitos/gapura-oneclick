@@ -642,8 +642,8 @@ export default function DashboardManagerPage() {
                                 </AnimatePresence>
                             </div>
                         ) : (
-                            <div className="bg-[var(--surface-1)] rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                                <table className="w-full text-left">
+                            <div className="bg-[var(--surface-1)] rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
+                                <table className="w-full min-w-[640px] text-left">
                                     <thead>
                                         <tr className="bg-[var(--surface-2)] border-b border-gray-100 font-bold text-[10px] uppercase tracking-widest text-[var(--text-muted)]">
                                             <th className="px-6 py-4">Nama Dashboard</th>
@@ -674,9 +674,9 @@ export default function DashboardManagerPage() {
                                                                     className="bg-white border border-[var(--brand-primary)] rounded px-1 text-sm font-bold focus:outline-none"
                                                                 />
                                                             ) : (
-                                                                <p className="font-bold text-[var(--text-primary)] truncate max-w-[400px]">{dashboard.name}</p>
+                                                                <p className="font-bold text-[var(--text-primary)] truncate max-w-[250px] sm:max-w-[400px]">{dashboard.name}</p>
                                                             )}
-                                                            <p className="text-[10px] text-[var(--text-muted)] truncate max-w-[300px]">{dashboard.description || 'No description'}</p>
+                                                            <p className="text-[10px] text-[var(--text-muted)] truncate max-w-[250px] sm:max-w-[300px]">{dashboard.description || 'No description'}</p>
                                                         </div>
                                                     </div>
                                                 </td>

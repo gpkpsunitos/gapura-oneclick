@@ -8,6 +8,13 @@ import { PrismInput } from '@/components/ui/PrismInput';
 import { PrismButton } from '@/components/ui/PrismButton';
 import { PrismSelect } from '@/components/ui/PrismSelect';
 
+// toISOString() converts to UTC first, so a local-midnight Date shifts back
+// a day in any positive-UTC-offset timezone (e.g. all of Indonesia).
+function toLocalDateInput(date: Date): string {
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().split('T')[0];
+}
+
 interface EventModalProps {
   open: boolean;
   onClose: () => void;
@@ -59,7 +66,7 @@ export function EventModal({
         setEventEndDate(event.event_end_date || '');
       } else {
         setTitle('');
-        setEventDate(defaultDate ? defaultDate.toISOString().split('T')[0] : '');
+        setEventDate(defaultDate ? toLocalDateInput(defaultDate) : '');
         setEventTime('');
         setNotes('');
         setMeetingMinutesLink('');
@@ -127,7 +134,7 @@ export function EventModal({
       }
 
       if (!response.ok) {
-        let message = 'Failed to save event';
+        let message = 'Gagal menyimpan kegiatan';
         try {
           const err = await response.json();
           if (err && typeof err.error === 'string' && err.error) {
@@ -141,7 +148,7 @@ export function EventModal({
 
       await onSave();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to save event';
+      const message = err instanceof Error ? err.message : 'Gagal menyimpan kegiatan';
       setError(message);
     } finally {
       setSaving(false);
@@ -155,7 +162,7 @@ export function EventModal({
       setSaving(true);
       await onDelete(event.id);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Failed to delete event';
+      const message = err instanceof Error ? err.message : 'Gagal menghapus kegiatan';
       setError(message);
       setSaving(false);
     }
@@ -373,7 +380,7 @@ export function EventModal({
                       onChange={() => setEditScope('all')}
                       className="w-4 h-4 border-[oklch(0.85_0.02_90)] text-[var(--brand-primary)] focus:ring-[var(--brand-primary)] focus:ring-2"
                     />
-                    <span className="group-hover:text-[var(--text-primary)] transition-colors">All recurring events</span>
+                    <span className="group-hover:text-[var(--text-primary)] transition-colors">Semua kegiatan berulang</span>
                   </label>
                 </div>
               </fieldset>
@@ -393,13 +400,13 @@ export function EventModal({
             {event ? (
               showDeleteConfirm ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--text-muted)]">Delete?</span>
+                  <span className="text-xs text-[var(--text-muted)]">Hapus?</span>
                   <button
                     onClick={handleDelete}
                     disabled={saving}
                     className="px-3 py-1.5 text-xs font-semibold text-[oklch(0.55_0.2_25)] bg-[oklch(0.6_0.22_25/0.1)] hover:bg-[oklch(0.6_0.22_25/0.15)] rounded-lg transition-colors"
                   >
-                    Yes, Delete
+                    Ya, Hapus
                   </button>
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
@@ -415,7 +422,7 @@ export function EventModal({
                   className="px-3 py-1.5 text-sm text-[oklch(0.55_0.2_25)] hover:bg-[oklch(0.6_0.22_25/0.08)] rounded-lg transition-colors flex items-center gap-1.5"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
-                  Delete
+                  Hapus
                 </button>
               )
             ) : (

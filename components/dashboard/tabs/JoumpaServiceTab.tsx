@@ -647,10 +647,27 @@ function getJoumpaKpiRecords(metricId: JoumpaKpiId, data: Report[]) {
       return data.filter((report) => normalizeLower(report.status) === 'open');
     case 'closedRecord':
       return data.filter((report) => normalizeLower(report.status) === 'closed');
-    case 'station':
-      return data.filter((report) => normalizeText(resolveReportBranch(report), '-') !== '-');
-    case 'airlines':
-      return data.filter((report) => normalizeText(resolveReportAirline(report), '-') !== '-');
+    case 'station': {
+      // The tile shows a distinct-station count (new Set(...).size), so the
+      // drilldown must match: one representative report per station, not
+      // every report at that station.
+      const seenStations = new Set<string>();
+      return data.filter((report) => {
+        const key = normalizeText(resolveReportBranch(report), '-');
+        if (key === '-' || seenStations.has(key)) return false;
+        seenStations.add(key);
+        return true;
+      });
+    }
+    case 'airlines': {
+      const seenAirlines = new Set<string>();
+      return data.filter((report) => {
+        const key = normalizeText(resolveReportAirline(report), '-');
+        if (key === '-' || seenAirlines.has(key)) return false;
+        seenAirlines.add(key);
+        return true;
+      });
+    }
     case 'report':
     default:
       return data;
@@ -1055,13 +1072,9 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
     () => allReports.filter((report) => activeReportIds.has(report.id)),
     [activeReportIds, allReports]
   );
-  const [joumpaReports, setJoumpaReports] = useState<Report[]>([]);
   const scopedMainReports = useMemo(
-    () => {
-      const sourceReports = joumpaReports.length > 0 ? joumpaReports : activeMainReports;
-      return sourceReports.filter((r) => isJoumpaServiceReport(r) && hasValidKeyFields(r));
-    },
-    [activeMainReports, joumpaReports]
+    () => activeMainReports.filter((r) => isJoumpaServiceReport(r) && hasValidKeyFields(r)),
+    [activeMainReports]
   );
 
   const [voiceRecords, setVoiceRecords] = useState<JoumpaRecord[]>([]);
@@ -1079,7 +1092,6 @@ export function JoumpaServiceTab({ allReports, reports }: JoumpaServiceTabProps)
         const payload = await response.json();
         if (!isMounted) return;
         setVoiceRecords(Array.isArray(payload.records) ? payload.records : []);
-        setJoumpaReports(Array.isArray(payload.reports) ? payload.reports : []);
       } catch (error) {
         if (!isMounted) return;
         setVoiceError(error instanceof Error ? error.message : 'Failed to load Joumpa dataset');

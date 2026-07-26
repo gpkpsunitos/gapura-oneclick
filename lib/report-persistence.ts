@@ -186,7 +186,6 @@ export function buildReportsSyncRow(report: Partial<Report>): Record<string, unk
 
         primary_tag: report.primary_tag || null,
         sub_category_note: report.sub_category_note || null,
-        target_division: report.target_division || null,
 
         synced_at: new Date().toISOString(),
         sync_version: 1,
@@ -226,7 +225,6 @@ function buildLegacyReportRow(
         evidence_file_ids: normalizeTextArray(report.evidence_file_ids, /\s*[|,\n]\s*/) || null,
         evidence_submission_id: report.evidence_submission_id || null,
         primary_tag: report.primary_tag || null,
-        target_division: report.target_division || null,
         preventive_action: report.preventive_action || null,
         remarks_gapura_kps: report.remarks_gapura_kps || null,
         created_at: toIsoOrNow(report.created_at),

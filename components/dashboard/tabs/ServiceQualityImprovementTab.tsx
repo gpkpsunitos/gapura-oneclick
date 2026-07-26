@@ -237,6 +237,11 @@ function computeChronicIssues(reports: Report[]): ChronicRow[] {
     const [y, m] = key.split('-').map(Number);
     return new Date(Date.UTC(y, (m || 1) - 1, 1)).toLocaleString('en-US', { month: 'short', year: '2-digit', timeZone: 'UTC' });
   };
+  const shiftMonthKey = (key: string, delta: number): string => {
+    const [y, m] = key.split('-').map(Number);
+    const d = new Date(Date.UTC(y, (m || 1) - 1 + delta, 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  };
   const topOf = (rs: Report[], fn: (r: Report) => string): string => {
     const c: Record<string, number> = {};
     rs.forEach((r) => { const v = fn(r); if (hasValue(v)) c[v] = (c[v] || 0) + 1; });
@@ -246,10 +251,19 @@ function computeChronicIssues(reports: Report[]): ChronicRow[] {
     .filter((b) => b.months.size >= 3)
     .map((b) => {
       const sortedKeys = Array.from(b.months.keys()).sort();
-      const recent = sortedKeys.slice(-3).reduce((s, k) => s + (b.months.get(k) || 0), 0);
-      const prior = sortedKeys.slice(-6, -3).reduce((s, k) => s + (b.months.get(k) || 0), 0);
-      const trendDelta = recent - prior;
-      const trend: 'up' | 'down' | 'flat' = trendDelta > 0 ? 'up' : trendDelta < 0 ? 'down' : 'flat';
+      // Trend requires a genuine 6-consecutive-calendar-month window (3
+      // recent + 3 prior). b.months only has entries for months with data,
+      // so a gap (e.g. Jan, Feb, <skip>, May, Jun, Jul) must not be treated
+      // as if May/Jun/Jul followed Jan/Feb — that isn't a real prior window.
+      const lastKey = sortedKeys[sortedKeys.length - 1];
+      const last6Consecutive = Array.from({ length: 6 }, (_, i) => shiftMonthKey(lastKey, -(5 - i)));
+      const hasFullSixMonthWindow = last6Consecutive.every((k) => b.months.has(k));
+      const recent = last6Consecutive.slice(-3).reduce((s, k) => s + (b.months.get(k) || 0), 0);
+      const prior = last6Consecutive.slice(0, 3).reduce((s, k) => s + (b.months.get(k) || 0), 0);
+      const trendDelta = hasFullSixMonthWindow ? recent - prior : 0;
+      const trend: 'up' | 'down' | 'flat' = !hasFullSixMonthWindow
+        ? 'flat'
+        : trendDelta > 0 ? 'up' : trendDelta < 0 ? 'down' : 'flat';
       const openCount = b.reports.filter((r) => getStatus(r) !== 'CLOSED').length;
       const closedCount = b.reports.length - openCount;
       return {
@@ -823,8 +837,39 @@ function formatEvidenceLabel(link: string, index: number) {
   }
 }
 
+function DetailRecordsPanel({
+  filtered,
+  yearToggle,
+  areaToggle,
+}: {
+  filtered: Report[];
+  yearToggle: ReactNode;
+  areaToggle: ReactNode;
+}) {
+  const detailRows = useMemo(
+    () => filtered.map(buildDetailRow).sort((a, b) => b.ts - a.ts),
+    [filtered],
+  );
+  return (
+    <Panel headerExtra={<ChartFilterHeader yearToggle={yearToggle} areaToggle={areaToggle} />} title="Quality Records" aiContext={sqiAiContext('Quality Records', 'detail_table', detailRows.slice(0, 20))}>
+      <DetailTable rows={detailRows} />
+    </Panel>
+  );
+}
+
+const DETAIL_TABLE_PAGE_SIZE = 100;
+
 function DetailTable({ rows }: { rows: DetailRow[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(DETAIL_TABLE_PAGE_SIZE);
+  const [prevRows, setPrevRows] = useState(rows);
+  if (rows !== prevRows) {
+    setPrevRows(rows);
+    setVisibleCount(DETAIL_TABLE_PAGE_SIZE);
+    setExpandedId(null);
+  }
+
+  const visibleRows = useMemo(() => rows.slice(0, visibleCount), [rows, visibleCount]);
 
   const tdStyle: CSSProperties = {
     whiteSpace: 'normal',
@@ -836,6 +881,7 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
   };
 
   return (
+    <div>
     <div className="overflow-auto touch-scroll" style={{ height: '36rem' }}>
       <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 920, tableLayout: 'fixed' }}>
           <thead>
@@ -860,7 +906,7 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
                 </td>
               </tr>
             ) : (
-              rows.map((row) => {
+              visibleRows.map((row) => {
                 const isExpanded = expandedId === row.id;
                 const statusClass = row.status === 'CLOSED'
                   ? 'bg-[color:var(--sr-accent-soft)] text-[color:var(--sr-accent-dark)]'
@@ -967,6 +1013,18 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
             )}
           </tbody>
         </table>
+    </div>
+    {rows.length > visibleCount && (
+      <div className="flex justify-center border-t border-[color:var(--sr-border)] py-3">
+        <button
+          type="button"
+          onClick={() => setVisibleCount((c) => c + DETAIL_TABLE_PAGE_SIZE)}
+          className="rounded-md border border-[color:var(--sr-border)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[color:var(--sr-text-2)] transition-colors hover:bg-[color:var(--sr-sunken)]"
+        >
+          Show more ({rows.length - visibleCount} remaining)
+        </button>
+      </div>
+    )}
     </div>
   );
 }
@@ -1562,19 +1620,9 @@ export function ServiceQualityImprovementTab({ reports }: ServiceQualityImprovem
           <h2>Detailed Report Records</h2>
         </div>
         <YearCard reports={scopedReports}>{({ filtered: yearReports, toggle }) => (
-          <AreaCard reports={yearReports}>{({ filtered, toggle: areaToggle }) => {
-            const detailRows = filtered.map(buildDetailRow).sort((a, b) => b.ts - a.ts);
-            const detailTableKey = [
-              detailRows.length,
-              detailRows[0]?.id ?? '',
-              detailRows[detailRows.length - 1]?.id ?? '',
-            ].join(':');
-            return (
-              <Panel headerExtra={<ChartFilterHeader yearToggle={toggle} areaToggle={areaToggle} />} title="Quality Records" aiContext={sqiAiContext('Quality Records', 'detail_table', detailRows.slice(0, 20))}>
-                <DetailTable key={detailTableKey} rows={detailRows} />
-              </Panel>
-            );
-          }}</AreaCard>
+          <AreaCard reports={yearReports}>{({ filtered, toggle: areaToggle }) => (
+            <DetailRecordsPanel filtered={filtered} yearToggle={toggle} areaToggle={areaToggle} />
+          )}</AreaCard>
         )}</YearCard>
       </section>
 

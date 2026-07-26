@@ -608,8 +608,19 @@ function formatEvidenceLabel(link: string, index: number) {
   }
 }
 
+const DETAIL_TABLE_PAGE_SIZE = 100;
+
 function DetailTable({ rows }: { rows: DetailRow[] }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(DETAIL_TABLE_PAGE_SIZE);
+  const [prevRows, setPrevRows] = useState(rows);
+  if (rows !== prevRows) {
+    setPrevRows(rows);
+    setVisibleCount(DETAIL_TABLE_PAGE_SIZE);
+    setExpandedId(null);
+  }
+
+  const visibleRows = useMemo(() => rows.slice(0, visibleCount), [rows, visibleCount]);
 
   const tdStyle: CSSProperties = {
     whiteSpace: 'normal',
@@ -621,6 +632,7 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
   };
 
   return (
+    <div>
     <div className="overflow-auto touch-scroll" style={{ height: '36rem' }}>
         <table className="sr-table text-[12px]" style={{ width: '100%', minWidth: 900, tableLayout: 'fixed' }}>
           <thead>
@@ -644,7 +656,7 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
                 </td>
               </tr>
             ) : (
-              rows.map((row) => {
+              visibleRows.map((row) => {
                 const isExpanded = expandedId === row.id;
                 const statusClass = row.status === 'CLOSED'
                   ? 'bg-[color:var(--sr-accent-soft)] text-[color:var(--sr-accent-dark)]'
@@ -733,6 +745,18 @@ function DetailTable({ rows }: { rows: DetailRow[] }) {
             )}
           </tbody>
         </table>
+    </div>
+    {rows.length > visibleCount && (
+      <div className="flex justify-center border-t border-[color:var(--sr-border)] py-3">
+        <button
+          type="button"
+          onClick={() => setVisibleCount((c) => c + DETAIL_TABLE_PAGE_SIZE)}
+          className="rounded-md border border-[color:var(--sr-border)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[color:var(--sr-text-2)] transition-colors hover:bg-[color:var(--sr-sunken)]"
+        >
+          Show more ({rows.length - visibleCount} remaining)
+        </button>
+      </div>
+    )}
     </div>
   );
 }

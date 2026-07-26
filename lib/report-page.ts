@@ -50,7 +50,7 @@ export function resolveReportPageAccess(
     return scope === 'admin' ? { kind: 'forbidden' } : { kind: 'employee' };
   }
   // Division/partner roles see all reports company-wide. Automatic scoping by
-  // target_division was removed: that column is unpopulated, so scoping emptied
+  // division was removed: the underlying data is unpopulated, so scoping emptied
   // every division dashboard.
   if (role.startsWith('DIVISI_') || role.startsWith('PARTNER_')) {
     return { kind: 'company' };

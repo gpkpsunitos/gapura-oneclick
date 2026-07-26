@@ -84,10 +84,11 @@ export async function POST(request: Request) {
         }
 
         if (user.status !== 'active') {
-            let msg = 'Akun Anda belum aktif. Mohon hubungi admin.';
-            if (user.status === 'rejected') msg = 'Akun Anda telah ditolak.';
-            if (user.status === 'pending') msg = 'Akun Anda sedang dalam peninjauan admin.';
-            if (user.status === 'suspended') msg = 'Akun Anda sedang disuspend. Mohon hubungi admin.';
+            // The precise reason (pending/rejected/suspended) is logged for admins
+            // below, but not returned to the client — revealing it here would let
+            // anyone holding a valid email/password pair (e.g. from a breach)
+            // confirm the account's exact status.
+            const msg = 'Akun Anda tidak dapat digunakan untuk login saat ini. Mohon hubungi admin.';
 
             await logSecurityEvent({
                 source: 'auth-login-api',

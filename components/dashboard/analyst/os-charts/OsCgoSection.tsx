@@ -33,7 +33,7 @@ const CategoryBarList = ({ data, color = '#08ad6f' }: { data: readonly { name: s
         <div className="space-y-2">
             {data.slice(0, 5).map((item) => (
                 <div key={item.name} className="flex items-center gap-2">
-                    <span className="text-[11px] font-medium text-slate-600 w-[140px] shrink-0 whitespace-normal break-words leading-tight" title={item.name}>
+                    <span className="text-[11px] font-medium text-slate-600 w-[100px] sm:w-[140px] shrink-0 whitespace-normal break-words leading-tight" title={item.name}>
                         {item.name}
                     </span>
                     <div className="flex-1 flex items-center gap-1.5">

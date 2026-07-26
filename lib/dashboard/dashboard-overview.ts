@@ -18,6 +18,18 @@ function reportBranch(report: Partial<Report>): string {
   return String(report.station_code || report.branch || report.reporting_branch || '').trim();
 }
 
+// Date-only values (YYYY-MM-DD) parse as UTC midnight, but timestamps parse
+// with a local-time Date object — getFullYear() reads that back in the host
+// timezone, which can shift the year for reports near a UTC year boundary.
+// Extract the date-only year directly and use UTC semantics for timestamps.
+function extractYear(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const dateOnlyMatch = /^(\d{4})-\d{2}-\d{2}/.exec(value);
+  if (dateOnlyMatch) return Number(dateOnlyMatch[1]);
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.getUTCFullYear();
+}
+
 function isGseReport(report: Partial<Report>): boolean {
   if (report.category_case_gse || report.gse_available_requirement || report.gse_requirement) return true;
   const text = [
@@ -45,8 +57,7 @@ function buildOverviewFromReports(reports: Report[]): DashboardOverview {
   ].includes(String(report.severity || report.severity_level || '').trim().toUpperCase())).length;
   const years = Array.from(new Set(reports.map((report) => {
     const value = report.date_of_event || report.created_at;
-    const year = value ? new Date(value).getFullYear() : Number.NaN;
-    return Number.isFinite(year) ? year : null;
+    return extractYear(value as string | null | undefined);
   }).filter((year): year is number => year !== null))).sort((a, b) => a - b);
   const total = reports.length;
   const summary: DashboardStats = {
@@ -124,7 +135,7 @@ export async function getDashboardOverview(stationCodes?: readonly string[]): Pr
   // to the first display page.
   const reports = await reportsService.getReports({
     projection: 'list',
-    filters: normalizedStations.length === 1 ? { branch: normalizedStations[0] } : undefined,
+    filters: normalizedStations.length > 0 ? { branchIn: normalizedStations } : undefined,
   }) as Report[];
   const scopedReports = normalizedStations.length === 0
     ? reports

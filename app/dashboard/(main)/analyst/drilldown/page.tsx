@@ -26,6 +26,7 @@ export default function AnalystDrilldownPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let active = true;
         const fetchReports = async () => {
             setLoading(true);
             try {
@@ -47,15 +48,17 @@ export default function AnalystDrilldownPage() {
 
                 const res = await fetch(`/api/admin/reports?${params.toString()}`);
                 if (res.ok) {
-                    setAllReports(reportsFromPayload<Report>(await res.json()));
+                    const data = reportsFromPayload<Report>(await res.json());
+                    if (active) setAllReports(data);
                 }
             } catch (err) {
                 console.error('Failed to fetch drilldown data:', err);
             } finally {
-                setLoading(false);
+                if (active) setLoading(false);
             }
         };
         fetchReports();
+        return () => { active = false; };
     }, [period, type, value]);
 
     const filteredReports = useMemo(() => {

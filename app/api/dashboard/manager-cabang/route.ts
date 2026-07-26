@@ -26,16 +26,19 @@ export async function GET() {
         return NextResponse.json({ error: 'No station assigned' }, { status: 400 });
     }
 
-    const { data: station } = await supabaseAdmin
-        .from('stations')
-        .select('code, name')
-        .eq('id', stationId)
-        .single();
-
-    const { data: rows, error } = await supabaseAdmin
-        .from('ground_handling_irregularity_report')
-        .select('*')
-        .eq('station_id', stationId);
+    // station and rows both only depend on stationId (not on each other), so
+    // they can be fetched concurrently instead of one after the other.
+    const [{ data: station }, { data: rows, error }] = await Promise.all([
+        supabaseAdmin
+            .from('stations')
+            .select('code, name')
+            .eq('id', stationId)
+            .single(),
+        supabaseAdmin
+            .from('ground_handling_irregularity_report')
+            .select('*')
+            .eq('station_id', stationId),
+    ]);
 
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAISession, unauthorizedResponse, aiUnavailableResponse } from '@/lib/ai-route-helpers';
 import { callOpenRouterAI } from '@/lib/ai/openrouter';
 import { reportsService } from '@/lib/services/reports-service';
+import { canViewReport } from '@/lib/report-access';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -26,6 +27,7 @@ export async function POST(req: NextRequest) {
 
     const r = await reportsService.getReportById(String(reportId));
     if (!r) return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+    if (!canViewReport(session, r)) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     // Compact context — only fields that steer a recommendation.
     const ctx = {

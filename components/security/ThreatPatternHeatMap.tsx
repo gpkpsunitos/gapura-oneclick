@@ -64,35 +64,37 @@ export function ThreatPatternHeatMap({ events }: { events: SecurityAlert[] }) {
                 </div>
             </div>
 
-            <div className="grid grid-cols-6 gap-2">
-                {heatmapData.map((cell, idx) => {
+            <div className="overflow-x-auto">
+                <div className="grid min-w-[360px] grid-cols-6 gap-2">
+                    {heatmapData.map((cell, idx) => {
 
-                    const color = cell.intensity < 30 ? 'bg-emerald-50 text-emerald-700' 
-                                : cell.intensity < 70 ? 'bg-amber-100 text-amber-700' 
-                                : 'bg-rose-500 text-white';
+                        const color = cell.intensity < 30 ? 'bg-emerald-50 text-emerald-700'
+                                    : cell.intensity < 70 ? 'bg-amber-100 text-amber-700'
+                                    : 'bg-rose-500 text-white';
 
-                    return (
-                        <motion.div 
-                            key={`${cell.dim}-${cell.time}`}
-                            initial={{ scale: 0.8, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: idx * 0.01 }}
-                            whileHover={{ scale: 1.1, zIndex: 10 }}
-                            className={`aspect-square rounded-lg flex items-center justify-center text-[8px] font-bold shadow-sm cursor-help relative group ${color}`}
-                        >
-                            {cell.intensity}
-                            <div className="absolute bottom-full mb-2 hidden group-hover:block bg-slate-900 text-white text-[10px] p-2 rounded-md whitespace-nowrap z-50">
-                                {cell.dim} @ {cell.time}
-                            </div>
-                        </motion.div>
-                    );
-                })}
-            </div>
+                        return (
+                            <motion.div
+                                key={`${cell.dim}-${cell.time}`}
+                                initial={{ scale: 0.8, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                transition={{ delay: idx * 0.01 }}
+                                whileHover={{ scale: 1.1, zIndex: 10 }}
+                                className={`aspect-square rounded-lg flex items-center justify-center text-[8px] font-bold shadow-sm cursor-help relative group ${color}`}
+                            >
+                                {cell.intensity}
+                                <div className="absolute bottom-full mb-2 hidden group-hover:block bg-slate-900 text-white text-[10px] p-2 rounded-md whitespace-nowrap z-50">
+                                    {cell.dim} @ {cell.time}
+                                </div>
+                            </motion.div>
+                        );
+                    })}
+                </div>
 
-            <div className="flex justify-between pt-4 border-t border-slate-50">
-                {timeSlots.map(t => (
-                    <span key={t} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t}</span>
-                ))}
+                <div className="flex min-w-[360px] justify-between pt-4 border-t border-slate-50">
+                    {timeSlots.map(t => (
+                        <span key={t} className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t}</span>
+                    ))}
+                </div>
             </div>
         </div>
     );

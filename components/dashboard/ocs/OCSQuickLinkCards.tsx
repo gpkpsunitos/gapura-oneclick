@@ -104,7 +104,7 @@ export default function OCSQuickLinkCards() {
             >
               {canManage && (
                 <button
-                  className="absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center bg-white/20 hover:bg-white/35 text-white opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  className="absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center bg-white/20 hover:bg-white/35 text-white opacity-70 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10"
                   onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === link.id ? null : link.id); }}
                   aria-label="Options"
                 >
@@ -180,13 +180,14 @@ function LinkForm({
     if (!label.trim() || !url.trim()) return;
     setSaving(true);
     try {
-      await fetch('/api/ocs-links', {
+      const res = await fetch('/api/ocs-links', {
         method: isEdit ? 'PATCH' : 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(isEdit
           ? { id: link!.id, label, url, color, icon }
           : { label, url, color, icon }),
       });
+      if (!res.ok) throw new Error('save failed');
       onSaved();
     } catch {
       alert('Failed to save');

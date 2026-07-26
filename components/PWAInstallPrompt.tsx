@@ -188,6 +188,10 @@ export default function PWAInstallPrompt() {
 
     if (outcome === 'accepted') {
       setIsInstalled(true);
+    } else {
+      // Native dismissal should suppress the prompt for the same 7-day
+      // window as the in-app close button, or it reappears on next reload.
+      localStorage.setItem('pwa-install-dismissed', Date.now().toString());
     }
 
     setDeferredPrompt(null);

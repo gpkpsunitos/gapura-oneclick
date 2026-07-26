@@ -61,17 +61,22 @@ function baseSize(item: BentoItem): { colSpan: number; rowSpan: number } {
 }
 
 export function computeBento(items: BentoItem[], cols = BENTO_COLS): BentoSpan[] {
+  // A non-finite/fractional/non-positive cols value corrupts every span below
+  // it computes (NaN/negative spans) or, for Infinity specifically, makes the
+  // row-stretch `while (extra > 0)` loop below never terminate. Fall back to
+  // the default grid width instead of trusting an invalid caller-supplied value.
+  const safeCols = Number.isInteger(cols) && cols > 0 ? cols : BENTO_COLS;
   const sized = items.map((it) => {
     const s = baseSize(it);
-    return { id: it.id, colSpan: Math.min(s.colSpan, cols), rowSpan: s.rowSpan };
+    return { id: it.id, colSpan: Math.min(s.colSpan, safeCols), rowSpan: s.rowSpan };
   });
 
-  // greedy pack into rows that never overflow `cols`
+  // greedy pack into rows that never overflow `safeCols`
   const rows: BentoSpan[][] = [];
   let cur: BentoSpan[] = [];
   let used = 0;
   for (const s of sized) {
-    if (used + s.colSpan > cols && cur.length > 0) {
+    if (used + s.colSpan > safeCols && cur.length > 0) {
       rows.push(cur);
       cur = [];
       used = 0;
@@ -84,16 +89,24 @@ export function computeBento(items: BentoItem[], cols = BENTO_COLS): BentoSpan[]
   // stretch each row to fill full width + align heights
   for (const row of rows) {
     const total = row.reduce((sum, r) => sum + r.colSpan, 0);
-    let extra = cols - total;
-    let i = 0;
-    // hand extra columns to the widest tiles first for a natural look
-    const order = row
-      .map((_, idx) => idx)
-      .sort((a, b) => row[b].colSpan - row[a].colSpan);
-    while (extra > 0) {
-      row[order[i % row.length]].colSpan += 1;
-      extra--;
-      i++;
+    const extra = safeCols - total;
+    if (extra > 0) {
+      // hand extra columns to the widest tiles first for a natural look
+      const order = row
+        .map((_, idx) => idx)
+        .sort((a, b) => row[b].colSpan - row[a].colSpan);
+      // Equivalent to round-robin handing out `extra` single columns across
+      // `order` one at a time, but computed in O(row.length) instead of
+      // O(extra) — a huge caller-supplied `cols` used to make this loop once
+      // per extra column.
+      const fullPasses = Math.floor(extra / row.length);
+      const remainder = extra % row.length;
+      if (fullPasses > 0) {
+        row.forEach((r) => { r.colSpan += fullPasses; });
+      }
+      for (let i = 0; i < remainder; i++) {
+        row[order[i]].colSpan += 1;
+      }
     }
     const maxRow = Math.max(...row.map((r) => r.rowSpan));
     row.forEach((r) => {

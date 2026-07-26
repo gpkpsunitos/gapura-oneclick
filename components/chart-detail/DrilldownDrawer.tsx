@@ -263,6 +263,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 12 }}
             transition={{ type: 'spring', damping: 28, stiffness: 350 }}
+            className="px-4 sm:px-6 md:px-10 lg:px-[max(16px,10%)] 2xl:px-[max(16px,20%)]"
             style={{
               position: 'fixed',
               top: 0,
@@ -277,8 +278,6 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
               justifyContent: 'center',
               paddingTop: '16px',
               paddingBottom: '16px',
-              paddingLeft: 'max(16px, 20%)',
-              paddingRight: 'max(16px, 20%)',
               pointerEvents: 'none',
             }}
           >

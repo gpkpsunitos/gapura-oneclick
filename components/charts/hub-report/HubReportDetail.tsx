@@ -119,9 +119,9 @@ function CategoryStackedBar({ data }: { data: HubCategoryData[] }) {
           <YAxis tick={{ fontSize: 10, fill: 'var(--cf-ink-3)' }} />
           <RechartsTooltip contentStyle={{ fontSize: 11, borderRadius: 10, border: '1px solid var(--cf-line)' }} />
           <RechartsLegend wrapperStyle={{ fontSize: 10, paddingTop: 5 }} />
-          <RechartsBar dataKey="Irregularity" fill="var(--cf-coral)" radius={[4, 4, 0, 0]} />
-          <RechartsBar dataKey="Complaint" fill="var(--cf-amber)" radius={[4, 4, 0, 0]} />
-          <RechartsBar dataKey="Compliment" fill="var(--cf-lime)" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Irregularity" stackId="category" fill="var(--cf-coral)" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Complaint" stackId="category" fill="var(--cf-amber)" radius={[4, 4, 0, 0]} />
+          <RechartsBar dataKey="Compliment" stackId="category" fill="var(--cf-lime)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -254,7 +254,8 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
       setLoading(true);
       setError(null);
       try {
-        const aggregated = await fetchAggregatedHubReport(filters);
+        const aggregated = await fetchAggregatedHubReport(filters, controller.signal);
+        if (controller.signal.aborted) return;
         if (aggregated && aggregated.hubData) {
           setChartData((prev) => ({
             ...prev,
@@ -294,6 +295,7 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
           fetchAllHubReports(filters),
         ]);
 
+        if (controller.signal.aborted) return;
         setChartData((prev) => ({
           ...prev,
           rootCauseData: rootCause,

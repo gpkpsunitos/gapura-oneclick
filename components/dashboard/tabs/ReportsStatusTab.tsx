@@ -1,6 +1,6 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 import type { Report } from '@/types';
 import { useDrilldown } from '@/components/chart-detail/useDrilldown';
@@ -338,7 +338,23 @@ function buildRecordRow(r: Report, index: number): RecordRow {
   };
 }
 
-function RecordsTable({ rows, title, onRowClick }: { rows: RecordRow[]; title: string; onRowClick: (row: RecordRow) => void }) {
+const RECORDS_TABLE_PAGE_SIZE = 100;
+
+function RecordsTable({ rows, title, onRowClick, resetKey }: { rows: RecordRow[]; title: string; onRowClick: (row: RecordRow) => void; resetKey: string | number }) {
+  const [visibleCount, setVisibleCount] = useState(RECORDS_TABLE_PAGE_SIZE);
+  // `rows` is rebuilt inline on every render of the YearCard render-prop
+  // (not memoized), so it gets a new array reference even when the data
+  // hasn't changed — comparing by reference would reset pagination on
+  // nearly every render. `resetKey` (the selected year) only changes when
+  // the underlying dataset actually does.
+  const [prevResetKey, setPrevResetKey] = useState(resetKey);
+  if (resetKey !== prevResetKey) {
+    setPrevResetKey(resetKey);
+    setVisibleCount(RECORDS_TABLE_PAGE_SIZE);
+  }
+
+  const visibleRows = useMemo(() => rows.slice(0, visibleCount), [rows, visibleCount]);
+
   return (
     <Panel title={title} subtitle={`${rows.length} records`}>
       <div className="overflow-auto touch-scroll" style={{ height: '36rem' }}>
@@ -360,7 +376,7 @@ function RecordsTable({ rows, title, onRowClick }: { rows: RecordRow[]; title: s
           <tbody>
             {rows.length === 0 ? (
               <tr><td colSpan={10} className="!py-10 text-center text-[color:var(--sr-text-3)]">No data</td></tr>
-            ) : rows.map((row) => (
+            ) : visibleRows.map((row) => (
               <tr
                 key={row.id}
                 onClick={() => onRowClick(row)}
@@ -394,6 +410,17 @@ function RecordsTable({ rows, title, onRowClick }: { rows: RecordRow[]; title: s
           </tbody>
         </table>
       </div>
+      {rows.length > visibleCount && (
+        <div className="flex justify-center border-t border-[color:var(--sr-border)] py-3">
+          <button
+            type="button"
+            onClick={() => setVisibleCount((c) => c + RECORDS_TABLE_PAGE_SIZE)}
+            className="rounded-md border border-[color:var(--sr-border)] px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.06em] text-[color:var(--sr-text-2)] transition-colors hover:bg-[color:var(--sr-sunken)]"
+          >
+            Show more ({rows.length - visibleCount} remaining)
+          </button>
+        </div>
+      )}
     </Panel>
   );
 }
@@ -596,11 +623,13 @@ export function ReportsStatusTab({ reports }: ReportsStatusTabProps) {
                   rows={openRecords}
                   title={`Open Reports (${openCount})`}
                   onRowClick={(row) => openDrilldown([row.raw], `${row.branch} · ${row.airline} · ${row.date}`)}
+                  resetKey={year}
                 />
                 <RecordsTable
                   rows={closedRecords}
                   title={`Closed Reports (${closedCount})`}
                   onRowClick={(row) => openDrilldown([row.raw], `${row.branch} · ${row.airline} · ${row.date}`)}
+                  resetKey={year}
                 />
               </div>
             </section>

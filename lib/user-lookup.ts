@@ -28,6 +28,10 @@ export async function findRegisteredUserByEmail(email: string): Promise<Register
     .limit(1)
     .maybeSingle();
 
-  if (error || !data) return null;
+  // A lookup failure (network/DB error) is not the same as "no match" — the
+  // caller must be able to tell a transient error apart from a genuine
+  // unregistered e-mail instead of silently treating both as anonymous.
+  if (error) throw new Error(`findRegisteredUserByEmail lookup failed: ${error.message}`);
+  if (!data) return null;
   return { userId: data.id as string, fullName: (data.full_name as string) ?? null };
 }

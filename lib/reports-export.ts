@@ -46,10 +46,18 @@ export const DEFAULT_REPORT_EXPORT_FILTERS: ReportExportFilters = {
   search: "",
 };
 
-const ILLEGAL_XML_CHARS = /[\x00-\x08\x0b\x0c\x0e-\x1f\uD800-\uDFFF\ufffe\uffff]/g;
+const ILLEGAL_XML_CONTROL_CHARS = /[\x00-\x08\x0b\x0c\x0e-\x1f\ufffe\uffff]/g;
+// Strip only *unpaired* surrogates (invalid in XML) \u2014 a blanket
+// \uD800-\uDFFF match would also destroy valid surrogate pairs (e.g. emoji)
+// since both halves of a pair fall in that range individually.
+const UNPAIRED_HIGH_SURROGATE = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g;
+const UNPAIRED_LOW_SURROGATE = /(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
 
 function stripIllegalXmlChars(text: string): string {
-  return text.replace(ILLEGAL_XML_CHARS, "");
+  return text
+    .replace(ILLEGAL_XML_CONTROL_CHARS, "")
+    .replace(UNPAIRED_HIGH_SURROGATE, "")
+    .replace(UNPAIRED_LOW_SURROGATE, "");
 }
 
 export function cleanReportValue(value: unknown): string {
@@ -380,7 +388,6 @@ export const FULL_REPORT_COLUMNS: ReportColumn[] = [
   { header: "Partner Response Notes", kind: "multiline", get: field("partner_response_notes") },
   { header: "Validation Notes", kind: "multiline", get: field("validation_notes") },
   { header: "Escalation Division", kind: "text", get: field("esklasi_divisi") },
-  { header: "Target Division", kind: "text", get: field("target_division") },
   { header: "Reporter", kind: "text", get: (r) => cleanReportValue(r.reporter_name) || cleanReportValue(r.users?.full_name) },
   { header: "Reporter Email", kind: "text", get: field("reporter_email") },
   { header: "Created At", kind: "datetime", get: field("created_at") },
@@ -707,7 +714,12 @@ export async function exportReportsToDocx(reports: Report[], filters: ReportExpo
         new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "GAPURA ONECLICK ALL REPORTS EXPORT", bold: true, size: 26 })] }),
         new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: reportFilterSummary(filters), size: 16 })] }),
         new Paragraph({ text: "", spacing: { after: 100 } }),
-        table,
+        // Match the Excel/PDF exports: a header-only table with no rows
+        // gives no indication the export is empty, so show the same
+        // user-facing message instead of rendering the table shell.
+        ...(reports.length
+          ? [table]
+          : [new Paragraph({ children: [new TextRun({ text: "No reports matched the selected export filters.", size: 20 })] })]),
       ],
     }],
   });

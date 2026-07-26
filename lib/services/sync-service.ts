@@ -223,10 +223,16 @@ export class SyncService {
         rowCount: reports.length,
         bumpVersion: true,
       });
-      for (const report of syncResult.insertedReports) {
-        await notifyNewRecordEmail(report, 'sheets-sync').catch((notificationError) => {
-          console.warn('[SyncService] New-record sync notification failed:', notificationError);
-        });
+      // Batched rather than unbounded so a large sync batch doesn't fire
+      // every new-record email concurrently against the email provider.
+      const NOTIFY_BATCH_SIZE = 10;
+      for (let i = 0; i < syncResult.insertedReports.length; i += NOTIFY_BATCH_SIZE) {
+        const batch = syncResult.insertedReports.slice(i, i + NOTIFY_BATCH_SIZE);
+        await Promise.allSettled(batch.map((report) =>
+          notifyNewRecordEmail(report, 'sheets-sync').catch((notificationError) => {
+            console.warn('[SyncService] New-record sync notification failed:', notificationError);
+          })
+        ));
       }
 
       return {
@@ -546,24 +552,54 @@ export class SyncService {
 
       if (dirtyReports.length === 0) return 0;
 
+      // Bounded concurrency (not fully sequential, not unbounded) — the
+      // Sheets API enforces a per-minute write quota, so a small batch size
+      // cuts wall-clock time versus one row at a time without bursting it.
+      // synced_at is stamped in one batched update after the push, instead
+      // of one Supabase round trip per successful row.
+      const PUSH_BATCH_SIZE = 5;
+      const syncedRows: typeof dirtyReports = [];
+      for (let i = 0; i < dirtyReports.length; i += PUSH_BATCH_SIZE) {
+        const batch = dirtyReports.slice(i, i + PUSH_BATCH_SIZE);
+        const results = await Promise.allSettled(batch.map((report) =>
+          // report is the full DB row, so it's already the authoritative
+          // source being pushed out to Sheets here — no need to live-merge
+          // evidence/video URLs against a fresh Sheets read for every row.
+          reportsService.updateReport(report.sheet_id, report, { skipLiveFetch: true })
+        ));
+        results.forEach((result, idx) => {
+          const report = batch[idx];
+          if (result.status === 'fulfilled' && result.value) {
+            syncedRows.push(report);
+            pushed++;
+          } else if (result.status === 'rejected') {
+            console.warn(`[SyncService] Failed to push report ${report.sheet_id} to Sheets:`, result.reason);
+          }
+        });
+      }
 
-      for (const report of dirtyReports) {
-        try {
-
-            // report is the full DB row, so it's already the authoritative
-            // source being pushed out to Sheets here — no need to live-merge
-            // evidence/video URLs against a fresh Sheets read for every row.
-            const success = await reportsService.updateReport(report.sheet_id, report, { skipLiveFetch: true });
-            if (success) {
-
-                await supabaseAdmin
-                    .from('ground_handling_irregularity_report')
-                    .update({ synced_at: new Date().toISOString() })
-                    .eq('id', report.id);
-                pushed++;
+      if (syncedRows.length > 0) {
+        const stampedAt = new Date().toISOString();
+        for (let i = 0; i < syncedRows.length; i += PUSH_BATCH_SIZE) {
+          // Guard on the updated_at observed at read time: if the row
+          // changed concurrently (another edit landed mid-push), skip the
+          // stamp so it stays dirty and gets re-pushed next sync instead of
+          // the concurrent edit being silently marked as already synced.
+          const stampResults = await Promise.allSettled(syncedRows.slice(i, i + PUSH_BATCH_SIZE).map((report) =>
+            supabaseAdmin
+              .from('ground_handling_irregularity_report')
+              .update({ synced_at: stampedAt })
+              .eq('id', report.id)
+              .eq('updated_at', report.updated_at)
+          ));
+          stampResults.forEach((result, idx) => {
+            const report = syncedRows[i + idx];
+            if (result.status === 'rejected') {
+              console.warn(`[SyncService] Failed to stamp synced_at for ${report.sheet_id}:`, result.reason);
+            } else if (result.value.error) {
+              console.warn(`[SyncService] Failed to stamp synced_at for ${report.sheet_id}:`, result.value.error);
             }
-        } catch (err) {
-            console.warn(`[SyncService] Failed to push report ${report.sheet_id} to Sheets:`, err);
+          });
         }
       }
     } catch (err) {
@@ -725,19 +761,29 @@ export class SyncService {
       return { checked: 0, notified: 0 };
     }
 
+    // Batched (not fully sequential, not fully unbounded) so up to 200
+    // notifications don't fire 200 concurrent requests at the email
+    // provider, while still avoiding one-at-a-time round-trip waits.
+    const NOTIFY_BATCH_SIZE = 10;
     let notified = 0;
-    for (const report of overdue || []) {
-      const deadline = new Date(String(report.sla_deadline));
-      const hoursOverdue = Math.round((Date.now() - deadline.getTime()) / 3_600_000);
-      try {
-        await notifySLABreach(
+    const reports = overdue || [];
+    for (let i = 0; i < reports.length; i += NOTIFY_BATCH_SIZE) {
+      const batch = reports.slice(i, i + NOTIFY_BATCH_SIZE);
+      const results = await Promise.allSettled(batch.map((report) => {
+        const deadline = new Date(String(report.sla_deadline));
+        const hoursOverdue = Math.round((Date.now() - deadline.getTime()) / 3_600_000);
+        return notifySLABreach(
           String(report.id),
           String(report.title || report.report || 'Untitled report'),
           hoursOverdue
         );
-        notified++;
-      } catch (notifyError) {
-        console.warn('[SyncService] SLA breach notification failed:', notifyError);
+      }));
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          notified++;
+        } else {
+          console.warn('[SyncService] SLA breach notification failed:', result.reason);
+        }
       }
     }
 

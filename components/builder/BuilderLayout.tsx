@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { Compass, LayoutGrid, Save, RotateCcw, Sparkles, Plus, Loader2, MousePointerClick, Play, BarChart3, Check, PanelLeft, SlidersHorizontal, X, Wand2, ArrowRight } from 'lucide-react';
 import { useQueryBuilder } from '@/lib/hooks/useQueryBuilder';
@@ -30,7 +30,7 @@ const SaveDashboardModal = dynamic(
 type Mode = 'explore' | 'dashboard';
 
 const PROMPT_SUGGESTIONS = [
-  { label: 'Monthly Report', prompt: 'Buatkan dashboard laporan bulanan yang menampilkan trend, distribusi kategori, dan perbandingan antar stasiun' },
+  { label: 'Laporan Bulanan', prompt: 'Buatkan dashboard laporan bulanan yang menampilkan trend, distribusi kategori, dan perbandingan antar stasiun' },
   { label: 'Perbandingan Maskapai', prompt: 'Buat dashboard perbandingan jumlah laporan per maskapai dengan breakdown severity dan kategori' },
   { label: 'Trend Compliment', prompt: 'Buatkan dashboard analisis trend compliment per bulan dengan distribusi area dan maskapai' },
   { label: 'Severity Analysis', prompt: 'Buat dashboard analisis severity laporan dengan heatmap per stasiun dan trend waktu' },
@@ -91,6 +91,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
   const [editingTileId, setEditingTileId] = useState<string | null>(null);
   const [tileResults, setTileResults] = useState<Map<string, QueryResult>>(new Map());
   const [showWelcome, setShowWelcome] = useState(true);
+  const tileQuerySeqRef = useRef(0);
 
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiFolder, setAiFolder] = useState('');
@@ -200,6 +201,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
   }, [handleExecute]);
 
   const executeTileQueries = useCallback(async () => {
+    const seq = ++tileQuerySeqRef.current;
     const results = new Map<string, QueryResult>();
 
     const globalFilterDefs: QueryFilter[] = [];
@@ -236,7 +238,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
         }
       })
     );
-    setTileResults(results);
+    if (seq === tileQuerySeqRef.current) setTileResults(results);
   }, [dash.tiles, globalFilters]);
 
   useEffect(() => {
@@ -419,7 +421,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
               className="flex items-center gap-1.5 px-2.5 sm:px-3 py-2 text-[13px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-colors"
             >
               <Plus size={14} />
-              <span className="hidden sm:inline">Add to Dashboard</span>
+              <span className="hidden sm:inline">Tambah ke Dashboard</span>
             </button>
           )}
           {editingTileId && mode === 'explore' && (

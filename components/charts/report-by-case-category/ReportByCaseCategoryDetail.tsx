@@ -196,6 +196,26 @@ function AirlineTop10Chart({ data, onBarClick }: { data: AirlineCategoryData[], 
   );
 }
 
+function getManagementSummaryInsights(
+  categoryData: CategoryData[],
+  branchData: BranchCategoryData[],
+): string[] {
+  const irregularity = categoryData.find(d => d.name === 'Irregularity');
+  const compliment = categoryData.find(d => d.name === 'Compliment');
+
+  const topBranch = branchData[0];
+  const totalIrregularities = irregularity?.count ?? 0;
+  const topBranchPct = topBranch && totalIrregularities > 0
+    ? (topBranch.Irregularity / totalIrregularities) * 100
+    : 0;
+
+  return [
+    irregularity && `${irregularity.name} dominates ${irregularity.percentage.toFixed(1)}% of total reports.`,
+    topBranch && `${topBranch.branch} contributes ${topBranchPct.toFixed(0)}% of total irregularity.`,
+    compliment && compliment.percentage < 5 && `Compliment rate remains at ${compliment.percentage.toFixed(1)}% — improvement opportunity.`,
+  ].filter(Boolean) as string[];
+}
+
 function ManagementSummary({
   categoryData,
   branchData
@@ -203,17 +223,7 @@ function ManagementSummary({
   categoryData: CategoryData[];
   branchData: BranchCategoryData[];
 }) {
-  const irregularity = categoryData.find(d => d.name === 'Irregularity');
-  const compliment = categoryData.find(d => d.name === 'Compliment');
-
-  const topBranch = branchData[0];
-  const topBranchPct = topBranch ? (topBranch.Irregularity / (topBranch.Irregularity + topBranch.Complaint + topBranch.Compliment)) * 100 : 0;
-
-  const insights = [
-    irregularity && `${irregularity.name} dominates ${irregularity.percentage.toFixed(1)}% of total reports.`,
-    topBranch && `${topBranch.branch} contributes ${topBranchPct.toFixed(0)}% of total irregularity.`,
-    compliment && compliment.percentage < 5 && `Compliment rate remains at ${compliment.percentage.toFixed(1)}% — improvement opportunity.`,
-  ].filter(Boolean) as string[];
+  const insights = getManagementSummaryInsights(categoryData, branchData);
 
   if (insights.length === 0) return null;
 
@@ -239,11 +249,26 @@ export default function ReportByCaseCategoryDetail({
   dateRange?: { from: string; to: string };
 }) {
 
+  // Depend on primitive fields, not the `filters`/`dateRange` object identity:
+  // a default `filters = {}` (or any inline object literal) gets a new
+  // identity every parent re-render, which would otherwise retrigger the
+  // fetch effects below on every render instead of only on real changes.
   const effectiveFilters = useMemo(() => ({
     ...filters,
     ...(dateRange?.from ? { dateFrom: dateRange.from } : {}),
     ...(dateRange?.to ? { dateTo: dateRange.to } : {}),
-  }), [filters, dateRange]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [
+    filters.hub,
+    filters.branch,
+    filters.airlines,
+    filters.area,
+    filters.sourceSheet,
+    filters.dateFrom,
+    filters.dateTo,
+    dateRange?.from,
+    dateRange?.to,
+  ]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -271,12 +296,15 @@ export default function ReportByCaseCategoryDetail({
   }, [tableData]);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function loadAggregatedData() {
       setLoading(true);
       setError(null);
 
       try {
-        const aggregated = await fetchAggregatedCaseCategory(effectiveFilters);
+        const aggregated = await fetchAggregatedCaseCategory(effectiveFilters, controller.signal);
+        if (controller.signal.aborted) return;
 
         setCategoryData(aggregated.categoryData);
         setTrendData(aggregated.trendData);
@@ -284,27 +312,32 @@ export default function ReportByCaseCategoryDetail({
         setAirlineData(aggregated.airlineData);
         setKpis(aggregated.kpis);
       } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         console.error('Failed to load aggregated data:', err);
         setError('Failed to load primary chart data.');
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     }
 
     loadAggregatedData();
+    return () => controller.abort();
   }, [effectiveFilters]);
 
   useEffect(() => {
+    let active = true;
+
     async function loadTableData() {
       try {
         const table = await fetchAllReports(effectiveFilters);
-        setTableData(table);
+        if (active) setTableData(table);
       } catch (err) {
         console.error('Failed to load table data:', err);
       }
     }
 
     loadTableData();
+    return () => { active = false; };
   }, [effectiveFilters]);
 
   if (loading) return <ReportLoading label="Loading case category report…" />;
@@ -401,9 +434,11 @@ export default function ReportByCaseCategoryDetail({
         </ReportSection>
       </div>
 
-      <ReportSection index={5} title="Management Summary" tone="teal">
-        <ManagementSummary categoryData={categoryData} branchData={branchData} />
-      </ReportSection>
+      {getManagementSummaryInsights(categoryData, branchData).length > 0 && (
+        <ReportSection index={5} title="Management Summary" tone="teal">
+          <ManagementSummary categoryData={categoryData} branchData={branchData} />
+        </ReportSection>
+      )}
 
       <ReportSection index={6} title="Investigative Table" subtitle="Case category reports — expand a row for full case detail" bodyClassName="p-0">
         <InvestigativeTable

@@ -3,6 +3,22 @@ import { reportsService } from '@/lib/services/reports-service';
 import { REPORT_STATUS } from '@/lib/constants/report-status';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
+import { getSyncState } from '@/lib/sync-state';
+import { hashCacheKey, readDashboardSnapshot, writeDashboardSnapshot } from '@/lib/dashboard-cache';
+
+interface AnalyticsPayload {
+    summary: {
+        totalReports: number;
+        resolvedReports: number;
+        pendingReports: number;
+        highSeverity: number;
+        avgResolutionRate: number;
+        slaBreachCount: number;
+    };
+    stationData: StationStats[];
+    statusData: { name: string; value: number; color: string }[];
+    trendData: { month: string; total: number; resolved: number }[];
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -16,15 +32,6 @@ interface StationStats {
     'HIGH RISK': number;
     'MEDIUM': number;
     'LOW': number;
-}
-
-interface DivisionStats {
-    division: string;
-    total: number;
-    resolved: number;
-    pending: number;
-    'TOP RISK': number;
-    'HIGH RISK': number;
 }
 
 export async function GET(request: Request) {
@@ -44,6 +51,35 @@ export async function GET(request: Request) {
         const to = searchParams.get('to');
         const sourceParam = searchParams.get('source');
         const source: 'sheets' | 'sync' = sourceParam === 'sheets' ? 'sheets' : 'sync';
+
+        // This route recomputed the full station/status/trend aggregation
+        // from scratch on every request. Google-Sheets-sourced requests skip
+        // the cache (sheets data isn't tracked by sync_version, so there's
+        // no reliable invalidation signal for it). A failure reading the
+        // sync-state or cache layer must fall back to recomputing rather
+        // than failing the whole request.
+        let syncVersion: number | null = null;
+        let cacheKey: string | null = null;
+        try {
+            if (source === 'sync') {
+                const syncState = await getSyncState('reports');
+                syncVersion = Number(syncState?.sync_version || 0);
+                cacheKey = hashCacheKey({ kind: 'admin-analytics', period, from, to, source, syncVersion });
+            }
+
+            if (cacheKey && syncVersion !== null) {
+                const cached = await readDashboardSnapshot<AnalyticsPayload>(cacheKey, syncVersion);
+                if (cached?.payload) {
+                    return NextResponse.json(cached.payload, {
+                        headers: { 'Cache-Control': 'private, no-store, max-age=0' },
+                    });
+                }
+            }
+        } catch (cacheError) {
+            console.warn('[AdminAnalytics] Failed to read cache snapshot:', cacheError);
+            cacheKey = null;
+            syncVersion = null;
+        }
 
         const allReports = await reportsService.getReports({ source, projection: 'analytics' });
 
@@ -112,30 +148,6 @@ export async function GET(request: Request) {
         const stationData = Array.from(stationMap.values())
             .sort((a, b) => b.total - a.total);
 
-        const divisionMap = new Map<string, DivisionStats>();
-
-        filteredReports.forEach(r => {
-            const divName = r.target_division || 'Unassigned';
-            if (!divisionMap.has(divName)) {
-                divisionMap.set(divName, {
-                    division: divName,
-                    total: 0, resolved: 0, pending: 0, 'TOP RISK': 0, 'HIGH RISK': 0
-                });
-            }
-            const stats = divisionMap.get(divName)!;
-            stats.total++;
-            if (r.status === REPORT_STATUS.CLOSED) stats.resolved++;
-            if (r.status === REPORT_STATUS.OPEN) stats.pending++;
-            if (r.severity === 'TOP RISK') {
-                stats['TOP RISK']++;
-            } else if (r.severity === 'HIGH RISK') {
-                stats['HIGH RISK']++;
-            }
-        });
-
-        const divisionData = Array.from(divisionMap.values())
-            .sort((a, b) => b.total - a.total);
-
         const summary = {
             totalReports: filteredReports.length,
             resolvedReports: summaryResolved,
@@ -183,13 +195,22 @@ export async function GET(request: Request) {
             color: getStatusColor(name)
         }));
 
-        return NextResponse.json({
-            summary,
-            stationData,
-            divisionData,
-            statusData,
-            trendData,
-        }, {
+        const payload: AnalyticsPayload = { summary, stationData, statusData, trendData };
+
+        if (cacheKey && syncVersion !== null) {
+            await writeDashboardSnapshot({
+                cacheKey,
+                scopeKey: hashCacheKey({ kind: 'admin-analytics', period, from, to, source }),
+                dashboardSlug: 'admin-analytics',
+                payload,
+                syncVersion,
+                ttlSeconds: 300,
+            }).catch((cacheError) => {
+                console.warn('[AdminAnalytics] Failed to write cache snapshot:', cacheError);
+            });
+        }
+
+        return NextResponse.json(payload, {
             headers: { 'Cache-Control': 'private, no-store, max-age=0' },
         });
 

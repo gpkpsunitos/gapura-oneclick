@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import {
-  normalizeDivisionCode,
   parseReportSyncFields,
   reportsService,
   type ReportQueryFilters,
@@ -25,14 +24,6 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const refresh = searchParams.get('refresh') === 'true';
 
-    const divisionParam = searchParams.get('esklasiDivision') || searchParams.get('targetDivision');
-    const normalizedDivision = divisionParam ? normalizeDivisionCode(divisionParam) : undefined;
-    if (divisionParam && !normalizedDivision) {
-      return NextResponse.json(
-        { error: 'Invalid "esklasiDivision/targetDivision" parameter. Use one of: OP, OS, HT, HC.' },
-        { status: 400 }
-      );
-    }
     const filters: ReportQueryFilters = {
       dateFrom: searchParams.get('dateFrom') || undefined,
       dateTo: searchParams.get('dateTo') || undefined,
@@ -42,7 +33,6 @@ export async function GET(request: NextRequest) {
       airlines: searchParams.get('airlines') || undefined,
       sourceSheet: searchParams.get('sourceSheet') || undefined,
       esklasiRegex: searchParams.get('esklasiRegex') || searchParams.get('esklasi_regex') || undefined,
-      targetDivision: normalizedDivision,
       gseOnly: searchParams.get('gseOnly') === 'true',
     };
 

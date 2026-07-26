@@ -29,7 +29,6 @@ interface ReportPageFilters {
   airline?: string | null;
   area?: string | null;
   sourceSheet?: string | null;
-  targetDivision?: string | null;
 }
 
 interface QueryReportPageOptions {
@@ -157,9 +156,8 @@ export async function queryReportPage(
   } else if (access.kind === 'manager') {
     query = query.or(buildColumnValueOrFilter(REPORT_STATION_FIELDS, managerStationValues));
   } else if (access.kind === 'division') {
-    // target_division scoping removed (unpopulated column emptied results); this
-    // access kind is no longer produced by resolveReportPageAccess and, if it
-    // ever is, division users now see the full company set like the dashboards.
+    // This access kind is no longer produced by resolveReportPageAccess; if it
+    // ever is, division users see the full company set, like the dashboards.
   }
 
   const filters = options.filters;
@@ -211,8 +209,6 @@ export async function queryReportPage(
 
   const sourceSheet = String(filters?.sourceSheet || '').trim();
   if (sourceSheet && sourceSheet.toLowerCase() !== 'all') query = query.eq('source_sheet', sourceSheet);
-
-  // target_division scoping removed (unpopulated column emptied results).
 
   const search = sanitizeReportSearch(filters?.search);
   if (search) {

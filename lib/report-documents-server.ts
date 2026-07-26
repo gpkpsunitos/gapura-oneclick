@@ -57,7 +57,11 @@ async function removeObjects(paths: string[]): Promise<void> {
 async function uploadObject(path: string, buffer: Buffer, contentType: string): Promise<void> {
   const { error } = await supabaseAdmin.storage.from(REPORT_DOCUMENTS_BUCKET).upload(path, buffer, {
     contentType,
-    upsert: false,
+    // Paths are deterministic per revision (type/reportId/revisionId/file).
+    // A retry after a partial failure — where cleanup of the orphaned object
+    // itself failed — must be able to overwrite it at the same path rather
+    // than being stuck failing "already exists" forever.
+    upsert: true,
     cacheControl: '0',
   });
   if (error) throw new Error(`Failed to upload report document: ${error.message}`);
@@ -86,7 +90,6 @@ export async function storeReportDocumentBundle(input: StoreBundleInput): Promis
   const docxPath = `${prefix}/${safeDocxName}`;
   const pdfPath = `${prefix}/${safePdfName}`;
 
-  const previous = await getReportDocumentBundle(input.reportType, input.reportId);
   const uploads = await Promise.allSettled([
     uploadObject(docxPath, input.docx.buffer, DOCX_MIME_TYPE),
     uploadObject(pdfPath, input.pdf.buffer, PDF_MIME_TYPE),
@@ -103,31 +106,30 @@ export async function storeReportDocumentBundle(input: StoreBundleInput): Promis
     throw failed.reason;
   }
 
-  const now = new Date().toISOString();
-  const row = {
-    report_type: input.reportType,
-    report_id: input.reportId,
-    revision_id: input.revisionId,
-    docx_path: docxPath,
-    docx_filename: safeDocxName,
-    docx_mime_type: DOCX_MIME_TYPE,
-    docx_size_bytes: input.docx.buffer.length,
-    docx_sha256: sha256(input.docx.buffer),
-    pdf_path: pdfPath,
-    pdf_filename: safePdfName,
-    pdf_mime_type: PDF_MIME_TYPE,
-    pdf_size_bytes: input.pdf.buffer.length,
-    pdf_sha256: sha256(input.pdf.buffer),
-    edited_snapshot: input.editedSnapshot,
-    signature_sha256: input.signatureSha256,
-    created_by: input.createdBy,
-    updated_at: now,
-  };
-
+  // Atomic RPC (not a client-side read-then-upsert): it locks the row for
+  // this report inside the same transaction as the upsert, so the "previous"
+  // paths it returns are exactly what THIS call replaced — concurrent saves
+  // for the same report can no longer race on a pre-upload read and orphan
+  // each other's uploads.
   const { data, error } = await supabaseAdmin
-    .from('report_documents')
-    .upsert(row, { onConflict: 'report_type,report_id', ignoreDuplicates: false })
-    .select('*')
+    .rpc('upsert_report_document_bundle', {
+      p_report_type: input.reportType,
+      p_report_id: input.reportId,
+      p_revision_id: input.revisionId,
+      p_docx_path: docxPath,
+      p_docx_filename: safeDocxName,
+      p_docx_mime_type: DOCX_MIME_TYPE,
+      p_docx_size_bytes: input.docx.buffer.length,
+      p_docx_sha256: sha256(input.docx.buffer),
+      p_pdf_path: pdfPath,
+      p_pdf_filename: safePdfName,
+      p_pdf_mime_type: PDF_MIME_TYPE,
+      p_pdf_size_bytes: input.pdf.buffer.length,
+      p_pdf_sha256: sha256(input.pdf.buffer),
+      p_edited_snapshot: input.editedSnapshot,
+      p_signature_sha256: input.signatureSha256,
+      p_created_by: input.createdBy,
+    })
     .single();
 
   if (error || !data) {
@@ -137,9 +139,9 @@ export async function storeReportDocumentBundle(input: StoreBundleInput): Promis
     throw new Error(`Failed to register report documents: ${error?.message || 'unknown error'}`);
   }
 
-  const supersededPaths = previous
-    ? [previous.docx_path, previous.pdf_path].filter((path) => path !== docxPath && path !== pdfPath)
-    : [];
+  const resultRow = data as ReportDocumentBundle & { previous_docx_path: string | null; previous_pdf_path: string | null };
+  const supersededPaths = [resultRow.previous_docx_path, resultRow.previous_pdf_path]
+    .filter((path): path is string => Boolean(path) && path !== docxPath && path !== pdfPath);
   await removeObjects(supersededPaths).catch((cleanupError) => {
     console.warn('[REPORT_DOCUMENTS] Superseded document cleanup failed:', cleanupError);
   });

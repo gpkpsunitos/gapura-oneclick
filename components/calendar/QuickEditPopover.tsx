@@ -102,7 +102,7 @@ export function QuickEditPopover({
           sideOffset={8}
           collisionPadding={16}
           avoidCollisions
-          className="z-50 w-80 rounded-xl border border-[oklch(0.92_0.01_90/0.8)] bg-[oklch(0.99_0.005_90/0.95)] backdrop-blur-[24px] shadow-[var(--shadow-spatial-lg)] animate-scale-in focus:outline-none"
+          className="z-50 w-80 max-w-[90vw] rounded-xl border border-[oklch(0.92_0.01_90/0.8)] bg-[oklch(0.99_0.005_90/0.95)] backdrop-blur-[24px] shadow-[var(--shadow-spatial-lg)] animate-scale-in focus:outline-none"
           onKeyDown={handleKeyDown}
         >
           <div className="p-4 space-y-3">

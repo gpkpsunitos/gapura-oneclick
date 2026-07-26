@@ -67,14 +67,16 @@ export function FeedbackPivotTable({ title, result, rowKey, colKey, valueKey, co
       if (rowVal.toLowerCase() === 'unknown' || colVal.toLowerCase() === 'unknown') return;
       if (val <= 0) return;
 
-      matrix.set(`${rowVal}::${colVal}`, val);
+      const cellKey = `${rowVal}::${colVal}`;
+      const cellVal = (matrix.get(cellKey) || 0) + val;
+      matrix.set(cellKey, cellVal);
       uniqueRows.add(rowVal);
       uniqueCols.add(colVal);
 
       rowTotals.set(rowVal, (rowTotals.get(rowVal) || 0) + val);
       colTotals.set(colVal, (colTotals.get(colVal) || 0) + val);
 
-      if (val > maxVal) maxVal = val;
+      if (cellVal > maxVal) maxVal = cellVal;
     });
 
     const sortedRows = Array.from(uniqueRows).sort((a, b) => {

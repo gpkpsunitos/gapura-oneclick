@@ -16,7 +16,6 @@ export interface FilterData {
   airline?: string;
   main_category?: string;
   area?: string;
-  target_division?: string;
 }
 
 interface FilterOptionsState {

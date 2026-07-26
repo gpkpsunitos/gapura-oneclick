@@ -88,6 +88,8 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
   const [fetchError, setFetchError] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const supportingRef = useRef<HTMLDivElement>(null);
+  const loadingTileIdRef = useRef<string | null>(null);
+  const fullDataTileIdRef = useRef<string | null>(null);
   const [supportingVisible, setSupportingVisible] = useState(false);
 
   const [viewMode] = useState<ViewMode>('values');
@@ -96,6 +98,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
   const [analyticalCharts, setAnalyticalCharts] = useState<AnalyticalChart[]>([]);
   const [analyticalDataMap, setAnalyticalDataMap] = useState<Record<number, QueryResult>>({});
   const [analyticalLoading, setAnalyticalLoading] = useState(false);
+  const analyticalChartsSourceRef = useRef<typeof chartDefs>(null);
 
 
   const chartDefs = useMemo(() => {
@@ -194,6 +197,11 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
         const parsed = JSON.parse(storedData) as ChartDetailData;
         const urlTileId = new URLSearchParams(window.location.search).get('tileId');
         if (!urlTileId || parsed.tile.id === urlTileId) {
+          // A previous tile's fullData must not carry over to this one —
+          // otherwise the refetch-when-missing effect below sees a (stale,
+          // wrong-tile) fullData and never fetches this tile's.
+          if (data?.tile.id !== parsed.tile.id) setFullData(null);
+          fullDataTileIdRef.current = parsed.tile.id;
           setData(parsed);
           return;
         }
@@ -213,6 +221,9 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
     if (data?.tile.id === tileId || loadingTile || fetchError === tileId) return;
 
     const loadTileData = async () => {
+      // Guards against an older in-flight load resolving after a newer
+      // tileId has superseded it and clobbering state with the wrong tile.
+      loadingTileIdRef.current = tileId;
       setLoadingTile(true);
       try {
         const res = await fetch(`/api/dashboards?tileId=${tileId}`);
@@ -237,6 +248,8 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
 
         const result = await fetchTileData(dashboardTile);
 
+        if (loadingTileIdRef.current !== tileId) return;
+        fullDataTileIdRef.current = tileId;
         setData({
           tile: dashboardTile,
           result: result,
@@ -244,11 +257,12 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
         });
         setFullData(result);
       } catch (err) {
+        if (loadingTileIdRef.current !== tileId) return;
         console.error('Failed to load public chart:', err);
         setFetchError(tileId);
         if (!isPublic) router.push('/dashboard');
       } finally {
-        setLoadingTile(false);
+        if (loadingTileIdRef.current === tileId) setLoadingTile(false);
       }
     };
 
@@ -257,7 +271,13 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
 
   useEffect(() => {
     if (data && !fullData) {
-      fetchTileData(data.tile).then(setFullData);
+      // Same guard as above: if `data` moves on to a different tile before
+      // this resolves, the stale response must not overwrite fullData.
+      const tileId = data.tile.id;
+      fullDataTileIdRef.current = tileId;
+      fetchTileData(data.tile).then((result) => {
+        if (fullDataTileIdRef.current === tileId) setFullData(result);
+      });
     }
   }, [data, fullData, fetchTileData]);
 
@@ -278,12 +298,13 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
   }, [supportingVisible, data]);
 
   useEffect(() => {
-    if (
-      !supportingVisible
-      || !chartDefs
-      || chartDefs.charts.length === 0
-      || analyticalCharts.length > 0
-    ) return;
+    if (!supportingVisible || !chartDefs || chartDefs.charts.length === 0) return;
+    // chartDefs is recomputed (new reference) once fullData replaces the
+    // initial partial data.result — re-running only on a genuinely new
+    // chartDefs (not "any charts already loaded") lets that refresh reach
+    // the supporting charts instead of locking them to the first pass.
+    if (analyticalChartsSourceRef.current === chartDefs) return;
+    analyticalChartsSourceRef.current = chartDefs;
 
     setAnalyticalCharts(chartDefs.charts);
     setAnalyticalDataMap(chartDefs.dataMap);
@@ -294,7 +315,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
         setAnalyticalDataMap(fullMap);
       })
       .finally(() => setAnalyticalLoading(false));
-  }, [chartDefs, analyticalCharts.length, supportingVisible]);
+  }, [chartDefs, supportingVisible]);
 
   const handleSharePublic = () => {
     if (!data?.tile.id) return;

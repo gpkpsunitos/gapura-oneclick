@@ -358,8 +358,6 @@ export interface Report {
 
     esklasi_divisi?: string;
 
-    target_division?: string;
-
     stations?: { code: string; name: string };
 
     users?: { full_name: string; email: string; role?: string };

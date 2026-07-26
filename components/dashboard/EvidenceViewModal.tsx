@@ -73,7 +73,7 @@ export function EvidenceViewModal({ isOpen, onClose, evidenceUrls }: EvidenceVie
                   {previewFailed || !previewUrl ? (
                     <div className="flex flex-col items-center gap-4 px-6 text-center text-gray-600">
                       <FileText className="h-14 w-14 text-gray-300" />
-                      <p className="text-sm font-medium">Preview gambar tidak tersedia untuk file ini.</p>
+                      <p className="text-sm font-medium">Preview is not available for this file.</p>
                       {previewUrl && (
                         <a
                           href={previewUrl}
@@ -82,7 +82,7 @@ export function EvidenceViewModal({ isOpen, onClose, evidenceUrls }: EvidenceVie
                           className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
                         >
                           <ExternalLink className="h-4 w-4" />
-                          Buka file
+                          Open file
                         </a>
                       )}
                     </div>

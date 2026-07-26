@@ -219,6 +219,13 @@ export async function POST(request: Request) {
 
         if (insertError) {
             console.error('Insert error:', insertError);
+            if (insertError.code === '23505') {
+                const isNikConflict = insertError.message?.includes('nik');
+                return NextResponse.json(
+                    { error: isNikConflict ? 'NIK sudah terdaftar' : 'Email sudah terdaftar' },
+                    { status: 400 }
+                );
+            }
             return NextResponse.json(
                 { error: 'Gagal mendaftarkan user. Silakan coba lagi.' },
                 { status: 500 }

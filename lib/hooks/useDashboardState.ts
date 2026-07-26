@@ -74,6 +74,10 @@ export function useDashboardState() {
 
   const resetTiles = useCallback(() => {
     setTiles([]);
+    // loadDashboard() falls back to def.pages[].tiles when def.tiles is
+    // empty (see below) — clearing only `tiles` would leave the reset-away
+    // tiles resurrectable via stale pages.
+    setPages([]);
   }, []);
 
   const updateTile = useCallback((id: string, updates: Partial<Omit<DashboardTile, 'id'>>) => {

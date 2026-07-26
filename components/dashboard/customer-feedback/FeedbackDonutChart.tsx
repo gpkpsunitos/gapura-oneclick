@@ -23,7 +23,7 @@ function getSliceColor(colors: string[], index: number): string {
   return palette[index % palette.length];
 }
 
-export function FeedbackDonutChart({ data, colors = [], height = 170 }: FeedbackDonutChartProps) {
+export function FeedbackDonutChart({ title, data, colors = [], height = 170 }: FeedbackDonutChartProps) {
   const total = data.reduce((acc, cur) => acc + cur.value, 0);
   const isCompact = typeof height === 'number' && height <= 180;
 
@@ -47,10 +47,22 @@ export function FeedbackDonutChart({ data, colors = [], height = 170 }: Feedback
   const labelFontSize = isCompact ? 8 : 10;
   const centerOffset = isCompact ? 'translate-y-[-4px]' : 'translate-y-[-6px]';
   const chartSize = height;
+  // A percentage height resolves against the parent's height; reusing that
+  // same percentage string as `width` would resolve against the parent's
+  // *width* instead, making the chart wrapper claim the full flex-row width
+  // and squeeze the legend. Derive width from height via aspect-ratio instead.
+  const isPercentHeight = typeof chartSize === 'string';
 
   return (
-    <div className="w-full h-full flex items-center gap-3">
-      <div className="relative shrink-0" style={{ width: chartSize, height: chartSize }}>
+    <div className="w-full h-full flex flex-col gap-2">
+      {title ? (
+        <h4 className="shrink-0 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--cf-ink-2,#57534e)]">{title}</h4>
+      ) : null}
+      <div className="min-h-0 flex-1 flex items-center gap-3">
+      <div
+        className="relative shrink-0"
+        style={isPercentHeight ? { height: chartSize, aspectRatio: '1 / 1' } : { width: chartSize, height: chartSize }}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
@@ -138,6 +150,7 @@ export function FeedbackDonutChart({ data, colors = [], height = 170 }: Feedback
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );

@@ -38,11 +38,12 @@ export function ActiveSessions() {
 
             setSessions(prev => prev.filter(s => s.id !== id));
 
-            await fetch('/api/security/sessions', {
+            const res = await fetch('/api/security/sessions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId: id })
             });
+            if (!res.ok) throw new Error('revoke failed');
         } catch (err) {
             console.error('Failed to revoke session', err);
             fetchSessions();
@@ -108,7 +109,7 @@ export function ActiveSessions() {
                                 {!session.isCurrent && (
                                     <button
                                         onClick={() => handleRevoke(session.id)}
-                                        className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all duration-300 opacity-0 group-hover:opacity-100"
+                                        className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all duration-300 opacity-70 sm:opacity-0 sm:group-hover:opacity-100"
                                         title="Revoke Session"
                                     >
                                         <X className="w-5 h-5" />

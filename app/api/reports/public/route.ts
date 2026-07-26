@@ -161,7 +161,7 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    const targetDivision = newReport.target_division || newReport.esklasi_divisi;
+    const targetDivision = newReport.esklasi_divisi;
 
     // Scheduled via after() rather than fire-and-forget: an un-awaited promise
     // outside the request lifecycle risks being killed mid-flight once the

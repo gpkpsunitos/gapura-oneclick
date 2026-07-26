@@ -11,7 +11,6 @@ const ALLOWED_FIELDS: Record<string, { key: string }> = {
   main_category: { key: 'category' },
   category: { key: 'category' },
   area: { key: 'area' },
-  target_division: { key: 'target_division' },
   severity: { key: 'severity' },
   status: { key: 'status' },
   station_code: { key: 'station_code' },

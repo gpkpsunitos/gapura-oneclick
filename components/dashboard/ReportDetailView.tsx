@@ -208,7 +208,7 @@ export function ReportDetailView({
 
   
   useEffect(() => {
-    if (report) {
+    if (report && !isEditing) {
       setEditForm({
         title: report.title || "",
         description: report.description || "",
@@ -226,7 +226,7 @@ export function ReportDetailView({
         sub_category_note: report.sub_category_note || report.kps_remarks || report.remarks_gapura_kps || ""
       });
     }
-  }, [report]);
+  }, [report, isEditing]);
 
   useEffect(() => {}, []);
 

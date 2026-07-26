@@ -885,6 +885,13 @@ export function PublicReportWizard() {
   const handleSubmit = async (e?: React.FormEvent | React.MouseEvent) => {
     if (e) e.preventDefault();
     if (submittingRef.current) return;
+    if (createdReport) {
+      // A report was already successfully created in this session. Never
+      // re-submit (which would create a duplicate) — just make sure the
+      // user is back on the success step and reuse the existing result.
+      setStep(7);
+      return;
+    }
     submittingRef.current = true;
     setLoading(true);
     setError('');
@@ -1915,9 +1922,10 @@ export function PublicReportWizard() {
                               <button
                                 type="button"
                                 onClick={() => removeEvidenceAt(idx)}
-                                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                aria-label="Remove evidence photo"
+                                className="absolute top-2 right-2 p-2.5 bg-red-500 text-white rounded-lg opacity-90 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shadow-lg"
                               >
-                                <X size={14} />
+                                <X size={16} />
                               </button>
                             </div>
                           ))}
@@ -2091,7 +2099,7 @@ export function PublicReportWizard() {
                       </div>
 
                       {/* A4-like Document Container */}
-                      <div className="w-full max-w-[850px] bg-white shadow-2xl rounded-sm border border-slate-200 p-8 md:p-16 min-h-[1200px] text-slate-800 font-sans leading-relaxed relative group overflow-x-auto">
+                      <div className="w-full max-w-[850px] bg-white shadow-2xl rounded-sm border border-slate-200 p-4 sm:p-8 md:p-16 min-h-0 sm:min-h-[1200px] text-slate-800 font-sans leading-relaxed relative group overflow-x-auto">
                         {/* Silk Ribbon / Watermark for "Digital Document" */}
                         <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none select-none">
                           <p className="text-[60px] font-black -rotate-12">DIGITAL</p>
@@ -2109,7 +2117,7 @@ export function PublicReportWizard() {
                         </div>
 
                         {/* Header Info */}
-                        <div className="grid grid-cols-[140px_1fr] gap-y-3 text-sm mb-12">
+                        <div className="grid grid-cols-[100px_1fr] sm:grid-cols-[140px_1fr] gap-y-3 text-xs sm:text-sm mb-12">
                           {[
                             { label: 'Reference No', key: 'reference_no' as const },
                             { label: 'To', key: 'to' as const },
@@ -2221,9 +2229,9 @@ export function PublicReportWizard() {
                                       />
                                     </td>
                                     <td className="px-2 py-1">
-                                      <button 
+                                      <button
                                         onClick={() => removeOfficerEntry(idx)}
-                                        className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover/row:opacity-100 transition-all"
+                                        className="p-1.5 text-slate-300 hover:text-red-500 opacity-70 sm:opacity-0 sm:group-hover/row:opacity-100 transition-all"
                                         aria-label={`Remove officer ${idx + 1}`}
                                       >
                                         <span aria-hidden="true">×</span>
@@ -2288,9 +2296,9 @@ export function PublicReportWizard() {
                                       />
                                     </td>
                                     <td className="px-2 py-1 align-top pt-3">
-                                      <button 
+                                      <button
                                         onClick={() => removeChronologyEntry(idx)}
-                                        className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover/row:opacity-100 transition-all"
+                                        className="p-1.5 text-slate-300 hover:text-red-500 opacity-70 sm:opacity-0 sm:group-hover/row:opacity-100 transition-all"
                                         aria-label={`Remove chronology ${idx + 1}`}
                                       >
                                         <span aria-hidden="true">×</span>

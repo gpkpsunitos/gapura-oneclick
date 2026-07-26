@@ -144,14 +144,14 @@ export default function DocumentEditorStep({
       </div>
 
       <div className="overflow-x-auto rounded-sm border border-slate-200 shadow-xl">
-        <div className="min-w-[720px] bg-white p-8 text-slate-900">
+        <div className="min-w-[380px] sm:min-w-[640px] bg-white p-4 sm:p-8 text-slate-900">
           <div className="flex justify-between items-start border-b-2 border-slate-900 pb-6 mb-8">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.png" alt="Gapura Logo" className="h-14 w-auto" />
             <h1 className="text-xl font-black tracking-tighter text-right">{docEdits.doc_title || 'IRREGULARITY REPORT FORM'}</h1>
           </div>
 
-          <div className="grid grid-cols-[180px_1fr] border border-slate-900 mb-8 text-sm">
+          <div className="grid grid-cols-[110px_1fr] sm:grid-cols-[180px_1fr] border border-slate-900 mb-8 text-sm">
             {([
               ['REFERENCE NO', 'reference_no'],
               ['TO', 'to'],
@@ -172,10 +172,10 @@ export default function DocumentEditorStep({
 
           <div className="mb-8">
             <h3 className="font-bold border-b-2 border-slate-900 mb-2">I. FLIGHT DATA</h3>
-            <div className="grid grid-cols-2 border border-slate-900 text-sm">
-              <div className="border-r border-slate-900">
+            <div className="grid grid-cols-1 sm:grid-cols-2 border border-slate-900 text-sm">
+              <div className="sm:border-r border-b sm:border-b-0 border-slate-900">
                 {FLIGHT_FIELDS_LEFT.map((field, i) => (
-                  <div key={field.key} className={`grid grid-cols-[180px_1fr] ${i < FLIGHT_FIELDS_LEFT.length - 1 ? 'border-b border-slate-300' : ''}`}>
+                  <div key={field.key} className={`grid grid-cols-[110px_1fr] sm:grid-cols-[180px_1fr] ${i < FLIGHT_FIELDS_LEFT.length - 1 ? 'border-b border-slate-300' : ''}`}>
                     <div className="bg-slate-50 p-1.5 font-semibold border-r border-slate-300">{field.label}</div>
                     <div className="p-1.5">
                       <input className="w-full bg-transparent border-none p-0 focus:ring-0 focus:outline-none"
@@ -186,7 +186,7 @@ export default function DocumentEditorStep({
               </div>
               <div>
                 {FLIGHT_FIELDS_RIGHT.map((field, i) => (
-                  <div key={field.key} className={`grid grid-cols-[180px_1fr] ${i < FLIGHT_FIELDS_RIGHT.length - 1 ? 'border-b border-slate-300' : ''}`}>
+                  <div key={field.key} className={`grid grid-cols-[110px_1fr] sm:grid-cols-[180px_1fr] ${i < FLIGHT_FIELDS_RIGHT.length - 1 ? 'border-b border-slate-300' : ''}`}>
                     <div className="bg-slate-50 p-1.5 font-semibold border-r border-slate-300">{field.label}</div>
                     <div className="p-1.5">
                       <input className="w-full bg-transparent border-none p-0 focus:ring-0 focus:outline-none"

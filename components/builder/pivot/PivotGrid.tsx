@@ -77,7 +77,7 @@ export function PivotGrid({
                 <thead className="sticky top-0 z-30">
                     <tr className="bg-[var(--surface-0)]/80 backdrop-blur-md">
                         {}
-                        <th className="px-5 py-4 text-left border-b border-[var(--surface-border)] sticky left-0 z-40 w-[280px] min-w-[280px] bg-[var(--surface-0)]/90">
+                        <th className="px-5 py-4 text-left border-b border-[var(--surface-border)] sticky left-0 z-40 w-[140px] min-w-[140px] sm:w-[200px] sm:min-w-[200px] lg:w-[280px] lg:min-w-[280px] bg-[var(--surface-0)]/90">
                              <button
                                 onClick={() => handleSort('name')}
                                 className="flex items-center gap-2 group transition-all"
@@ -102,7 +102,7 @@ export function PivotGrid({
                         ))}
 
                         {}
-                         <th className="px-6 py-4 text-right border-b border-[var(--surface-border)] border-l border-[var(--surface-border)] sticky right-0 z-40 min-w-[120px] bg-[var(--surface-0)]">
+                         <th className="px-3 sm:px-6 py-4 text-right border-b border-[var(--surface-border)] border-l border-[var(--surface-border)] sticky right-0 z-40 min-w-[80px] sm:min-w-[120px] bg-[var(--surface-0)]">
                             <button
                               onClick={() => handleSort('total')}
                               className="flex items-center justify-end gap-1 w-full group transition-all"
@@ -128,8 +128,8 @@ export function PivotGrid({
                                     className="group transition-colors hover:bg-[var(--brand-primary)]/[0.02]"
                                 >
                                     {}
-                                    <td className="px-5 py-4 text-[10px] font-black text-[var(--surface-900)] uppercase tracking-tight sticky left-0 bg-white group-hover:bg-[var(--surface-50)] transition-colors z-20 w-[280px] min-w-[280px] whitespace-nowrap shadow-[2px_0_10px_-4px_rgba(0,0,0,0.05)]" title={r}>
-                                        {r}
+                                    <td className="px-5 py-4 text-[10px] font-black text-[var(--surface-900)] uppercase tracking-tight sticky left-0 bg-white group-hover:bg-[var(--surface-50)] transition-colors z-20 w-[140px] min-w-[140px] sm:w-[200px] sm:min-w-[200px] lg:w-[280px] lg:min-w-[280px] shadow-[2px_0_10px_-4px_rgba(0,0,0,0.05)]" title={r}>
+                                        <span className="block w-[140px] sm:w-[200px] lg:w-[280px] truncate">{r}</span>
                                     </td>
 
                                     {}
@@ -157,7 +157,7 @@ export function PivotGrid({
                                     })}
 
                                     {}
-                                    <td className="px-6 py-4 text-[10px] font-black text-[var(--surface-900)] text-right sticky right-0 bg-white/95 border-l border-[var(--surface-border)] group-hover:bg-[var(--surface-50)] transition-colors z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.05)] tabular-nums">
+                                    <td className="px-3 sm:px-6 py-4 text-[10px] font-black text-[var(--surface-900)] text-right sticky right-0 bg-white/95 border-l border-[var(--surface-border)] group-hover:bg-[var(--surface-50)] transition-colors z-20 shadow-[-2px_0_10px_-4px_rgba(0,0,0,0.05)] tabular-nums">
                                         {rTotal.toLocaleString('id-ID')}
                                     </td>
                                 </motion.tr>
@@ -175,7 +175,7 @@ export function PivotGrid({
                                {colStats[c].total.toLocaleString('id-ID')}
                            </td> 
                         ))}
-                        <td className="px-6 py-4 text-[10px] font-black text-[var(--brand-primary)] text-right sticky right-0 z-40 bg-[var(--surface-100)]/90 border-l border-[var(--surface-border)] tabular-nums">
+                        <td className="px-3 sm:px-6 py-4 text-[10px] font-black text-[var(--brand-primary)] text-right sticky right-0 z-40 bg-[var(--surface-100)]/90 border-l border-[var(--surface-border)] tabular-nums">
                             {grandTotal.toLocaleString('id-ID')}
                         </td>
                     </tr>

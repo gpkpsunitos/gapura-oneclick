@@ -503,7 +503,7 @@ export function OCSDivisionDashboard({
       const cachedSlug = localStorage.getItem('cf_dashboard_slug');
 
       if (cachedSlug) {
-        const checkRes = await fetch(`/api/dashboards?slug=${cachedSlug}`);
+        const checkRes = await fetch(`/api/dashboards?slug=${encodeURIComponent(cachedSlug)}`);
         if (checkRes.ok) {
           const checkData = await checkRes.json();
           if (checkData.dashboards?.length > 0) {

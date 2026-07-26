@@ -21,7 +21,7 @@ interface Report {
     title: string;
     description: string;
     status: ReportStatus;
-    target_division: string;
+    esklasi_divisi: string | null;
     area: string;
     specific_location: string;
     incident_date: string;
@@ -272,7 +272,7 @@ export default function EmployeeReportDetailPage() {
                     <div className="space-y-1">
                         <p className="text-xs" style={{ color: 'var(--text-muted)' }}>Ditangani oleh</p>
                         <p className="font-bold text-sm" style={{ color: 'var(--brand-primary)' }}>
-                            Divisi {report.target_division}
+                            {report.esklasi_divisi ? `Divisi ${report.esklasi_divisi}` : '-'}
                         </p>
                     </div>
                 </div>
@@ -328,7 +328,7 @@ export default function EmployeeReportDetailPage() {
                 <div className="card-solid p-6 border-2 border-purple-200" style={{ background: 'oklch(0.55 0.22 280 / 0.05)' }}>
                     <h2 className="font-bold text-lg mb-4 flex items-center gap-2">
                         <CheckCircle className="w-5 h-5 text-purple-500" />
-                        Tanggapan dari Divisi {report.target_division}
+                        Tanggapan dari Divisi {report.esklasi_divisi}
                     </h2>
                     {report.partner_response_notes && (
                         <p className="text-sm mb-4" style={{ color: 'var(--text-secondary)' }}>

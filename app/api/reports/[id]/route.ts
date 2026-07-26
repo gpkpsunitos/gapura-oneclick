@@ -29,6 +29,22 @@ function isEditedWordEvidencePatch(body: Record<string, unknown>): boolean {
     });
 }
 
+// Builds a single .or() filter matching any of the given id-like values
+// against id/original_id/sheet_id, so a report can be found/updated/deleted
+// by any of its known identifiers in one round trip instead of one query per
+// candidate.
+function buildReportIdOrFilter(candidates: string[]): string {
+    return [...new Set(candidates)]
+        .flatMap((candidate) => {
+            // PostgREST quoted filter values escape backslashes and double
+            // quotes with a backslash prefix, not by doubling the quote
+            // (SQL string-literal convention, which doesn't apply here).
+            const safe = `"${candidate.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+            return [`id.eq.${safe}`, `original_id.eq.${safe}`, `sheet_id.eq.${safe}`];
+        })
+        .join(',');
+}
+
 function normalizeUrlList(value: unknown): string[] {
     if (Array.isArray(value)) return value.filter(Boolean).map(String);
     if (typeof value === 'string' && value.trim()) {
@@ -131,14 +147,18 @@ export async function PATCH(
         const existingReport = await reportsService.getReportById(id);
         const allowedRoles = ['SUPER_ADMIN', 'ANALYST', 'DIVISI_ESKALASI', 'DIVISI_OP', 'DIVISI_OS', 'DIVISI_OCS', 'DIVISI_OT', 'DIVISI_UQ', 'DIVISI_HC', 'DIVISI_HT', 'MANAGER_CABANG'];
         const payloadEmail = normalizeAccessValue(payload.email);
-        const payloadName = normalizeAccessValue(payload.full_name);
         const reportEmail = normalizeAccessValue(existingReport?.reporter_email);
-        const reportName = normalizeAccessValue(existingReport?.reporter_name);
+        // Station membership only grants *viewing* a station's reports (see
+        // canViewReport in lib/report-access.ts) — it must not also grant
+        // editing/deleting reports filed by other people at the same
+        // station. Ownership here is the actual author: user_id, or the
+        // verified session email matching the report's reporter email.
+        // reporter_name is free text on the report and is NOT used for
+        // ownership — it is not unique and is trivially spoofable by anyone
+        // whose account full_name happens to match it.
         const canAccessOwnReport = Boolean(existingReport && (
             existingReport.user_id === payload.id ||
-            (payload.station_id && existingReport.station_id === payload.station_id) ||
-            (payloadEmail && reportEmail === payloadEmail) ||
-            (payloadName && reportName === payloadName)
+            (payloadEmail && reportEmail === payloadEmail)
         ));
 
         if (!allowedRoles.includes(payload.role as string)) {
@@ -148,6 +168,21 @@ export async function PATCH(
             // filename pattern. Ownership is still required here; the flag is
             // only used below to control how the merge is performed.
             if (!canAccessOwnReport) {
+                return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+            }
+        } else if (payload.role === 'MANAGER_CABANG') {
+            // Being in allowedRoles skips the ownership check above, but a
+            // branch manager must still be confined to their own station —
+            // otherwise any MANAGER_CABANG could edit any station's reports.
+            // Mirrors the MANAGER_CABANG branch of canViewReport. Also block
+            // a submitted station_id that would relocate the report to a
+            // different station than the one the manager is confined to.
+            const managerStationId = payload.station_id;
+            if (
+                !managerStationId ||
+                existingReport?.station_id !== managerStationId ||
+                (body.station_id !== undefined && body.station_id !== managerStationId)
+            ) {
                 return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
             }
         }
@@ -173,7 +208,6 @@ export async function PATCH(
             attachments,
             primary_tag,
             sub_category_note,
-            target_division,
             route,
             airline,
             area,
@@ -227,7 +261,6 @@ export async function PATCH(
 
         if (primary_tag !== undefined) updates.primary_tag = primary_tag;
         if (sub_category_note !== undefined) updates.sub_category_note = sub_category_note;
-        if (target_division !== undefined) updates.target_division = target_division;
 
         if (route !== undefined) updates.route = route;
         if (airline !== undefined) updates.airline = airline;
@@ -315,8 +348,8 @@ export async function PATCH(
                     existingReport?.sheet_id,
                 ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
 
-                for (const reportIdCandidate of [...new Set(reportIdCandidates)]) {
-                    const safeCandidate = `"${reportIdCandidate.replace(/"/g, '""')}"`;
+                const orFilter = buildReportIdOrFilter(reportIdCandidates);
+                if (orFilter) {
                     const { data: rows, error: syncUpdateError } = await supabaseAdmin
                         .from('ground_handling_irregularity_report')
                         .update({
@@ -325,7 +358,7 @@ export async function PATCH(
                             evidence_file_ids: normalizeEvidenceFileIds(evidence_file_ids),
                             updated_at: new Date().toISOString(),
                         })
-                        .or(`id.eq.${safeCandidate},original_id.eq.${safeCandidate},sheet_id.eq.${safeCandidate}`)
+                        .or(orFilter)
                         .select('*')
                         .limit(1);
 
@@ -443,14 +476,16 @@ export async function DELETE(
         const existingReport = await reportsService.getReportById(id);
         const allowedRoles = ['SUPER_ADMIN', 'ANALYST'];
         const payloadEmail = normalizeAccessValue(payload.email);
-        const payloadName = normalizeAccessValue(payload.full_name);
         const reportEmail = normalizeAccessValue(existingReport?.reporter_email);
-        const reportName = normalizeAccessValue(existingReport?.reporter_name);
+        // Station membership only grants *viewing* a station's reports (see
+        // canViewReport in lib/report-access.ts) — it must not also grant
+        // deleting reports filed by other people at the same station.
+        // reporter_name is free text and NOT used for ownership — it is not
+        // unique and is trivially spoofable (see the matching PATCH handler
+        // above for the same fix).
         const canDeleteOwnDraft = Boolean(existingReport && (
             existingReport.user_id === payload.id ||
-            (payload.station_id && existingReport.station_id === payload.station_id) ||
-            (payloadEmail && reportEmail === payloadEmail) ||
-            (payloadName && reportName === payloadName)
+            (payloadEmail && reportEmail === payloadEmail)
         ));
 
         if (!allowedRoles.includes(payload.role as string) && !canDeleteOwnDraft) {
@@ -469,12 +504,12 @@ export async function DELETE(
             existingReport?.sheet_id,
         ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
 
-        for (const reportIdCandidate of [...new Set(reportIdCandidates)]) {
-            const safeCandidate = `"${reportIdCandidate.replace(/"/g, '""')}"`;
+        const deleteOrFilter = buildReportIdOrFilter(reportIdCandidates);
+        if (deleteOrFilter) {
             await supabaseAdmin
                 .from('ground_handling_irregularity_report')
                 .delete()
-                .or(`id.eq.${safeCandidate},original_id.eq.${safeCandidate},sheet_id.eq.${safeCandidate}`);
+                .or(deleteOrFilter);
         }
 
         try {

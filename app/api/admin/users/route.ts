@@ -270,6 +270,15 @@ export async function POST(request: Request) {
         const { error: insertErr } = await supabaseAdmin.from('users').insert(insertData);
         if (insertErr) {
             console.error('Create user error:', insertErr);
+            if (insertErr.code === '23505') {
+                const constraint = /violates unique constraint "([^"]+)"/.exec(insertErr.message || '')?.[1];
+                const conflictMessage = constraint === 'users_nik_key'
+                    ? 'NIK sudah terdaftar'
+                    : constraint === 'users_email_key'
+                        ? 'Email sudah terdaftar'
+                        : 'Data sudah terdaftar';
+                return NextResponse.json({ error: conflictMessage }, { status: 400 });
+            }
             return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
         }
 

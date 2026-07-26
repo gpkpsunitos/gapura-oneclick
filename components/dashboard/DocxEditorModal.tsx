@@ -41,7 +41,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
   useEffect(() => {
-    if (reportData) {
+    if (isOpen && reportData) {
       setFormData({
         description: reportData.description || '',
         root_cause: reportData.root_caused || reportData.root_cause || '',
@@ -50,9 +50,10 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
         location: reportData.location || reportData.branch || '',
         reporter_name: reportData.reporter_name || '',
       });
+      setSignatureData(null);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reportData?.id]);
+  }, [isOpen, reportData?.id]);
 
   if (!isOpen) return null;
   if (typeof document === 'undefined') return null;
@@ -162,7 +163,7 @@ export function DocxEditorModal({ isOpen, onClose, reportData, onSuccess }: Docx
       const existingAttachments = Array.isArray(reportData.attachments) ? reportData.attachments : [];
       const updatedAttachments = [...existingAttachments, newAttachment];
 
-      const patchResponse = await fetch(`/api/reports/${reportData.id || reportData.original_id}`, {
+      const patchResponse = await fetch(`/api/reports/${reportData.original_id || reportData.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ attachments: updatedAttachments }),

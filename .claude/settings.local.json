@@ -43,7 +43,8 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(find *)",
       "Bash(cat *)",
-      "Bash(find . *)"
+      "Bash(find . *)",
+      "mcp__claude_ai_Supabase__list_organizations"
     ],
     "deny": [],
     "ask": []

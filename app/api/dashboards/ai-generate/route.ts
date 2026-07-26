@@ -45,7 +45,7 @@ async function buildDataContext(): Promise<string> {
     const latest_date = sortedDates[sortedDates.length - 1] || '?';
 
     const fieldsToAnalyze = [
-        'category', 'area', 'target_division', 'severity', 'status', 
+        'category', 'area', 'severity', 'status',
         'hub', 'jenis_maskapai', 'airlines', 'branch', 'station_code',
         'terminal_area_category', 'apron_area_category', 'general_category',
         'incident_type_id', 'root_caused',

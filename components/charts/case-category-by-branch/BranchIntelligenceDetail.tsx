@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import {
   fetchBranchOverview,
   fetchCategoryCompositionByBranch,
@@ -241,6 +241,7 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [rootCauseData, setRootCauseData] = useState<RootCauseData[]>([]);
   const [tableData, setTableData] = useState<BranchIntelRecord[]>([]);
+  const requestIdRef = useRef(0);
   const investigativeData: QueryResult = useMemo(() => {
     const rows = tableData as unknown as Record<string, unknown>[];
     const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
@@ -255,6 +256,7 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
 
   useEffect(() => {
     async function loadData() {
+      const requestId = ++requestIdRef.current;
       setLoading(true);
       setError(null);
 
@@ -269,6 +271,8 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
           fetchAllBranchIntelReports(filters),
         ]);
 
+        if (requestId !== requestIdRef.current) return;
+
         setBranchData(overview);
         setCategoryData(category);
         setTrendData(trend);
@@ -277,10 +281,11 @@ export default function BranchIntelligenceDetail({ filters = {} }: { filters?: F
         setRootCauseData(rootCause);
         setTableData(table);
       } catch (err) {
+        if (requestId !== requestIdRef.current) return;
         console.error('Failed to load data:', err);
         setError('Failed to load data. Please try again.');
       } finally {
-        setLoading(false);
+        if (requestId === requestIdRef.current) setLoading(false);
       }
     }
 

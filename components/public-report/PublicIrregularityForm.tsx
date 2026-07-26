@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AIRLINES } from '@/lib/constants/airlines';
@@ -89,6 +89,7 @@ export default function PublicIrregularityForm({
   const [createdReportId, setCreatedReportId] = useState<string | null>(null);
   const [createdReportData, setCreatedReportData] = useState<unknown>(null);
   const [documentFinalizationToken, setDocumentFinalizationToken] = useState<string | null>(null);
+  const submittingRef = useRef(false);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((p) => ({ ...p, [k]: v }));
 
@@ -231,7 +232,16 @@ export default function PublicIrregularityForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+    if (createdReportId) {
+      // A report was already successfully created in this session. Never
+      // re-submit (which would create a duplicate) — just go back to the
+      // success step and reuse the existing result.
+      setStep(7);
+      return;
+    }
     if (!stepValid(6) || loading) return;
+    submittingRef.current = true;
     setLoading(true); setError('');
     try {
       const { urls, ids } = await uploadEvidence();
@@ -320,6 +330,7 @@ export default function PublicIrregularityForm({
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit irregularity report');
     } finally {
+      submittingRef.current = false;
       setLoading(false);
     }
   };

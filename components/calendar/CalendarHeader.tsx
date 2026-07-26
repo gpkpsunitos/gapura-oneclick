@@ -105,8 +105,8 @@ export function CalendarHeader({
   };
 
   const viewButtons: Array<{ view: View; label: string; icon: React.ComponentType<{ className?: string }> }> = [
-    { view: 'month', label: 'Month', icon: Calendar },
-    { view: 'week', label: 'Week', icon: List },
+    { view: 'month', label: 'Bulan', icon: Calendar },
+    { view: 'week', label: 'Minggu', icon: List },
     { view: 'day', label: 'Hari', icon: Clock },
   ];
 
@@ -118,7 +118,7 @@ export function CalendarHeader({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
           <PrismInput
             type="text"
-            placeholder="Search events..."
+            placeholder="Cari kegiatan..."
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
             className="pl-10"
@@ -127,7 +127,7 @@ export function CalendarHeader({
             <button
               onClick={() => setSearchValue('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-[var(--surface-4)] transition-colors"
-              aria-label="Clear search"
+              aria-label="Hapus pencarian"
             >
               <X className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             </button>
@@ -137,7 +137,7 @@ export function CalendarHeader({
         <div className="w-44 md:w-48">
           <PrismSelect
             options={[
-              { value: '', label: 'All Users' },
+              { value: '', label: 'Semua Pengguna' },
               ...users,
             ]}
             value={userFilterValue}
@@ -152,8 +152,8 @@ export function CalendarHeader({
             className="ml-auto inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white shadow-sm transition-colors hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-500 active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Add Event</span>
-            <span className="sm:hidden">Add</span>
+            <span className="hidden sm:inline">Tambah Kegiatan</span>
+            <span className="sm:hidden">Tambah</span>
           </button>
         )}
       </div>

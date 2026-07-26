@@ -140,7 +140,6 @@ const PROP_TO_HEADER: Partial<Record<keyof Report, string[]>> = {
   primary_tag: ['Primary Tag', 'Primary_Tag', 'Area Category', 'Area_Category'],
   sub_category_note: ['Sub Category Note', 'Sub_Category_Note', 'Sub Category', 'Additional Note'],
   esklasi_divisi: ['ESKLASI DIVISI', 'ESKLASI_DIVISI'],
-  target_division: [],
 
   id: ['ID'],
   user_id: ['User ID for One Click', 'User ID', 'User_ID'],
@@ -177,18 +176,17 @@ const GSE_KEYWORDS = [
   'uld',
 ];
 
-type SupportedDivision = 'OP' | 'OS' | 'HT' | 'HC';
-
 export interface ReportQueryFilters {
   dateFrom?: string;
   dateTo?: string;
   hub?: string;
   branch?: string;
+  /** Multi-station scope, OR-matched across branch/station_code/reporting_branch. */
+  branchIn?: string[];
   area?: string;
   airlines?: string;
   sourceSheet?: string;
   esklasiRegex?: string;
-  targetDivision?: string;
   gseOnly?: boolean;
   status?: string;
 }
@@ -269,7 +267,6 @@ const REPORT_SYNC_FIELDS = [
   'kode_hub',
   'maskapai_lookup',
   'primary_tag',
-  'target_division',
 ] as const;
 
 type ReportSyncField = typeof REPORT_SYNC_FIELDS[number];
@@ -334,7 +331,6 @@ const REPORT_PROJECTIONS = {
     'root_cause',
     'root_caused',
     'identification_of_root',
-    'target_division',
     'report',
     'description',
     'action_taken',
@@ -372,7 +368,6 @@ const REPORT_PROJECTIONS = {
     'main_category',
     'category',
     'irregularity_complain_category',
-    'target_division',
     'identification_of_root',
     'root_caused',
     'root_cause',
@@ -391,7 +386,6 @@ const REPORT_PROJECTIONS = {
     'main_category',
     'category',
     'area',
-    'target_division',
     'severity',
     'status',
     'jenis_maskapai',
@@ -417,7 +411,6 @@ const REPORT_PROJECTIONS = {
     'apron_area_category',
     'general_category',
     'case_classification',
-    'target_division',
     'date_of_event',
     'incident_date',
     'created_at',
@@ -548,6 +541,8 @@ export function parseDate(dateStr: string | number | Date): Date | null {
   return isNaN(d.getTime()) ? null : d;
 }
 
+type SupportedDivision = 'OP' | 'OS' | 'HT' | 'HC';
+
 export function normalizeDivisionCode(value?: string | null): SupportedDivision | undefined {
   if (!value) return undefined;
   const match = String(value).trim().toUpperCase().match(/\b(OP|OS|HT|HC)\b/);
@@ -555,20 +550,10 @@ export function normalizeDivisionCode(value?: string | null): SupportedDivision 
 }
 
 function syncEscalationDivisionAliases<T extends Partial<Report>>(report: T): T {
-  const rawDivision = [report.esklasi_divisi, report.target_division]
-    .find((value) => typeof value === 'string' && value.trim());
-
-  if (rawDivision) {
-    report.esklasi_divisi = String(rawDivision).trim();
+  if (typeof report.esklasi_divisi === 'string' && report.esklasi_divisi.trim()) {
+    report.esklasi_divisi = report.esklasi_divisi.trim();
   } else {
     delete report.esklasi_divisi;
-  }
-
-  const normalizedDivision = normalizeDivisionCode(rawDivision);
-  if (normalizedDivision) {
-    report.target_division = normalizedDivision;
-  } else {
-    delete report.target_division;
   }
 
   return report;
@@ -1089,10 +1074,7 @@ class ReportsService {
           return String(report.status || 'OPEN').trim().toUpperCase() || 'OPEN';
         }
 
-        let val = report[prop];
-        if ((prop === 'esklasi_divisi' || prop === 'target_division') && !val) {
-          val = report.esklasi_divisi || report.target_division;
-        }
+        const val = report[prop];
         if (val === undefined || val === null || val === '') continue;
         if (Array.isArray(val)) return val.join(' | ');
         if (typeof val === 'object') return JSON.stringify(val);
@@ -1252,6 +1234,13 @@ class ReportsService {
             if (reportBranch !== filters.branch) return false;
           }
 
+          if (filters.branchIn && filters.branchIn.length > 0) {
+            const reportStations = [report.branch, report.reporting_branch, report.station_code]
+              .filter((value): value is NonNullable<typeof value> => Boolean(value))
+              .map(String);
+            if (!reportStations.some((station) => filters.branchIn!.includes(station))) return false;
+          }
+
           if (filters.area && filters.area !== 'all') {
             const reportArea = report.area || report.terminal_area_category || report.apron_area_category || report.general_category || '';
             if (reportArea !== filters.area) return false;
@@ -1262,9 +1251,6 @@ class ReportsService {
           if (filters.sourceSheet && report.source_sheet !== filters.sourceSheet) return false;
 
           if (filters.esklasiRegex && !matchesEsklasiRegex(report, filters.esklasiRegex)) return false;
-
-          // target_division scoping removed: the column is unpopulated, so filtering
-          // by it emptied results. `filters.targetDivision` is now ignored.
 
           if (filters.gseOnly && !isGseRelatedReport(report)) return false;
         }
@@ -1376,7 +1362,7 @@ class ReportsService {
       fields?.forEach((field) => requiredFields.add(field));
 
       if (filters?.hub) requiredFields.add('hub');
-      if (filters?.branch) {
+      if (filters?.branch || filters?.branchIn?.length) {
         requiredFields.add('branch');
         requiredFields.add('reporting_branch');
         requiredFields.add('station_code');
@@ -1390,7 +1376,7 @@ class ReportsService {
       if (filters?.airlines) requiredFields.add('airlines');
       if (filters?.sourceSheet) requiredFields.add('source_sheet');
       if (filters?.esklasiRegex) {
-        requiredFields.add('target_division');
+        requiredFields.add('esklasi_divisi');
       }
       if (filters?.gseOnly) {
         [
@@ -1420,6 +1406,17 @@ class ReportsService {
           .order('date_of_event', { ascending: false });
         if (filters?.hub && filters.hub !== 'all') q = q.eq('hub', filters.hub);
         if (filters?.branch && filters.branch !== 'all') q = q.eq('branch', filters.branch);
+        if (filters?.branchIn && filters.branchIn.length > 0) {
+          // Station data is inconsistently stored across branch/station_code/
+          // reporting_branch, so match any of the three. Only pass through
+          // simple station-code tokens — never interpolate arbitrary text
+          // into a raw PostgREST .or() filter string.
+          const safeCodes = filters.branchIn.filter((code) => /^[A-Za-z0-9_-]+$/.test(code));
+          if (safeCodes.length > 0) {
+            const list = safeCodes.join(',');
+            q = q.or(`branch.in.(${list}),station_code.in.(${list}),reporting_branch.in.(${list})`);
+          }
+        }
         if (filters?.area && filters.area !== 'all') q = q.eq('area', filters.area);
         if (filters?.airlines && filters.airlines !== 'all') q = q.eq('airlines', filters.airlines);
         if (filters?.dateFrom) q = q.gte('date_of_event', filters.dateFrom);
@@ -1431,7 +1428,6 @@ class ReportsService {
         }
         if (filters?.sourceSheet) q = q.eq('source_sheet', filters.sourceSheet);
         if (filters?.status && filters.status !== 'all') q = q.eq('status', filters.status);
-        // target_division scoping removed (unpopulated column emptied results).
         return q;
       };
 
@@ -1870,9 +1866,8 @@ class ReportsService {
 
     const effectiveUpdates: Partial<Report> = { ...updates };
 
-    if ('target_division' in effectiveUpdates || 'esklasi_divisi' in effectiveUpdates) {
+    if ('esklasi_divisi' in effectiveUpdates) {
       syncEscalationDivisionAliases(effectiveUpdates);
-      delete effectiveUpdates.target_division;
     }
 
     if (['evidence_urls', 'evidence_url', 'video_urls', 'video_url'].some(k => k in effectiveUpdates)) {

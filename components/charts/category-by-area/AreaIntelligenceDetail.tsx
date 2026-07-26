@@ -1,7 +1,7 @@
 'use client';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import {
   fetchAreaOverview,
   fetchCategoryBreakdownByArea,
@@ -292,6 +292,7 @@ export default function AreaIntelligenceDetail({ filters = {} }: { filters?: Fil
   const [, setParetoData] = useState<RootCauseParetoData[]>([]);
   const [heatmapData, setHeatmapData] = useState<HeatmapMatrix>({ rows: [], cols: [], cells: new Map(), rowTotals: new Map(), colTotals: new Map(), grandTotal: 0 });
   const [tableData, setTableData] = useState<AreaReportRecord[]>([]);
+  const requestIdRef = useRef(0);
   const investigativeData: QueryResult = useMemo(() => {
     const rows = tableData as unknown as Record<string, unknown>[];
     const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
@@ -306,6 +307,7 @@ export default function AreaIntelligenceDetail({ filters = {} }: { filters?: Fil
 
   useEffect(() => {
     async function loadData() {
+      const requestId = ++requestIdRef.current;
       setLoading(true);
       setError(null);
 
@@ -321,6 +323,8 @@ export default function AreaIntelligenceDetail({ filters = {} }: { filters?: Fil
           fetchAllAreaIntelReports(filters),
         ]);
 
+        if (requestId !== requestIdRef.current) return;
+
         setAreaData(areas);
         setCategoryBreakdown(catBreakdown);
         setBranchData(branches);
@@ -330,10 +334,11 @@ export default function AreaIntelligenceDetail({ filters = {} }: { filters?: Fil
         setHeatmapData(heatmap);
         setTableData(table);
       } catch (err) {
+        if (requestId !== requestIdRef.current) return;
         console.error('Failed to load data:', err);
         setError('Failed to load data. Please try again.');
       } finally {
-        setLoading(false);
+        if (requestId === requestIdRef.current) setLoading(false);
       }
     }
 

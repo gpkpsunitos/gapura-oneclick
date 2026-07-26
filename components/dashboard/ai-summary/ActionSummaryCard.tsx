@@ -48,10 +48,10 @@ function SeverityBar({
   total: number;
 }) {
   const severities = [
-    { key: "TOP RISK", color: "bg-red-500", bg: "bg-red-100" },
-    { key: "HIGH RISK", color: "bg-orange-500", bg: "bg-orange-100" },
-    { key: "MEDIUM", color: "bg-amber-500", bg: "bg-amber-100" },
-    { key: "LOW", color: "bg-emerald-500", bg: "bg-emerald-100" },
+    { key: "Critical", label: "TOP RISK", color: "bg-red-500", bg: "bg-red-100" },
+    { key: "High", label: "HIGH RISK", color: "bg-orange-500", bg: "bg-orange-100" },
+    { key: "Medium", label: "MEDIUM", color: "bg-amber-500", bg: "bg-amber-100" },
+    { key: "Low", label: "LOW", color: "bg-emerald-500", bg: "bg-emerald-100" },
   ];
 
   return (
@@ -75,7 +75,7 @@ function SeverityBar({
         })}
       </div>
       <div className="flex flex-wrap gap-2">
-        {severities.map(({ key, color, bg }) => {
+        {severities.map(({ key, label, color, bg }) => {
           const count = distribution[key] || 0;
           if (count === 0) return null;
           return (
@@ -87,7 +87,7 @@ function SeverityBar({
                 color.replace("bg-", "text-")
               )}
             >
-              {count} {key}
+              {count} {label}
             </span>
           );
         })}
@@ -155,7 +155,7 @@ export function ActionSummaryCard({
         <div className="flex items-center gap-2">
           <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
         </div>
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
           {[1, 2, 3, 4, 5].map((i) => (
             <SkeletonCard key={i} />
           ))}
@@ -309,7 +309,7 @@ export function ActionSummaryCard({
       </div>
 
       {}
-      <div className="grid grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

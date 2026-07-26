@@ -18,8 +18,6 @@ interface ReportRow {
 
   priority: string | null;
 
-  target_division: string | null;
-
   station_code: string | null;
 
   incident_date: string | null;
@@ -106,7 +104,6 @@ export async function GET(request: NextRequest) {
       status: 'status',
       severity: 'severity',
       area: 'area',
-      division: 'target_division',
       station: 'station_code'
     };
 
@@ -126,7 +123,6 @@ export async function GET(request: NextRequest) {
         severity: r.severity || null,
         area: r.area || null,
         priority: r.priority || null,
-        target_division: r.target_division || null,
         station_code: r.station_code || r.branch || null,
         incident_date: r.incident_date || r.date_of_event || null,
         created_at: r.created_at

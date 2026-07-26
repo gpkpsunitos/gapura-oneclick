@@ -84,7 +84,7 @@ function CaseManagement({ report }: { report: Report }) {
     ['Priority', report.priority],
     ['Severity', report.severity],
     ['Status', report.status],
-    ['Escalation Division', report.esklasi_divisi || report.target_division],
+    ['Escalation Division', report.esklasi_divisi],
     ['Remarks By', report.remarks_by],
     ['KPS Remarks', report.kps_remarks || report.remarks_gapura_kps],
     ['Final Remarks', report.final_remarks],

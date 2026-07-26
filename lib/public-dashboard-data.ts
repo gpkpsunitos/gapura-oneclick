@@ -153,7 +153,6 @@ function buildLegacyStats(
     status: 'status',
     severity: 'severity',
     area: 'area',
-    division: 'target_division',
     station: 'station_code',
   };
   const rangeDays = range === '30d' ? 30 : 7;

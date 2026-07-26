@@ -1,41 +1,19 @@
 import { NextResponse } from 'next/server';
-import { supabaseAdmin } from '@/lib/supabase-admin';
-import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { verifySession } from '@/lib/auth-utils';
 import { sendTestEmail } from '@/lib/notifications';
 
-async function getSession() {
-    const cookieStore = await cookies();
-    const supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-            cookies: {
-                get(name: string) {
-                    return cookieStore.get(name)?.value;
-                },
-            },
-        }
-    );
-    const { data: { session } } = await supabase.auth.getSession();
-    return session;
-}
-
 async function checkAuth() {
-    const session = await getSession();
-    if (!session?.user) return null;
+    const cookieStore = await cookies();
+    const token = cookieStore.get('session')?.value;
+    if (!token) return null;
 
-    const { data: user } = await supabaseAdmin
-        .from('users')
-        .select('role, full_name')
-        .eq('id', session.user.id)
-        .single();
-
-    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ANALYST')) {
+    const session = await verifySession(token);
+    if (!session || (session.role !== 'SUPER_ADMIN' && session.role !== 'ANALYST')) {
         return null;
     }
 
-    return { ...session.user, full_name: user.full_name, role: user.role };
+    return session;
 }
 
 export async function POST(req: Request) {
@@ -51,7 +29,9 @@ export async function POST(req: Request) {
 
         await sendTestEmail({
             to: email,
-            requestedBy: `${user.full_name} (${user.role})`,
+            // full_name is optional on SessionPayload and can be undefined;
+            // email is always present and comes from the verified session.
+            requestedBy: `${user.email} (${user.role})`,
             subject: '[OneClick] Test Konfigurasi Email Notifikasi'
         });
 

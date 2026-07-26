@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
   fetchAirlineOverview,
   fetchCategoryCompositionByAirline,
@@ -227,7 +227,7 @@ function ManagementSummary({ data }: { data: AirlineOverview[] }) {
     `${topAirline.airline} leads with ${topAirline.total} reports (${topAirline.contribution.toFixed(1)}% of total), dominated by ${topAirline.dominantCategory}.`,
     `${highRiskCount} airline${highRiskCount !== 1 ? 's' : ''} identified as high risk (Risk Index >= 50).`,
     `Average irregularity rate across airlines: ${avgIrregRate.toFixed(1)}%.`,
-    `Total volume: ${totalReports.toLocaleString('en-GB')} reports across ${data.length} airlines.`,
+    `Total volume: ${totalReports.toLocaleString('id-ID')} reports across ${data.length} airlines.`,
     `Performance trend: ${improvingAirlines} improving, ${worseningAirlines} worsening (month-over-month).`,
   ];
 
@@ -256,6 +256,7 @@ export default function AirlineIntelligenceDetail({ filters = {} }: { filters?: 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [rootCauseData, setRootCauseData] = useState<RootCauseData[]>([]);
   const [tableData, setTableData] = useState<AirlineIntelReportRecord[]>([]);
+  const requestIdRef = useRef(0);
   const investigativeData: QueryResult = useMemo(() => {
     const rows = tableData as unknown as Record<string, unknown>[];
     const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
@@ -269,6 +270,7 @@ export default function AirlineIntelligenceDetail({ filters = {} }: { filters?: 
   }, [tableData]);
 
   const loadData = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
 
@@ -283,6 +285,8 @@ export default function AirlineIntelligenceDetail({ filters = {} }: { filters?: 
         fetchAllAirlineIntelReports(filters),
       ]);
 
+      if (requestId !== requestIdRef.current) return;
+
       setAirlineData(airline);
       setCategoryData(category);
       setBranchData(branch);
@@ -291,10 +295,11 @@ export default function AirlineIntelligenceDetail({ filters = {} }: { filters?: 
       setRootCauseData(rootCause);
       setTableData(table);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       console.error('Failed to load data:', err);
       setError('Failed to load data. Please try again.');
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
     // filters is destructured to primitive fields so this callback doesn't
     // change identity on every parent re-render when filters gets a new
@@ -328,7 +333,7 @@ export default function AirlineIntelligenceDetail({ filters = {} }: { filters?: 
   const rankColumns: CompactColumn<AirlineOverview>[] = [
     { key: 'rank', label: '#', align: 'left', numeric: true, render: (r) => `#${r.rank}` },
     { key: 'airline', label: 'Airline' },
-    { key: 'total', label: 'Total', align: 'right', numeric: true, render: (r) => r.total.toLocaleString('en-GB') },
+    { key: 'total', label: 'Total', align: 'right', numeric: true, render: (r) => r.total.toLocaleString('id-ID') },
     { key: 'irregularityRate', label: 'Irreg. Rate', align: 'right', numeric: true, hideBelow: 'sm', render: (r) => `${r.irregularityRate.toFixed(1)}%` },
     { key: 'complaintRate', label: 'Compl. Rate', align: 'right', numeric: true, hideBelow: 'md', render: (r) => `${r.complaintRate.toFixed(1)}%` },
     { key: 'netSentiment', label: 'Net Sent.', align: 'right', numeric: true, hideBelow: 'lg', render: (r) => `${r.netSentiment >= 0 ? '+' : ''}${r.netSentiment.toFixed(1)}%` },
@@ -353,7 +358,7 @@ export default function AirlineIntelligenceDetail({ filters = {} }: { filters?: 
       <AutoInsight data={airlineData} />
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <ReportStatCard label="Total Reports" value={totalReports.toLocaleString('en-GB')} subtitle={`Across ${airlineData.length} airlines`} tone="teal" />
+        <ReportStatCard label="Total Reports" value={totalReports.toLocaleString('id-ID')} subtitle={`Across ${airlineData.length} airlines`} tone="teal" />
         <ReportStatCard label="Top Airline" value={topAirline?.airline || '-'} subtitle={topAirline ? `${topAirline.contribution.toFixed(1)}% of system` : '-'} tone="coral" />
         <ReportStatCard label="Rank #1 Volume" value={topAirline?.total ?? 0} subtitle={topAirline ? `${topAirline.airline}` : '-'} tone="amber" />
         <ReportStatCard

@@ -177,15 +177,18 @@ export function InvestigativeTable({
       });
     }
 
-    return sortedRows.slice(0, maxRows);
-  }, [data.rows, categoryCol, rootCauseCol, actionTakenCol, evidenceCol, dateCol, maxRows]);
+    // maxRows is applied later in filteredData, after search/sort — capping
+    // here would make the search box silently miss matches outside the top
+    // N prioritized rows.
+    return sortedRows;
+  }, [data.rows, categoryCol, rootCauseCol, actionTakenCol, evidenceCol, dateCol]);
 
   const filteredData = useMemo(() => {
     let rows = prioritizedRows as Record<string, unknown>[];
 
     if (searchTerm) {
       const lowerTerm = searchTerm.toLowerCase();
-      rows = rows.filter(row => 
+      rows = rows.filter(row =>
         allColumns.some(col => String(row[col]).toLowerCase().includes(lowerTerm))
       );
     }
@@ -198,14 +201,14 @@ export function InvestigativeTable({
         if (typeof valA === 'number' && typeof valB === 'number') {
           return sortDir === 'asc' ? valA - valB : valB - valA;
         }
-        return sortDir === 'asc' 
+        return sortDir === 'asc'
           ? String(valA).localeCompare(String(valB))
           : String(valB).localeCompare(String(valA));
       });
     }
 
-    return rows;
-  }, [prioritizedRows, allColumns, searchTerm, sortCol, sortDir]);
+    return rows.slice(0, maxRows);
+  }, [prioritizedRows, allColumns, searchTerm, sortCol, sortDir, maxRows]);
 
   const stats = useMemo(() => {
     const metricCol = allColumns.find(c => ['count', 'jumlah', 'total', 'record_count', 'frequency'].includes(c.toLowerCase()));

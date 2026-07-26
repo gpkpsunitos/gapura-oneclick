@@ -395,6 +395,7 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
   const [sending, setSending] = useState(false);
   const [rateLimit, setRateLimit] = useState<{ remaining: number; resetAt: number } | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const chatGenerationRef = useRef(0);
 
   const rateLimitExhausted = rateLimit !== null && rateLimit.remaining < 0;
   const canSend = input.trim().length > 0 && !sending && filtersApplied && !rateLimitExhausted;
@@ -406,6 +407,7 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
   const askQuestion = async (question: string) => {
     if (!question.trim() || sending) return;
 
+    const generation = chatGenerationRef.current;
     const userMsg: ChatMessage = {
       id: crypto.randomUUID(),
       role: 'user',
@@ -425,6 +427,7 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
 
       if (res.status === 429) {
         const errData = await res.json().catch(() => ({}));
+        if (generation !== chatGenerationRef.current) return;
         setRateLimit({ remaining: -1, resetAt: errData.resetAt || 0 });
         const resetMsg = errData.resetAt
           ? ` Coba lagi setelah ${new Date(errData.resetAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}.`
@@ -445,6 +448,7 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
       }
 
       const result = await res.json();
+      if (generation !== chatGenerationRef.current) return;
 
       if (result.rateLimit) setRateLimit(result.rateLimit);
 
@@ -457,6 +461,7 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
+      if (generation !== chatGenerationRef.current) return;
       const errorMsg: ChatMessage = {
         id: crypto.randomUUID(),
         role: 'assistant',
@@ -465,7 +470,11 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
       };
       setMessages((prev) => [...prev, errorMsg]);
     } finally {
-      setSending(false);
+      // A cleared/superseded request must not stomp on a newer generation's
+      // `sending` state when it eventually settles.
+      if (generation === chatGenerationRef.current) {
+        setSending(false);
+      }
     }
   };
 
@@ -473,8 +482,12 @@ export function AIAssistantChat({ filters, filtersApplied }: AIAssistantChatProp
     <div className="flex flex-col h-full bg-transparent relative">
       {}
       {messages.length > 0 && (
-        <button 
-          onClick={() => setMessages([])}
+        <button
+          onClick={() => {
+            chatGenerationRef.current += 1;
+            setMessages([]);
+            setSending(false);
+          }}
           className="absolute top-4 right-4 lg:right-6 z-50 flex items-center gap-1.5 px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase rounded-xl border border-slate-200 bg-white/80 hover:bg-red-50 hover:text-red-600 hover:border-red-200 text-slate-500 shadow-sm backdrop-blur-md transition-all"
         >
           <Trash2 size={12} /> Clear Chat

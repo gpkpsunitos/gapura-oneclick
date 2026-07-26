@@ -9,7 +9,6 @@ import { ViewMode, Normalization } from './GlobalControlBar';
 
 import { StatusBreakdownChart } from './custom-charts/StatusBreakdownChart';
 import { SubCategoryDetailChart } from './custom-charts/SubCategoryDetailChart';
-import { TargetDivisionChart } from './custom-charts/TargetDivisionChart';
 import { AreaSubCategoryChart } from './custom-charts/AreaSubCategoryChart';
 import { PriorityChart } from './custom-charts/PriorityChart';
 import { AirlineTypeCategoryChart } from './custom-charts/AirlineTypeCategoryChart';
@@ -20,7 +19,6 @@ import { CategoryByBranchChart } from './custom-charts/CategoryByBranchChart';
 export type CustomChartType = 
   | 'status_breakdown'
   | 'subcategory_detail'
-  | 'target_division'
   | 'area_subcategory'
   | 'priority_analysis'
   | 'airline_type_category'
@@ -152,24 +150,6 @@ function transformToBranchCategoryData(result: QueryResult) {
   });
 }
 
-function transformToDivisionData(result: QueryResult) {
-  if (!result?.rows || result.rows.length === 0) {
-    return [];
-  }
-  const total = result.rows.reduce((sum, row) => {
-    const count = Number(row.jumlah) || Number(row.count) || Number(row.JUMLAH) || Number(row.COUNT) || 0;
-    return sum + count;
-  }, 0);
-  return result.rows.map(row => {
-    const count = Number(row.jumlah) || Number(row.count) || Number(row.JUMLAH) || Number(row.COUNT) || 0;
-    return {
-      division: String(row.target_division || row.TARGET_DIVISION || row.targetDivision || row.division || 'LAINNYA').toUpperCase(),
-      count: count,
-      percentage: total > 0 ? (count / total) * 100 : 0
-    };
-  });
-}
-
 function transformToAreaSubCategoryData(result: QueryResult, forcedArea?: string) {
   if (!result?.rows || result.rows.length === 0) {
     return [];
@@ -270,6 +250,9 @@ function transformToMonthlyTrendData(result: QueryResult) {
     return [];
   }
   const sortedRows = [...result.rows].sort((a, b) => {
+    const aYear = Number(a.year || a.YEAR || a.Year) || new Date().getFullYear();
+    const bYear = Number(b.year || b.YEAR || b.Year) || new Date().getFullYear();
+    if (aYear !== bYear) return aYear - bYear;
     const aMonth = String(a.month || a.MONTH || a.Month || '00').padStart(2, '0');
     const bMonth = String(b.month || b.MONTH || b.Month || '00').padStart(2, '0');
     return aMonth.localeCompare(bMonth);
@@ -438,14 +421,6 @@ export function SupportingCharts({ charts, dataMap, loading, source = 'ai', view
                   <SubCategoryDetailChart
                     key={idx}
                     data={transformToSubCategoryData(result)}
-                    {...customChartProps}
-                  />
-                );
-              case 'target_division':
-                return (
-                  <TargetDivisionChart
-                    key={idx}
-                    data={transformToDivisionData(result)}
                     {...customChartProps}
                   />
                 );

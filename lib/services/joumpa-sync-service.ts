@@ -204,11 +204,20 @@ export class JoumpaSyncService {
 
     const sheets = await getGoogleSheets();
     const lastCol = columnLetter(headers.length - 1);
+    const rowsToPush = (data as JoumpaRow[]).filter((row) => row.row_number);
+
+    // Bounded concurrency (not fully sequential, not unbounded): each row
+    // still gets its own Sheets write + independently-guarded synced_at
+    // stamp, so one bad row can't block the rest of the batch (unlike a
+    // single spreadsheets.values.batchUpdate call, which fails as a whole
+    // on a single malformed range) — just done a few at a time instead of
+    // one full round trip at a time.
+    const PUSH_BATCH_SIZE = 5;
     let pushed = 0;
-    for (const row of data as JoumpaRow[]) {
-      const rowNum = row.row_number;
-      if (!rowNum) continue;
-      try {
+    for (let i = 0; i < rowsToPush.length; i += PUSH_BATCH_SIZE) {
+      const batch = rowsToPush.slice(i, i + PUSH_BATCH_SIZE);
+      const results = await Promise.allSettled(batch.map(async (row) => {
+        const rowNum = row.row_number;
         const values = buildSheetRowValues(headers, row);
         await sheets.spreadsheets.values.update({
           spreadsheetId: JOUMPA_SHEET_ID,
@@ -219,7 +228,9 @@ export class JoumpaSyncService {
         // Guard on the updated_at observed at read time: if the row changed
         // concurrently (another edit landed mid-push), skip the stamp so the
         // row stays dirty and gets re-pushed on the next sync instead of the
-        // concurrent edit being silently marked as already synced.
+        // concurrent edit being silently marked as already synced. A stamp
+        // failure doesn't undo the successful sheet write, so it's reported
+        // separately rather than failing the row.
         const { error: stampError } = await supabaseAdmin
           .from('joumpa_reports_sync')
           .update({ synced_at: new Date().toISOString() })
@@ -228,10 +239,14 @@ export class JoumpaSyncService {
         if (stampError) {
           console.warn(`[JoumpaSync] synced_at stamp failed for row ${row.sheet_id}:`, stampError.message);
         }
-        pushed++;
-      } catch (err) {
-        console.warn(`[JoumpaSync] push row ${row.sheet_id} failed:`, err);
-      }
+      }));
+      results.forEach((result, idx) => {
+        if (result.status === 'fulfilled') {
+          pushed++;
+        } else {
+          console.warn(`[JoumpaSync] push row ${batch[idx].sheet_id} failed:`, result.reason);
+        }
+      });
     }
     return pushed;
   }

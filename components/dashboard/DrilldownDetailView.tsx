@@ -159,7 +159,7 @@ export function DrilldownDetailView({
                                             {r.stations?.code || '-'}
                                         </td>
                                         <td className="p-4 text-sm text-[var(--text-muted)]">
-                                            {new Date(r.created_at).toLocaleDateString('id-ID')}
+                                            {new Date(r.created_at).toLocaleDateString('en-US')}
                                         </td>
                                     </tr>
                                 ))}

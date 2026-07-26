@@ -11,6 +11,13 @@ import { AlertCircle, RefreshCw } from 'lucide-react';
 
 type CalendarView = 'month' | 'week' | 'work_week' | 'day' | 'agenda';
 
+// toISOString() converts to UTC first, so a local-midnight Date shifts back
+// a day in any positive-UTC-offset timezone (e.g. all of Indonesia).
+function toLocalDateInput(date: Date): string {
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().split('T')[0];
+}
+
 const Calendar = dynamic(() => import('./Calendar').then((mod) => mod.Calendar), {
   ssr: false,
   loading: () => (
@@ -86,8 +93,8 @@ export function CalendarPage({
         endDate.setDate(endDate.getDate() + (6 - day) + 7);
       }
 
-      params.set('start_date', startDate.toISOString().split('T')[0]);
-      params.set('end_date', endDate.toISOString().split('T')[0]);
+      params.set('start_date', toLocalDateInput(startDate));
+      params.set('end_date', toLocalDateInput(endDate));
 
       const response = await fetch(`/api/calendar/events?${params}`, {
         signal: controller.signal,
@@ -110,12 +117,12 @@ export function CalendarPage({
         });
         setUsers(Array.from(userMap.values()));
       } else {
-        setError('Failed to load calendar data. Please try again.');
+        setError('Gagal memuat data kalender. Silakan coba lagi.');
       }
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error('Error fetching events:', err);
-      setError('A network error occurred. Please try again.');
+      setError('Terjadi kesalahan jaringan. Silakan coba lagi.');
     } finally {
       if (!controller.signal.aborted) {
         setLoading(false);

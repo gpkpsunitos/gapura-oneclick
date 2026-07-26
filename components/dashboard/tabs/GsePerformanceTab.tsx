@@ -544,9 +544,11 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
     [categoryRows, motorizedRows, nonMotorizedRows]
   );
 
+  const currentYear = new Date().getUTCFullYear();
+
   const gse2026Reports = useMemo(
-    () => deferredReports.filter((r) => yearOf(r) === 2026 && val(r.apron_area_category).toLowerCase().includes('gse')),
-    [deferredReports]
+    () => deferredReports.filter((r) => yearOf(r) === currentYear && val(r.apron_area_category).toLowerCase().includes('gse')),
+    [deferredReports, currentYear]
   );
 
   const month2026Rows = useMemo(() => {
@@ -834,9 +836,9 @@ export function GsePerformanceTab({ reports }: GsePerformanceTabProps) {
           </div>
           <Panel
             title="GSE Monthly Report"
-            subtitle="2026 — click any bar to drill into records"
+            subtitle={`${currentYear} — click any bar to drill into records`}
             total={gse2026Reports.length}
-            aiContext={{ section: 'GSE Performance 2026', chartTitle: 'Monthly GSE Trend 2026', chartType: 'gse_2026_monthly_trend', chartData: month2026Rows.map((r) => ({ month: r.month, total: r.total })), featureHints: ['summarization', 'rootCause'] }}
+            aiContext={{ section: `GSE Performance ${currentYear}`, chartTitle: `Monthly GSE Trend ${currentYear}`, chartType: 'gse_2026_monthly_trend', chartData: month2026Rows.map((r) => ({ month: r.month, total: r.total })), featureHints: ['summarization', 'rootCause'] }}
           >
             <MonthBarChart rows={month2026Rows} onOpen={(items, ctx) => openDrilldown(items, ctx)} />
           </Panel>

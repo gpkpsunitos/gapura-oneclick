@@ -46,6 +46,60 @@ export async function GET(request: Request) {
         newValue: { status: 'SUCCESS' }
     });
 
+    // Demo mode must show the dashboard's shape without ever touching real
+    // telemetry — previously only alert titles/descriptions and threat-actor
+    // IPs were masked, while stats/auth/network metrics and alert
+    // severity/timing/counts were the real production values. Return fully
+    // synthetic data and skip the real queries entirely.
+    if (isDemo) {
+        const now = new Date().toISOString();
+        const demoStats: SecurityStats = {
+            totalBlocked: 128,
+            malwareDetected: 3,
+            intrusionAttempts: 42,
+            vulnerabilityScore: 87,
+            patchStatusCount: 46,
+            totalSystems: 50,
+        };
+        const demoAlerts: SecurityAlert[] = [1, 2, 3].map((n) => ({
+            id: `demo-alert-${n}`,
+            title: 'Security Alert',
+            description: 'Detail disembunyikan pada mode demo.',
+            severity: 'MEDIUM',
+            status: 'OPEN',
+            created_at: now,
+            updated_at: now,
+        }));
+        const demoAuth: AuthMetrics = {
+            failedAttempts: 12,
+            successfulLogins: 340,
+            suspiciousActivities: 2,
+            lastAttackOrigin: 'Demo Network',
+        };
+        const demoNetwork: NetworkStatus = {
+            trafficIn: 2_400_000,
+            trafficOut: 900_000,
+            activeConnections: 24,
+            portScansDetected: 1,
+        };
+        const demoThreatActors: ThreatActor[] = [
+            { ip: '203.0.113.xxx', eventCount: 14, riskScore: 32, lastSeen: now, status: 'BLOCKED' },
+            { ip: '198.51.100.xxx', eventCount: 6, riskScore: 12, lastSeen: now, status: 'ACTIVE' },
+        ];
+
+        return NextResponse.json({
+            stats: demoStats,
+            alerts: demoAlerts.map((a) => ({ ...a, canAcknowledge: false })),
+            auth: demoAuth,
+            network: demoNetwork,
+            threatActors: demoThreatActors,
+            isDemo: true,
+            timestamp: now,
+        }, {
+            headers: { 'Cache-Control': 'private, no-store, max-age=0' },
+        });
+    }
+
     const [
         { count: totalBlocked },
         { count: malwareDetected },
@@ -133,11 +187,11 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
         stats,
-        alerts: isDemo ? alerts.map(a => ({ ...a, canAcknowledge: false })) : alerts,
+        alerts,
         auth,
         network,
         threatActors,
-        isDemo,
+        isDemo: false,
         timestamp: new Date().toISOString()
     }, {
         headers: { 'Cache-Control': 'private, no-store, max-age=0' },

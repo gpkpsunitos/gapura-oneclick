@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import {
   fetchPivotData,
   buildPivotMatrix,
@@ -187,6 +187,7 @@ export default function PivotReportDetail({ filters = {}, pivotTitle = '' }: { f
   const [reports, setReports] = useState<Report[]>([]);
   const [trendData, setTrendData] = useState<TrendDataPoint[]>([]);
   const [tableData, setTableData] = useState<PivotReportRecord[]>([]);
+  const requestIdRef = useRef(0);
   const investigativeData: QueryResult = useMemo(() => {
     const rows = tableData as unknown as Record<string, unknown>[];
     const columns = rows.length > 0 ? Object.keys(rows[0]) : [];
@@ -200,6 +201,7 @@ export default function PivotReportDetail({ filters = {}, pivotTitle = '' }: { f
 
   useEffect(() => {
     async function loadData() {
+      const requestId = ++requestIdRef.current;
       setLoading(true);
       setError(null);
 
@@ -210,18 +212,26 @@ export default function PivotReportDetail({ filters = {}, pivotTitle = '' }: { f
           fetchAllPivotReports(filters),
         ]);
 
+        if (requestId !== requestIdRef.current) return;
+
         setReports(pivotReports);
         setTrendData(trend);
         setTableData(table);
       } catch (err) {
+        if (requestId !== requestIdRef.current) return;
         console.error('Failed to load data:', err);
         setError('Failed to load data. Please try again.');
       } finally {
-        setLoading(false);
+        if (requestId === requestIdRef.current) setLoading(false);
       }
     }
 
     loadData();
+    return () => {
+      // Invalidates this run's pending success/error/finally handlers if the
+      // component unmounts or filters change again before it resolves.
+      requestIdRef.current += 1;
+    };
     // filters is destructured to primitive fields so this effect doesn't
     // re-fire on every parent re-render when filters gets a new object
     // identity but the same values. All fields the fetch calls actually

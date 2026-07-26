@@ -1,3 +1,6 @@
+import 'server-only';
+import { normalizeStatus } from './mapping';
+
 export interface JoumpaStatusUpdateInput {
   status?: unknown;
   action_taken?: unknown;
@@ -22,11 +25,6 @@ interface ReportSourceIdentity {
 
 function text(value: unknown): string {
   return String(value ?? '').trim();
-}
-
-function normalizeStatus(value: unknown): string {
-  const normalized = text(value).toUpperCase().replace(/_/g, ' ');
-  return ['CLOSED', 'SELESAI', 'DONE', 'RESOLVED'].includes(normalized) ? 'CLOSED' : 'OPEN';
 }
 
 export function buildJoumpaStatusUpdate(input: JoumpaStatusUpdateInput): JoumpaStatusUpdate {

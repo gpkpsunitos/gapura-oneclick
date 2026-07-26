@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,18 +23,23 @@ export function TimePeriodFilter({ value, onChange, className }: TimePeriodFilte
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [fromDate, setFromDate] = useState('');
     const [toDate, setToDate] = useState('');
+    const idPrefix = useId();
+    const fromId = `${idPrefix}-from`;
+    const toId = `${idPrefix}-to`;
+    const datePickerId = `${idPrefix}-date-picker`;
+    const isInvertedRange = Boolean(fromDate && toDate && fromDate > toDate);
 
     const handlePeriodClick = (period: TimePeriod) => {
+        setShowDatePicker(false);
         if (period === value) {
             onChange(null);
         } else {
-            setShowDatePicker(false);
             onChange(period);
         }
     };
 
     const handleCustomApply = () => {
-        if (fromDate && toDate) {
+        if (fromDate && toDate && !isInvertedRange) {
             onChange('custom', fromDate, toDate);
             setShowDatePicker(false);
         }
@@ -46,6 +51,7 @@ export function TimePeriodFilter({ value, onChange, className }: TimePeriodFilte
                 <button
                     key={opt.value}
                     onClick={() => handlePeriodClick(opt.value)}
+                    aria-pressed={value === opt.value}
                     className={cn(
                         'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
                         value === opt.value
@@ -60,6 +66,9 @@ export function TimePeriodFilter({ value, onChange, className }: TimePeriodFilte
             <div className="relative">
                 <button
                     onClick={() => setShowDatePicker(!showDatePicker)}
+                    aria-expanded={showDatePicker}
+                    aria-controls={datePickerId}
+                    aria-pressed={value === 'custom'}
                     className={cn(
                         'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5',
                         value === 'custom'
@@ -72,11 +81,12 @@ export function TimePeriodFilter({ value, onChange, className }: TimePeriodFilte
                 </button>
 
                 {showDatePicker && (
-                    <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-200 p-4 z-50 min-w-[280px]">
+                    <div id={datePickerId} className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-200 p-4 z-50 w-[280px] max-w-[calc(100vw-32px)]">
                         <div className="space-y-3">
                             <div>
-                                <label className="text-xs font-medium text-gray-500 block mb-1">Dari</label>
+                                <label htmlFor={fromId} className="text-xs font-medium text-gray-500 block mb-1">From</label>
                                 <input
+                                    id={fromId}
                                     type="date"
                                     value={fromDate}
                                     onChange={(e) => setFromDate(e.target.value)}
@@ -84,20 +94,24 @@ export function TimePeriodFilter({ value, onChange, className }: TimePeriodFilte
                                 />
                             </div>
                             <div>
-                                <label className="text-xs font-medium text-gray-500 block mb-1">Sampai</label>
+                                <label htmlFor={toId} className="text-xs font-medium text-gray-500 block mb-1">To</label>
                                 <input
+                                    id={toId}
                                     type="date"
                                     value={toDate}
                                     onChange={(e) => setToDate(e.target.value)}
                                     className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400"
                                 />
                             </div>
+                            {isInvertedRange && (
+                                <p className="text-xs font-medium text-red-500">End date must be on or after the start date.</p>
+                            )}
                             <button
                                 onClick={handleCustomApply}
-                                disabled={!fromDate || !toDate}
+                                disabled={!fromDate || !toDate || isInvertedRange}
                                 className="w-full py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
-                                Terapkan
+                                Apply
                             </button>
                         </div>
                     </div>
