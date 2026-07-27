@@ -187,7 +187,7 @@ function filterReports(reports: Report[], filters: BaseFilters): Report[] {
   });
 }
 
-async function fetchReportsFromSheets(filters: BaseFilters): Promise<Report[]> {
+export async function fetchReportsFromSheets(filters: BaseFilters): Promise<Report[]> {
   const query = new URLSearchParams();
   if (filters.dateFrom) query.append('dateFrom', filters.dateFrom);
   if (filters.dateTo) query.append('dateTo', filters.dateTo);
@@ -268,8 +268,7 @@ export async function fetchCategoryByArea(filters: BaseFilters = {}): Promise<Ar
   return Array.from(areaMap.entries()).map(([area, data]) => ({ area, ...data })).sort((a, b) => (b.Irregularity + b.Complaint) - (a.Irregularity + a.Complaint));
 }
 
-export async function fetchBranchByArea(filters: BaseFilters = {}): Promise<BranchByAreaData[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchBranchByArea(reports: Report[], filters: BaseFilters = {}): BranchByAreaData[] {
   const filtered = filterReports(reports, filters);
   const map = new Map<string, { branch: string; area: string; count: number }>();
   filtered.forEach(report => {
@@ -283,8 +282,7 @@ export async function fetchBranchByArea(filters: BaseFilters = {}): Promise<Bran
   return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 30);
 }
 
-export async function fetchAirlineByArea(filters: BaseFilters = {}): Promise<AirlineByAreaData[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchAirlineByArea(reports: Report[], filters: BaseFilters = {}): AirlineByAreaData[] {
   const filtered = filterReports(reports, filters);
   const map = new Map<string, { airline: string; area: string; count: number }>();
   filtered.forEach(report => {
@@ -298,8 +296,7 @@ export async function fetchAirlineByArea(filters: BaseFilters = {}): Promise<Air
   return Array.from(map.values()).sort((a, b) => b.count - a.count).slice(0, 30);
 }
 
-export async function fetchRootCauseByArea(filters: BaseFilters = {}): Promise<RootCauseByAreaData[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchRootCauseByArea(reports: Report[], filters: BaseFilters = {}): RootCauseByAreaData[] {
   const filtered = filterReports(reports, filters);
   const map = new Map<string, { area: string; count: number; category: string }>();
   filtered.forEach(report => {
@@ -314,8 +311,7 @@ export async function fetchRootCauseByArea(filters: BaseFilters = {}): Promise<R
   return Array.from(map.entries()).map(([key, data]) => ({ rootCause: key.split('-')[0], ...data })).sort((a, b) => b.count - a.count).slice(0, 30);
 }
 
-export async function fetchAllAreaReports(filters: BaseFilters = {}): Promise<AreaReportRecord[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchAllAreaReports(reports: Report[], filters: BaseFilters = {}): AreaReportRecord[] {
   const filtered = filterReports(reports, filters);
   return filtered.map(report => {
     const evidenceUrls = report.evidence_url || report.evidence_urls;

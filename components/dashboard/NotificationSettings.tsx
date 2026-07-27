@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { 
     Mail, Plus, Trash2, ToggleLeft, ToggleRight, 
     RefreshCw, AlertCircle, CheckCircle2, Send,
@@ -39,15 +39,22 @@ export default function NotificationSettings() {
         setTimeout(() => setMessage(null), 5000);
     }, []);
 
+    // Guards against a slower, earlier entity's response landing after a
+    // newer entity's and overwriting the fresher recipient list.
+    const activeEntityRef = useRef(selectedEntity);
+
     const fetchRecipients = useCallback(async () => {
+        const requestEntity = selectedEntity;
         setLoading(true);
         try {
-            const url = selectedEntity
-                ? `/api/admin/notifications/recipients?entity=${encodeURIComponent(selectedEntity)}`
+            const url = requestEntity
+                ? `/api/admin/notifications/recipients?entity=${encodeURIComponent(requestEntity)}`
                 : '/api/admin/notifications/recipients';
 
             const res = await fetch(url);
             const data = await res.json();
+
+            if (activeEntityRef.current !== requestEntity) return;
 
             if (!res.ok || !Array.isArray(data)) {
                 if (data.error === 'Unauthorized') {
@@ -60,16 +67,18 @@ export default function NotificationSettings() {
                 setRecipients(data);
             }
         } catch (err) {
+            if (activeEntityRef.current !== requestEntity) return;
             console.error(err);
             showMsg('error', 'Failed to load recipient list');
         } finally {
-            setLoading(false);
+            if (activeEntityRef.current === requestEntity) setLoading(false);
         }
     }, [selectedEntity, showMsg]);
 
     useEffect(() => {
+        activeEntityRef.current = selectedEntity;
         fetchRecipients();
-    }, [fetchRecipients]);
+    }, [selectedEntity, fetchRecipients]);
 
     const handleAddRecipient = async (e: React.FormEvent) => {
         e.preventDefault();

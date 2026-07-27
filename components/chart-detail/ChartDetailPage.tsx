@@ -99,6 +99,7 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
   const [analyticalDataMap, setAnalyticalDataMap] = useState<Record<number, QueryResult>>({});
   const [analyticalLoading, setAnalyticalLoading] = useState(false);
   const analyticalChartsSourceRef = useRef<typeof chartDefs>(null);
+  const analyticalRequestSeqRef = useRef(0);
 
 
   const chartDefs = useMemo(() => {
@@ -306,15 +307,22 @@ export default function ChartDetailPage({ isPublic = false }: { isPublic?: boole
     if (analyticalChartsSourceRef.current === chartDefs) return;
     analyticalChartsSourceRef.current = chartDefs;
 
+    // Guards against the partial-data pass's fetch resolving after the
+    // full-data pass has already started/finished, which would otherwise
+    // clobber the fresher full-data results with stale partial ones.
+    const requestSeq = ++analyticalRequestSeqRef.current;
+
     setAnalyticalCharts(chartDefs.charts);
     setAnalyticalDataMap(chartDefs.dataMap);
     setAnalyticalLoading(true);
 
     fetchAnalyticalChartData(chartDefs.charts, chartDefs.dataMap)
       .then(fullMap => {
-        setAnalyticalDataMap(fullMap);
+        if (analyticalRequestSeqRef.current === requestSeq) setAnalyticalDataMap(fullMap);
       })
-      .finally(() => setAnalyticalLoading(false));
+      .finally(() => {
+        if (analyticalRequestSeqRef.current === requestSeq) setAnalyticalLoading(false);
+      });
   }, [chartDefs, supportingVisible]);
 
   const handleSharePublic = () => {

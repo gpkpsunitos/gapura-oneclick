@@ -55,7 +55,7 @@ export const StatsCard = memo(function StatsCard({ icon: Icon, value, label, onC
         {typeof value === 'number' ? value.toLocaleString() : value}
       </div>
 
-      <div className="font-display font-semibold text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider sm:tracking-widest text-text-secondary">
+      <div className="font-display font-semibold text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider sm:tracking-widest text-text-secondary line-clamp-2">
         {label}
       </div>
     </div>

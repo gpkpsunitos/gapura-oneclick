@@ -6,6 +6,7 @@ import {
   fetchAirlineByMonth,
   fetchAllMonthlyReports,
   fetchAggregatedMonthlyReport,
+  fetchReportsFromSheets,
   MonthlySummary,
   DailyDataPoint,
   BranchByMonthData,
@@ -317,13 +318,21 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
   }, [filters.hub, filters.branch, filters.airlines, filters.area, filters.month, filters.sourceSheet, filters.dateFrom, filters.dateTo]);
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadDeferredData() {
       try {
-        const [branch, airline, table] = await Promise.all([
-          fetchBranchByMonth(filters),
-          fetchAirlineByMonth(filters),
-          fetchAllMonthlyReports(filters),
-        ]);
+        // Fetch the raw report set exactly once, then derive every deferred
+        // view (station breakdown, airline breakdown, investigative table)
+        // from that single array instead of each view re-fetching the same
+        // data independently.
+        const reports = await fetchReportsFromSheets(filters);
+        if (cancelled) return;
+
+        const branch = fetchBranchByMonth(reports, filters);
+        const airline = fetchAirlineByMonth(reports, filters);
+        const table = fetchAllMonthlyReports(reports, filters);
+
         setChartData(prev => ({
           ...prev,
           branchData: branch,
@@ -331,11 +340,12 @@ export default function MonthlyReportDetail({ filters = {} }: { filters?: Filter
           tableData: table,
         }));
       } catch (err) {
-        console.error('Failed to load deferred monthly data:', err);
+        if (!cancelled) console.error('Failed to load deferred monthly data:', err);
       }
     }
 
     loadDeferredData();
+    return () => { cancelled = true; };
     // filters is destructured to primitive fields so this effect doesn't
     // re-fire on every parent re-render when filters gets a new object
     // identity but the same values. All fields the fetch calls actually

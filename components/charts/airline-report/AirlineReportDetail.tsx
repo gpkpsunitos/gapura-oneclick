@@ -8,6 +8,7 @@ import {
   fetchAreaByAirline,
   fetchRootCausePareto,
   fetchAggregatedAirlineReport,
+  fetchReportsFromSheets,
   AirlineSummary,
   TrendDataPoint,
   BranchByAirlineData,
@@ -299,19 +300,25 @@ export default function AirlineReportDetail({ filters = {} }: { filters?: Filter
 
     async function loadDeferredData() {
       try {
-        const [branch, rootCause, table, area, pareto] = await Promise.all([
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fetchBranchByAirline(filters as any),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fetchRootCauseByAirline(filters as any),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fetchAllAirlineReports(filters as any),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fetchAreaByAirline(filters as any),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fetchRootCausePareto(filters as any),
-        ]);
+        // Fetch the raw report set exactly once, then derive every deferred
+        // view (station breakdown, root cause breakdown, area breakdown,
+        // pareto, investigative table) from that single array instead of
+        // each view re-fetching the same data independently.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const reports = await fetchReportsFromSheets(filters as any);
         if (cancelled) return;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const branch = fetchBranchByAirline(reports, filters as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rootCause = fetchRootCauseByAirline(reports, filters as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const table = fetchAllAirlineReports(reports, filters as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const area = fetchAreaByAirline(reports, filters as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pareto = fetchRootCausePareto(reports, filters as any);
+
         setChartData((prev) => ({ ...prev, branchData: branch, rootCauseData: rootCause, tableData: table, areaData: area, paretoData: pareto }));
       } catch (err) {
         if (!cancelled) console.error('Failed to load deferred airline data:', err);

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { PrismInput } from '@/components/ui/PrismInput';
 import { SignaturePad } from '@/components/ui/SignaturePad';
 import { generateBriefingWord } from '../../lib/utils/briefing-generator';
+import { toLocalYMD } from '@/lib/utils/wib-date';
 
 interface BriefingEditorModalProps {
   isOpen: boolean;
@@ -22,7 +23,7 @@ interface BriefingEditorModalProps {
 
 export function BriefingEditorModal({ isOpen, onClose, reportData, uploadType, divisionName, onSuccess }: BriefingEditorModalProps) {
   const [formData, setFormData] = useState({
-    tanggal: new Date().toISOString().split('T')[0],
+    tanggal: toLocalYMD(new Date()),
     waktu: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
     tempat: reportData?.location || reportData?.branch || '',
     topik: `Briefing ${uploadType === 'CORRECTIVE' ? 'Corrective Action' : 'Preventive Action'} - ${reportData?.reference_number || 'Report'}`,

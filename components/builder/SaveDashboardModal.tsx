@@ -141,7 +141,7 @@ export function SaveDashboardModal({
         {}
         <div className="flex items-center justify-between p-4 border-b border-[var(--surface-4)]">
           <h3 id="save-dashboard-modal-title" className="text-sm font-bold text-[var(--text-primary)]">Simpan Dashboard</h3>
-          <button onClick={onClose} className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
+          <button onClick={onClose} className="min-h-11 min-w-11 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
             <X size={16} />
           </button>
         </div>

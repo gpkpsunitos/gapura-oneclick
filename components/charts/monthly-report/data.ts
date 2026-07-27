@@ -1,6 +1,7 @@
 'use client';
 
 import { Report } from '@/types';
+import { toLocalYMD, wibYearMonth } from '@/lib/utils/wib-date';
 
 export interface MonthlySummary {
   month: string;
@@ -110,12 +111,19 @@ function normalizeCategory(category: string | undefined): string | null {
   return null;
 }
 
+// Both helpers derive their calendar boundary from the same WIB (UTC+7)
+// wall-clock shift (see lib/utils/wib-date.ts) so a report timestamp near a
+// month boundary always lands in the same month for getMonthKey() as it does
+// for getDateKey() — previously getMonthKey() used host-local Date getters
+// while getDateKey() used raw UTC via toISOString(), which could disagree by
+// a day (and therefore a month) depending on the server's timezone.
 function getMonthKey(dateStr: string | undefined): string {
   if (!dateStr) return '';
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '';
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const { year, month } = wibYearMonth(date);
+    return `${year}-${String(month + 1).padStart(2, '0')}`;
   } catch {
     return '';
   }
@@ -126,7 +134,7 @@ function getDateKey(dateStr: string | undefined): string {
   try {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '';
-    return date.toISOString().split('T')[0];
+    return toLocalYMD(date);
   } catch {
     return '';
   }
@@ -143,7 +151,7 @@ export interface AggregatedMonthlyData {
   dominantAirline: DominantInfo;
 }
 
-async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report[]> {
+export async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report[]> {
   const query = new URLSearchParams();
   if (filters.dateFrom) query.append('dateFrom', filters.dateFrom);
   if (filters.dateTo) query.append('dateTo', filters.dateTo);
@@ -312,8 +320,7 @@ export async function fetchDailyTrend(filters: BaseFilters = {}): Promise<DailyD
     .map(([date, data]) => ({ date, ...data }));
 }
 
-export async function fetchBranchByMonth(filters: BaseFilters = {}): Promise<BranchByMonthData[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchBranchByMonth(reports: Report[], filters: BaseFilters = {}): BranchByMonthData[] {
   const filtered = filterReports(reports, filters);
 
   const map = new Map<string, { branch: string; month: string; count: number }>();
@@ -336,8 +343,7 @@ export async function fetchBranchByMonth(filters: BaseFilters = {}): Promise<Bra
     .slice(0, 30);
 }
 
-export async function fetchAirlineByMonth(filters: BaseFilters = {}): Promise<AirlineByMonthData[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchAirlineByMonth(reports: Report[], filters: BaseFilters = {}): AirlineByMonthData[] {
   const filtered = filterReports(reports, filters);
 
   const map = new Map<string, { airline: string; month: string; count: number }>();
@@ -455,8 +461,7 @@ export async function fetchDominantAirline(filters: BaseFilters = {}): Promise<D
   return { name: topName, count: topCount, percent: filtered.length > 0 ? (topCount / filtered.length) * 100 : 0 };
 }
 
-export async function fetchAllMonthlyReports(filters: BaseFilters = {}): Promise<MonthlyReportRecord[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchAllMonthlyReports(reports: Report[], filters: BaseFilters = {}): MonthlyReportRecord[] {
   const filtered = filterReports(reports, filters);
 
   return filtered.map(report => {

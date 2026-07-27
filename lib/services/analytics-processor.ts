@@ -8,6 +8,7 @@ import {
   resolveReportHub,
   resolveRootCause,
 } from '@/lib/report-normalization';
+import { toLocalYMD } from '@/lib/utils/wib-date';
 
 type LowerCategoryCounts = {
   irregularity: number;
@@ -212,7 +213,7 @@ export class AnalyticsProcessor {
 
       const d = new Date(report.date_of_event || report.created_at || '');
       if (!isNaN(d.getTime())) {
-        const dateKeyFull = d.toISOString().split('T')[0];
+        const dateKeyFull = toLocalYMD(d);
         if (!dateMap.has(dateKeyFull)) dateMap.set(dateKeyFull, { total: 0, ...this.emptyTitleCounts() });
         const dData = dateMap.get(dateKeyFull)!;
         dData.total++;

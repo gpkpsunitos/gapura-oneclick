@@ -22,8 +22,16 @@ export async function GET(request: Request) {
     const user = await getWorkspaceUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-    const tab = new URL(request.url).searchParams.get('tab');
-    let query = supabaseAdmin.from('ocs_tab_records').select('*').order('event_date', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false });
+    const url = new URL(request.url);
+    const tab = url.searchParams.get('tab');
+    // Safety cap — this table is small (internal OCS meeting/report logs) but
+    // had no bound at all; well above any realistic row count today, with an
+    // opt-in `limit` query param for a genuine larger read.
+    const requestedLimit = Number(url.searchParams.get('limit'));
+    const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
+        ? Math.min(requestedLimit, 10000)
+        : 2000;
+    let query = supabaseAdmin.from('ocs_tab_records').select('*').order('event_date', { ascending: false, nullsFirst: false }).order('created_at', { ascending: false }).range(0, limit - 1);
     if (tab && (TABS as readonly string[]).includes(tab)) query = query.eq('tab', tab);
 
     const { data, error } = await query;

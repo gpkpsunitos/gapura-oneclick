@@ -134,14 +134,12 @@ export function ExecutivePivotView({
             const pct = grandTotal > 0 ? (stats.total / grandTotal) * 100 : 0;
             return (
               <div key={r} className="relative group">
-                <div className="flex items-center justify-between text-xs mb-1 relative z-10">
-                  <span className="font-bold text-gray-700 w-32 truncate">{i + 1}. {r}</span>
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-400 text-[10px] w-24 text-right truncate">
-                       Dominant: <span className="text-emerald-600 font-medium">{stats.maxCol}</span>
-                    </span>
-                    <span className="font-bold text-gray-900 w-12 text-right">{stats.total.toLocaleString()}</span>
-                  </div>
+                <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,auto)_auto] items-center gap-2 text-xs mb-1 relative z-10">
+                  <span className="font-bold text-gray-700 truncate min-w-0">{i + 1}. {r}</span>
+                  <span className="text-gray-400 text-[10px] text-right truncate min-w-0">
+                     Dominant: <span className="text-emerald-600 font-medium">{stats.maxCol}</span>
+                  </span>
+                  <span className="font-bold text-gray-900 text-right whitespace-nowrap">{stats.total.toLocaleString()}</span>
                 </div>
                 {}
                 <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">

@@ -7,6 +7,7 @@ import type { QueryDefinition, QueryResult } from '@/types/builder';
 import { applyDashboardScopeToQuery, normalizeDashboardScope, type DashboardScopeFilters } from '@/lib/dashboard-query-scope';
 import { getSyncState } from '@/lib/sync-state';
 import { hashCacheKey, readDashboardSnapshot, writeDashboardSnapshot } from '@/lib/dashboard-cache';
+import { toLocalYMD } from '@/lib/utils/wib-date';
 
 interface DashboardChartRow {
   id: string;
@@ -120,18 +121,22 @@ function aggregateByField(reports: Record<string, unknown>[], field: string): Ag
 
 function buildTrendData(reports: Record<string, unknown>[], rangeDays: number): { date: string; count: number }[] {
   const dateMap = new Map<string, number>();
-  const today = new Date();
+  // Anchor "today" on the WIB calendar day, then step by whole days using UTC-midnight
+  // arithmetic so no further timezone shift is introduced when building the bucket keys.
+  const [ty, tm, td] = toLocalYMD(new Date()).split('-').map(Number);
+  const todayUtc = Date.UTC(ty, tm - 1, td);
 
   for (let i = rangeDays - 1; i >= 0; i -= 1) {
-    const value = new Date(today);
-    value.setDate(value.getDate() - i);
+    const value = new Date(todayUtc - i * 86400000);
     dateMap.set(value.toISOString().split('T')[0], 0);
   }
 
   for (const report of reports) {
-    const createdAt = String(report.created_at || '');
-    if (!createdAt) continue;
-    const dateKey = createdAt.split('T')[0];
+    const createdAtRaw = report.created_at;
+    if (!createdAtRaw) continue;
+    const createdAt = new Date(String(createdAtRaw));
+    if (Number.isNaN(createdAt.getTime())) continue;
+    const dateKey = toLocalYMD(createdAt);
     if (dateMap.has(dateKey)) {
       dateMap.set(dateKey, (dateMap.get(dateKey) || 0) + 1);
     }

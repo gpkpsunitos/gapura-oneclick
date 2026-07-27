@@ -12,8 +12,6 @@ import { STATUS_CONFIG, canPerformAction, type ReportStatus } from '@/lib/consta
 import { DocxEditorModal } from '@/components/dashboard/DocxEditorModal';
 import { canEditReport } from '@/lib/permissions';
 
-import { supabase } from '@/lib/supabase';
-
 interface Report {
     id: string;
     user_id: string;
@@ -119,25 +117,18 @@ export default function EmployeeReportDetailPage() {
         fetchReport(signal);
         fetchUser(signal);
 
-        const channel = supabase
-            .channel(`report-comments-${reportId}`)
-            .on(
-                'postgres_changes',
-                {
-                    event: '*',
-                    schema: 'public',
-                    table: 'report_comments',
-                    filter: `report_id=eq.${reportId}`,
-                },
-                () => {
-                     fetchReport(signal);
-                }
-            )
-            .subscribe();
+        // `report_comments` RLS no longer grants the anon client a reachable
+        // SELECT policy, so a Postgres Realtime `postgres_changes`
+        // subscription on it would silently receive zero events. Poll the
+        // report (which includes comments) instead so new replies still
+        // show up without a manual refresh.
+        const interval = setInterval(() => {
+            fetchReport();
+        }, 10_000);
 
         return () => {
             controller.abort();
-            supabase.removeChannel(channel);
+            clearInterval(interval);
         };
     }, [reportId, fetchReport, fetchUser]);
 

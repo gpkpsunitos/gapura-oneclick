@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, AlertCircle, Loader2, Sparkles, ArrowUpRight, ShieldCheck, Wrench } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
 import { AREA_LABELS } from '@/lib/constants/incident-areas';
 import { InlineShell, Section } from '@/components/public-report/apple-form-shell';
 import {
@@ -116,25 +115,45 @@ export function AppleReportPage({ reportId, backTo, divisionColor = '#0f7c7c', d
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showCloseDialog, setShowCloseDialog] = useState(false);
+  // Guards against a slower in-flight request for a previous reportId
+  // resolving after navigation to a new report and clobbering its state
+  // (e.g. fast nav between two reports showing report A's data under
+  // report B's URL). Mirrors the fullReport.id === selectedId guard in
+  // ReportMasterDetail.tsx.
+  const activeReportIdRef = useRef(reportId);
 
   const fetchComments = useCallback(async () => {
+    const requestId = reportId;
     try {
-      const res = await fetch(`/api/reports/${reportId}/comments`);
-      if (res.ok) setComments(await res.json());
+      const res = await fetch(`/api/reports/${requestId}/comments`);
+      if (res.ok) {
+        const data = await res.json();
+        if (activeReportIdRef.current === requestId) setComments(data);
+      }
     } catch { /* ignore */ }
   }, [reportId]);
 
   const fetchReport = useCallback(async () => {
+    const requestId = reportId;
     try {
-      const res = await fetch(`/api/reports/${reportId}`);
+      const res = await fetch(`/api/reports/${requestId}`);
       if (!res.ok) throw new Error('Gagal memuat laporan');
-      setReport(await res.json());
+      const data = await res.json();
+      if (activeReportIdRef.current === requestId) setReport(data);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Unknown error');
-    } finally { setLoading(false); }
+      if (activeReportIdRef.current === requestId) {
+        setError(e instanceof Error ? e.message : 'Unknown error');
+      }
+    } finally {
+      if (activeReportIdRef.current === requestId) setLoading(false);
+    }
   }, [reportId]);
 
   useEffect(() => {
+    activeReportIdRef.current = reportId;
+    setLoading(true);
+    setError('');
+
     fetchComments();   // instant, DB-only
     fetchReport();     // may wait on Google Sheets
 
@@ -144,14 +163,12 @@ export function AppleReportPage({ reportId, backTo, divisionColor = '#0f7c7c', d
       body: JSON.stringify({ reportId }),
     }).catch(() => {});
 
-    const channel = supabase
-      .channel(`report-comments-${reportId}`)
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'report_comments', filter: `report_id=eq.${reportId}` },
-        () => { fetchComments(); })
-      .subscribe();
+    // report_comments has no client-reachable RLS policy (locked down to
+    // server-only reads), so an anon-client Realtime subscription here
+    // would never receive events. Poll instead.
+    const intervalId = setInterval(() => { fetchComments(); }, 10_000);
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { clearInterval(intervalId); };
   }, [reportId, fetchComments, fetchReport]);
 
   const handleStatus = useCallback(async (id: string, status: string, values: CloseReportValues) => {

@@ -1,5 +1,6 @@
 
 import type { QueryDefinition } from '@/types/builder';
+import { toLocalYMD, wibYearMonth } from '@/lib/utils/wib-date';
 
 interface QueryResult {
 
@@ -55,15 +56,19 @@ const getDateKey = (dateStr: string, granularity?: string) => {
     const d = new Date(dateStr);
     if (isNaN(d.getTime())) return dateStr;
 
+    // Bucket by WIB (UTC+7) calendar day/month/quarter/year, not the host process's
+    // local/UTC calendar day, so timestamps near WIB midnight land in the right bucket.
+    const { year, month } = wibYearMonth(d);
+
     if (granularity === 'month') {
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      return `${d.getFullYear()} ${months[d.getMonth()]}`;
+      return `${year} ${months[month]}`;
     }
-    if (granularity === 'year') return d.getFullYear().toString();
-    if (granularity === 'day') return d.toISOString().slice(0, 10);
+    if (granularity === 'year') return year.toString();
+    if (granularity === 'day') return toLocalYMD(d);
     if (granularity === 'quarter') {
-      const q = Math.ceil((d.getMonth() + 1) / 3);
-      return `${d.getFullYear()} Q${q}`;
+      const q = Math.ceil((month + 1) / 3);
+      return `${year} Q${q}`;
     }
     return dateStr;
   } catch {

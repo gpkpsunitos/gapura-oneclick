@@ -115,7 +115,7 @@ export interface AggregatedBranchData {
   kpis: BranchKPIs;
 }
 
-async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report[]> {
+export async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report[]> {
   const query = new URLSearchParams();
   if (filters.dateFrom) query.append('dateFrom', filters.dateFrom);
   if (filters.dateTo) query.append('dateTo', filters.dateTo);
@@ -304,8 +304,7 @@ export async function fetchCategoryByBranch(filters: BaseFilters = {}): Promise<
     .sort((a, b) => (b.Irregularity + b.Complaint) - (a.Irregularity + a.Complaint));
 }
 
-export async function fetchRootCauseByBranch(filters: BaseFilters = {}): Promise<RootCauseByBranchData[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchRootCauseByBranch(reports: Report[], filters: BaseFilters = {}): RootCauseByBranchData[] {
   const filtered = filterReports(reports, filters);
 
   const causeMap = new Map<string, { branch: string; count: number; category: string }>();
@@ -335,8 +334,7 @@ export async function fetchRootCauseByBranch(filters: BaseFilters = {}): Promise
     .slice(0, 30);
 }
 
-export async function fetchAirlineByBranch(filters: BaseFilters = {}): Promise<AirlineByBranchData[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchAirlineByBranch(reports: Report[], filters: BaseFilters = {}): AirlineByBranchData[] {
   const filtered = filterReports(reports, filters);
 
   const map = new Map<string, { airline: string; branch: string; count: number }>();
@@ -359,8 +357,7 @@ export async function fetchAirlineByBranch(filters: BaseFilters = {}): Promise<A
     .slice(0, 30);
 }
 
-export async function fetchAreaByBranch(filters: BaseFilters = {}): Promise<AreaByBranchData[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchAreaByBranch(reports: Report[], filters: BaseFilters = {}): AreaByBranchData[] {
   const filtered = filterReports(reports, filters);
 
   const map = new Map<string, { area: string; branch: string; count: number }>();
@@ -383,8 +380,7 @@ export async function fetchAreaByBranch(filters: BaseFilters = {}): Promise<Area
     .slice(0, 30);
 }
 
-export async function fetchAllBranchReports(filters: BaseFilters = {}): Promise<BranchReportRecord[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchAllBranchReports(reports: Report[], filters: BaseFilters = {}): BranchReportRecord[] {
   const filtered = filterReports(reports, filters);
 
   return filtered.map(report => {

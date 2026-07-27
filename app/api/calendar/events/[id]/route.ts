@@ -103,6 +103,13 @@ export async function PATCH(
     }
 
     const role = String(payload.role).trim().toUpperCase();
+    const division = String(payload.division || '').trim().toUpperCase();
+    if (role !== 'DIVISI_OCS' && !(role === 'ANALYST' && division === 'OCS')) {
+      return NextResponse.json(
+        { error: 'Forbidden: Access limited to DIVISI_OCS and OCS analysts' },
+        { status: 403 }
+      );
+    }
     if (role !== 'ANALYST') {
       return NextResponse.json(
         { error: 'Forbidden: Only ANALYST role can update events' },
@@ -302,6 +309,13 @@ export async function DELETE(
     }
 
     const role = String(payload.role).trim().toUpperCase();
+    const division = String(payload.division || '').trim().toUpperCase();
+    if (role !== 'DIVISI_OCS' && !(role === 'ANALYST' && division === 'OCS')) {
+      return NextResponse.json(
+        { error: 'Forbidden: Access limited to DIVISI_OCS and OCS analysts' },
+        { status: 403 }
+      );
+    }
     if (role !== 'ANALYST') {
       return NextResponse.json(
         { error: 'Forbidden: Only ANALYST role can delete events' },

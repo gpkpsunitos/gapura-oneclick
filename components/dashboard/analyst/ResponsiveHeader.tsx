@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { toLocalYMD } from '@/lib/utils/wib-date';
 
 type HeaderVariant = 'default' | 'op-executive';
 type HeaderView = 'dashboard' | 'reports';
@@ -82,7 +83,7 @@ export function ResponsiveHeader({
   const [customRange, setCustomRange] = useState(
     typeof dateRange === 'object'
       ? dateRange
-      : { from: new Date().toISOString().split('T')[0], to: new Date().toISOString().split('T')[0] }
+      : { from: toLocalYMD(new Date()), to: toLocalYMD(new Date()) }
   );
 
   const headerTitle = title ?? 'Analytics Center';

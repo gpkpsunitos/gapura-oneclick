@@ -115,7 +115,7 @@ export interface AggregatedHubData {
   kpis: HubKPIs;
 }
 
-async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report[]> {
+export async function fetchReportsFromSheets(filters: BaseFilters = {}): Promise<Report[]> {
   const query = new URLSearchParams();
   if (filters.dateFrom) query.append('dateFrom', filters.dateFrom);
   if (filters.dateTo) query.append('dateTo', filters.dateTo);
@@ -304,8 +304,7 @@ export async function fetchCategoryByHub(filters: BaseFilters = {}): Promise<Hub
     .sort((a, b) => (b.Irregularity + b.Complaint) - (a.Irregularity + a.Complaint));
 }
 
-export async function fetchRootCauseByHub(filters: BaseFilters = {}): Promise<RootCauseByHubData[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchRootCauseByHub(reports: Report[], filters: BaseFilters = {}): RootCauseByHubData[] {
   const filtered = filterReports(reports, filters);
 
   const causeMap = new Map<string, { hub: string; count: number; category: string }>();
@@ -335,8 +334,7 @@ export async function fetchRootCauseByHub(filters: BaseFilters = {}): Promise<Ro
     .slice(0, 30);
 }
 
-export async function fetchAirlineByHub(filters: BaseFilters = {}): Promise<AirlineByHubData[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchAirlineByHub(reports: Report[], filters: BaseFilters = {}): AirlineByHubData[] {
   const filtered = filterReports(reports, filters);
 
   const map = new Map<string, { airline: string; hub: string; count: number }>();
@@ -361,8 +359,7 @@ export async function fetchAirlineByHub(filters: BaseFilters = {}): Promise<Airl
     .slice(0, 30);
 }
 
-export async function fetchAreaByHub(filters: BaseFilters = {}): Promise<AreaByHubData[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchAreaByHub(reports: Report[], filters: BaseFilters = {}): AreaByHubData[] {
   const filtered = filterReports(reports, filters);
 
   const map = new Map<string, { area: string; hub: string; count: number }>();
@@ -434,8 +431,7 @@ function buildEvidenceLinkHtml(evidenceUrls: unknown): string {
     .join(', ');
 }
 
-export async function fetchAllHubReports(filters: BaseFilters = {}): Promise<HubReportRecord[]> {
-  const reports = await fetchReportsFromSheets(filters);
+export function fetchAllHubReports(reports: Report[], filters: BaseFilters = {}): HubReportRecord[] {
   const filtered = filterReports(reports, filters);
 
   return filtered.map(report => {

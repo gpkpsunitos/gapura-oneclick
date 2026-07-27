@@ -642,7 +642,78 @@ export default function AdminUsersPage() {
                                 <p className="font-semibold">{activeTab === 'pending' ? 'No users pending approval.' : 'No users match the filter.'}</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
+                            <>
+                            {}
+                            <div className="divide-y divide-slate-100 md:hidden">
+                                {filteredUsers.map((user) => {
+                                    const RoleIcon = roleConfig[user.role]?.icon || User;
+                                    const StatusIcon = statusConfig[user.status]?.icon || Clock3;
+                                    const canApprovePending = user.status === 'pending' && (
+                                        isSuperAdmin || (isBranchManager && user.role === 'STAFF_CABANG')
+                                    );
+                                    const canSuspend = isSuperAdmin && user.status === 'active';
+                                    const canActivate = isSuperAdmin && (user.status === 'rejected' || user.status === 'suspended');
+                                    return (
+                                        <div key={user.id} className="space-y-3 p-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-sm font-black text-white">
+                                                    {user.full_name?.charAt(0).toUpperCase() || 'U'}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <p className="truncate text-sm font-black text-slate-900">{user.full_name}</p>
+                                                    <p className="mt-0.5 flex items-center gap-1 truncate text-xs font-medium text-slate-500"><Mail className="h-3 w-3 shrink-0" />{user.email}</p>
+                                                    <p className="mt-0.5 text-xs text-slate-400">NIK {user.nik || '-'} | HP {user.phone || '-'}</p>
+                                                </div>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <Badge className={roleConfig[user.role]?.tone || 'bg-slate-100 text-slate-700 border-slate-200'}><RoleIcon className="h-3.5 w-3.5" />{roleConfig[user.role]?.label || user.role}</Badge>
+                                                <Badge className={statusConfig[user.status]?.tone || statusConfig.pending.tone}><StatusIcon className="h-3.5 w-3.5" />{statusConfig[user.status]?.label || user.status}</Badge>
+                                            </div>
+                                            <div className="rounded-xl bg-slate-50 p-3 text-xs">
+                                                <p className="font-bold text-slate-800">{user.stations ? `${user.stations.code} - ${user.stations.name}` : '-'}</p>
+                                                <p className="text-slate-500">{divisionConfig[user.division] || user.division} {user.units?.name ? `| ${user.units.name}` : ''}</p>
+                                                <p className="text-slate-400">{user.positions?.name || '-'}{user.positions?.level ? `, level ${user.positions.level}` : ''}</p>
+                                                <p className="mt-2 text-slate-400"><span className="font-bold text-slate-600">Dibuat:</span> {formatDate(user.created_at)}</p>
+                                                <p className="text-slate-400"><span className="font-bold text-slate-600">Update:</span> {formatDate(user.updated_at)}</p>
+                                            </div>
+                                            <div className="flex flex-wrap justify-end gap-2 pt-1">
+                                                <button onClick={() => setDetailUser(user)} className="min-h-11 min-w-11 rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-slate-50" title="Detail akun">
+                                                    <Eye className="h-4 w-4" />
+                                                </button>
+                                                {isSuperAdmin && (
+                                                    <button onClick={() => setEditingUser(user)} className="min-h-11 min-w-11 rounded-lg border border-blue-100 p-2 text-blue-600 hover:bg-blue-50" title="Edit role, divisi, dan cabang">
+                                                        <Edit2 className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                {canApprovePending && (
+                                                    <>
+                                                        <button onClick={() => { if (window.confirm(`Tolak registrasi ${user.full_name}?`)) updateUser(user.id, { status: 'rejected' }); }} disabled={actionLoading === user.id} className="min-h-11 min-w-11 rounded-lg border border-red-100 p-2 text-red-600 hover:bg-red-50 disabled:opacity-50" title="Tolak registrasi">
+                                                            <X className="h-4 w-4" />
+                                                        </button>
+                                                        <button onClick={() => updateUser(user.id, { status: 'active' })} disabled={actionLoading === user.id} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50">
+                                                            <Check className="h-4 w-4" />
+                                                            Approve
+                                                        </button>
+                                                    </>
+                                                )}
+                                                {canSuspend && (
+                                                    <button onClick={() => updateUser(user.id, { status: 'suspended' })} disabled={actionLoading === user.id} className="min-h-11 min-w-11 rounded-lg border border-zinc-200 p-2 text-zinc-700 hover:bg-zinc-50" title="Suspend akun">
+                                                        <Shield className="h-4 w-4" />
+                                                    </button>
+                                                )}
+                                                {canActivate && (
+                                                    <button onClick={() => updateUser(user.id, { status: 'active' })} disabled={actionLoading === user.id} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-emerald-200 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-50">
+                                                        <Check className="h-4 w-4" />
+                                                        Activate
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                            {}
+                            <div className="hidden overflow-x-auto md:block">
                                 <table className="w-full min-w-[1120px]">
                                     <thead>
                                         <tr className="border-b border-slate-200 bg-slate-50 text-left text-[11px] font-black uppercase tracking-wider text-slate-500">
@@ -731,6 +802,7 @@ export default function AdminUsersPage() {
                                     </tbody>
                                 </table>
                             </div>
+                            </>
                         )}
                     </section>
                 </div>

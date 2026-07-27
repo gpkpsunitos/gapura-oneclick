@@ -115,7 +115,10 @@ export function formatDisplayValue(val: unknown, colName?: string): string {
   if (colName) {
     if (isDateLikeColumnName(colName)) {
       const d = new Date(String(val));
-      if (!isNaN(d.getTime())) return formatDateValue(d.toISOString());
+      // Pass the Date instance straight through — formatDateValue/parseDate already
+      // handle Date objects directly, so there is no need to re-encode via
+      // toISOString() first, which was an unnecessary UTC round-trip.
+      if (!isNaN(d.getTime())) return formatDateValue(d);
     }
   }
 

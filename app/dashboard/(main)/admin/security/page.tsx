@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, ShieldAlert, ShieldCheck, Activity, Users, Globe, Lock, AlertTriangle } from 'lucide-react';
-import { SecurityStats, SecurityAlert, AuthMetrics, NetworkStatus, SecurityEvent } from '@/types/security';
-import { supabase } from '@/lib/supabase';
+import { SecurityStats, SecurityAlert, AuthMetrics, NetworkStatus } from '@/types/security';
 import { LiveSecurityFeed } from '@/components/security/LiveSecurityFeed';
 import { ThreatActorAnalysis } from '@/components/security/ThreatActorAnalysis';
 import { ActiveSessions } from '@/components/security/ActiveSessions';
@@ -68,74 +67,42 @@ export default function SecurityDashboardPage() {
     };
 
     useEffect(() => {
-        const controller = new AbortController();
-        const { signal } = controller;
+        let cancelled = false;
+        let timer: ReturnType<typeof setTimeout> | undefined;
 
-        async function fetchInitialMetrics() {
-            setLoading(true);
+        // `security_alerts`/`security_events` are RLS-locked for the anon
+        // client (no reachable SELECT policy), so a Postgres Realtime
+        // `postgres_changes` subscription here would silently receive zero
+        // events. Poll the same dashboard-data endpoint instead, mirroring
+        // LiveSecurityFeed's fetch-on-interval pattern.
+        async function fetchMetrics(isInitial: boolean) {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8_000);
+            if (isInitial) setLoading(true);
             try {
-                const res = await fetch('/api/security/dashboard-data', { signal });
-                if (res.ok) {
+                const res = await fetch('/api/security/dashboard-data', { signal: controller.signal, cache: 'no-store' });
+                if (!cancelled && res.ok) {
                     const json = await res.json();
                     setData(json);
                 }
             } catch (err) {
+                if (cancelled) return;
                 if (err instanceof DOMException && err.name === 'AbortError') return;
-                console.error('Initial fetch failed', err);
+                console.error('Security metrics poll failed', err);
             } finally {
-                setLoading(false);
+                clearTimeout(timeout);
+                if (!cancelled) {
+                    if (isInitial) setLoading(false);
+                    timer = setTimeout(() => fetchMetrics(false), 15_000);
+                }
             }
         }
-        fetchInitialMetrics();
 
-        const channel = supabase
-            .channel('security-realtime')
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'security_alerts' }, (payload) => {
-                const newAlert = payload.new as SecurityAlert;
-                setData(prev => prev ? {
-                    ...prev,
-                    alerts: [newAlert, ...prev.alerts].slice(0, 10),
-                    stats: {
-                        ...prev.stats,
-                        intrusionAttempts: prev.stats.intrusionAttempts + (newAlert.severity === 'CRITICAL' ? 1 : 0)
-                    }
-                } : null);
-
-                if (newAlert.severity === 'CRITICAL') {
-                    window.dispatchEvent(new CustomEvent('security-pulse', { detail: 'critical' }));
-                }
-            })
-            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'security_events' }, (payload) => {
-                const event = payload.new as SecurityEvent;
-                setData(prev => {
-                    if (!prev) return null;
-
-                    const eventPayload = event.payload as Record<string, unknown>;
-                    const isFailedLogin = event.event_type === 'login' && eventPayload.success === false;
-
-                    return {
-                        ...prev,
-                        stats: {
-                            ...prev.stats,
-                            intrusionAttempts: isFailedLogin ? prev.stats.intrusionAttempts + 1 : prev.stats.intrusionAttempts
-                        },
-                        auth: {
-                            ...prev.auth,
-                            failedAttempts: isFailedLogin ? prev.auth.failedAttempts + 1 : prev.auth.failedAttempts
-                        },
-                        network: {
-                            ...prev.network,
-                            trafficIn: event.event_type === 'traffic' ? (prev.network.trafficIn + ((eventPayload.bytes as number) || 0)) : prev.network.trafficIn,
-                            activeConnections: event.event_type === 'login' ? prev.network.activeConnections + 1 : prev.network.activeConnections
-                        }
-                    };
-                });
-            })
-            .subscribe();
+        fetchMetrics(true);
 
         return () => {
-            controller.abort();
-            supabase.removeChannel(channel);
+            cancelled = true;
+            if (timer) clearTimeout(timer);
         };
     }, []);
 

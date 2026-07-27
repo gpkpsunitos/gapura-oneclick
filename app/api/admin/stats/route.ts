@@ -5,6 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { reportsService } from '@/lib/services/reports-service';
 import { REPORT_STATUS } from '@/lib/constants/report-status';
 import { enrichReportsWithComments } from '@/lib/server/report-comments';
+import type { Report } from '@/types';
 
 export async function GET(request: Request) {
     try {
@@ -51,20 +52,20 @@ export async function GET(request: Request) {
         const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-        const reports = await reportsService.getReports({
+        // Push the period/from/to narrowing down to Postgres instead of pulling
+        // the whole table and filtering in JS. Note: getReports' dateFrom/dateTo
+        // filter narrows on date_of_event (falling back to created_at only when
+        // date_of_event is missing) rather than strictly created_at like the old
+        // JS filter did — matches the convention the rest of the app already
+        // uses for date-range filtering.
+        const filteredReports = await reportsService.getReports({
             source: 'sync',
             projection: 'adminStats',
+            filters: (dateFrom || dateTo) ? {
+                dateFrom: dateFrom ? dateFrom.toISOString() : undefined,
+                dateTo: dateTo ? dateTo.toISOString() : undefined,
+            } : undefined,
         });
-
-        let filteredReports = reports;
-        if (dateFrom || dateTo) {
-            filteredReports = reports.filter(r => {
-                const createdAt = new Date(r.created_at);
-                if (dateFrom && createdAt < dateFrom) return false;
-                if (dateTo && createdAt > dateTo) return false;
-                return true;
-            });
-        }
 
         const totalReports = filteredReports.length;
         let menungguFeedback = 0;
@@ -91,11 +92,22 @@ export async function GET(request: Request) {
             }
         }
 
+        // Today/week/month trend tiles are intentionally global (not scoped to
+        // the page's selected period/from/to), but they only ever need data
+        // back to the earliest of the three anchors — never the whole table.
+        // Narrowed to a single `created_at` column since only counting matters
+        // here (no need for the full adminStats projection).
+        const trendWindowStart = new Date(Math.min(startOfWeek.getTime(), startOfMonth.getTime()));
+        const { data: trendRows } = await supabaseAdmin
+            .from('ground_handling_irregularity_report')
+            .select('created_at')
+            .gte('created_at', trendWindowStart.toISOString());
+
         let todayReports = 0;
         let weekReports = 0;
         let monthReports = 0;
-        for (const r of reports) {
-            const created = new Date(r.created_at).getTime();
+        for (const r of trendRows || []) {
+            const created = new Date(r.created_at as string).getTime();
             if (created >= startOfDay.getTime()) todayReports++;
             if (created >= startOfWeek.getTime()) weekReports++;
             if (created >= startOfMonth.getTime()) monthReports++;
@@ -113,10 +125,14 @@ export async function GET(request: Request) {
             .slice(0, 5)
             .map(([location, count]) => ({ location, count }));
 
-        const recentReportRows = [...reports]
-            .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .slice(0, 5);
-        const recentReportsWithComments = await enrichReportsWithComments(recentReportRows);
+        // "Most recent reports" is also global — fetched directly with the DB
+        // doing the order + limit instead of pulling every row and sorting in JS.
+        const { data: recentReportRows } = await supabaseAdmin
+            .from('ground_handling_irregularity_report')
+            .select('id, sheet_id, original_id, title, description, report, primary_tag, location, station_code, branch, status, severity, priority, sla_deadline, reporter_name, created_at, date_of_event')
+            .order('created_at', { ascending: false })
+            .limit(5);
+        const recentReportsWithComments = await enrichReportsWithComments((recentReportRows || []) as unknown as Report[]);
         const recentReports = recentReportsWithComments
             .map(r => ({
                 id: r.id,

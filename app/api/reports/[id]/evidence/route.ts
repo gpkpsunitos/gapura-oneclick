@@ -30,12 +30,17 @@ export async function POST(
       if (!report) return NextResponse.json({ error: 'Report not found' }, { status: 404 });
 
       const payloadEmail = normalizeAccessValue(payload.email);
-      const payloadName = normalizeAccessValue((payload as { full_name?: string }).full_name);
+      // Station membership only grants *viewing* a station's reports (see
+      // canViewReport in lib/report-access.ts) — it must not also grant
+      // uploading evidence to reports filed by other people at the same
+      // station. Ownership here is the actual author: user_id, or the
+      // verified session email matching the report's reporter email.
+      // reporter_name is free text on the report and is NOT used for
+      // ownership — it is not unique and is trivially spoofable by anyone
+      // whose account full_name happens to match it.
       const canAccessOwnReport = Boolean(
         report.user_id === payload.id ||
-        (payload.station_id && report.station_id === payload.station_id) ||
-        (payloadEmail && normalizeAccessValue(report.reporter_email) === payloadEmail) ||
-        (payloadName && normalizeAccessValue(report.reporter_name) === payloadName)
+        (payloadEmail && normalizeAccessValue(report.reporter_email) === payloadEmail)
       );
       if (!canAccessOwnReport) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -47,21 +47,29 @@ export default function AdminDashboard() {
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState<TimePeriod>(null);
     const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+    // Guards against a slower, earlier period's response landing after a
+    // newer period's and overwriting fresher stats.
+    const activePeriodRef = useRef(period);
 
     const fetchData = useCallback(async () => {
+        const requestPeriod = period;
         setLoading(true);
         try {
-            const url = period ? `/api/admin/stats?period=${period}` : '/api/admin/stats';
+            const url = requestPeriod ? `/api/admin/stats?period=${requestPeriod}` : '/api/admin/stats';
             const res = await fetch(url);
-            setStats(await res.json());
+            const data = await res.json();
+            if (activePeriodRef.current === requestPeriod) setStats(data);
         } catch (error) {
             console.error('Error:', error);
         } finally {
-            setLoading(false);
+            if (activePeriodRef.current === requestPeriod) setLoading(false);
         }
     }, [period]);
 
-    useEffect(() => { fetchData(); }, [fetchData]);
+    useEffect(() => {
+        activePeriodRef.current = period;
+        fetchData();
+    }, [period, fetchData]);
 
     if (loading) {
         return (

@@ -184,8 +184,12 @@ export default function AreaSubCategoryDetail({
   const [error, setError] = useState<string | null>(null);
   const [focusedCategory, setFocusedCategory] = useState<string>('');
   const hasAutoSelected = useRef(false);
+  // Guards against a slower, earlier filter combination's response landing
+  // after a newer one's and overwriting fresher `reports` state.
+  const fetchReportsSeqRef = useRef(0);
 
   useEffect(() => {
+    const requestSeq = ++fetchReportsSeqRef.current;
     const fetchReports = async () => {
       setLoading(true);
       try {
@@ -209,12 +213,14 @@ export default function AreaSubCategoryDetail({
         const response = await fetch(`/api/reports/analytics?${query.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch reports');
         const data = await response.json();
+        if (fetchReportsSeqRef.current !== requestSeq) return;
         setReports(data.reports || []);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } catch (err: any) {
+        if (fetchReportsSeqRef.current !== requestSeq) return;
         setError(err.message || 'Failed to load data');
       } finally {
-        setLoading(false);
+        if (fetchReportsSeqRef.current === requestSeq) setLoading(false);
       }
     };
     fetchReports();

@@ -7,6 +7,7 @@ import {
   fetchAreaByBranch,
   fetchAllBranchReports,
   fetchAggregatedBranchReport,
+  fetchReportsFromSheets,
   BranchSummary,
   TrendDataPoint,
   BranchCategoryData,
@@ -283,14 +284,18 @@ export default function BranchReportDetail({ filters = {} }: { filters?: FilterP
     async function loadDeferredData() {
       setTableLoading(true);
       try {
-        const [rootCause, airline, area, table] = await Promise.all([
-          fetchRootCauseByBranch(filters),
-          fetchAirlineByBranch(filters),
-          fetchAreaByBranch(filters),
-          fetchAllBranchReports(filters),
-        ]);
-
+        // Fetch the raw report set exactly once, then derive every deferred
+        // view (root cause, airline, area breakdowns, investigative table)
+        // from that single array instead of each view re-fetching the same
+        // data independently.
+        const reports = await fetchReportsFromSheets(filters);
         if (controller.signal.aborted) return;
+
+        const rootCause = fetchRootCauseByBranch(reports, filters);
+        const airline = fetchAirlineByBranch(reports, filters);
+        const area = fetchAreaByBranch(reports, filters);
+        const table = fetchAllBranchReports(reports, filters);
+
         setChartData((prev) => ({ ...prev, rootCauseData: rootCause, airlineData: airline, areaData: area, tableData: table }));
       } catch (err) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

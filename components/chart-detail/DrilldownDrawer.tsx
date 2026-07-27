@@ -298,7 +298,7 @@ export function DrilldownDrawer({ isOpen, onClose, title, data }: DrilldownDrawe
                 </div>
                 <button
                   onClick={onClose}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800"
+                  className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 shadow-sm transition hover:bg-slate-100 hover:text-slate-800"
                   aria-label="Close"
                 >
                   <X size={18} strokeWidth={2.5} />

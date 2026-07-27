@@ -476,7 +476,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
           >
             <div className="xl:hidden flex items-center justify-between px-3 py-2 border-b border-[var(--surface-4)]">
               <span className="text-xs font-bold text-[var(--text-primary)]">Sumber Data</span>
-              <button onClick={() => setMobilePanel(null)} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg">
+              <button onClick={() => setMobilePanel(null)} className="min-h-11 min-w-11 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg">
                 <X size={16} />
               </button>
             </div>
@@ -734,7 +734,7 @@ export function BuilderLayout({ onSaveDashboard, existingFolders = [] }: Builder
               {}
               <div className="xl:hidden flex items-center justify-between px-3 py-2 border-b border-[var(--surface-4)]">
                 <span className="text-xs font-bold text-[var(--text-primary)]">Atur Grafik</span>
-                <button onClick={() => setMobilePanel(null)} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg">
+                <button onClick={() => setMobilePanel(null)} className="min-h-11 min-w-11 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg">
                   <X size={16} />
                 </button>
               </div>

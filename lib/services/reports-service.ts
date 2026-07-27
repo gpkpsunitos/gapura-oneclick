@@ -467,6 +467,14 @@ interface GetReportsOptions {
   fields?: readonly ReportColumn[];
   projection?: ReportProjectionName;
   source?: 'auto' | 'sheets' | 'sync';
+  /**
+   * Upper bound on how many 1000-row pages fetchReportsFromSync() will pull
+   * for an unfiltered/lightly-filtered 'sync'/'auto' call. Defaults to a
+   * generous cap so existing full-table callers (reports/sync, ai-generate)
+   * keep working unchanged at today's data volume; raise it explicitly for a
+   * genuine full-export need larger than that.
+   */
+  maxSyncBatches?: number;
 }
 
 const MonthMap: Record<string, number> = {
@@ -1168,7 +1176,7 @@ class ReportsService {
       ))
       .sort(([left], [right]) => left.localeCompare(right));
     const canUseProjectionCache = source !== 'sheets' && !options?.refresh;
-    const projectionCacheKey = `${CACHE_KEY_ALL_REPORTS}:${fields?.join(',') || 'full'}:${JSON.stringify(normalizedFilterEntries)}`;
+    const projectionCacheKey = `${CACHE_KEY_ALL_REPORTS}:${fields?.join(',') || 'full'}:${JSON.stringify(normalizedFilterEntries)}:${options?.maxSyncBatches ?? 'default'}`;
     const cacheEpochAtStart = reportCacheEpoch;
 
     let selectedReports: Report[] = [];
@@ -1189,7 +1197,7 @@ class ReportsService {
       } else {
         let inflight = inflightReportFetches.get(projectionCacheKey);
         if (!inflight) {
-          inflight = this.fetchReportsFromSync(filters, fields);
+          inflight = this.fetchReportsFromSync(filters, fields, options?.maxSyncBatches);
           inflightReportFetches.set(projectionCacheKey, inflight);
         }
         try {
@@ -1205,50 +1213,64 @@ class ReportsService {
       }
     }
 
+    // fetchReportsFromSync's buildQuery() already pushes dateFrom/dateTo, hub,
+    // branch/branchIn, area, airlines, sourceSheet and status down to Postgres
+    // (as .eq()/.gte()/.lte()/.or() predicates) and already orders by
+    // date_of_event desc — and the projection cache above stores exactly what
+    // that query returned. So for every source except 'sheets' (which has no
+    // pushdown at all — fetchGoogleSheetsReports() returns the full,
+    // unfiltered, unsorted sheet), re-checking those same fields and
+    // re-sorting here would just repeat work Postgres already did, on rows
+    // that already satisfy it. esklasiRegex/gseOnly have no DB equivalent and
+    // always need the JS check regardless of source.
+    const isDbPushedDown = source !== 'sheets';
+
     const filteredReports = selectedReports.filter(report => {
 
         if (filters) {
 
-          if (filters.dateFrom || filters.dateTo) {
-            const reportDate = parseDate(report.date_of_event || report.created_at);
-            if (!reportDate) return false;
+          if (!isDbPushedDown) {
+            if (filters.dateFrom || filters.dateTo) {
+              const reportDate = parseDate(report.date_of_event || report.created_at);
+              if (!reportDate) return false;
 
-            if (filters.dateFrom) {
-              const fromDate = new Date(filters.dateFrom);
-              if (reportDate < fromDate) return false;
+              if (filters.dateFrom) {
+                const fromDate = new Date(filters.dateFrom);
+                if (reportDate < fromDate) return false;
+              }
+
+              if (filters.dateTo) {
+                const toDate = new Date(filters.dateTo);
+                toDate.setHours(23, 59, 59, 999);
+                if (reportDate > toDate) return false;
+              }
             }
 
-            if (filters.dateTo) {
-              const toDate = new Date(filters.dateTo);
-              toDate.setHours(23, 59, 59, 999);
-              if (reportDate > toDate) return false;
+            if (filters.status && filters.status !== 'all' && (report.status !== filters.status)) return false;
+
+            if (filters.hub && filters.hub !== 'all' && (report.hub !== filters.hub)) return false;
+
+            if (filters.branch && filters.branch !== 'all') {
+              const reportBranch = report.branch || report.reporting_branch || report.station_code;
+              if (reportBranch !== filters.branch) return false;
             }
+
+            if (filters.branchIn && filters.branchIn.length > 0) {
+              const reportStations = [report.branch, report.reporting_branch, report.station_code]
+                .filter((value): value is NonNullable<typeof value> => Boolean(value))
+                .map(String);
+              if (!reportStations.some((station) => filters.branchIn!.includes(station))) return false;
+            }
+
+            if (filters.area && filters.area !== 'all') {
+              const reportArea = report.area || report.terminal_area_category || report.apron_area_category || report.general_category || '';
+              if (reportArea !== filters.area) return false;
+            }
+
+            if (filters.airlines && filters.airlines !== 'all' && report.airlines !== filters.airlines) return false;
+
+            if (filters.sourceSheet && report.source_sheet !== filters.sourceSheet) return false;
           }
-
-          if (filters.status && filters.status !== 'all' && (report.status !== filters.status)) return false;
-
-          if (filters.hub && filters.hub !== 'all' && (report.hub !== filters.hub)) return false;
-
-          if (filters.branch && filters.branch !== 'all') {
-            const reportBranch = report.branch || report.reporting_branch || report.station_code;
-            if (reportBranch !== filters.branch) return false;
-          }
-
-          if (filters.branchIn && filters.branchIn.length > 0) {
-            const reportStations = [report.branch, report.reporting_branch, report.station_code]
-              .filter((value): value is NonNullable<typeof value> => Boolean(value))
-              .map(String);
-            if (!reportStations.some((station) => filters.branchIn!.includes(station))) return false;
-          }
-
-          if (filters.area && filters.area !== 'all') {
-            const reportArea = report.area || report.terminal_area_category || report.apron_area_category || report.general_category || '';
-            if (reportArea !== filters.area) return false;
-          }
-
-          if (filters.airlines && filters.airlines !== 'all' && report.airlines !== filters.airlines) return false;
-
-          if (filters.sourceSheet && report.source_sheet !== filters.sourceSheet) return false;
 
           if (filters.esklasiRegex && !matchesEsklasiRegex(report, filters.esklasiRegex)) return false;
 
@@ -1257,11 +1279,13 @@ class ReportsService {
         return true;
     });
 
-    filteredReports.sort((a, b) => {
-      const dateA = a.date_of_event ? new Date(a.date_of_event).getTime() : 0;
-      const dateB = b.date_of_event ? new Date(b.date_of_event).getTime() : 0;
-      return dateB - dateA;
-    });
+    if (!isDbPushedDown) {
+      filteredReports.sort((a, b) => {
+        const dateA = a.date_of_event ? new Date(a.date_of_event).getTime() : 0;
+        const dateB = b.date_of_event ? new Date(b.date_of_event).getTime() : 0;
+        return dateB - dateA;
+      });
+    }
 
     const finalReports = fields && fields.length > 0
       ? filteredReports.map((report) => {
@@ -1347,6 +1371,7 @@ class ReportsService {
   private async fetchReportsFromSync(
     filters?: ReportQueryFilters,
     fields?: readonly ReportColumn[],
+    maxBatches: number = 100,
   ): Promise<Report[]> {
     try {
       const requiredFields = new Set<ReportColumn>([
@@ -1435,8 +1460,17 @@ class ReportsService {
       const batchSize = 1000;
       let offset = 0;
       let hasMore = true;
+      let batchCount = 0;
 
       while (hasMore) {
+        if (batchCount >= maxBatches) {
+          console.warn(
+            `[ReportsService] reports_sync fetch stopped at the ${maxBatches}-batch cap (${allReports.length} rows) — pass a narrower filter or a larger maxSyncBatches if this call genuinely needs more.`
+          );
+          break;
+        }
+        batchCount++;
+
         const { data, error } = await buildQuery().range(offset, offset + batchSize - 1);
 
         if (error) {
@@ -1661,7 +1695,18 @@ class ReportsService {
     return this.assignSheetIdentity(newReport, targetSheet, parseInt(updatedRowNumber, 10));
   }
 
-  async getReportById(id: string, options: { skipLiveFetch?: boolean } = {}): Promise<Report | null> {
+  // Every single-report read used to also live-fetch the row from Google
+  // Sheets by default (only opting out via skipLiveFetch), which meant every
+  // report detail page view, evidence lookup, admin read, etc. paid a Sheets
+  // API round trip on top of the Supabase read. The DB row is kept in sync
+  // already, so DB-only is now the default — callers that specifically need
+  // the freshest possible data (e.g. a merge just before overwriting the
+  // sheet) opt in with forceLiveFetch: true. skipLiveFetch is still accepted
+  // for existing explicit-skip call sites; it's just a no-op now.
+  async getReportById(
+    id: string,
+    options: { skipLiveFetch?: boolean; forceLiveFetch?: boolean } = {},
+  ): Promise<Report | null> {
     const safeId = `"${id.replace(/"/g, '""')}"`;
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
@@ -1678,7 +1723,7 @@ class ReportsService {
       const dbRow = data[0];
 
       const originalId = dbRow.sheet_id || dbRow.original_id;
-      if (!options.skipLiveFetch && originalId && originalId.includes('!row_')) {
+      if (options.forceLiveFetch && originalId && originalId.includes('!row_')) {
           try {
               const liveData = await this.fetchLiveFromSheet(originalId);
               if (liveData) {
@@ -1834,7 +1879,10 @@ class ReportsService {
     const { sheetName, rowIndex } = parsed;
 
     if (updates.primary_tag === 'CGO' && sheetName !== 'CGO') {
-        const currentReport = await this.getReportById(id);
+        // Recreates this report as a brand-new row on the CGO sheet below, so
+        // it genuinely needs the freshest possible data to avoid losing a
+        // live out-of-band edit when the old row gets deleted.
+        const currentReport = await this.getReportById(id, { forceLiveFetch: true });
         if (currentReport) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const newReportPayload: any = {
@@ -1872,13 +1920,13 @@ class ReportsService {
 
     if (['evidence_urls', 'evidence_url', 'video_urls', 'video_url'].some(k => k in effectiveUpdates)) {
         // Callers pushing a full DB row (the sync push-back loop) always have
-        // these keys present, even when null — so without skipLiveFetch this
-        // fires a live Sheets read on every dirty row regardless of whether
-        // evidence actually changed. Callers pushing genuine partial edits
-        // (user-facing PATCH routes) still default to skipLiveFetch: false,
-        // keeping the live merge that guards against clobbering a URL someone
-        // just pasted directly into the sheet.
-        const currentReport = await this.getReportById(id, options);
+        // these keys present, even when null — so those explicitly pass
+        // skipLiveFetch: true to avoid a live Sheets read on every dirty row
+        // regardless of whether evidence actually changed. Callers pushing
+        // genuine partial edits (user-facing PATCH routes) don't set
+        // skipLiveFetch, so this still force-fetches live to merge and guard
+        // against clobbering a URL someone just pasted directly into the sheet.
+        const currentReport = await this.getReportById(id, { forceLiveFetch: options.skipLiveFetch !== true });
         if (currentReport) {
             const existingUrls = [
                 ...(Array.isArray(currentReport.evidence_urls) ? currentReport.evidence_urls : []),

@@ -186,9 +186,26 @@ export class JoumpaSyncService {
 
   private static async pushLocalUpdatesToSheets(headers: string[]): Promise<number> {
     if (headers.length === 0) return 0;
+    // Narrowed to bookkeeping columns (id/row_number/updated_at/synced_at/
+    // sheet_id) plus every property buildSheetRowValues() can read (every key
+    // in CANDIDATES, lib/joumpa/mapping.ts) — this table also carries many
+    // JOUMPA customer/GSE-style columns that a sheet-row rewrite never touches.
     const { data: candidates, error } = await supabaseAdmin
       .from('joumpa_reports_sync')
-      .select('*')
+      .select(`
+        id, row_number, updated_at, synced_at, sheet_id,
+        no, timestamp_raw, date_of_event, report_by, jenis_maskapai, airlines,
+        flight_number, station, hub, route, delay_code, category_report, area,
+        report, root_caused, action_taken, preventive_action, email_address,
+        category_case_joumpa, joumpa_compliment_report_excellent_service,
+        reservation_scheduling, pax_assistance_staff_service_performance,
+        baggage_delivery_baggage_assistance, administration_payment_documentation_marketing,
+        supporting_evidence, severity_level, status, final_remarks, remarks_by,
+        customer_satisfaction_score, customer_joumpa, detail_customer_joumpa,
+        corporate, customer_company_profile_corporate, detail_customer_corporate,
+        non_corporate, customer_background_non_corporate, detail_customer_non_corporate,
+        customer_satisfaction_label, case_joumpa, airport_name, airport_code, branch_code
+      `)
       .order('updated_at', { ascending: false })
       .limit(PUSH_LIMIT * 10);
     if (error) {

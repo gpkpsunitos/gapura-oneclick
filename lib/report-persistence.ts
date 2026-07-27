@@ -236,32 +236,16 @@ async function upsertLegacyReportRow(payload: Record<string, unknown>) {
     const sheetId = payload.sheet_id;
     if (!sheetId) return;
 
-    const updatePayload = {
-        ...payload,
-        updated_at: new Date().toISOString(),
-    };
-
     try {
-        const { data: updatedRows, error: updateError } = await supabaseAdmin
+        const { error } = await supabaseAdmin
             .from('reports')
-            .update(updatePayload)
-            .eq('sheet_id', sheetId)
-            .select('id');
+            .upsert(
+                { ...payload, updated_at: new Date().toISOString() },
+                { onConflict: 'sheet_id', ignoreDuplicates: false }
+            );
 
-        if (updateError) {
-            throw updateError;
-        }
-
-        if (updatedRows && updatedRows.length > 0) {
-            return;
-        }
-
-        const { error: insertError } = await supabaseAdmin
-            .from('reports')
-            .insert(payload);
-
-        if (insertError) {
-            throw insertError;
+        if (error) {
+            throw error;
         }
     } catch (error) {
         console.warn('[ReportPersistence] Legacy reports upsert failed (non-blocking):', error);

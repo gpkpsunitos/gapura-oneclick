@@ -2,12 +2,24 @@
 
 import { useMemo, useState, type ReactNode } from 'react';
 import type { Report } from '@/types';
+import { wibYearMonth } from '@/lib/utils/wib-date';
 
 function yearOf(r: Report): number | null {
-  const raw = r.date_of_event || r.event_date || r.incident_date || r.created_at;
-  if (!raw) return null;
-  const d = new Date(raw);
-  return Number.isNaN(d.getTime()) ? null : d.getUTCFullYear();
+  // Date-only fields (no time component) parse as UTC midnight, so getUTCFullYear()
+  // already extracts the correct calendar year regardless of host timezone.
+  const dateOnly = r.date_of_event || r.event_date || r.incident_date;
+  if (dateOnly) {
+    const d = new Date(dateOnly);
+    return Number.isNaN(d.getTime()) ? null : d.getUTCFullYear();
+  }
+
+  // created_at is a TIMESTAMPTZ with a real time-of-day, so extracting the UTC year
+  // can be wrong near WIB midnight (e.g. 31 Dec 17:05 UTC is already 1 Jan WIB).
+  // Use the WIB (UTC+7) calendar year instead.
+  if (!r.created_at) return null;
+  const d = new Date(r.created_at);
+  if (Number.isNaN(d.getTime())) return null;
+  return wibYearMonth(d).year;
 }
 
 export function useCardYear(reports: Report[]) {

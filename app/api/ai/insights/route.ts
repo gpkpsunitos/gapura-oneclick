@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireElevatedAISession } from '@/lib/ai-route-helpers';
 import { callOpenRouterAI, OPENROUTER_MODEL, type OpenRouterMessage } from '@/lib/ai/openrouter';
-import { getGoogleSheets } from '@/lib/google-sheets';
+import { reportsService, type ReportQueryFilters } from '@/lib/services/reports-service';
+import type { Report } from '@/types';
 import { checkDbRateLimit } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
-const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
-const REPORT_SHEETS = ['NON CARGO', 'CGO'];
+const REPORT_SHEETS = ['NON CARGO', 'CGO'] as const;
 const INSIGHTS_MODEL = process.env.INSIGHTS_AI_MODEL || OPENROUTER_MODEL;
-const VLOOKUP_SHEET = 'Data for Vlookup';
 
 interface InsightFilters {
   dateFrom?: string;
@@ -22,115 +21,132 @@ interface InsightFilters {
   source?: 'all' | 'NON CARGO' | 'CGO';
 }
 
-async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
+// Only the columns buildDataContext (and the JS filtering below) actually
+// read — verified against the live ground_handling_irregularity_report schema.
+const INSIGHTS_FIELDS = [
+  'status', 'severity', 'severity_level', 'source_sheet', 'created_at', 'date_of_event',
+  'branch', 'reporting_branch', 'station_code', 'hub', 'kode_hub',
+  'airline', 'airlines', 'maskapai_lookup',
+  'area', 'terminal_area_category', 'apron_area_category', 'general_category',
+  'main_category', 'category', 'irregularity_complain_category',
+  'case_classification', 'case_category', 'remarks_case',
+  'flight_number', 'jenis_maskapai',
+  'root_caused', 'root_cause', 'action_taken', 'immediate_action', 'preventive_action',
+  'report', 'description', 'title',
+  'delay_code', 'delay_duration',
+  'kps_remarks', 'final_remarks', 'remarks_gapura_kps',
+] as const;
+
+const SHEET_HEADERS = [
+  'Status', 'Report Category', 'Irregularity/Complain Category',
+  'Terminal Area Category', 'Apron Area Category', 'General Category', 'Area',
+  'Branch', 'Reporting Branch', 'Station',
+  'Airlines', 'Airline', 'MAPPED_HUB', 'HUB', 'Hub',
+  'Date of Event', 'Flight Number', 'Jenis Maskapai',
+  'Root Caused', 'Action Taken', 'Report', 'Preventive Action',
+  'Severity Level', 'Severity', 'Delay Code', 'Delay Duration',
+  'Case Classification', 'Gapura KPS Remarks',
+];
+
+// The `area` column carries the same free-text legacy sheet values the old
+// Sheets-direct code cleaned up (including odd placeholder names some users
+// typed in), so the same normalization is re-applied here to the DB value.
+function normalizeAreaLabel(rawArea: string): string {
+  const areaLower = rawArea.toLowerCase();
+  if (
+    areaLower.includes('dennis') ||
+    areaLower.includes('dilalailaty') ||
+    areaLower.includes('melisa') ||
+    areaLower === '-' ||
+    areaLower === 'n/a'
+  ) {
+    return 'General';
+  }
+  if (areaLower.includes('apron')) return 'Apron Area';
+  if (areaLower.includes('terminal')) return 'Terminal Area';
+  if (areaLower === 'general') return 'General';
+  return rawArea;
+}
+
+function normalizeAirlineLabel(rawAirline: string): string {
+  const al = rawAirline.toLowerCase();
+  if (al === 'thai airways') return 'Thai Airways';
+  if (al === 'airasia') return 'AirAsia';
+  if (al.includes('hong kong') || al.includes('hongkong')) return 'Hong Kong Airlines';
+  if (al === 'vietjet air') return 'VietJet Air';
+  if (al === 'indigo') return 'IndiGo';
+  if (al === 'ethiopian airline') return 'Ethiopian Airlines';
+  return rawAirline;
+}
+
+function toSheetLikeRow(report: Report): Record<string, string> {
+  const str = (v: unknown) => (v === null || v === undefined ? '' : String(v).trim());
+  const airlineRaw = str(report.airlines || report.airline);
+  const airlineValue = airlineRaw ? normalizeAirlineLabel(airlineRaw) : '';
+  const areaRaw = str(report.area);
+  return {
+    'Status': str(report.status),
+    'Report Category': str(report.main_category || report.category),
+    'Irregularity/Complain Category': str(report.irregularity_complain_category),
+    'Terminal Area Category': str(report.terminal_area_category),
+    'Apron Area Category': str(report.apron_area_category),
+    'General Category': str(report.general_category),
+    'Area': areaRaw ? normalizeAreaLabel(areaRaw) : '',
+    'Branch': str(report.branch || report.station_code || report.reporting_branch),
+    'Reporting Branch': str(report.reporting_branch),
+    'Station': str(report.station_code),
+    'Airlines': airlineValue,
+    'Airline': airlineValue,
+    'MAPPED_HUB': str(report.hub || report.kode_hub),
+    'HUB': str(report.hub),
+    'Hub': str(report.hub),
+    'Date of Event': str(report.date_of_event || report.created_at),
+    'Flight Number': str(report.flight_number),
+    'Jenis Maskapai': str(report.jenis_maskapai),
+    'Root Caused': str(report.root_caused || report.root_cause),
+    'Action Taken': str(report.action_taken || report.immediate_action),
+    'Report': str(report.report || report.description || report.title),
+    'Preventive Action': str(report.preventive_action),
+    'Severity Level': str(report.severity_level || report.severity),
+    'Severity': str(report.severity),
+    'Delay Code': str(report.delay_code),
+    'Delay Duration': str(report.delay_duration),
+    'Case Classification': str(report.case_classification),
+    'Gapura KPS Remarks': str(report.kps_remarks || report.remarks_gapura_kps || report.final_remarks),
+  };
+}
+
+// Reads the already-synced Postgres table instead of live-fetching Google
+// Sheets on every chat question — the sync job keeps this table current, so
+// there's no freshness loss, just far less latency and no Sheets API quota use.
+async function fetchFilteredReportData(filters: InsightFilters): Promise<{
   rows: Record<string, string>[];
   headers: string[];
   sheetName: string;
 }[]> {
-  const sheets = await getGoogleSheets();
-  if (!SPREADSHEET_ID) throw new Error('GOOGLE_SHEET_ID is not defined');
+  const dbFilters: ReportQueryFilters = {};
+  if (filters.dateFrom) dbFilters.dateFrom = filters.dateFrom;
+  if (filters.dateTo) dbFilters.dateTo = filters.dateTo;
+  if (filters.branches && filters.branches.length === 1) dbFilters.branch = filters.branches[0];
+  else if (filters.branches && filters.branches.length > 1) dbFilters.branchIn = filters.branches;
+  if (filters.source && filters.source !== 'all') dbFilters.sourceSheet = filters.source;
 
-  const sheetsToFetch =
-    filters.source && filters.source !== 'all'
-      ? [filters.source, VLOOKUP_SHEET]
-      : [...REPORT_SHEETS, VLOOKUP_SHEET];
+  const reports = await reportsService.getReports({
+    fields: INSIGHTS_FIELDS,
+    filters: Object.keys(dbFilters).length > 0 ? dbFilters : undefined,
+  });
 
-  const results = await Promise.all(
-    sheetsToFetch.map(async (sheetName) => {
-      try {
-        const response = await sheets.spreadsheets.values.get({
-          spreadsheetId: SPREADSHEET_ID,
-          range: sheetName,
-        });
-        return { sheetName, data: response.data.values || [] };
-      } catch (err) {
-        // ponytail: VLOOKUP_SHEET may not exist; MAPPED_HUB falls back to the row's own HUB column
-        console.error(`Failed to fetch sheet "${sheetName}":`, err instanceof Error ? err.message : err);
-        return { sheetName, data: [] };
-      }
-    })
-  );
-
-  const hubSheetIndex = results.findIndex(r => r.sheetName === VLOOKUP_SHEET);
-  const branchToHubMap: Record<string, string> = {};
-  if (hubSheetIndex !== -1) {
-    const hubRows = results[hubSheetIndex].data;
-    if (hubRows.length > 1) {
-
-      const headers = (hubRows[0] as string[]).map(h => String(h).trim().toLowerCase());
-      const branchIdx = headers.findIndex(h => h === 'branch' || h === 'kode cabang');
-      const hubIdx = headers.findIndex(h => h === 'hub' || h === 'kode hub');
-
-      const bIdx = branchIdx !== -1 ? branchIdx : 1;
-      const hIdx = hubIdx !== -1 ? hubIdx : 2;
-
-      for (let i = 1; i < hubRows.length; i++) {
-        const branch = String(hubRows[i][bIdx] || '').trim().toUpperCase();
-        const hubValue = String(hubRows[i][hIdx] || '').trim().toUpperCase();
-        if (branch && hubValue) {
-          branchToHubMap[branch] = hubValue;
-        }
-      }
-    }
+  const bySheet = new Map<string, Report[]>();
+  for (const r of reports) {
+    const sheetName = r.source_sheet === 'CGO' ? 'CGO' : 'NON CARGO';
+    if (!bySheet.has(sheetName)) bySheet.set(sheetName, []);
+    bySheet.get(sheetName)!.push(r);
   }
 
-  const dataResults = results
-    .filter(r => r.sheetName !== VLOOKUP_SHEET)
-    .map(({ sheetName, data: allRows }) => {
-      if (allRows.length < 2) return { rows: [], headers: [], sheetName };
+  const sheetsToInclude = filters.source && filters.source !== 'all' ? [filters.source] : REPORT_SHEETS;
 
-      const headers = (allRows[0] as string[]).map((h: string) => String(h).trim());
-      const dataRows = allRows.slice(1);
-
-      const structured = dataRows.map((row) => {
-        const obj: Record<string, string> = {};
-        headers.forEach((h, i) => {
-          obj[h] = String(row[i] || '').trim();
-        });
-        obj['_sheet'] = sheetName;
-
-        const area = obj['Area'] || '';
-
-        const areaLower = area.toLowerCase();
-        if (
-          areaLower.includes('dennis') ||
-          areaLower.includes('dilalailaty') || 
-          areaLower.includes('melisa') ||
-          areaLower === '-' ||
-          areaLower === 'n/a'
-        ) {
-          obj['Area'] = 'General';
-        } else if (areaLower.includes('apron')) {
-          obj['Area'] = 'Apron Area';
-        } else if (areaLower.includes('terminal')) {
-          obj['Area'] = 'Terminal Area';
-        } else if (areaLower === 'general') {
-          obj['Area'] = 'General';
-        }
-
-        const airline = obj['Airlines'] || obj['Airline'] || '';
-        if (airline) {
-            const al = airline.toLowerCase();
-            if (al === 'thai airways') obj['Airlines'] = 'Thai Airways';
-            else if (al === 'airasia') obj['Airlines'] = 'AirAsia';
-            else if (al.includes('hong kong') || al.includes('hongkong')) obj['Airlines'] = 'Hong Kong Airlines';
-            else if (al === 'vietjet air') obj['Airlines'] = 'VietJet Air';
-            else if (al === 'indigo') obj['Airlines'] = 'IndiGo';
-            else if (al === 'ethiopian airline') obj['Airlines'] = 'Ethiopian Airlines';
-
-            obj['Airline'] = obj['Airlines'];
-            delete obj['MASKAPAI (VLOOKUP)'];
-        }
-
-        const activeBranch = obj['Branch'] || obj['Reporting Branch'] || obj['Reporting_Branch'] || obj['Station'] || '';
-        if (activeBranch && branchToHubMap[activeBranch.toUpperCase()]) {
-          obj['MAPPED_HUB'] = branchToHubMap[activeBranch.toUpperCase()];
-        } else {
-          obj['MAPPED_HUB'] = obj['HUB'] || obj['Hub'] || obj['KODE HUB (VLOOKUP)'] || ''; 
-        }
-
-        return obj;
-      });
+  return sheetsToInclude.map((sheetName) => {
+      const structured = (bySheet.get(sheetName) || []).map(toSheetLikeRow);
 
       const filtered = structured.filter((row) => {
 
@@ -187,10 +203,8 @@ async function fetchFilteredSheetData(filters: InsightFilters): Promise<{
         return true;
       });
 
-      return { rows: filtered, headers, sheetName };
+      return { rows: filtered, headers: SHEET_HEADERS, sheetName };
     });
-
-  return dataResults;
 }
 
 function buildDataContext(
@@ -407,7 +421,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing "question" field' }, { status: 400 });
     }
 
-    const sheetResults = await fetchFilteredSheetData(filters || {});
+    const sheetResults = await fetchFilteredReportData(filters || {});
     const totalRows = sheetResults.reduce((sum, s) => sum + s.rows.length, 0);
 
     if (totalRows === 0) {

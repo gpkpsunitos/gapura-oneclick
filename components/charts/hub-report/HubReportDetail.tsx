@@ -8,6 +8,7 @@ import {
   fetchAreaByHub,
   fetchAllHubReports,
   fetchAggregatedHubReport,
+  fetchReportsFromSheets,
   HubSummary,
   TrendDataPoint,
   HubCategoryData,
@@ -288,14 +289,18 @@ export default function HubReportDetail({ filters = {} }: { filters?: FilterPara
     async function loadDeferredData() {
       setTableLoading(true);
       try {
-        const [rootCause, airline, area, table] = await Promise.all([
-          fetchRootCauseByHub(filters),
-          fetchAirlineByHub(filters),
-          fetchAreaByHub(filters),
-          fetchAllHubReports(filters),
-        ]);
-
+        // Fetch the raw report set exactly once, then derive every deferred
+        // view (root cause, airline, area breakdowns, investigative table)
+        // from that single array instead of each view re-fetching the same
+        // data independently.
+        const reports = await fetchReportsFromSheets(filters);
         if (controller.signal.aborted) return;
+
+        const rootCause = fetchRootCauseByHub(reports, filters);
+        const airline = fetchAirlineByHub(reports, filters);
+        const area = fetchAreaByHub(reports, filters);
+        const table = fetchAllHubReports(reports, filters);
+
         setChartData((prev) => ({
           ...prev,
           rootCauseData: rootCause,

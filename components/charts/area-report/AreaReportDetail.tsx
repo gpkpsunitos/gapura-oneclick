@@ -9,6 +9,7 @@ import {
   fetchCellIntelligence,
   fetchBranchAreaPareto,
   fetchAggregatedAreaReport,
+  fetchReportsFromSheets,
   AreaSummary,
   TrendDataPoint,
   AreaCategoryData,
@@ -355,18 +356,23 @@ export default function AreaReportDetail({ filters = {} }: { filters?: FilterPar
       };
 
       try {
-        const [rootCause, branch, airline, table] = await Promise.all([
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fetchRootCauseByArea(activeFilters as any),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fetchBranchByArea(activeFilters as any),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fetchAirlineByArea(activeFilters as any),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          fetchAllAreaReports(activeFilters as any),
-        ]);
-
+        // Fetch the raw report set exactly once, then derive every deferred
+        // view (root cause, station, airline breakdowns, investigative
+        // table) from that single array instead of each view re-fetching
+        // the same data independently.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const reports = await fetchReportsFromSheets(activeFilters as any);
         if (controller.signal.aborted) return;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rootCause = fetchRootCauseByArea(reports, activeFilters as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const branch = fetchBranchByArea(reports, activeFilters as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const airline = fetchAirlineByArea(reports, activeFilters as any);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const table = fetchAllAreaReports(reports, activeFilters as any);
+
         setChartData((prev) => ({
           ...prev,
           rootCauseData: rootCause,

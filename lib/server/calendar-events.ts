@@ -3,6 +3,7 @@ import 'server-only';
 import { getWorkspaceUser } from '@/lib/server/workspace-auth';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import type { CalendarEvent } from '@/types';
+import { wibYearMonth } from '@/lib/utils/wib-date';
 
 interface CalendarEventRow {
   id: string;
@@ -25,8 +26,11 @@ interface CalendarEventRow {
 }
 
 function getDefaultCalendarRange(currentDate = new Date()) {
-  const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1);
-  const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0);
+  // Anchor the range on the WIB calendar month, not the host process's local/UTC month,
+  // then build the boundary dates directly in UTC so no further timezone shift is applied.
+  const { year, month } = wibYearMonth(currentDate);
+  const startDate = new Date(Date.UTC(year, month - 1, 1));
+  const endDate = new Date(Date.UTC(year, month + 2, 0));
 
   return {
     start: startDate.toISOString().split('T')[0],

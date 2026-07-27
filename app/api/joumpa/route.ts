@@ -259,12 +259,27 @@ function isBasicStaffRole(role: string): boolean {
   return normalized === 'STAFF_CABANG' || normalized === 'CABANG' || normalized === 'EMPLOYEE';
 }
 
+// Safety cap on an otherwise-unbounded select('*') — well above the current
+// real row count for this table (a single feedback form's worth of
+// submissions), so normal callers (including the "export everything" modal)
+// see no truncation; it just stops a single request from pulling the whole
+// table if the dataset ever grows far beyond today's volume. Bump via the
+// optional `limit` query param for a genuine larger export need.
+const DEFAULT_SYNC_LIMIT = 5000;
+const MAX_SYNC_LIMIT = 20000;
+
 async function fetchFromSync(params: URLSearchParams, ownerEmail: string | null) {
+  const requestedLimit = Number(params.get('limit'));
+  const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
+    ? Math.min(requestedLimit, MAX_SYNC_LIMIT)
+    : DEFAULT_SYNC_LIMIT;
+
   let query = supabaseAdmin
     .from('joumpa_reports_sync')
     .select('*')
     .order('date_of_event', { ascending: false, nullsFirst: false })
-    .order('row_number', { ascending: false });
+    .order('row_number', { ascending: false })
+    .range(0, limit - 1);
 
   const airlines = params.get('airlines');
   const branch = params.get('branch');

@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import {
-    canViewAudienceScopedItem,
     canManageDivisionDocuments,
     getWorkspaceUser,
+    isBranchRole,
     normalizeRole,
 } from '@/lib/server/workspace-auth';
+import { canReadDivisionDocument } from './[id]/route';
 import { deleteDriveFile } from '@/lib/google-drive';
 import type {
     DivisionDocument,
@@ -14,6 +15,12 @@ import type {
     DivisionDocumentVisibilityScope,
 } from '@/types';
 import type { MaterialLink } from '@/lib/division-documents-material-links';
+
+// Bound how many documents a single list request can return. Audience
+// scoping for the harder "targeted" case is still finished in JS (see GET
+// below), but the bulk of the predicate is now pushed into the query, so
+// this limit is a backstop rather than the primary cost control.
+const LIST_QUERY_LIMIT = 500;
 
 const VALID_DIVISIONS = ['HC', 'HT', 'ANALYST'] as const;
 const VALID_CATEGORIES = [
@@ -86,21 +93,16 @@ async function fetchStationMap(stationIds: string[]) {
     return map;
 }
 
+// Delegates to the same permission check used by the detail/download route
+// (app/api/division-documents/[id]/route.ts). These two endpoints must agree:
+// a document that appears in this list has to be openable there, and vice
+// versa. This used to be a separately-maintained, more permissive check here
+// (unconditional DIVISI_ESKALASI access, plus any DIVISI_*/PARTNER_* role
+// falling through to the audience check) which caused documents visible in
+// the list to 403 on open. Import the shared function instead of
+// re-diverging.
 function canViewDocument(user: NonNullable<Awaited<ReturnType<typeof getWorkspaceUser>>>, document: DivisionDocument) {
-    if (canManageDivisionDocuments(user.role, document.division)) return true;
-    if (normalizeRole(user.role) === 'DIVISI_ESKALASI') return true;
-    // All other authenticated roles (DIVISI_*, PARTNER_*, branch) pass through to audience check
-    const docStation = document.station_code || document.station_id;
-    if (docStation) {
-        const userStation = user.station_code || user.station_id;
-        if (!userStation || userStation !== docStation) return false;
-    }
-    return canViewAudienceScopedItem(
-        user,
-        document.visibility_scope,
-        document.audience_station_ids,
-        document.audience_roles
-    );
+    return canReadDivisionDocument(user, document);
 }
 
 function mapDocument(row: DivisionDocumentRow, stationMap: Map<string, { code: string; name: string }>): DivisionDocument {
@@ -164,6 +166,16 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Invalid division' }, { status: 400 });
         }
 
+        const canManage = canManageDivisionDocuments(user.role, division);
+        // canReadDivisionDocument only ever grants access to (a) managers of
+        // this division, or (b) branch roles subject to audience scoping —
+        // every other role sees nothing for this division. Short-circuit
+        // before hitting the DB in that case instead of fetching rows only
+        // to filter them all out in JS.
+        if (!canManage && !isBranchRole(user.role)) {
+            return NextResponse.json([]);
+        }
+
         let query = supabaseAdmin
             .from('division_documents')
             .select(`
@@ -174,10 +186,37 @@ export async function GET(request: Request) {
             `)
             .eq('division', division)
             .eq('is_active', true)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .limit(LIST_QUERY_LIMIT);
 
         if (category) {
             query = query.eq('category', category);
+        }
+
+        if (!canManage) {
+            // Branch role: push the bulk of the audience predicate into SQL so
+            // Postgres can use idx_division_documents_audience_stations /
+            // idx_division_documents_audience_roles instead of every row being
+            // pulled back and filtered in JS. 'targeted' visibility mixes
+            // station AND role conditions (each optional) which isn't a simple
+            // predicate, so those rows are fetched and narrowed by
+            // canReadDivisionDocument below along with everything else, as a
+            // correctness safety net.
+            const stationId = /^[a-zA-Z0-9_-]+$/.test(String(user.station_id || ''))
+                ? String(user.station_id)
+                : null;
+            const roleForFilter = /^[A-Z0-9_]+$/.test(normalizeRole(user.role))
+                ? normalizeRole(user.role)
+                : null;
+
+            const orConditions = ['visibility_scope.eq.all', 'visibility_scope.eq.targeted'];
+            if (stationId) {
+                orConditions.push(`and(visibility_scope.eq.stations,audience_station_ids.cs.{${stationId}})`);
+            }
+            if (roleForFilter) {
+                orConditions.push(`and(visibility_scope.eq.roles,audience_roles.cs.{${roleForFilter}})`);
+            }
+            query = query.or(orConditions.join(','));
         }
 
         const { data, error } = await query;

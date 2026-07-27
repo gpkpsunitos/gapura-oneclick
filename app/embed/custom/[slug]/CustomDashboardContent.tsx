@@ -84,6 +84,16 @@ function greenify(viz: ChartVisualization): ChartVisualization {
   return { ...viz, colors: GREEN_PALETTE };
 }
 
+// Local-timezone Y-M-D formatter (mirrors toLocalDateInput in
+// components/public-report/apple-form-shell.tsx). Using
+// `date.toISOString().split('T')[0]` on a local Date converts to UTC first,
+// which for WIB (UTC+7) users silently computes "yesterday" instead of
+// "today" between local midnight and 7am.
+function toLocalDateInput(date: Date): string {
+  const offsetMs = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offsetMs).toISOString().split('T')[0];
+}
+
 export function CustomDashboardContent() {
   const params = useParams();
   const searchParams = useSearchParams();
@@ -196,7 +206,13 @@ export function CustomDashboardContent() {
     }
   }, [activeFilters, dateFrom, dateTo, activePage, filtersInitialized, router, searchParams]);
 
+  // Guards against a slower, earlier page/filter fetch resolving after a
+  // newer one's and clobbering the shared chartsData/investigativeResult
+  // cache with stale results.
+  const fetchSeqRef = useRef(0);
+
   const fetchPageData = useCallback(async (pageIndex: number): Promise<Map<string, ChartResult>> => {
+    const requestSeq = ++fetchSeqRef.current;
     const params = new URLSearchParams({
       slug,
       includeData: '1',
@@ -215,7 +231,7 @@ export function CustomDashboardContent() {
     const response = await fetch(`/api/dashboards?${params.toString()}`);
     if (!response.ok) {
       if (response.status === 403) {
-        setError('Akses ditolak');
+        if (fetchSeqRef.current === requestSeq) setError('Akses ditolak');
         return new Map();
       }
       throw new Error('Failed to load dashboard data');
@@ -227,12 +243,14 @@ export function CustomDashboardContent() {
       nextMap.set(chartId, value as ChartResult);
     }
 
-    setChartsData((prev) => {
-      const merged = new Map(prev);
-      nextMap.forEach((value, key) => merged.set(key, value));
-      return merged;
-    });
-    setInvestigativeResult(payload.investigativeResult || undefined);
+    if (fetchSeqRef.current === requestSeq) {
+      setChartsData((prev) => {
+        const merged = new Map(prev);
+        nextMap.forEach((value, key) => merged.set(key, value));
+        return merged;
+      });
+      setInvestigativeResult(payload.investigativeResult || undefined);
+    }
     return nextMap;
   }, [slug, range, dateFrom, dateTo, activeFilters]);
 
@@ -528,10 +546,10 @@ export function CustomDashboardContent() {
                                 onClick={() => {
                                   const now = new Date();
                                   let from = '';
-                                  let to = now.toISOString().split('T')[0];
+                                  let to = toLocalDateInput(now);
                                   if (preset.range === 'today') from = to;
-                                  else if (preset.range === '7d') { const d = new Date(); d.setDate(now.getDate() - 7); from = d.toISOString().split('T')[0]; }
-                                  else if (preset.range === '30d') { const d = new Date(); d.setDate(now.getDate() - 30); from = d.toISOString().split('T')[0]; }
+                                  else if (preset.range === '7d') { const d = new Date(); d.setDate(now.getDate() - 7); from = toLocalDateInput(d); }
+                                  else if (preset.range === '30d') { const d = new Date(); d.setDate(now.getDate() - 30); from = toLocalDateInput(d); }
                                   else if (preset.range === 'year') from = `${now.getFullYear()}-01-01`;
                                   else if (preset.range === 'all') { from = '1900-01-01'; to = '2099-12-31'; }
                                   setDateFrom(from);

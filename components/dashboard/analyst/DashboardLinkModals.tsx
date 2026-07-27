@@ -17,7 +17,7 @@ function DashboardLinkModal({ title, link, onLinkChange, onSave, onClose, onRese
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 animate-scale-in border border-[var(--surface-3)]">
+      <div className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 mx-4 animate-scale-in border border-[var(--surface-3)]">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-bold text-[var(--text-primary)] flex items-center gap-2">
             <LinkIcon size={18} /> {title}

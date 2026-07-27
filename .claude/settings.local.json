@@ -44,7 +44,8 @@
       "Bash(find *)",
       "Bash(cat *)",
       "Bash(find . *)",
-      "mcp__claude_ai_Supabase__list_organizations"
+      "mcp__claude_ai_Supabase__list_organizations",
+      "Bash(git commit -m ' *)"
     ],
     "deny": [],
     "ask": []

@@ -2,6 +2,42 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getDashboardOverview } from '@/lib/dashboard/dashboard-overview';
+
+// Narrowed column lists (verified against the live schema) instead of
+// select('*'): both tables carry dozens of columns (GSE/JOUMPA-specific
+// customer fields, sync bookkeeping, etc.) that neither the breakdown maps
+// below nor the DrilldownDrawer UI ever reads. joumpa_reports_sync doesn't
+// have several ground-handling-only columns (terminal_area_category,
+// kode_cabang, primary_tag, ...), so the two tables get distinct lists.
+const GROUND_FIELDS = [
+    'id', 'sheet_id', 'original_id', 'status', 'severity', 'severity_level',
+    'main_category', 'category', 'irregularity_complain_category',
+    'area', 'terminal_area_category', 'apron_area_category', 'general_category',
+    'airline', 'airlines', 'maskapai_lookup', 'hub', 'kode_hub',
+    'branch', 'station_code', 'reporting_branch', 'kode_cabang',
+    'case_classification', 'case_category', 'remarks_case',
+    'category_case_gse', 'category_case_joumpa', 'category_case_cargo',
+    'identification_of_root', 'root_cause', 'root_caused',
+    'report', 'description', 'title', 'flight_number', 'route',
+    'date_of_event', 'incident_date', 'created_at',
+    'delay_code', 'delay_duration', 'action_taken', 'immediate_action', 'preventive_action',
+    'final_remarks', 'kps_remarks', 'evidence_url', 'evidence_urls', 'supporting_evidence',
+    'primary_tag', 'service_business_type',
+].join(',');
+
+const JOUMPA_FIELDS = [
+    'id', 'sheet_id', 'status', 'severity', 'severity_level',
+    'main_category', 'category', 'area', 'airline', 'airlines', 'hub',
+    'branch', 'station_code',
+    'case_classification', 'case_category', 'remarks_case', 'category_case_joumpa',
+    'identification_of_root', 'root_cause', 'root_caused',
+    'report', 'description', 'title', 'flight_number', 'route',
+    'date_of_event', 'incident_date', 'created_at',
+    'delay_code', 'action_taken', 'immediate_action', 'preventive_action',
+    'final_remarks', 'kps_remarks', 'evidence_url', 'evidence_urls', 'supporting_evidence',
+    'service_business_type',
+].join(',');
 
 export async function GET() {
     const cookieStore = await cookies();
@@ -26,9 +62,9 @@ export async function GET() {
         return NextResponse.json({ error: 'No station assigned' }, { status: 400 });
     }
 
-    // station and rows both only depend on stationId (not on each other), so
-    // they can be fetched concurrently instead of one after the other.
-    const [{ data: station }, { data: rows, error }] = await Promise.all([
+    // station and the ground-handling rows both only depend on stationId (not
+    // on each other), so they can be fetched concurrently.
+    const [{ data: station }, groundResult] = await Promise.all([
         supabaseAdmin
             .from('stations')
             .select('code, name')
@@ -36,24 +72,50 @@ export async function GET() {
             .single(),
         supabaseAdmin
             .from('ground_handling_irregularity_report')
-            .select('*')
+            .select(GROUND_FIELDS)
             .eq('station_id', stationId),
     ]);
+    // The select() column list is built at runtime (a joined string, not a
+    // literal), so supabase-js can't statically infer the row shape from it —
+    // cast explicitly, same as the equivalent dynamic-select pattern in
+    // reports-service.ts's fetchReportsFromSync.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = groundResult.data as any[] | null;
+    const error = groundResult.error;
 
     if (error) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     const stationCode = station?.code || stationId;
-    const { data: joumpaRows } = await supabaseAdmin
-        .from('joumpa_reports_sync')
-        .select('*')
-        .or(`station_code.eq.${stationCode},station.eq.${stationCode}`);
 
-    const reports = [...(rows || []), ...(joumpaRows || [])];
-    const total = reports.length;
-    const openCount = reports.filter(r => r.status === 'OPEN').length;
-    const closedCount = reports.filter(r => r.status === 'CLOSED').length;
+    // The exact-aggregate RPC only covers ground_handling_irregularity_report,
+    // so its summary is combined below with a JOUMPA count computed from the
+    // same narrowed rows fetched for the breakdowns (no separate count-only
+    // round trip needed since we already need those rows for the charts).
+    const [overview, joumpaResult] = await Promise.all([
+        getDashboardOverview([stationCode]),
+        supabaseAdmin
+            .from('joumpa_reports_sync')
+            .select(JOUMPA_FIELDS)
+            .or(`station_code.eq.${stationCode},station.eq.${stationCode}`),
+    ]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const joumpaRows = joumpaResult.data as any[] | null;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const reports: any[] = [...(rows || []), ...(joumpaRows || [])];
+
+    let joumpaOpen = 0;
+    let joumpaClosed = 0;
+    (joumpaRows || []).forEach((r) => {
+        if (r.status === 'OPEN') joumpaOpen++;
+        else if (r.status === 'CLOSED') joumpaClosed++;
+    });
+
+    const total = overview.summary.total + (joumpaRows?.length || 0);
+    const openCount = overview.summary.pending + joumpaOpen;
+    const closedCount = overview.summary.resolved + joumpaClosed;
     const resolutionRate = total > 0 ? Math.round((closedCount / total) * 100) : 0;
 
     const categoryMap: Record<string, number> = {};
