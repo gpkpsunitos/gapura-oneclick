@@ -13,9 +13,9 @@ This scope was chosen deliberately over "one role at a time" or "audit everythin
 
 Findings come from live inspection with Claude-in-Chrome against the local dev server (`localhost:3000`), logged in as `SUPER_ADMIN` (`admin@gapura.demo`) and `MANAGER_CABANG` (`manager.cgk@gapura.id`), at phone width (~430px) and tablet width (confirmed by the user at ~1024px on their actual screen, not just automation measurements — the automation's own viewport-resize tooling proved unreliable mid-session, so the tablet finding was cross-checked against what the user visually saw).
 
-### 1. Tablet layout gap (highest priority)
+### 1. Tablet layout gap — INVESTIGATED AND RETRACTED, not a real bug
 
-`components/layout/DashboardFrame.tsx` only reserves sidebar space at `xl:` (1280px, `SIDEBAR_QUERY = '(min-width: 1280px)'`). The code's own comment states the intent: *"portrait tablets (incl. iPad Pro 12.9\" @ 1024px) get full width + bottom nav."* In practice, at tablet widths the content column stays capped to a narrow phone-width column with a large unused blank area — confirmed visually by the user on the Manager Cabang dashboard at ~1024px. The shell's own `main` element has no width cap (`style={{ maxWidth: '100%', ... }}`), so the cap is happening deeper — either in a per-page container, a stale cached stylesheet (the component's comments call out aggressive dev-mode caching from a stable-URL stylesheet + Serwist service worker), or a stale service-worker-cached response. Root cause confirmation is implementation work, not spec work — but the fix must make the *intended* behavior (full-width content + bottom nav from phone size up through 1279px, sidebar only at 1280px+) actually hold, and must be verified at a real tablet width on an actual device/window, not just computed via automation.
+Initially flagged as the highest-priority finding: at tablet width the content column appeared capped to a narrow phone-width column with a large blank area, and the user confirmed seeing this on their screen. Before implementing a fix, this was isolated further: `document.documentElement`/`body` measured 512px wide via JS while `window.innerWidth` reported 1024px in the automated tab — a split that only occurs under a CDP device-metrics override, not in normal browsing (and this session's `resize_window` tool had already proven unreliable, see method note above). A clean test in an Incognito window (extensions disabled by default, so no automation involved) at the same tablet width showed the page filling the window correctly, with no blank area. **Conclusion: this was an artifact of the automation tooling's own stuck viewport override, not an app bug.** `components/layout/DashboardFrame.tsx`'s tablet handling (sidebar only at `xl:` 1280px, full-width content + bottom nav below that) is left untouched — no fix needed, no task for it in the implementation plan. This is kept in the spec, rather than deleted, as a record of a false lead that was caught before wasting an implementation task on it.
 
 ### 2. Data bug: blank severity value on Admin dashboard
 
@@ -23,7 +23,13 @@ Findings come from live inspection with Claude-in-Chrome against the local dev s
 
 ### 3. Design-language inconsistency across roles
 
-Admin's dashboard home hand-rolls its own card/severity-list markup directly in the page file. Manager Cabang's dashboard home hand-rolls a different `KPICard` function directly in its page file. Analyst already has a shared, well-built, properly responsive component: `components/dashboard/analyst/StatsCard.tsx` (uses `sm:`/`md:`/`lg:` breakpoints correctly, hover/active states, `line-clamp` on labels, `toLocaleString()` on numbers). The three look and behave differently for what is structurally the same UI element. This is the component to promote and standardize on, not something to build from scratch.
+There are three separate hand-rolled implementations of the same "labeled stat with an icon" card:
+
+- `components/dashboard/analyst/StatsCard.tsx` — plain-surface card (`bg-surface-2`), gradient border, used on a normal page background. Correctly responsive (`sm:`/`md:`/`lg:`), hover/active states, `line-clamp` on labels, `toLocaleString()` on numbers. **The best-built of the three — promote this one.**
+- The local `KPICard` function inside `app/dashboard/(main)/manager/page.tsx` — white card with a colored blur accent, `subtitle` support, per-instance hex `color`.
+- The local `StatCard` function inside `components/dashboard/DashboardHeader.tsx` — frosted-glass card (`bg-white/95 backdrop-blur-xl`) designed to sit on top of `DashboardHeader`'s gradient hero background, with `variant`-based (default/warning/success) coloring.
+
+The Analyst and Manager versions are both "plain card on a plain page background" — the same design context, worth unifying now. `DashboardHeader`'s `StatCard` is a deliberately different context (frosted glass over a colored gradient, not a plain surface) — unifying it would either break that frosted-hero look or force the shared component to grow a `variant="frosted"` mode it doesn't need yet. **Left alone in this phase**, noted here so it isn't mistaken for an oversight.
 
 ### 4. Bottom navigation and PWA install banner (needs a closer look, not blocking)
 
@@ -37,24 +43,25 @@ A "Install App" PWA prompt renders `fixed bottom-4 right-4 z-50`, overlapping th
 
 ## Scope — files in play
 
-1. `components/layout/DashboardFrame.tsx` — fix the tablet-width content-cap bug; keep the `xl:` (1280px) sidebar cutover as-is (that part of the design intent is correct, only the content width below it is broken).
-2. `components/dashboard/analyst/StatsCard.tsx` — promote to a shared location (e.g. `components/dashboard/StatsCard.tsx`), generalize the currently-hardcoded emerald/green color scheme into a `color`/`accent` prop so Admin's per-severity colors (red/amber/green) can use the same component.
-3. `app/dashboard/(main)/admin/page.tsx` — replace the hand-rolled "Ringkasan" stat row and severity breakdown list with the shared `StatsCard`; fix the blank-value bug as part of this migration.
-4. `app/dashboard/(main)/manager/page.tsx` — replace the local `KPICard` function with the shared `StatsCard`.
-5. Any import path updates needed where `components/dashboard/analyst/StatsCard.tsx` is currently imported from (grep before moving, keep a re-export shim only if there are many call sites — otherwise update imports directly).
+1. `components/dashboard/analyst/StatsCard.tsx` — promote to a shared location (`components/dashboard/StatsCard.tsx`), generalize the currently-hardcoded emerald color scheme into a `color` prop (accepts any valid CSS color, e.g. an `oklch(...)` string) with the current emerald as the default so Analyst's existing usage needs no prop changes. Add an optional `subtitle` prop (Manager's `KPICard` uses one; Analyst's doesn't).
+2. `components/dashboard/analyst/ResponsiveStatsGrid.tsx` — update its import of `StatsCard` to the new shared path (only current importer, confirmed via repo-wide grep for `import.*StatsCard`).
+3. `app/dashboard/(main)/admin/page.tsx` — replace the hand-rolled severity breakdown list (~lines 155–186) with the shared `StatsCard`, one per severity (High/Medium/Low), fixing the blank-value bug (`severity.HIGH ?? 0` etc.) as part of the migration. The `DashboardHeader`/"Ringkasan" hero row is NOT touched (see Finding 3 — different design context, out of scope).
+4. `app/dashboard/(main)/manager/page.tsx` — replace the local `KPICard` function and its 3 call sites (Total Reports / Open / Closed) with the shared `StatsCard`; delete the now-unused `KPICard` function and `KPI_COLORS` constant if nothing else references them (confirm via grep before deleting).
+
+`components/layout/DashboardFrame.tsx` and `components/dashboard/DashboardHeader.tsx` are explicitly NOT in scope — see Finding 1 (no real bug) and Finding 3 (different design context) above.
 
 Out of scope for this phase: per-role content pages (charts, tables, calendar, documents, builder), the other ~8 roles' dashboard homes (Analyst, Employee, Eskalasi, HC, HT, OCS, OS, OP — Analyst already uses the shared component; the rest get migrated in follow-up specs once this phase proves out), the PWA install-banner investigation (item 4 above — separate follow-up if it turns out to be real).
 
 ## Design direction
 
 - **Visual language:** standardize on the Analyst `StatsCard` look (rounded surface-2 card, soft gradient border, icon chip, mono-weight numeric value, uppercase tracked label) as the one shared stat-card style across roles, rather than inventing a new one. Per-role/per-severity accent color becomes a prop instead of hardcoded emerald.
-- **Breakpoints:** phone (default) → tablet (`sm:`/`md:` — content uses full available width, multi-column stat grids where more than 2–3 stats exist) → desktop sidebar (`xl:` 1280px+, unchanged). No new breakpoint tier is introduced; the existing `sm`/`md`/`xl` scale already used by `StatsCard` is reused, since the bug is that tablet was falling through to phone-width behavior, not that a tablet tier is missing from the Tailwind config.
+- **Breakpoints:** reuse `StatsCard`'s existing `sm:`/`md:`/`lg:` scale as-is. No new breakpoint tier is introduced — `DashboardFrame`'s phone → tablet → `xl:` desktop-sidebar behavior was already correct (Finding 1), so this phase only needs the stat-card grids themselves to lay out sensibly at each existing breakpoint (e.g. Manager's `grid-cols-2 md:grid-cols-3` pattern, kept as the wrapping grid around the new shared cards).
 - **Motion/interaction:** keep `StatsCard`'s existing hover/active treatment (already subtle, 400ms). No new animation work needed.
 
 ## Verification
 
 - At phone width (~390–430px): Admin and Manager dashboards render correctly, stat cards single-column, bottom nav unobstructed.
-- At tablet width (~768–1024px), verified both by automation viewport measurement *and* the user visually confirming on their actual Chrome window: content uses the available width (multi-column stat grid, no large blank area), bottom nav still present (sidebar must not appear before 1280px).
+- At tablet width (~768–1024px): content uses the available width (multi-column stat grid where the component supports it), matching the already-correct `DashboardFrame` behavior (no changes needed there per Finding 1).
 - At desktop width (≥1280px): sidebar appears, existing desktop layout unchanged.
 - Admin dashboard: all three severity rows (High/Medium/Low) show a numeric value, including when the value is zero.
 - No visual regression to the bottom tab bar's equal-spacing behavior or the admin quick-menu bottom sheet.
