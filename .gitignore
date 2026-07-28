@@ -91,4 +91,5 @@ analyze-all-response.json
 sheets_dump.txt
 
 .superpowers/
+.worktrees/
 .env*
