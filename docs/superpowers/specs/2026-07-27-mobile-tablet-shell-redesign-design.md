@@ -5,9 +5,9 @@ Status: Approved by user, pending implementation plan
 
 ## Goal
 
-The app has ~10 role/division sections (Admin, Analyst, Employee, Eskalasi, HC, HT, Manager Cabang, OCS, OS, OP), each with several pages. A full mobile/tablet redesign of all of them is too large for one plan. This is **Phase 1**: fix the shared shell (navigation, layout frame) and unify the stat-card pattern that every role's dashboard home page hand-rolls its own version of. Per-role deep content (charts, tables, forms) is out of scope here and gets its own follow-up spec once this foundation lands.
+The app has ~10 role/division sections (Admin, Analyst, Employee, Eskalasi, HC, HT, Manager Cabang, OCS, OS, OP), each with several pages. A full mobile/tablet redesign of all of them is too large for one plan. This is **Phase 1**: unify the stat-card ("tile with icon + big number + label") pattern that role dashboard homes hand-roll their own version of, and fix a data-display bug found along the way. The shared navigation shell (`DashboardFrame`) turned out not to need a fix at all (see Finding 1). Per-role deep content (charts, tables, forms) is out of scope here and gets its own follow-up spec once this foundation lands.
 
-This scope was chosen deliberately over "one role at a time" or "audit everything first" because the shell and stat cards are shared infrastructure — fixing them once benefits all ~10 roles simultaneously, whereas a full page-by-page audit was diminishing-returns for a first pass.
+This scope was chosen deliberately over "one role at a time" or "audit everything first" because the stat-card pattern is shared infrastructure — fixing it once benefits every role that uses a tile-grid stat layout, whereas a full page-by-page audit was diminishing-returns for a first pass.
 
 ## Audit method and findings
 
@@ -20,6 +20,8 @@ Initially flagged as the highest-priority finding: at tablet width the content c
 ### 2. Data bug: blank severity value on Admin dashboard
 
 `app/dashboard/(main)/admin/page.tsx` (~line 160): the severity breakdown list is built from `severity.HIGH`, `severity.MEDIUM`, `severity.LOW`, where `severity` defaults to `{ HIGH: 0, MEDIUM: 0, LOW: 0, 'TOP RISK': 0 }` only when `stats?.severity` itself is entirely absent. When `stats.severity` exists but the backend omits a key with zero occurrences for the period (e.g. no HIGH-severity reports), `severity.HIGH` is `undefined`, and `{item.value}` renders nothing — not even "0" — while Medium/Low render their real counts. Confirmed via two separate page loads. Fix: default each field defensively (`severity.HIGH ?? 0`, etc.) rather than relying on the object-level fallback.
+
+This severity breakdown is a **compact list-row layout** (icon + label left, value right, stacked with `space-y-4`, all inside one `card-solid` bento cell alongside "Aktivitas" and "Lokasi Terbanyak") — structurally different from the tile-shaped `StatsCard` (self-contained card with its own surface, icon chip block, and large centered number, meant to be one of several peers in a grid). Swapping these rows for `StatsCard` tiles would look wrong inside that bento cell. So this fix stays a **targeted one-line-per-field fix in place**, not a `StatsCard` migration — Admin's dashboard home has no existing tile-grid widget that's a natural `StatsCard` fit (its tile-grid equivalent is `DashboardHeader`'s hero row, already excluded per Finding 3).
 
 ### 3. Design-language inconsistency across roles
 
@@ -45,8 +47,8 @@ A "Install App" PWA prompt renders `fixed bottom-4 right-4 z-50`, overlapping th
 
 1. `components/dashboard/analyst/StatsCard.tsx` — promote to a shared location (`components/dashboard/StatsCard.tsx`), generalize the currently-hardcoded emerald color scheme into a `color` prop (accepts any valid CSS color, e.g. an `oklch(...)` string) with the current emerald as the default so Analyst's existing usage needs no prop changes. Add an optional `subtitle` prop (Manager's `KPICard` uses one; Analyst's doesn't).
 2. `components/dashboard/analyst/ResponsiveStatsGrid.tsx` — update its import of `StatsCard` to the new shared path (only current importer, confirmed via repo-wide grep for `import.*StatsCard`).
-3. `app/dashboard/(main)/admin/page.tsx` — replace the hand-rolled severity breakdown list (~lines 155–186) with the shared `StatsCard`, one per severity (High/Medium/Low), fixing the blank-value bug (`severity.HIGH ?? 0` etc.) as part of the migration. The `DashboardHeader`/"Ringkasan" hero row is NOT touched (see Finding 3 — different design context, out of scope).
-4. `app/dashboard/(main)/manager/page.tsx` — replace the local `KPICard` function and its 3 call sites (Total Reports / Open / Closed) with the shared `StatsCard`; delete the now-unused `KPICard` function and `KPI_COLORS` constant if nothing else references them (confirm via grep before deleting).
+3. `app/dashboard/(main)/manager/page.tsx` — replace the local `KPICard` function and its 3 call sites (Total Reports / Open / Closed) with the shared `StatsCard`; delete the now-unused `KPICard` function and `KPI_COLORS` constant (confirmed via grep to be unreferenced elsewhere).
+4. `app/dashboard/(main)/admin/page.tsx` — fix the blank-value bug directly (`severity.HIGH ?? 0` etc.), keeping the existing list-row markup as-is (see Finding 2 — not a `StatsCard` migration target). The `DashboardHeader`/"Ringkasan" hero row is NOT touched (see Finding 3 — different design context, out of scope).
 
 `components/layout/DashboardFrame.tsx` and `components/dashboard/DashboardHeader.tsx` are explicitly NOT in scope — see Finding 1 (no real bug) and Finding 3 (different design context) above.
 
