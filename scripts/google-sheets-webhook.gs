@@ -4,6 +4,10 @@
  *      WEBHOOK_URL    = https://<your-vercel-domain>/api/integrations/google-sheets/webhook
  *      WEBHOOK_SECRET = <same value as GOOGLE_SHEETS_WEBHOOK_SECRET in Vercel>
  * 2. Run installIrrsWebhookTriggers() once (also removes any legacy triggers).
+ *    IMPORTANT: re-run this after pulling this update even if you installed
+ *    triggers before — it now also installs an onChange trigger (deleting or
+ *    inserting a row doesn't fire onEdit at all, so without onChange those
+ *    changes were invisible to the webhook until the next full sync).
  * 3. Edit a row in "NON CARGO" or "CGO" and check Vercel function logs.
  */
 const IRRS_TARGET_SHEETS = ['NON CARGO', 'CGO'];
@@ -13,7 +17,17 @@ const IRRS_QUEUE_KEY = 'irrs_google_sheets_webhook_queue_v1';
 const IRRS_LAST_SENT_PREFIX = 'irrs_google_sheets_last_sent_v1';
 const IRRS_FLUSH_HANDLER = 'irrsFlushPendingWebhookQueue';
 const IRRS_EDIT_HANDLER = 'irrsOnEditInstalled';
+const IRRS_CHANGE_HANDLER = 'irrsOnChangeInstalled';
 const IRRS_LEGACY_HANDLERS = ['onSheetEdit', 'scheduledSync'];
+// onChange fires for structural edits (row/column insert or delete, sheet
+// insert/delete) that onEdit never sees at all — Apps Script simply doesn't
+// call onEdit for those. Without this, deleting a row in Sheets was
+// completely invisible to the webhook and only ever caught by the next
+// periodic full sync (daily cron or next login). EDIT/FORMAT/OTHER changeTypes
+// are left alone since onEdit already covers content edits and formatting
+// doesn't need a sync.
+const IRRS_STRUCTURAL_CHANGE_TYPES = ['INSERT_ROW', 'REMOVE_ROW', 'INSERT_GRID', 'REMOVE_GRID'];
+const IRRS_STRUCTURAL_QUEUE_KEY = '__structural__';
 
 function installIrrsWebhookTriggers() {
   const spreadsheet = SpreadsheetApp.getActive();
@@ -23,6 +37,7 @@ function installIrrsWebhookTriggers() {
     const handler = trigger.getHandlerFunction();
     if (
       handler === IRRS_EDIT_HANDLER ||
+      handler === IRRS_CHANGE_HANDLER ||
       handler === IRRS_FLUSH_HANDLER ||
       IRRS_LEGACY_HANDLERS.indexOf(handler) !== -1
     ) {
@@ -35,6 +50,11 @@ function installIrrsWebhookTriggers() {
     .onEdit()
     .create();
 
+  ScriptApp.newTrigger(IRRS_CHANGE_HANDLER)
+    .forSpreadsheet(spreadsheet)
+    .onChange()
+    .create();
+
   irrsVerifyWebhookConfig_();
 }
 
@@ -44,6 +64,32 @@ function irrsOnEditInstalled(e) {
 
   try {
     irrsQueueWebhookEvent_(e);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function irrsOnChangeInstalled(e) {
+  const changeType = e && e.changeType;
+  if (IRRS_STRUCTURAL_CHANGE_TYPES.indexOf(changeType) === -1) return;
+
+  const lock = LockService.getDocumentLock();
+  if (!lock.tryLock(5000)) return;
+
+  try {
+    // onChange gives no range/sheet for structural events (unlike onEdit), so
+    // a deleted/inserted row can't be resolved to one scoped row-sync. Queue
+    // an unscoped signal instead — the webhook already falls back to a full
+    // reconciliation sync whenever sheetName/rowNumber are absent, which is
+    // exactly what's needed to catch deletions and row-position shifts.
+    const properties = PropertiesService.getDocumentProperties();
+    const queue = irrsReadQueue_(properties);
+    queue[IRRS_STRUCTURAL_QUEUE_KEY] = {
+      triggerType: 'ON_CHANGE_' + changeType,
+      changedAt: new Date().toISOString(),
+    };
+    properties.setProperty(IRRS_QUEUE_KEY, JSON.stringify(queue));
+    irrsScheduleFlushIfNeeded_();
   } finally {
     lock.releaseLock();
   }
@@ -73,10 +119,15 @@ function irrsFlushPendingWebhookQueue() {
       const statusCode = response.getResponseCode();
 
       if (statusCode >= 200 && statusCode < 300) {
-        properties.setProperty(
-          irrsLastSentKey_(payload.sheetId, payload.rowNumber),
-          String(payload.rowSignature || '')
-        );
+        // Structural (onChange) payloads have no sheetId/rowNumber to key a
+        // last-sent dedupe entry on — nothing reads that entry for them, so
+        // just skip the stamp instead of writing a bogus "undefined:undefined" key.
+        if (payload.sheetId !== undefined && payload.rowNumber !== undefined) {
+          properties.setProperty(
+            irrsLastSentKey_(payload.sheetId, payload.rowNumber),
+            String(payload.rowSignature || '')
+          );
+        }
         return;
       }
 
@@ -115,33 +166,45 @@ function irrsQueueWebhookEvent_(e) {
 
   const sheet = range.getSheet();
   const sheetName = sheet.getName();
-  const rowNumber = range.getRow();
-
   if (IRRS_TARGET_SHEETS.indexOf(sheetName) === -1) return;
-  if (rowNumber < 2) return;
 
-  const rowValues = sheet.getRange(rowNumber, 1, 1, sheet.getLastColumn()).getDisplayValues()[0] || [];
-  if (irrsCountNonEmptyCells_(rowValues) < IRRS_MIN_NON_EMPTY_CELLS) return;
-
-  const rowSignature = irrsBuildRowSignature_(sheet, rowNumber, rowValues);
+  const sheetId = sheet.getSheetId();
+  const lastColumn = sheet.getLastColumn();
   const properties = PropertiesService.getDocumentProperties();
-  const lastSentSignature = properties.getProperty(irrsLastSentKey_(sheet.getSheetId(), rowNumber));
-
-  if (lastSentSignature === rowSignature) return;
-
   const queue = irrsReadQueue_(properties);
-  const queueKey = irrsQueueRowKey_(sheet.getSheetId(), rowNumber);
+  let queueChanged = false;
 
-  queue[queueKey] = {
-    triggerType: 'ON_EDIT',
-    sheetId: sheet.getSheetId(),
-    sheetName: sheetName,
-    rowNumber: rowNumber,
-    rowSignature: rowSignature,
-    editedRange: range.getA1Notation(),
-    editedAt: new Date().toISOString(),
-    nonEmptyCellCount: irrsCountNonEmptyCells_(rowValues),
-  };
+  // A single paste (or fill-down) can span many rows at once — e.g. adding
+  // several new records in one go — but onEdit fires exactly ONE event for
+  // the whole range. Iterating just range.getRow() (the top row) silently
+  // dropped every other row in the paste from the real-time sync path; they
+  // only caught up on the next full sync.
+  const startRow = Math.max(range.getRow(), 2);
+  const endRow = range.getRow() + range.getNumRows() - 1;
+
+  for (let rowNumber = startRow; rowNumber <= endRow; rowNumber++) {
+    const rowValues = sheet.getRange(rowNumber, 1, 1, lastColumn).getDisplayValues()[0] || [];
+    if (irrsCountNonEmptyCells_(rowValues) < IRRS_MIN_NON_EMPTY_CELLS) continue;
+
+    const rowSignature = irrsBuildRowSignature_(sheet, rowNumber, rowValues);
+    const lastSentSignature = properties.getProperty(irrsLastSentKey_(sheetId, rowNumber));
+    if (lastSentSignature === rowSignature) continue;
+
+    const queueKey = irrsQueueRowKey_(sheetId, rowNumber);
+    queue[queueKey] = {
+      triggerType: 'ON_EDIT',
+      sheetId: sheetId,
+      sheetName: sheetName,
+      rowNumber: rowNumber,
+      rowSignature: rowSignature,
+      editedRange: range.getA1Notation(),
+      editedAt: new Date().toISOString(),
+      nonEmptyCellCount: irrsCountNonEmptyCells_(rowValues),
+    };
+    queueChanged = true;
+  }
+
+  if (!queueChanged) return;
 
   properties.setProperty(IRRS_QUEUE_KEY, JSON.stringify(queue));
   irrsScheduleFlushIfNeeded_();

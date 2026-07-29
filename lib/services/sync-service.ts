@@ -5,7 +5,7 @@ import { notifyNewRecordEmail } from '@/lib/notifications';
 import { buildReportFingerprint } from '@/lib/report-fingerprint';
 import { buildReportsSyncRow, persistReportMetadata } from '@/lib/report-persistence';
 import type { Report } from '@/types';
-import { acquireSyncLock, completeSyncState, getSyncState } from '@/lib/sync-state';
+import { acquireSyncLock, bumpSyncVersion, completeSyncState, getSyncState } from '@/lib/sync-state';
 
 interface SyncResult {
   success: boolean;
@@ -116,6 +116,17 @@ export class SyncService {
 
       await persistReportMetadata(report);
       reportsService.invalidateCache();
+
+      // The full sync bumps sync_version via completeSyncState({ bumpVersion: true }),
+      // which is what the dashboard snapshot cache (dashboard_cache_entries) keys off
+      // to know it's stale. This scoped single-row path skipped that bump, so a Sheets
+      // edit delivered by the webhook would land in Supabase but dashboards would keep
+      // serving the pre-edit snapshot until the next full sync bumped the version.
+      try {
+        await bumpSyncVersion('reports');
+      } catch (versionError) {
+        console.warn('[SyncService] Failed to bump sync version after scoped row sync:', versionError);
+      }
 
       if (!existing) {
         await notifyNewRecordEmail(report, 'sheets-sync').catch((notificationError) => {

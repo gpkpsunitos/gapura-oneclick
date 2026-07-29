@@ -17,7 +17,7 @@ import {
 
 export const IRRS_NAMESPACE_UUID = '6ba7b810-9dad-11d1-80b4-00c04fd430c8';
 
-interface CacheEntry { data: unknown; ts: number }
+interface CacheEntry { data: unknown; ts: number; version?: number }
 const ttlCache = new Map<string, CacheEntry>();
 const inflightReportFetches = new Map<string, Promise<Report[]>>();
 let reportCacheEpoch = 0;
@@ -43,6 +43,62 @@ function setCache(key: string, data: unknown): void {
     if (oldest) ttlCache.delete(oldest);
   }
   ttlCache.set(key, { data, ts: Date.now() });
+}
+
+// getCache/setCache above are a plain per-process TTL cache: on Vercel, each
+// warm serverless instance holds its own copy, so invalidateCache() only
+// clears the instance that happened to run a sync. Other instances kept
+// serving up to CACHE_TTL-old report lists regardless of how fast Supabase
+// itself was updated. sync_state.sync_version is already the shared,
+// cross-instance freshness signal (bumped by every report mutation and sync
+// path — see lib/sync-state.ts) — gate the report-list cache on it too, with
+// its own short local TTL so this doesn't add a DB round trip per request.
+let sharedSyncVersionCache: { version: number; ts: number } | null = null;
+const SHARED_VERSION_CHECK_TTL = 5000;
+
+async function getSharedSyncVersion(): Promise<number> {
+  if (sharedSyncVersionCache && Date.now() - sharedSyncVersionCache.ts < SHARED_VERSION_CHECK_TTL) {
+    return sharedSyncVersionCache.version;
+  }
+  try {
+    const { getSyncState } = await import('@/lib/sync-state');
+    const state = await getSyncState('reports');
+    const version = Number(state.sync_version) || 0;
+    sharedSyncVersionCache = { version, ts: Date.now() };
+    return version;
+  } catch (error) {
+    // Don't let a hiccup in the freshness check take reads down — fall back
+    // to whatever we last knew (or 0, which just forces a cache miss).
+    console.warn('[ReportsService] Failed to read shared sync version:', error);
+    return sharedSyncVersionCache?.version ?? 0;
+  }
+}
+
+async function getVersionedCache<T>(key: string, ttl: number): Promise<T | null> {
+  const entry = ttlCache.get(key);
+  if (!entry) { cacheMisses++; return null; }
+  if (Date.now() - entry.ts > ttl) {
+    ttlCache.delete(key);
+    cacheMisses++;
+    return null;
+  }
+  const currentVersion = await getSharedSyncVersion();
+  if (entry.version !== currentVersion) {
+    ttlCache.delete(key);
+    cacheMisses++;
+    return null;
+  }
+  cacheHits++;
+  return entry.data as T;
+}
+
+async function setVersionedCache(key: string, data: unknown): Promise<void> {
+  const version = await getSharedSyncVersion();
+  if (ttlCache.size >= MAX_CACHE_ENTRIES) {
+    const oldest = ttlCache.keys().next().value;
+    if (oldest) ttlCache.delete(oldest);
+  }
+  ttlCache.set(key, { data, ts: Date.now(), version });
 }
 
 export function getCacheStats() {
@@ -1190,7 +1246,7 @@ class ReportsService {
       }
     } else {
       const cachedReports = canUseProjectionCache
-        ? getCache<Report[]>(projectionCacheKey, CACHE_TTL)
+        ? await getVersionedCache<Report[]>(projectionCacheKey, CACHE_TTL)
         : null;
       if (cachedReports) {
         selectedReports = cachedReports.map((report) => ({ ...report }));
@@ -1208,7 +1264,7 @@ class ReportsService {
           }
         }
         if (canUseProjectionCache && cacheEpochAtStart === reportCacheEpoch) {
-          setCache(projectionCacheKey, selectedReports.map((report) => ({ ...report })));
+          await setVersionedCache(projectionCacheKey, selectedReports.map((report) => ({ ...report })));
         }
       }
     }
