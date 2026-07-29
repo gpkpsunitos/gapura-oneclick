@@ -192,65 +192,6 @@ export function buildReportsSyncRow(report: Partial<Report>): Record<string, unk
     };
 }
 
-function buildLegacyReportRow(
-    report: Partial<Report>,
-    options?: { userId?: string | null }
-): Record<string, unknown> {
-    const sheetId = resolveReportSheetId(report);
-    const normalizedCategory = resolveReportCategory(report);
-    const userId = sanitizeUserId(report.user_id) || options?.userId || null;
-
-    return {
-        ...(userId ? { user_id: userId } : {}),
-        sheet_id: sheetId,
-        source_fingerprint: resolveReportSourceFingerprint(report),
-        title: report.title || report.report || null,
-        description: report.description || report.report || null,
-        reporter_name: report.reporter_name || null,
-        status: report.status || 'OPEN',
-        severity: report.severity || 'low',
-        priority: report.priority || null,
-        location: report.location || null,
-        flight_number: report.flight_number || null,
-        aircraft_reg: report.aircraft_reg || null,
-        date_of_event: report.date_of_event || report.incident_date || null,
-        station_id: report.station_id || report.station_code || report.reporting_branch || report.branch || null,
-        incident_type_id: report.incident_type_id || null,
-        category: report.category || normalizedCategory || null,
-        action_taken: report.action_taken || null,
-        root_caused: report.root_caused || report.root_cause || null,
-        delay_code: report.delay_code || null,
-        delay_duration: report.delay_duration || null,
-        evidence_urls: normalizeTextArray(report.evidence_urls) || normalizeTextArray(report.evidence_url),
-        evidence_file_ids: normalizeTextArray(report.evidence_file_ids, /\s*[|,\n]\s*/) || null,
-        evidence_submission_id: report.evidence_submission_id || null,
-        primary_tag: report.primary_tag || null,
-        remarks_gapura_kps: report.remarks_gapura_kps || null,
-        created_at: toIsoOrNow(report.created_at),
-        updated_at: toIsoOrNow(report.updated_at),
-    };
-}
-
-async function upsertLegacyReportRow(payload: Record<string, unknown>) {
-    const sheetId = payload.sheet_id;
-    if (!sheetId) return;
-
-    try {
-        const { error } = await supabaseAdmin
-            .from('reports')
-            .upsert(
-                { ...payload, updated_at: new Date().toISOString() },
-                { onConflict: 'sheet_id', ignoreDuplicates: false }
-            );
-
-        if (error) {
-            throw error;
-        }
-    } catch (error) {
-        console.warn('[ReportPersistence] Legacy reports upsert failed (non-blocking):', error);
-    }
-}
-
 async function upsertReportsSyncRow(payload: Record<string, unknown>) {
     try {
         const { error } = await supabaseAdmin
@@ -272,11 +213,17 @@ export async function persistReportMetadata(
     report: Partial<Report>,
     options?: { userId?: string | null }
 ) {
-    const legacyRow = buildLegacyReportRow(report, options);
     const syncRow = buildReportsSyncRow(report);
+    // report.user_id comes straight off the sheet's free-text "User ID"
+    // column and is usually not a valid UUID, so buildReportsSyncRow's own
+    // sanitizeUserId(report.user_id) leaves it null most of the time. Callers
+    // that know the acting/authenticated user pass it here as a fallback —
+    // previously this only ever reached the dead legacy `reports` table, so
+    // the live row's user_id silently stayed null even when a caller supplied one.
+    if (!syncRow.user_id && options?.userId) {
+        const fallbackUserId = sanitizeUserId(options.userId);
+        if (fallbackUserId) syncRow.user_id = fallbackUserId;
+    }
 
-    await Promise.all([
-        upsertLegacyReportRow(legacyRow),
-        upsertReportsSyncRow(syncRow),
-    ]);
+    await upsertReportsSyncRow(syncRow);
 }

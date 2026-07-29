@@ -12,7 +12,9 @@ interface RouteParams {
 // Lightweight report reference lookup for comment writes. Resolves the stable
 // UUID + sheet id from the synced DB tables ONLY — never touches Google Sheets,
 // so posting a comment is instant. Covers both ground-handling and JOUMPA reports.
-async function resolveReportRef(reportId: string): Promise<{ stableUuid: string; sheetId: string | null } | null> {
+async function resolveReportRef(
+    reportId: string
+): Promise<{ stableUuid: string; sheetId: string | null; source: 'ground_handling_irregularity_report' | 'joumpa_reports_sync' } | null> {
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(reportId);
     const safe = `"${reportId.replace(/"/g, '""')}"`;
 
@@ -25,7 +27,7 @@ async function resolveReportRef(reportId: string): Promise<{ stableUuid: string;
         .or(ghFilter)
         .limit(1);
     if (gh && gh.length > 0) {
-        return { stableUuid: gh[0].id, sheetId: gh[0].sheet_id || gh[0].original_id || null };
+        return { stableUuid: gh[0].id, sheetId: gh[0].sheet_id || gh[0].original_id || null, source: 'ground_handling_irregularity_report' };
     }
 
     const jpFilter = isUuid ? `id.eq.${safe},sheet_id.eq.${safe}` : `sheet_id.eq.${safe}`;
@@ -35,7 +37,7 @@ async function resolveReportRef(reportId: string): Promise<{ stableUuid: string;
         .or(jpFilter)
         .limit(1);
     if (jp && jp.length > 0) {
-        return { stableUuid: jp[0].id, sheetId: jp[0].sheet_id || null };
+        return { stableUuid: jp[0].id, sheetId: jp[0].sheet_id || null, source: 'joumpa_reports_sync' };
     }
 
     return null;
@@ -235,8 +237,12 @@ export async function POST(request: Request, { params }: RouteParams) {
                 .in('report_id', [stableUuid, sheetId].filter((v): v is string => !!v));
             priorCommenters?.forEach((row) => row.user_id && recipientIds.add(row.user_id));
 
+            // Was querying the legacy (always-empty) `reports` table, so the
+            // report owner never actually got notified about comments on their
+            // own report — resolveReportRef already knows which live table
+            // (ground-handling or JOUMPA) this report actually came from.
             const { data: reportRow } = await supabaseAdmin
-                .from('reports')
+                .from(ref.source)
                 .select('user_id')
                 .eq('id', stableUuid)
                 .single();

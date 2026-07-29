@@ -48,12 +48,6 @@ interface ExistingSyncRecord {
   source_sheet?: string | null;
 }
 
-interface LegacyReportRecord {
-  id: string;
-  sheet_id: string;
-  source_fingerprint: string | null;
-}
-
 interface SyncStatus {
   lastSyncAt: string | null;
   totalReports: number;
@@ -349,34 +343,6 @@ export class SyncService {
     return rows;
   }
 
-  private static async listLegacyReports(): Promise<LegacyReportRecord[]> {
-    const rows: LegacyReportRecord[] = [];
-    let offset = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-      const { data, error } = await supabaseAdmin
-        .from('reports')
-        .select('id, sheet_id, source_fingerprint')
-        .not('sheet_id', 'is', null)
-        .range(offset, offset + this.PAGE_SIZE - 1);
-
-      if (error) {
-        throw error;
-      }
-
-      const batch = (data || [])
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((row: any) => typeof row.sheet_id === 'string') as LegacyReportRecord[];
-
-      rows.push(...batch);
-      hasMore = batch.length === this.PAGE_SIZE;
-      offset += this.PAGE_SIZE;
-    }
-
-    return rows;
-  }
-
   private static async syncFetchedReports(
     reports: Report[],
     existingRecords: ExistingSyncRecord[]
@@ -462,10 +428,9 @@ export class SyncService {
           throw error;
         }
 
-        await this.relinkLegacySheetReferences(
+        await this.relinkReportCommentReferences(
           item.previousSheetId,
-          String(item.row.sheet_id),
-          String(item.row.source_fingerprint || '')
+          String(item.row.sheet_id)
         );
 
         updated++;
@@ -512,36 +477,19 @@ export class SyncService {
     return { inserted, updated, errors, insertedReports };
   }
 
-  private static async relinkLegacySheetReferences(
+  private static async relinkReportCommentReferences(
     previousSheetId: string,
-    newSheetId: string,
-    sourceFingerprint: string
+    newSheetId: string
   ) {
     if (previousSheetId === newSheetId) return;
 
-    const now = new Date().toISOString();
+    const { error } = await supabaseAdmin
+      .from('report_comments')
+      .update({ sheet_id: newSheetId })
+      .eq('sheet_id', previousSheetId);
 
-    const [legacyUpdate, commentsUpdate] = await Promise.allSettled([
-      supabaseAdmin
-        .from('reports')
-        .update({
-          sheet_id: newSheetId,
-          source_fingerprint: sourceFingerprint || null,
-          updated_at: now,
-        })
-        .eq('sheet_id', previousSheetId),
-      supabaseAdmin
-        .from('report_comments')
-        .update({ sheet_id: newSheetId })
-        .eq('sheet_id', previousSheetId),
-    ]);
-
-    if (legacyUpdate.status === 'rejected') {
-      console.warn('[SyncService] Failed to relink legacy report references:', legacyUpdate.reason);
-    }
-
-    if (commentsUpdate.status === 'rejected') {
-      console.warn('[SyncService] Failed to relink report comment references:', commentsUpdate.reason);
+    if (error) {
+      console.warn('[SyncService] Failed to relink report comment references:', error);
     }
   }
 
@@ -665,31 +613,6 @@ export class SyncService {
           .select('id');
         if (error) {
           console.warn('[SyncService] Delete batch failed:', error);
-          continue;
-        }
-        deleted += data?.length || 0;
-      }
-    }
-
-    const existingDbRows = await this.listLegacyReports();
-    const dbToDelete = existingDbRows
-      .filter(({ sheet_id, source_fingerprint }) =>
-        !fetchedIds.has(sheet_id) &&
-        !(source_fingerprint && fetchedFingerprints.has(source_fingerprint)) &&
-        (sourceSheets.length === 0 || sourceSheets.some((sheet) => sheet_id.startsWith(`${sheet}!`) || sheet_id.includes('row_')))
-      )
-      .map(({ id }) => id);
-
-    if (dbToDelete.length > 0) {
-      for (let i = 0; i < dbToDelete.length; i += this.DELETE_BATCH_SIZE) {
-        const batch = dbToDelete.slice(i, i + this.DELETE_BATCH_SIZE);
-        const { data, error } = await supabaseAdmin
-          .from('reports')
-          .delete()
-          .in('id', batch)
-          .select('id');
-        if (error) {
-          console.warn('[SyncService] Legacy delete batch failed:', error);
           continue;
         }
         deleted += data?.length || 0;

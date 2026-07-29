@@ -1567,58 +1567,6 @@ class ReportsService {
     }
   }
 
-  private async fetchSupabaseReports(): Promise<Report[]> {
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const allReports: any[] = [];
-    const batchSize = 1000;
-    let offset = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-      const { data, error } = await supabaseAdmin
-        .from('reports')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .range(offset, offset + batchSize - 1);
-
-      if (error) {
-        console.warn('[ReportsService] Supabase fetch error:', error);
-        break;
-      }
-
-      if (!data || data.length === 0) {
-        hasMore = false;
-      } else {
-        allReports.push(...data);
-        hasMore = data.length === batchSize;
-        offset += batchSize;
-      }
-    }
-
-    if (allReports.length === 0) return [];
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return allReports.map((row: any) => syncEscalationDivisionAliases({
-      ...row,
-
-      id: row.id,
-      sheet_id: row.sheet_id,
-      source_fingerprint: row.source_fingerprint || buildReportFingerprint(row),
-
-      evidence_urls: row.evidence_urls || (row.evidence_url ? [row.evidence_url] : []),
-
-      status: row.status || 'OPEN',
-      severity: row.severity || 'low',
-      priority: row.priority || 'low',
-
-      date_of_event: row.date_of_event || row.event_date || row.created_at,
-      created_at: row.created_at || new Date().toISOString(),
-
-      stations: row.station_id ? { code: row.station_id, name: row.station_id } : undefined,
-    })) as Report[];
-  }
-
   async getStations(): Promise<Station[]> {
     const cacheKey = 'stations:all:v1';
     const cached = getCache<Station[]>(cacheKey, CACHE_TTL);
