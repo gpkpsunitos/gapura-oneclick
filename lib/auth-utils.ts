@@ -126,13 +126,22 @@ function mergeUserIntoSession(session: SessionPayload, u: Record<string, unknown
 }
 
 async function verifySessionUncached(token: string): Promise<SessionPayload | null> {
-    const trusted = await getTrustedHeaderPayload();
-    if (trusted) return trusted;
-
     try {
         let session = await readSessionPayload(token);
         if (!session) {
             return null;
+        }
+
+        // The trusted header only reflects proxy.ts's verification of THIS
+        // request's own 'session' cookie. Callers that verify a different,
+        // explicitly-passed token (e.g. another account's token stashed in
+        // the auth_bundle cookie while an eskalasi user is switched into a
+        // division) must not get that unrelated identity back just because
+        // a trusted header happens to be present — only reuse it when it
+        // actually corresponds to the token being verified.
+        const trusted = await getTrustedHeaderPayload();
+        if (trusted && trusted.sid && trusted.sid === session.sid) {
+            return trusted;
         }
 
         if (session.sid) {

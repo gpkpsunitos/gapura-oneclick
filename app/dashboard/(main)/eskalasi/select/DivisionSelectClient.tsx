@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { mutate } from 'swr';
 import { logoutWithPwaCleanup } from '@/lib/pwa/logout';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
@@ -105,6 +106,15 @@ export function DivisionSelectClient({ role, division }: DivisionSelectClientPro
             if (!res.ok) {
                 throw new Error(data?.error || `Failed to switch to Division ${code}`);
             }
+
+            // Sidebar's "Back to Workspace" button reads /api/auth/bundle (cached by
+            // SWR with a 5-minute dedupe and no revalidateOnFocus/Reconnect) to decide
+            // whether to show the real button or a plain link that skips restoring the
+            // eskalasi session. The sidebar never remounts across this navigation, so
+            // without this invalidation it keeps serving the pre-switch bundle, the
+            // fallback link renders, and returning to /dashboard/eskalasi/select never
+            // switches back to the eskalasi account — hiding the OCS-only green card.
+            void mutate('/api/auth/bundle');
 
             const redirectPath = data?.redirectPath || `/dashboard/${code.toLowerCase()}`;
             router.replace(redirectPath);
