@@ -225,7 +225,6 @@ function buildLegacyReportRow(
         evidence_file_ids: normalizeTextArray(report.evidence_file_ids, /\s*[|,\n]\s*/) || null,
         evidence_submission_id: report.evidence_submission_id || null,
         primary_tag: report.primary_tag || null,
-        preventive_action: report.preventive_action || null,
         remarks_gapura_kps: report.remarks_gapura_kps || null,
         created_at: toIsoOrNow(report.created_at),
         updated_at: toIsoOrNow(report.updated_at),
