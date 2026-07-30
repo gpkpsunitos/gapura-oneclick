@@ -10,6 +10,21 @@ service_name="gapura-oneclick"
 image_name="gapura-oneclick:web"
 test_container="gapura-oneclick-web-test"
 test_port="${WEB_TEST_PORT:-3002}"
+production_port="${WEB_PRODUCTION_PORT:-3001}"
+rollback_keep="${WEB_ROLLBACK_KEEP:-3}"
+
+for port_name in test_port production_port; do
+  port_value="${!port_name}"
+  if [[ ! "$port_value" =~ ^[0-9]+$ ]] || (( port_value < 1 || port_value > 65535 )); then
+    printf 'Invalid %s value: %s\n' "$port_name" "$port_value" >&2
+    exit 1
+  fi
+done
+
+if [[ ! "$rollback_keep" =~ ^[1-9][0-9]*$ ]]; then
+  printf 'WEB_ROLLBACK_KEEP must be a positive integer.\n' >&2
+  exit 1
+fi
 
 for required_file in "$production_env" "$build_env" Dockerfile.web docker-compose.yml; do
   if [[ ! -f "$required_file" ]]; then
@@ -101,21 +116,39 @@ compose() {
     PRODUCTION_ENV_FILE="$PRODUCTION_ENV_FILE" \
     WEB_BUILD_ENV_FILE="$WEB_BUILD_ENV_FILE" \
     WEB_BUILD_ENV_REV="$WEB_BUILD_ENV_REV" \
+    WEB_PRODUCTION_PORT="$production_port" \
     docker compose "$@"
 }
 
 compose config --quiet
 
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
-current_image_id="$(
-  sudo docker inspect --format '{{.Image}}' "$service_name" 2>/dev/null || true
-)"
+current_container_id="$(compose ps -q "$service_name" 2>/dev/null || true)"
+current_image_id=""
+if [[ -n "$current_container_id" ]]; then
+  current_image_id="$(
+    sudo docker inspect --format '{{.Image}}' "$current_container_id" 2>/dev/null || true
+  )"
+fi
 rollback_tag=""
 
 if [[ -n "$current_image_id" ]]; then
   rollback_tag="gapura-oneclick:rollback-$timestamp"
   sudo docker tag "$current_image_id" "$rollback_tag"
   printf 'Preserved current production image as %s\n' "$rollback_tag"
+
+  rollback_index=0
+  while IFS= read -r old_rollback_tag; do
+    [[ -n "$old_rollback_tag" ]] || continue
+    ((rollback_index += 1))
+    if (( rollback_index > rollback_keep )); then
+      sudo docker image rm "gapura-oneclick:${old_rollback_tag}" >/dev/null || true
+    fi
+  done < <(
+    sudo docker image ls gapura-oneclick --format '{{.Tag}}' |
+      grep '^rollback-' |
+      sort -r
+  )
 fi
 
 rollback_production() {
@@ -181,7 +214,7 @@ fi
 production_ready=false
 for _ in $(seq 1 30); do
   if curl --fail --silent --show-error --output /dev/null \
-    "http://127.0.0.1:3001/auth/login"; then
+    "http://127.0.0.1:${production_port}/auth/login"; then
     production_ready=true
     break
   fi

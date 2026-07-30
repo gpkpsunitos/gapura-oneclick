@@ -18,7 +18,7 @@ services:
       PORT: "3000"
       HOSTNAME: "0.0.0.0"
     ports:
-      - "3001:3000"
+      - "${WEB_PRODUCTION_PORT:-3001}:3000"
     healthcheck:
       test:
         - CMD

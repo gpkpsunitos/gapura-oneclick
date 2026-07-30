@@ -32,16 +32,16 @@ ENV PORT=3000
 
 COPY package.json package-lock.json ./
 
-# next.config.mjs imports @serwist/next at startup. It currently lives in
-# devDependencies, so the runtime image must include development dependencies.
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --include=dev
+    npm ci --omit=dev
 
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.mjs ./next.config.mjs
-COPY --from=builder /app/scripts/check-node-version.js ./scripts/check-node-version.js
+COPY --chown=node:node --from=builder /app/.next ./.next
+COPY --chown=node:node --from=builder /app/public ./public
+COPY --chown=node:node --from=builder /app/next.config.mjs ./next.config.mjs
+COPY --chown=node:node --from=builder /app/scripts/check-node-version.js ./scripts/check-node-version.js
 
 EXPOSE 3000
+
+USER node
 
 CMD ["npm", "start"]
