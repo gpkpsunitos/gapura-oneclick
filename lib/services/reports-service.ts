@@ -22,18 +22,14 @@ const ttlCache = new Map<string, CacheEntry>();
 const inflightReportFetches = new Map<string, Promise<Report[]>>();
 let reportCacheEpoch = 0;
 const MAX_CACHE_ENTRIES = 100;
-let cacheHits = 0;
-let cacheMisses = 0;
 
 function getCache<T>(key: string, ttl: number): T | null {
   const entry = ttlCache.get(key);
-  if (!entry) { cacheMisses++; return null; }
+  if (!entry) return null;
   if (Date.now() - entry.ts > ttl) {
     ttlCache.delete(key);
-    cacheMisses++;
     return null;
   }
-  cacheHits++;
   return entry.data as T;
 }
 
@@ -76,19 +72,16 @@ async function getSharedSyncVersion(): Promise<number> {
 
 async function getVersionedCache<T>(key: string, ttl: number): Promise<T | null> {
   const entry = ttlCache.get(key);
-  if (!entry) { cacheMisses++; return null; }
+  if (!entry) return null;
   if (Date.now() - entry.ts > ttl) {
     ttlCache.delete(key);
-    cacheMisses++;
     return null;
   }
   const currentVersion = await getSharedSyncVersion();
   if (entry.version !== currentVersion) {
     ttlCache.delete(key);
-    cacheMisses++;
     return null;
   }
-  cacheHits++;
   return entry.data as T;
 }
 
@@ -99,16 +92,6 @@ async function setVersionedCache(key: string, data: unknown): Promise<void> {
     if (oldest) ttlCache.delete(oldest);
   }
   ttlCache.set(key, { data, ts: Date.now(), version });
-}
-
-export function getCacheStats() {
-  const total = cacheHits + cacheMisses;
-  return {
-    hits: cacheHits,
-    misses: cacheMisses,
-    keys: ttlCache.size,
-    hitRatio: total > 0 ? cacheHits / total : 0,
-  };
 }
 
 const SPREADSHEET_ID = process.env.GOOGLE_SHEET_ID;
@@ -603,14 +586,6 @@ export function parseDate(dateStr: string | number | Date): Date | null {
 
   const d = new Date(str);
   return isNaN(d.getTime()) ? null : d;
-}
-
-type SupportedDivision = 'OP' | 'OS' | 'HT' | 'HC';
-
-export function normalizeDivisionCode(value?: string | null): SupportedDivision | undefined {
-  if (!value) return undefined;
-  const match = String(value).trim().toUpperCase().match(/\b(OP|OS|HT|HC)\b/);
-  return match?.[1] as SupportedDivision | undefined;
 }
 
 function syncEscalationDivisionAliases<T extends Partial<Report>>(report: T): T {
@@ -1210,11 +1185,6 @@ class ReportsService {
     keys.forEach((k) => {
       if (k.startsWith(CACHE_KEY_ALL_REPORTS)) ttlCache.delete(k);
     });
-  }
-
-  public getLastUpdated(): number {
-    const entry = ttlCache.get(CACHE_KEY_ALL_REPORTS);
-    return entry ? entry.ts : Date.now();
   }
 
   async getReports(options?: GetReportsOptions): Promise<Report[]> {
@@ -2114,35 +2084,6 @@ class ReportsService {
 
     this.invalidateCache();
     return createdReports.filter((report): report is Report => Boolean(report));
-  }
-
-  async getSeverityDistribution(filters: {
-    hub?: string;
-    branch?: string;
-    airlines?: string;
-    area?: string;
-    dateFrom?: string;
-    dateTo?: string;
-  } = {}): Promise<{ severity: string; count: number }[]> {
-    const all = await this.getReports({
-      filters,
-      fields: ['id', 'severity'],
-    });
-
-    const map = new Map<string, number>();
-    all.forEach((r) => {
-      const sev = (r.severity || 'low').toString();
-      map.set(sev, (map.get(sev) ?? 0) + 1);
-    });
-
-    const order = ['low', 'medium', 'high', 'urgent'];
-    const result = order
-      .map((s) => ({ severity: s, count: map.get(s) ?? 0 }))
-      .filter(() => true);
-
-    return result
-      .sort((a, b) => b.count - a.count)
-      .map(r => ({ severity: r.severity, count: r.count }));
   }
 }
 
