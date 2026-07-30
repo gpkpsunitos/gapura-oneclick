@@ -120,6 +120,17 @@ compose() {
     docker compose "$@"
 }
 
+capture_diagnostics() {
+  local label="$1"
+  shift
+
+  local log_file
+  log_file="$(umask 077; mktemp "/tmp/gapura-oneclick-${label}.XXXXXX.log")"
+  "$@" >"$log_file" 2>&1 || true
+  chmod 600 "$log_file"
+  printf 'Diagnostic logs were saved to %s (mode 600).\n' "$log_file" >&2
+}
+
 compose config --quiet
 
 timestamp="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -146,7 +157,7 @@ if [[ -n "$current_image_id" ]]; then
     fi
   done < <(
     sudo docker image ls gapura-oneclick --format '{{.Tag}}' |
-      grep '^rollback-' |
+      { grep '^rollback-' || true; } |
       sort -r
   )
 fi
@@ -196,8 +207,8 @@ for _ in $(seq 1 30); do
 done
 
 if [[ "$candidate_ready" != "true" ]]; then
-  printf 'Candidate container did not become ready. Recent logs:\n' >&2
-  sudo docker logs --tail=100 "$test_container" >&2 || true
+  printf 'Candidate container did not become ready.\n' >&2
+  capture_diagnostics candidate sudo docker logs --tail=100 "$test_container"
   exit 1
 fi
 
@@ -223,7 +234,7 @@ done
 
 if [[ "$production_ready" != "true" ]]; then
   printf 'Production did not become ready after deployment.\n' >&2
-  compose logs --tail=100 "$service_name" >&2 || true
+  capture_diagnostics production compose logs --tail=100 "$service_name"
 
   rollback_production || true
 
