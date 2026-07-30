@@ -299,20 +299,6 @@ export const mlClient = {
     return post("/seasonality");
   },
 
-  /** Classify report type: Irregularity / Complaint / Compliment / Occurrence
-   *  (~68% CV acc from the narrative; the old ~98% figure was target leakage). */
-  classifyCategory(text: string, ctx: ClassifyContext = {}): Promise<{ status: string; category: ClassifyResult }> {
-    return post("/classify/category", { text, ...ctx });
-  },
-
-  classifySubcategory(text: string, ctx: ClassifyContext = {}): Promise<{ status: string; subcategory: ClassifyResult }> {
-    return post("/classify/subcategory", { text, ...ctx });
-  },
-
-  classifyRootCause(text: string, ctx: ClassifyContext = {}): Promise<{ status: string; root_cause: ClassifyResult }> {
-    return post("/classify/root-cause", { text, ...ctx });
-  },
-
   /** All classifiers + 14-day forecast + risk rankings for one report text. */
   analyze(text: string, ctx: ClassifyContext = {}): Promise<AnalyzeResult> {
     return post("/analyze", { text, ...ctx });
