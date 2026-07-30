@@ -573,17 +573,6 @@ export interface UpdateCalendarEventInput {
     edit_scope?: 'single' | 'all';
 }
 
-export interface CalendarEventFilters {
-
-    search?: string;
-
-    created_by?: string;
-
-    start_date?: string;
-
-    end_date?: string;
-}
-
 export interface AnalyticsData {
 
     summary: {

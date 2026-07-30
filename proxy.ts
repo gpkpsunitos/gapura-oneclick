@@ -76,7 +76,7 @@ export default async function proxy(request: NextRequest) {
     const cookieStore = request.cookies;
     const session = cookieStore.get('session')?.value;
 
-    if (path.startsWith('/embed') || path.startsWith('/api/embed')) {
+    if (path.startsWith('/embed')) {
         return NextResponse.next();
     }
 
@@ -90,7 +90,6 @@ export default async function proxy(request: NextRequest) {
     const isGoogleSheetsWebhook = path === '/api/integrations/google-sheets/webhook';
     const isDevelopment = process.env.NODE_ENV === 'development';
     const isPublicEmbedPath = path.startsWith('/embed') ||
-                             path.startsWith('/api/embed') ||
                              path.startsWith('/api/master-data') ||
                              path.startsWith('/api/reports/public') ||
                              path.startsWith('/api/reports/duplicates/check') ||
