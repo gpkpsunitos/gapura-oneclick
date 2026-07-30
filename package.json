@@ -13,8 +13,6 @@
     "lint": "eslint",
     "debug:sheets": "node scripts/debug-sheets.mjs",
     "backfill:reporter-email": "node scripts/backfill-reporter-email.mjs",
-    "sync:reports": "node scripts/sync-reports-node.mjs",
-    "sync:auto": "node scripts/auto-sync-daemon.mjs",
     "sync:verify": "node scripts/verify-no-duplicates.mjs",
     "sync:scheduler": "node scripts/sync-scheduler.mjs",
     "sync:scheduler:dry": "DRY_RUN=1 node scripts/sync-scheduler.mjs",
