@@ -93,3 +93,4 @@ sheets_dump.txt
 .superpowers/
 .worktrees/
 .env*
+!.env.web-build.example
