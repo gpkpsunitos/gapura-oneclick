@@ -106,15 +106,15 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 px-4 py-2.5 text-left transition hover:bg-emerald-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+        className="flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 px-4 py-2.5 text-left transition hover:bg-emerald-50/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2"
       >
         <div className="flex min-w-0 items-center gap-3">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700">
             <Filter className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">Filter All Reports</p>
-            <p className="truncate text-xs font-semibold text-slate-700">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--text-muted)]">Filter All Reports</p>
+            <p className="truncate text-xs font-semibold text-[var(--text-secondary)]">
               {activeCount > 0
                 ? `${activeCount} filter${activeCount === 1 ? '' : 's'} active • ${filteredCount.toLocaleString('en-US')} of ${totalCount.toLocaleString('en-US')} reports`
                 : 'Date, hub, station, airline, category, classification, area, status, severity'}
@@ -127,7 +127,7 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
               Active
             </span>
           )}
-          <ChevronDown className={cn('h-4 w-4 text-slate-400 transition-transform', open && 'rotate-180')} />
+          <ChevronDown className={cn('h-4 w-4 text-[var(--text-muted)] transition-transform', open && 'rotate-180')} />
         </div>
       </button>
 
@@ -175,7 +175,7 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
                 type="button"
                 onClick={onReset}
                 disabled={activeCount === 0}
-                className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 text-sm font-black text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-45 lg:w-auto"
+                className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[var(--surface-4)] bg-white px-5 text-sm font-black text-[var(--text-secondary)] shadow-sm transition hover:border-[var(--surface-4)] hover:text-[var(--text-primary)] disabled:cursor-not-allowed disabled:opacity-45 lg:w-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2"
               >
                 <X className="h-4 w-4" />
                 Reset
@@ -198,7 +198,7 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-emerald-800">
               {filteredCount.toLocaleString('en-US')} / {totalCount.toLocaleString('en-US')} reports match
             </p>
-            <p className="text-xs font-semibold text-slate-500">
+            <p className="text-xs font-semibold text-[var(--text-muted)]">
               These filters apply to the Report List view. Export keeps its own scope.
             </p>
           </div>
@@ -208,7 +208,7 @@ export const ReportFilterBar: FC<ReportFilterBarProps> = ({
   );
 };
 
-const fieldClass = "h-12 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 text-sm font-semibold text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10";
+const fieldClass = "h-12 w-full rounded-2xl border border-[var(--surface-4)] bg-white pl-12 pr-4 text-sm font-semibold text-[var(--text-primary)] transition placeholder:text-[var(--text-muted)] focus:border-emerald-400 focus:ring-4 focus:ring-emerald-500/10 focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-1";
 
 function FilterInput({
   label,
@@ -221,7 +221,7 @@ function FilterInput({
 }) {
   return (
     <label className="relative block">
-      <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.16em] text-slate-500">{label}</span>
+      <span className="mb-2 block text-[11px] font-black uppercase tracking-[0.16em] text-[var(--text-muted)]">{label}</span>
       <Icon className="pointer-events-none absolute bottom-3.5 left-4 h-5 w-5 text-emerald-700" />
       {children}
     </label>

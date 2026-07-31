@@ -5,10 +5,5 @@ export const metadata: Metadata = {
 };
 
 export default function OPLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      <link rel="preload" href="/api/admin/analytics" as="fetch" crossOrigin="use-credentials" />
-      {children}
-    </>
-  );
+  return <>{children}</>;
 }

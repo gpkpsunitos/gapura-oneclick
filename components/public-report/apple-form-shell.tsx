@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useSyncExternalStore } from 'react';
+import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Loader2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -158,13 +158,50 @@ export function InlineShell({ ariaLabel, children }: { ariaLabel: string; childr
 
 const subscribeToClient = () => () => {};
 
-export function FormShell({ onClose, ariaLabel, wide, children }: { onClose: () => void; ariaLabel: string; wide?: boolean; children: React.ReactNode }) {
+export function FormShell({ onClose, ariaLabel, wide, dashboardScope, children }: { onClose: () => void; ariaLabel: string; wide?: boolean; dashboardScope?: boolean; children: React.ReactNode }) {
   const mounted = useSyncExternalStore(subscribeToClient, () => true, () => false);
+  const frameRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = prev; };
   }, []);
+
+  // Move focus into the dialog on open so keyboard/screen-reader users land
+  // somewhere inside it, then trap Tab within it and let Escape close it —
+  // the portal escapes the React tree, so nothing else provides this.
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const frame = frameRef.current;
+      if (!frame) return;
+      const focusable = frame.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   if (!mounted) return null;
 
@@ -172,11 +209,11 @@ export function FormShell({ onClose, ariaLabel, wide, children }: { onClose: () 
   // transform/filter/will-change (which creates a new containing block and
   // clips the backdrop to the dashboard content — leaving corners uncovered).
   return createPortal(
-    <div className="jm-root" role="dialog" aria-modal="true" aria-label={ariaLabel}>
+    <div className={cn('jm-root', dashboardScope && 'jm-dashboard-scope')} role="dialog" aria-modal="true" aria-label={ariaLabel}>
       <style dangerouslySetInnerHTML={{ __html: FORM_CSS }} />
       <div className="jm-backdrop" onClick={onClose} />
-      <div className={cn('jm-frame', wide && 'jm-frame--wide')}>
-        <button type="button" onClick={onClose} className="jm-close" aria-label="Close">
+      <div className={cn('jm-frame', wide && 'jm-frame--wide')} ref={frameRef}>
+        <button type="button" onClick={onClose} className="jm-close" aria-label="Close" ref={closeButtonRef}>
           <X size={16} strokeWidth={2.2} />
         </button>
         {children}
@@ -190,7 +227,9 @@ export const FORM_CSS = `
 .jm-root, .jm-inline {
   --ink: #101013;
   --ink-2: #3a3a42;
-  --mute: #7c7c85;
+  /* #7c7c85 measured 4.13:1 on white, below WCAG AA's 4.5:1 floor for the
+     small (10-13px) labels and metadata this token drives throughout. */
+  --mute: #6b6b74;
   --line: rgba(0,0,0,0.08);
   --fill: rgba(0,0,0,0.045);
   --fill-2: rgba(0,0,0,0.075);
@@ -207,6 +246,12 @@ export const FORM_CSS = `
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   font-feature-settings: 'ss01', 'cv11';
+}
+/* This shell is shared with the public intake form (which keeps Plus
+   Jakarta above). The OP dashboard's report modal opts into the dashboard
+   body font instead so its typography matches the rest of the dashboard. */
+.jm-root.jm-dashboard-scope, .jm-inline.jm-dashboard-scope {
+  --font: var(--font-body, var(--font-plus-jakarta), -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif);
 }
 .jm-root {
   position: fixed; inset: 0; z-index: 200;
@@ -244,7 +289,6 @@ export const FORM_CSS = `
   position: relative;
   width: 100%; max-width: 720px;
   max-height: 92vh;
-  transition: max-width .25s ease;
   display: flex; flex-direction: column;
   background: var(--paper);
   border-radius: 28px;
@@ -257,8 +301,8 @@ export const FORM_CSS = `
 }
 .jm-frame--wide { max-width: 1040px; }
 .jm-close {
-  position: absolute; top: 20px; right: 20px; z-index: 10;
-  width: 32px; height: 32px; border-radius: 999px;
+  position: absolute; top: 14px; right: 14px; z-index: 10;
+  width: 44px; height: 44px; border-radius: 999px;
   background: rgba(0,0,0,0.06);
   border: none; cursor: pointer;
   color: var(--ink);
@@ -551,27 +595,14 @@ export const FORM_CSS = `
 .jm-submit:active:not(:disabled) { transform: scale(0.985); }
 .jm-submit--disabled { opacity: 0.35; cursor: not-allowed; }
 
-.jm-submit--close {
-  background: linear-gradient(180deg, oklch(0.62 0.16 150) 0%, oklch(0.50 0.15 152) 55%, oklch(0.42 0.13 154) 100%);
-  box-shadow:
-    inset 0 1px 0 0 oklch(0.85 0.12 145 / 0.6),
-    inset 0 -2px 3px 0 oklch(0.30 0.10 155 / 0.5),
-    0 10px 24px -8px oklch(0.45 0.16 152 / 0.55),
-    0 1px 2px 0 oklch(0.30 0.10 155 / 0.3);
-}
+/* Same brand green as .jm-submit above (was its own standalone oklch
+   gradient — a second, independently-tuned green duplicating --teal). */
+.jm-submit--close { background: var(--teal); }
 .jm-submit--close:hover:not(:disabled) {
-  background: linear-gradient(180deg, oklch(0.66 0.17 150) 0%, oklch(0.53 0.155 152) 55%, oklch(0.45 0.14 154) 100%);
-  box-shadow:
-    inset 0 1px 0 0 oklch(0.88 0.12 145 / 0.65),
-    inset 0 -2px 3px 0 oklch(0.30 0.10 155 / 0.5),
-    0 14px 30px -8px oklch(0.45 0.18 152 / 0.6),
-    0 1px 2px 0 oklch(0.30 0.10 155 / 0.3);
+  background: var(--teal-strong);
+  box-shadow: 0 8px 24px -8px rgba(4,120,87,0.5);
 }
-.jm-submit--close:active:not(:disabled) {
-  box-shadow:
-    inset 0 1px 3px 0 oklch(0.30 0.10 155 / 0.5),
-    0 4px 10px -6px oklch(0.45 0.16 152 / 0.5);
-}
+.jm-submit--close:active:not(:disabled) { transform: scale(0.985); }
 
 .jm-success {
   padding: 72px 32px;
@@ -583,7 +614,7 @@ export const FORM_CSS = `
   width: 60px; height: 60px; border-radius: 999px;
   background: var(--teal); color: #fff;
   display: inline-flex; align-items: center; justify-content: center;
-  animation: jm-pop .45s cubic-bezier(.2,1.4,.4,1);
+  animation: jm-pop .45s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 12px 32px -8px rgba(15,124,124,0.5);
   margin-bottom: 8px;
 }
@@ -619,9 +650,9 @@ export const FORM_CSS = `
 .jm-documents { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 12px; margin-top: 12px; }
 .jm-documents__actions { display: inline-flex; gap: 7px; }
 .jm-document-btn {
-  min-height: 34px;
+  min-height: 44px;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 7px 11px;
+  padding: 7px 14px;
   border: 1px solid var(--line); border-radius: 10px;
   background: #fff; color: var(--ink);
   font-family: inherit; font-size: 11px; font-weight: 700; letter-spacing: 0.02em;

@@ -907,6 +907,7 @@ html {
     linear-gradient(180deg, #ffffff 0%, #fbfdfb 100%);
   border-color: var(--sr-accent-soft-2);
 }
+/* impeccable-disable-next-line side-tab -- top edge on a single hero card, not a repeated left/right border on generic cards; user confirmed 2026-08-01 */
 .sr-scope .sr-card-hero-primary::before {
   content: "";
   position: absolute;

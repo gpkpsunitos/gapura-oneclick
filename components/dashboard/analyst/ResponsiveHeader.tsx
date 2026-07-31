@@ -154,7 +154,7 @@ export function ResponsiveHeader({
           className={cn(
             'hidden sm:flex items-center p-1.5 rounded-2xl border',
             isExecutiveVariant
-              ? 'bg-white/85 border-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04)]'
+              ? 'bg-[var(--surface-1)]/85 border-[var(--surface-3)] shadow-[0_1px_2px_rgba(15,23,42,0.04)]'
               : 'bg-[oklch(0.97_0.012_160_/_0.6)] backdrop-blur-xl border-[oklch(0.65_0.18_160_/_0.15)] shadow-[inset_0_1px_2px_oklch(0.45_0.06_160_/_0.06)]'
           )}
         >
@@ -163,11 +163,11 @@ export function ResponsiveHeader({
               key={option.value}
               onClick={() => handleDateRangeSelection(option.value)}
               className={cn(
-                'px-5 py-2.5 text-[11px] font-display font-black uppercase tracking-widest rounded-xl transition-all duration-300 whitespace-nowrap min-h-[40px]',
+                'px-5 py-2.5 text-[11px] font-display font-black uppercase tracking-widest rounded-xl transition-all duration-300 whitespace-nowrap min-h-[44px]',
                 (typeof dateRange === 'string' ? dateRange === option.value : option.value === 'custom')
                   ? 'bg-gradient-to-br from-[var(--brand-emerald-500)] to-[var(--brand-emerald-600)] text-[var(--text-on-brand)] shadow-lg shadow-emerald-500/20'
                   : isExecutiveVariant
-                    ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-slate-100/80'
+                    ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--surface-2)]'
                     : 'text-text-secondary hover:text-text-primary hover:bg-[oklch(0.95_0.015_160_/_0.5)]'
               )}
             >
@@ -182,7 +182,7 @@ export function ResponsiveHeader({
               className={cn(
                 'flex items-center p-1 rounded-xl border',
                 isExecutiveVariant
-                  ? 'bg-white/90 border-slate-200/80'
+                  ? 'bg-[var(--surface-1)]/90 border-[var(--surface-3)]'
                   : 'bg-[oklch(0.97_0.012_160_/_0.6)] border-[oklch(0.65_0.18_160_/_0.15)]'
               )}
             >
@@ -218,7 +218,7 @@ export function ResponsiveHeader({
                 variant="outline"
                 className={cn(
                   'w-full min-h-[44px] justify-between rounded-2xl',
-                  isExecutiveVariant && 'bg-white/85 border-slate-200 text-[var(--text-primary)]'
+                  isExecutiveVariant && 'bg-[var(--surface-1)]/85 border-[var(--surface-3)] text-[var(--text-primary)]'
                 )}
               >
                 <span className="flex items-center gap-2">
@@ -255,7 +255,7 @@ export function ResponsiveHeader({
           className={cn(
             'sm:hidden w-full space-y-2 p-3 rounded-2xl border animate-in fade-in slide-in-from-top-2',
             isExecutiveVariant
-              ? 'bg-white/90 border-slate-200/80'
+              ? 'bg-[var(--surface-1)]/90 border-[var(--surface-3)]'
               : 'bg-[oklch(0.97_0.012_160_/_0.6)] border-[oklch(0.65_0.18_160_/_0.15)]'
           )}
         >
@@ -272,7 +272,7 @@ export function ResponsiveHeader({
                   setCustomRange(newRange);
                   onDateRangeChange(newRange);
                 }}
-                className="bg-white/50 border border-surface-3 rounded-xl p-2 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
+                className="bg-[var(--surface-1)]/50 border border-surface-3 rounded-xl p-2 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
             <div className="flex flex-col gap-1">
@@ -287,7 +287,7 @@ export function ResponsiveHeader({
                   setCustomRange(newRange);
                   onDateRangeChange(newRange);
                 }}
-                className="bg-white/50 border border-surface-3 rounded-xl p-2 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
+                className="bg-[var(--surface-1)]/50 border border-surface-3 rounded-xl p-2 text-sm font-bold focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
           </div>
@@ -323,7 +323,7 @@ export function ResponsiveHeader({
       className={cn(
         'min-h-[44px] min-w-[44px] sm:min-w-fit w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl px-4',
         isExecutiveVariant &&
-          'bg-white/85 border border-slate-200/80 text-[var(--text-primary)] hover:bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]',
+          'bg-[var(--surface-1)]/85 border border-[var(--surface-3)] text-[var(--text-primary)] hover:bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04)]',
         refreshing && 'opacity-50'
       )}
     >
@@ -343,11 +343,11 @@ export function ResponsiveHeader({
             className={cn(
               'w-full sm:w-auto items-center justify-center sm:justify-start gap-2 min-h-[48px] px-4 sm:px-5 rounded-2xl border-0 transition-all duration-300 font-display font-bold',
               isExecutiveVariant
-                ? 'inline-flex bg-white/85 text-[var(--text-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] border border-slate-200/80 hover:bg-white hover:-translate-y-0.5 active:scale-95'
-                : 'hidden xl:inline-flex bg-gradient-to-br from-teal-700 to-cyan-700 text-white shadow-lg shadow-teal-600/20 hover:shadow-xl hover:shadow-teal-600/30 hover:-translate-y-0.5 active:scale-95'
+                ? 'inline-flex bg-[var(--surface-1)]/85 text-[var(--text-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] border border-[var(--surface-3)] hover:bg-white hover:-translate-y-0.5 active:scale-95'
+                : 'hidden xl:inline-flex bg-gradient-to-br from-[var(--brand-emerald-600)] to-[var(--brand-emerald-700,#065f46)] text-white shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:shadow-emerald-600/30 hover:-translate-y-0.5 active:scale-95'
             )}
           >
-            <LayoutDashboard size={16} className={isExecutiveVariant ? 'text-cyan-700' : undefined} />
+            <LayoutDashboard size={16} className={isExecutiveVariant ? 'text-[var(--brand-emerald-700,#047857)]' : undefined} />
             <span className={cn('min-w-0 truncate text-left tracking-tight', !isExecutiveVariant && 'hidden 2xl:inline')}>
               {action.label}
             </span>
@@ -359,13 +359,13 @@ export function ResponsiveHeader({
   if (isExecutiveVariant) {
     return (
       <div className="animate-fade-in-up">
-        <div className="rounded-[28px] border border-slate-200/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(248,250,252,0.96))] p-4 sm:p-5 lg:p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
+        <div className="rounded-[28px] border border-[var(--surface-3)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(248,250,252,0.96))] p-4 sm:p-5 lg:p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
           <div className="flex flex-col gap-5">
             <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
               <div className="max-w-3xl space-y-3">
                 {eyebrow && (
-                  <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-cyan-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-cyan-700">
-                    <span className="inline-flex h-2 w-2 rounded-full bg-cyan-500" />
+                  <div className="inline-flex items-center gap-2 rounded-full border border-[var(--signal-amber-rim)] bg-[var(--signal-amber-soft)] px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-[var(--signal-amber-strong)]">
+                    <span className="inline-flex h-2 w-2 rounded-full bg-[var(--signal-amber)]" />
                     {eyebrow}
                   </div>
                 )}
@@ -386,9 +386,9 @@ export function ResponsiveHeader({
                     onClick={onCustomerFeedback}
                     disabled={cfLoading}
                     aria-label="Feedback"
-                    className="w-full sm:w-auto inline-flex items-center justify-center sm:justify-start gap-2 min-h-[48px] px-4 sm:px-5 rounded-2xl border-0 bg-white/85 text-[var(--text-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] border border-slate-200/80 hover:bg-white hover:-translate-y-0.5 active:scale-95 transition-all duration-300 font-display font-bold disabled:opacity-70 disabled:cursor-not-allowed"
+                    className="w-full sm:w-auto inline-flex items-center justify-center sm:justify-start gap-2 min-h-[48px] px-4 sm:px-5 rounded-2xl border-0 bg-[var(--surface-1)]/85 text-[var(--text-primary)] shadow-[0_1px_2px_rgba(15,23,42,0.04)] border border-[var(--surface-3)] hover:bg-white hover:-translate-y-0.5 active:scale-95 transition-all duration-300 font-display font-bold disabled:opacity-70 disabled:cursor-not-allowed"
                   >
-                    {cfLoading ? <Loader2 size={16} className="animate-spin text-cyan-700" /> : <LayoutDashboard size={16} className="text-cyan-700" />}
+                    {cfLoading ? <Loader2 size={16} className="animate-spin text-[var(--brand-emerald-700,#047857)]" /> : <LayoutDashboard size={16} className="text-[var(--brand-emerald-700,#047857)]" />}
                     <span className="min-w-0 truncate text-left tracking-tight">Customer Feedback</span>
                   </Button>
                 )}
@@ -406,10 +406,10 @@ export function ResponsiveHeader({
               </div>
             </div>
 
-            <div className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(248,250,252,0.92))] p-3 sm:p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
+            <div className="rounded-[24px] border border-[var(--surface-3)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(248,250,252,0.92))] p-3 sm:p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
               <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
                 {canToggleView && (
-                  <div className="inline-flex w-full sm:w-auto items-center rounded-2xl border border-slate-200/80 bg-slate-100/80 p-1">
+                  <div className="inline-flex w-full sm:w-auto items-center rounded-2xl border border-[var(--surface-3)] bg-[var(--surface-2)] p-1">
                     {(['dashboard', 'reports'] as HeaderView[]).map((viewOption) => (
                       <button
                         key={viewOption}

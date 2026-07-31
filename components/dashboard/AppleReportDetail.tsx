@@ -451,7 +451,7 @@ export function AppleReportDetail({ report, onClose, onUpdateStatus, onRefresh }
     : [airline, flight, areaLabel].filter(Boolean).join(' · ') || (report.title || 'Irregularity Report');
 
   return (
-    <FormShell onClose={onClose} wide ariaLabel={isJoumpa ? 'JOUMPA Report Detail' : 'Irregularity Report Detail'}>
+    <FormShell onClose={onClose} wide dashboardScope ariaLabel={isJoumpa ? 'JOUMPA Report Detail' : 'Irregularity Report Detail'}>
       <div className="jm-form">
         <div className="jm-detail-split">
           <div className="jm-scroll jm-detail-main">

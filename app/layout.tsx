@@ -1,6 +1,7 @@
 
 import type { Metadata, Viewport } from 'next';
 import { Plus_Jakarta_Sans, JetBrains_Mono, Fraunces, Bricolage_Grotesque, Hanken_Grotesk } from 'next/font/google';
+import { MotionConfig } from 'framer-motion';
 import './globals.css';
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -127,7 +128,12 @@ export default function RootLayout({
     return (
         <html lang="id" data-scroll-behavior="smooth" className={`${plusJakartaSans.variable} ${bricolageGrotesque.variable} ${hankenGrotesk.variable} ${jetbrainsMono.variable} ${fraunces.variable}`}>
             <body>
-                {children}
+                {/* Every framer-motion m.* animation app-wide reads this — without it,
+                    spring/slide entrances ignore the OS-level reduced-motion preference,
+                    since it's JS-driven and the global CSS reduced-motion rule can't reach it. */}
+                <MotionConfig reducedMotion="user">
+                    {children}
+                </MotionConfig>
             </body>
         </html>
     );

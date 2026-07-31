@@ -101,7 +101,7 @@ export function CommentInput({
                     onClick={() => handleSubmit()}
                     disabled={!canSubmit || sending}
                     className={cn(
-                        "flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-bold transition-all",
+                        "flex min-h-[44px] items-center gap-2 px-6 py-2 rounded-xl text-sm font-bold transition-all",
                         canSubmit && !sending
                             ? "bg-[var(--brand-primary)] text-white hover:shadow-lg active:scale-95"
                             : "bg-gray-100 text-gray-400 cursor-not-allowed"

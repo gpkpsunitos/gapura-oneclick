@@ -41,7 +41,7 @@ export function ReportSourceToggle({
             type="button"
             onClick={() => onChange(opt.value)}
             aria-pressed={active}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.06em] leading-none transition ${
+            className={`shrink-0 min-h-[44px] rounded-full px-3 text-[10px] font-black uppercase tracking-[0.06em] leading-none transition inline-flex items-center ${
               active
                 ? 'bg-gradient-to-b from-emerald-500 to-emerald-700 text-white shadow-[0_2px_0_#064e3b]'
                 : 'text-[color:var(--sr-text-3)] hover:text-[color:var(--sr-text)]'

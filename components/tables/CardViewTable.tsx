@@ -50,7 +50,7 @@ export function CardViewTable<T>({
 
   if (data.length === 0) {
     return (
-      <div className={cn('text-center py-8 text-gray-500 text-sm', className)}>
+      <div className={cn('text-center py-8 text-[var(--text-muted)] text-sm', className)}>
         {emptyMessage}
       </div>
     );
@@ -59,7 +59,7 @@ export function CardViewTable<T>({
   return (
     <div className={cn('space-y-3', className)}>
       {showHeader && primaryColumn && (
-        <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-1">
+        <div className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider px-1">
           {primaryColumn.header}
         </div>
       )}
@@ -98,10 +98,22 @@ function CardItem<T>({
   return (
     <div
       onClick={onClick}
+      role={clickable ? 'button' : undefined}
+      tabIndex={clickable ? 0 : undefined}
+      onKeyDown={
+        clickable
+          ? (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                onClick?.();
+              }
+            }
+          : undefined
+      }
       className={cn(
-        'bg-white rounded-xl border border-gray-200 p-4',
+        'bg-white rounded-xl border border-[var(--surface-4)] p-4',
         'transition-shadow duration-200',
-        clickable && 'cursor-pointer active:shadow-md hover:shadow-sm',
+        clickable && 'cursor-pointer active:shadow-md hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] focus-visible:ring-offset-2',
         'touch-manipulation'
       )}
       style={{ minHeight: '80px' }}
@@ -109,14 +121,14 @@ function CardItem<T>({
       {}
       <div className="flex justify-between items-start gap-3 mb-3">
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-gray-900 text-sm line-clamp-2">
+          <div className="font-semibold text-[var(--text-primary)] text-sm line-clamp-2">
             {primaryColumn.accessor(row)}
           </div>
         </div>
 
         {}
         {!actions && clickable && (
-          <div className="text-gray-400">
+          <div className="text-[var(--text-muted)]">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
@@ -129,8 +141,8 @@ function CardItem<T>({
         <div className="flex flex-wrap gap-x-4 gap-y-2 mb-3">
           {metaColumns.slice(0, 3).map((column) => (
             <div key={column.key} className="flex items-center gap-1.5">
-              <span className="text-xs text-gray-500">{column.header}:</span>
-              <span className="text-xs text-gray-700 font-medium">
+              <span className="text-xs text-[var(--text-muted)]">{column.header}:</span>
+              <span className="text-xs text-[var(--text-secondary)] font-medium">
                 {column.accessor(row)}
               </span>
             </div>
@@ -140,7 +152,7 @@ function CardItem<T>({
 
       {}
       {actions && actions.length > 0 && (
-        <div className="flex gap-2 pt-3 border-t border-gray-100">
+        <div className="flex gap-2 pt-3 border-t border-[var(--surface-3)]">
           {actions.map((action, index) => (
             <button
               key={index}
@@ -152,9 +164,9 @@ function CardItem<T>({
                 'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium',
                 'min-h-[44px] transition-colors',
                 action.variant === 'danger' && 'text-red-600 bg-red-50 hover:bg-red-100',
-                action.variant === 'primary' && 'text-white bg-blue-600 hover:bg-blue-700',
-                action.variant === 'secondary' && 'text-gray-700 bg-gray-100 hover:bg-gray-200',
-                (!action.variant || action.variant === 'ghost') && 'text-gray-600 hover:bg-gray-100'
+                action.variant === 'primary' && 'text-[var(--text-on-primary)] bg-[var(--brand-primary)] hover:opacity-90',
+                action.variant === 'secondary' && 'text-[var(--text-secondary)] bg-[var(--surface-2)] hover:bg-[var(--surface-3)]',
+                (!action.variant || action.variant === 'ghost') && 'text-[var(--text-secondary)] hover:bg-[var(--surface-2)]'
               )}
             >
               {action.icon && <span className="w-4 h-4">{action.icon}</span>}
