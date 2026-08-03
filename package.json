@@ -18,6 +18,9 @@
     "sync:scheduler:dry": "DRY_RUN=1 node scripts/sync-scheduler.mjs",
     "sync:joumpa": "node scripts/sync-joumpa-scheduler.mjs",
     "sync:joumpa:dry": "DRY_RUN=1 node scripts/sync-joumpa-scheduler.mjs",
+    "test:db-provider": "node --test lib/db/provider-config.test.mjs",
+    "test:mysql-config": "node --test lib/db/mysql-config.test.mjs",
+    "mysql:health": "node scripts/mysql-health-check.mjs",
     "security:guardrails": "node scripts/security-guardrails.mjs",
     "clean": "node scripts/clean-workspace.mjs",
     "clean:all": "node scripts/clean-workspace.mjs --dependencies"
@@ -52,6 +55,7 @@
     "jspdf": "^4.1.0",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.560.0",
+    "mysql2": "3.22.5",
     "next": "16.2.10",
     "nodemailer": "9.0.3",
     "pptxgenjs": "^4.0.1",

@@ -1,6 +1,7 @@
 import 'server-only';
 import { getGoogleSheets } from '@/lib/google-sheets';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { getReferenceDataRepository } from '@/lib/repositories/reference-data-repository-router';
 import type { Report, Station, Unit, Position, IncidentType } from '@/types';
 import { calculateSlaDeadline } from '@/lib/constants/report-status';
 import { v5 as uuidv5 } from 'uuid';
@@ -1543,14 +1544,9 @@ class ReportsService {
     if (cached) return cached;
 
     try {
-      const { data, error } = await supabaseAdmin.from('stations').select('id, code, name').order('code');
-      if (!error && Array.isArray(data) && data.length > 0) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const stationsDb: Station[] = data.map((row: any) => ({
-          id: row.id,
-          code: row.code,
-          name: row.name,
-        }));
+      const repository = await getReferenceDataRepository();
+      const stationsDb = await repository.listStations();
+      if (stationsDb.length > 0) {
         setCache(cacheKey, stationsDb);
         return stationsDb;
       }
@@ -1594,28 +1590,44 @@ class ReportsService {
   }
 
   async getUnits(): Promise<Unit[]> {
-    const { data } = await supabaseAdmin.from('units').select('*').order('name');
-    return data || [];
+    try {
+      const repository = await getReferenceDataRepository();
+      return await repository.listUnits();
+    } catch (error) {
+      console.warn('[ReportsService] Units DB fetch failed:', error);
+      return [];
+    }
   }
 
   async getPositions(): Promise<Position[]> {
-    const { data } = await supabaseAdmin.from('positions').select('*').order('level');
-    return data || [];
+    try {
+      const repository = await getReferenceDataRepository();
+      return await repository.listPositions();
+    } catch (error) {
+      console.warn('[ReportsService] Positions DB fetch failed:', error);
+      return [];
+    }
   }
 
   async getIncidentTypes(): Promise<IncidentType[]> {
-    const { data } = await supabaseAdmin.from('incident_types').select('*').order('name');
-    return data || [];
+    try {
+      const repository = await getReferenceDataRepository();
+      return await repository.listIncidentTypes();
+    } catch (error) {
+      console.warn('[ReportsService] Incident types DB fetch failed:', error);
+      return [];
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async getLocations(stationCode?: string): Promise<any[]> {
-    let query = supabaseAdmin.from('locations').select('*').order('name');
-    if (stationCode) {
-      query = query.eq('station_id', stationCode);
+    try {
+      const repository = await getReferenceDataRepository();
+      return await repository.listLocations(stationCode);
+    } catch (error) {
+      console.warn('[ReportsService] Locations DB fetch failed:', error);
+      return [];
     }
-    const { data } = await query;
-    return data || [];
   }
 
   async createReport(reportData: Partial<Report>): Promise<Report> {
