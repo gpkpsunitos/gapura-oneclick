@@ -23,7 +23,9 @@ export function CloseReportDialog({
   open,
   onClose,
   onSubmit,
-  accentColor = '#059669',
+  // Matches --teal in apple-form-shell.tsx's FORM_CSS — this dialog opens
+  // from that modal's "Mark as CLOSED" button, so the two greens must agree.
+  accentColor = '#047857',
 }: CloseReportDialogProps) {
   const [mounted, setMounted] = useState(false);
   const [finalRemarks, setFinalRemarks] = useState('');
@@ -112,7 +114,7 @@ export function CloseReportDialog({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
             aria-label="Close report dialog"
           >
             <X size={18} />
@@ -177,7 +179,7 @@ export function CloseReportDialog({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] text-slate-600 hover:bg-slate-50 disabled:opacity-50"
           >
             <X size={14} />
             Cancel
@@ -186,7 +188,7 @@ export function CloseReportDialog({
             type="button"
             onClick={handleSubmit}
             disabled={!canSubmit || submitting}
-            className="inline-flex items-center gap-2 rounded-xl border border-transparent px-4 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-transparent px-4 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] text-white hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-50"
             style={{ backgroundColor: accentColor }}
           >
             {submitting ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}

@@ -153,33 +153,6 @@ const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
         }
     ],
 
-    'HT': [
-        {
-            title: 'Human Training',
-            items: [
-                { href: '/dashboard/ht', label: 'HT Dashboard', icon: LayoutDashboard },
-                { href: '/dashboard/ht/reports', label: 'All Reports', icon: ClipboardList },
-            ]
-        }
-    ],
-
-    'DIVISI_PELAPORAN': [
-        {
-            title: 'OP Reports',
-            items: [
-                { href: '/dashboard/op', label: 'OP Dashboard', icon: LayoutDashboard },
-                { href: '/dashboard/op/reports', label: 'All Reports', icon: ClipboardList },
-            ]
-        },
-        {
-            title: 'HT Reports',
-            items: [
-                { href: '/dashboard/ht', label: 'HT Dashboard', icon: LayoutDashboard },
-                { href: '/dashboard/ht/reports', label: 'All Reports', icon: ClipboardList },
-            ]
-        }
-    ],
-
     'DIVISI_ESKALASI': [
         {
             title: 'Escalation Center',

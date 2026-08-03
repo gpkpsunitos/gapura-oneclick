@@ -437,7 +437,7 @@ export function ReportDetailView({
   const canSubmitClose = Boolean(closeNotes.trim() && closeRemarksBy);
 
   return (
-    <div className="min-h-full flex flex-col bg-slate-50/50 md:p-6 lg:p-8 gap-4 md:gap-8 overflow-hidden font-sans antialiased selection:bg-indigo-100 selection:text-indigo-900 rounded-t-[2.5rem] md:rounded-none">
+    <div className="min-h-full flex flex-col bg-slate-50/50 md:p-6 lg:p-8 gap-4 md:gap-8 overflow-hidden font-sans antialiased rounded-t-[2.5rem] md:rounded-none">
       {/* =============================================
           EDITORIAL HEADER
           ============================================= */}
@@ -448,7 +448,7 @@ export function ReportDetailView({
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 px-3 py-1 bg-slate-100 rounded-full">
-                  <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                   <span className="text-[11px] font-bold text-slate-600 uppercase tracking-widest">
                     {report?.id?.slice(0, 8).toUpperCase() ?? 'N/A'}
                   </span>
@@ -462,7 +462,7 @@ export function ReportDetailView({
 
               <div className="hidden md:flex items-center gap-3">
                 {report.primary_tag && (
-                  <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[10px] font-bold uppercase tracking-widest border border-indigo-100">
+                  <span className="px-3 py-1 rounded-full bg-[var(--chip-ink-bg,#f1f2f5)] text-[var(--chip-ink-text,#475569)] text-[10px] font-bold uppercase tracking-widest border border-[var(--chip-ink-border,#e2e5eb)]">
                     {report.primary_tag}
                   </span>
                 )}
@@ -490,7 +490,7 @@ export function ReportDetailView({
               <div className="flex flex-wrap items-center gap-4 md:gap-8 pt-2">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center">
-                    <User size={14} className="text-indigo-500" />
+                    <User size={14} className="text-emerald-600" />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest">Reported By</span>
@@ -527,7 +527,7 @@ export function ReportDetailView({
             {/* Row 3: Mobile Status Badges ONLY (No redundant actions) */}
             <div className="flex flex-wrap items-center gap-3 md:hidden border-t border-slate-100 py-6 mt-4 px-8">
               {report.primary_tag && (
-                <span className="px-2 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase tracking-widest border border-indigo-100">
+                <span className="px-2 py-1 rounded-full bg-[var(--chip-ink-bg,#f1f2f5)] text-[var(--chip-ink-text,#475569)] text-[9px] font-black uppercase tracking-widest border border-[var(--chip-ink-border,#e2e5eb)]">
                   {report.primary_tag}
                 </span>
               )}
@@ -600,7 +600,7 @@ export function ReportDetailView({
               {/* PRIMARY DATA GRID */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-12 px-8 md:px-0">
                 <div className="space-y-8">
-                  <h4 className="text-[11px] font-bold text-indigo-500 uppercase tracking-[0.2em] border-b border-indigo-50 pb-2">Flight Metadata</h4>
+                  <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 pb-2">Flight Metadata</h4>
                   <div className="grid grid-cols-2 gap-6">
                     <DataField label="Flight No." value={report.flight_number} />
                     <DataField label="Aircraft Reg" value={report.aircraft_reg} />
@@ -621,13 +621,13 @@ export function ReportDetailView({
               </div>
 
               {/* CORE DESCRIPTION */}
-              <div className="bg-white p-8 border-l-4 border-indigo-500 shadow-sm">
+              <div className="bg-white p-8 border border-slate-100 shadow-sm">
                 <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-6">Issue Narrative</h4>
                 {isEditing ? (
                   <textarea
                     value={editForm.description}
                     onChange={(e) => setEditForm((p) => ({ ...p, description: e.target.value }))}
-                    className="w-full text-[15px] bg-slate-50 border border-slate-200 p-4 focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none resize-none transition-all"
+                    className="w-full text-[15px] bg-slate-50 border border-slate-200 p-4 focus:ring-2 focus:ring-emerald-500/10 focus:border-emerald-400 outline-none resize-none transition-all"
                     rows={6}
                     placeholder="Enter detailed description..."
                   />
@@ -688,9 +688,9 @@ export function ReportDetailView({
                   </div>
 
                   {report.sub_category_note && (
-                    <div className="bg-indigo-50/30 p-6 border border-indigo-100">
-                      <h4 className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mb-3">Auditor Remarks</h4>
-                      <p className="text-[13px] text-indigo-900 leading-relaxed">{report.sub_category_note}</p>
+                    <div className="bg-amber-50/60 p-6 border border-amber-100">
+                      <h4 className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-3">Auditor Remarks</h4>
+                      <p className="text-[13px] text-amber-900 leading-relaxed">{report.sub_category_note}</p>
                     </div>
                   )}
                 </div>
@@ -868,7 +868,7 @@ export function ReportDetailView({
               {/* AI Insight Section (v2 — exec layout, schema-validated) — hidden for now, ponytail: flip back on when ready */}
               {false && (
                 <SectionCard title="AI Insight" headerAction={
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-bold">v2</span>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-bold">v2</span>
                 }>
                   <AIInsightCard report={report} />
                 </SectionCard>
@@ -882,7 +882,7 @@ export function ReportDetailView({
               {/* Aside Header */}
               <header className="px-6 py-6 border-b border-slate-50 bg-slate-50/30 shrink-0">
                 <h2 className="text-[12px] font-bold text-slate-500 flex items-center gap-2 uppercase tracking-[0.2em]">
-                  <MessageSquare size={14} className="text-indigo-500" />
+                  <MessageSquare size={14} className="text-emerald-600" />
                   Activity Stream
                 </h2>
                 <p className="text-[10px] text-slate-400 font-medium mt-2 uppercase tracking-widest">
@@ -920,7 +920,7 @@ export function ReportDetailView({
               <div className="bg-white p-4 border border-slate-100 shadow-sm rounded-2xl relative overflow-hidden">
                 {refreshing && (
                   <div className="absolute top-0 left-0 w-full h-[2px] bg-slate-100 overflow-hidden z-10">
-                    <div className="h-full bg-indigo-500 animate-pulse" />
+                    <div className="h-full bg-emerald-500 animate-pulse" />
                   </div>
                 )}
                 <CommentInput reportId={report.id} onSuccess={handleRefresh} placeholder="Post a response..." />

@@ -81,16 +81,16 @@ function DataTable<T>({
 }: DataTableProps<T>) {
   if (data.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500 bg-white rounded-xl border border-gray-200">
+      <div className="text-center py-8 text-[var(--text-muted)] bg-white rounded-xl border border-[var(--surface-4)]">
         {emptyMessage}
       </div>
     );
   }
 
   return (
-    <div className={cn('overflow-x-auto rounded-xl border border-gray-200', className)}>
+    <div className={cn('overflow-x-auto rounded-xl border border-[var(--surface-4)]', className)}>
       <table className="w-full text-sm text-left">
-        <thead className="bg-gray-50 text-gray-700 font-medium">
+        <thead className="bg-[var(--surface-1)] text-[var(--text-secondary)] font-medium">
           <tr>
             {columns.map((column) => (
               <th
@@ -108,14 +108,25 @@ function DataTable<T>({
             )}
           </tr>
         </thead>
-        <tbody className="divide-y divide-gray-100 bg-white">
+        <tbody className="divide-y divide-[var(--surface-3)] bg-white">
           {data.map((row) => (
             <tr
               key={keyExtractor(row)}
               onClick={() => onRowClick?.(row)}
+              tabIndex={onRowClick ? 0 : undefined}
+              onKeyDown={
+                onRowClick
+                  ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onRowClick(row);
+                      }
+                    }
+                  : undefined
+              }
               className={cn(
                 'transition-colors',
-                onRowClick && 'cursor-pointer hover:bg-gray-50'
+                onRowClick && 'cursor-pointer hover:bg-[var(--surface-1)] focus-visible:outline-none focus-visible:bg-[var(--surface-1)] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--brand-primary)]'
               )}
             >
               {columns.map((column) => (
@@ -136,8 +147,8 @@ function DataTable<T>({
                         className={cn(
                           'p-2 rounded-lg transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center',
                           action.variant === 'danger' && 'text-red-600 hover:bg-red-50',
-                          action.variant === 'primary' && 'text-blue-600 hover:bg-blue-50',
-                          (!action.variant || action.variant === 'ghost') && 'text-gray-600 hover:bg-gray-100'
+                          action.variant === 'primary' && 'text-[var(--brand-primary)] hover:bg-[var(--surface-1)]',
+                          (!action.variant || action.variant === 'ghost') && 'text-[var(--text-secondary)] hover:bg-[var(--surface-1)]'
                         )}
                         title={action.label}
                       >

@@ -14,10 +14,12 @@ interface StatsCardProps {
 
 export const StatsCard = memo(function StatsCard({ icon: Icon, value, label, onClick, className }: StatsCardProps) {
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
+      aria-label={`${label}: ${typeof value === 'number' ? value.toLocaleString() : value}`}
       className={cn(
-        'group relative rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 transition-all duration-400 cursor-pointer active:scale-[0.98]',
+        'group relative w-full rounded-xl sm:rounded-2xl p-3 sm:p-4 md:p-6 text-left transition-all duration-400 cursor-pointer active:scale-[0.98]',
         'bg-surface-2 border border-transparent',
         onClick && 'cursor-pointer',
         className
@@ -58,6 +60,6 @@ export const StatsCard = memo(function StatsCard({ icon: Icon, value, label, onC
       <div className="font-display font-semibold text-[9px] sm:text-[10px] md:text-xs uppercase tracking-wider sm:tracking-widest text-text-secondary line-clamp-2">
         {label}
       </div>
-    </div>
+    </button>
   );
 });

@@ -1231,8 +1231,17 @@ export function PublicReportWizard() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.1, type: 'spring', damping: 20 }}
-              className={`${solo ? 'col-span-full' : cat.span} group relative cursor-pointer`}
+              className={`${solo ? 'col-span-full' : cat.span} group relative cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 rounded-[var(--radius-2xl)]`}
               onClick={() => openCategory(cat)}
+              role="button"
+              tabIndex={0}
+              aria-label={cat.title}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openCategory(cat);
+                }
+              }}
             >
               <GlassCard
                 variant="frosted"
@@ -1867,12 +1876,13 @@ export function PublicReportWizard() {
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-[oklch(0.15_0.02_200_/_0.6)] uppercase tracking-widest">Evidence</label>
                           <div className="flex-1">
-                            <div className="relative flex min-h-[220px] items-center justify-center p-8 rounded-2xl border-2 border-dashed border-[oklch(0.15_0.02_200_/_0.15)] bg-[oklch(0.15_0.02_200_/_0.02)] hover:border-emerald-500/30 hover:bg-[oklch(0.60_0.18_260_/_0.05)] transition-all cursor-pointer group overflow-hidden">
+                            <div className="relative flex min-h-[220px] items-center justify-center p-8 rounded-2xl border-2 border-dashed border-[oklch(0.15_0.02_200_/_0.15)] bg-[oklch(0.15_0.02_200_/_0.02)] hover:border-emerald-500/30 hover:bg-[oklch(0.60_0.18_260_/_0.05)] transition-all cursor-pointer group overflow-hidden has-[:focus-visible]:border-emerald-500 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-emerald-500 has-[:focus-visible]:ring-offset-2">
                               <input
                                 ref={fileInputRef}
                                 type="file"
                                 accept="image/*"
                                 multiple
+                                aria-label="Upload evidence photos"
                                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                 onChange={(e) => {
                                   const incomingFiles = Array.from(e.target.files || []);
