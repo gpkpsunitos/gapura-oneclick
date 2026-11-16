@@ -5,7 +5,6 @@ import {
     Plane,
     ClipboardList,
     Users,
-    ChevronRight,
     Hash,
     FolderOpen,
     Shield,
@@ -16,6 +15,7 @@ import {
     Bell,
     BookOpen,
     QrCode,
+    LayoutGrid,
     type LucideIcon,
 } from 'lucide-react';
 
@@ -67,7 +67,6 @@ const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
             items: [
                 { href: '/dashboard/employee', label: 'My Reports', icon: FileText },
                 { href: '/dashboard/employee/new', label: 'Create Report', icon: Plane },
-                { href: '/dashboard/employee/quick-access', label: 'Quick Access', icon: ChevronRight },
                 { href: '/dashboard/employee/documents', label: 'Documents', icon: BookOpen },
             ]
         }
@@ -138,8 +137,8 @@ const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
         {
             title: 'Operational Dashboard',
             items: [
-                { href: '/dashboard/op', label: 'Dashboard', icon: LayoutDashboard },
-                { href: '/dashboard/op/reports', label: 'All Reports', icon: ClipboardList },
+                { href: '/dashboard/operasional', label: 'Dashboard', icon: LayoutDashboard },
+                { href: '/dashboard/operasional/reports', label: 'All Reports', icon: ClipboardList },
             ]
         }
     ],
@@ -177,6 +176,7 @@ const LINKS_CONFIG: Record<string, NavGroupConfig[]> = {
                 { href: '/dashboard/admin/users', label: 'User Management', icon: Users },
                 { href: '/dashboard/admin/security', label: 'Security', icon: Shield },
                 { href: '/dashboard/admin/external-links', label: 'External Links', icon: Link2 },
+                { href: '/dashboard/admin/quick-access', label: 'Quick Access', icon: LayoutGrid },
             ]
         },
         {
@@ -236,7 +236,11 @@ export const resolveNavGroups = (role: string, division?: string | null): NavGro
 const GET_LINKS_KEY = (role: string): string => {
     const r = (role || '').toUpperCase();
 
-    if (r.includes('SUPER') || r === 'ADMIN') return 'SUPER_ADMIN';
+    // Checked before the SUPER branch: mapping ADMIN to SUPER_ADMIN handed it
+    // the full Super Admin menu and left the restricted 'ADMIN' group above
+    // unreachable, which is the opposite of what defining it separately means.
+    if (r === 'ADMIN') return 'ADMIN';
+    if (r.includes('SUPER')) return 'SUPER_ADMIN';
     if (r === 'ANALYST') return 'ANALYST';
     if (r === 'MANAGER_CABANG') return 'MANAGER';
     if (r === 'STAFF_CABANG') return 'STAFF_CABANG';

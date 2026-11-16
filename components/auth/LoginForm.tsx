@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Mail, Lock, ArrowRight, Loader2, Eye, EyeOff } from 'lucide-react';
+import PasswordResetDialog from '@/components/auth/PasswordResetDialog';
 
 // Division roles funnel through the escalation select screen (green Customer
 // Service card is shown there only for OS/OCS divisions). HC keeps its own page.
@@ -37,6 +38,7 @@ export default function LoginForm() {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [forgotOpen, setForgotOpen] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -67,13 +69,22 @@ export default function LoginForm() {
                 throw new Error(data?.error || 'Login failed');
             }
 
+            // Resolve against this origin and compare, rather than checking the
+            // string's prefix. The URL parser treats a backslash as a slash for
+            // http(s), so `/\evil.com` passes `startsWith('/')`, fails
+            // `startsWith('//')`, and still resolves to https://evil.com — an
+            // open redirect landing on the page right after a successful login.
             const requestedNext = new URLSearchParams(window.location.search).get('next');
-            const safeNext = requestedNext?.startsWith('/') && !requestedNext.startsWith('//')
-                ? requestedNext
-                : '';
-            if (safeNext) {
-                window.location.assign(safeNext);
-                return;
+            if (requestedNext) {
+                try {
+                    const target = new URL(requestedNext, window.location.origin);
+                    if (target.origin === window.location.origin) {
+                        window.location.assign(`${target.pathname}${target.search}${target.hash}`);
+                        return;
+                    }
+                } catch {
+                    // Unparseable `next` — fall through to the role-based redirect.
+                }
             }
 
             const normalizedRole = data?.role ? String(data.role).trim().toUpperCase() : '';
@@ -138,6 +149,16 @@ export default function LoginForm() {
                     </div>
                 </div>
 
+                <div className="flex justify-end">
+                    <button
+                        type="button"
+                        onClick={() => setForgotOpen(true)}
+                        className="text-xs sm:text-sm font-semibold text-emerald-700 transition hover:text-emerald-800"
+                    >
+                        Forgot password?
+                    </button>
+                </div>
+
                 <button
                     type="submit"
                     disabled={loading}
@@ -178,6 +199,8 @@ export default function LoginForm() {
                     </Link>
                 </p>
             </div>
+
+            <PasswordResetDialog open={forgotOpen} onClose={() => setForgotOpen(false)} />
         </div>
     );
 }

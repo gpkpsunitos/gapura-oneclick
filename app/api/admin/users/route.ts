@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomBytes } from 'crypto';
 import { verifySession } from '@/lib/auth-utils';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { hashPassword } from '@/lib/auth-utils';
+import { notifyAccountStatusChange, type AccountStatusEvent } from '@/lib/notifications';
 
 const VALID_ROLES = [
     'SUPER_ADMIN',
@@ -248,6 +249,10 @@ export async function POST(request: Request) {
             newDivision = 'GENERAL';
         }
 
+        // Deliberately unknowable: generated, hashed, and never returned or
+        // sent anywhere. An admin-created account is claimed through the OTP
+        // password-reset flow (lib/auth/password-reset.ts), so there is no
+        // plaintext credential to leak into this response or an admin's logs.
         const tempPassword = randomBytes(12).toString('base64url').slice(0, 16) + '8A!';
         const hashed = await hashPassword(tempPassword);
 
@@ -293,6 +298,57 @@ export async function POST(request: Request) {
     }
 }
 
+/**
+ * Maps a status write to the event the account holder should hear about.
+ * `active` means two different things — first approval vs. restoring a
+ * suspended/rejected account — so the previous status decides the wording.
+ */
+function accountStatusEvent(previous: string | null, next: string): AccountStatusEvent | null {
+    if (next === previous) return null;
+    if (next === 'active') return previous === 'pending' ? 'approved' : 'reactivated';
+    if (next === 'rejected') return 'rejected';
+    if (next === 'suspended') return 'suspended';
+    return null;
+}
+
+/** Sent after the response so a slow SMTP hop never blocks the admin action. */
+function queueAccountStatusEmail(userId: string, previousStatus: string | null, nextStatus: string) {
+    const event = accountStatusEvent(previousStatus, nextStatus);
+    if (!event) return;
+
+    after(async () => {
+        try {
+            const { data: user } = await supabaseAdmin
+                .from('users')
+                .select('email, full_name, role, station_id, updated_at')
+                .eq('id', userId)
+                .single();
+            if (!user) return;
+
+            let stationCode: string | null = null;
+            if (user.station_id) {
+                const { data: station } = await supabaseAdmin
+                    .from('stations')
+                    .select('code')
+                    .eq('id', user.station_id)
+                    .maybeSingle();
+                stationCode = station?.code || user.station_id;
+            }
+
+            await notifyAccountStatusChange({
+                email: user.email,
+                fullName: user.full_name,
+                role: user.role,
+                stationCode,
+                event,
+                occurredAt: user.updated_at || new Date().toISOString(),
+            });
+        } catch (error) {
+            console.warn('[ADMIN_USERS] Account status email failed (non-blocking):', error);
+        }
+    });
+}
+
 export async function PATCH(request: Request) {
     try {
         const cookieStore = await cookies();
@@ -314,9 +370,21 @@ export async function PATCH(request: Request) {
         const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
         if (payload.role === 'SUPER_ADMIN') {
+            // A super admin editing their own row can lock themselves out —
+            // suspending the account or handing it a lesser role are both
+            // one-way doors, since the resulting user can no longer reach this
+            // endpoint to undo it. Editing anyone else is unaffected.
+            const isSelf = userId === payload.id;
+
             if (status) {
                 if (!VALID_STATUSES.includes(status)) {
                     return NextResponse.json({ error: 'Invalid status' }, { status: 400 });
+                }
+                if (isSelf && status !== 'active') {
+                    return NextResponse.json(
+                        { error: 'Tidak dapat menonaktifkan akun Super Admin Anda sendiri' },
+                        { status: 400 },
+                    );
                 }
                 updates.status = status;
             }
@@ -324,6 +392,12 @@ export async function PATCH(request: Request) {
             if (role) {
                 if (!VALID_ROLES.includes(role)) {
                     return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+                }
+                if (isSelf && role !== 'SUPER_ADMIN') {
+                    return NextResponse.json(
+                        { error: 'Tidak dapat menurunkan role Super Admin Anda sendiri' },
+                        { status: 400 },
+                    );
                 }
                 updates.role = role;
             }
@@ -349,12 +423,18 @@ export async function PATCH(request: Request) {
                 updates.station_id = station_id || null;
             }
 
+            const previousStatus = status
+                ? (await supabaseAdmin.from('users').select('status').eq('id', userId).single()).data?.status ?? null
+                : null;
+
             const { error } = await supabaseAdmin
                 .from('users')
                 .update(updates)
                 .eq('id', userId);
 
             if (error) throw error;
+
+            if (status) queueAccountStatusEmail(userId, previousStatus, status);
         } else if (payload.role === 'MANAGER_CABANG') {
             if (!status) {
                 return NextResponse.json({ error: 'Only status updates allowed' }, { status: 400 });
@@ -386,6 +466,8 @@ export async function PATCH(request: Request) {
                 .update({ status, updated_at: new Date().toISOString() })
                 .eq('id', userId);
             if (error) throw error;
+
+            queueAccountStatusEmail(userId, target.status, status);
         } else {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }

@@ -18,10 +18,17 @@ interface Props {
   defaultRole?: string;
 }
 
+// Synced reports only carry a date, so the clock part is shown when the
+// timestamp actually has one (see splitReportTimestamp).
 const fmt = (d?: string | null) => {
   if (!d) return '—';
   const p = new Date(d);
-  return Number.isNaN(p.getTime()) ? d : p.toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  if (Number.isNaN(p.getTime())) return d;
+  const date = p.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  const isDateOnly = p.getHours() === 0 && p.getMinutes() === 0;
+  return isDateOnly
+    ? date
+    : `${date}, ${p.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
 };
 
 type AIRec = { escalation: string; preventive: string; handling: string };

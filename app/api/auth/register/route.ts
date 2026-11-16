@@ -1,13 +1,14 @@
 
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import { supabaseAdmin as supabase } from '@/lib/supabase-admin';
 import { hashPassword } from '@/lib/auth-utils';
-import { checkRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
+import { checkDbRateLimit, getClientIpFromRequest } from '@/lib/security/rate-limit';
+import { notifyNewStaffRegistration } from '@/lib/notifications';
 
 export async function POST(request: Request) {
     try {
         const clientIp = getClientIpFromRequest(request);
-        const rateLimit = checkRateLimit(`register:${clientIp}`, 3, 60 * 60_000);
+        const rateLimit = await checkDbRateLimit(`register:${clientIp}`, 3, 60 * 60_000);
         if (!rateLimit.success) {
             return NextResponse.json({ error: 'Terlalu banyak registrasi. Try again later.' }, { status: 429 });
         }
@@ -66,6 +67,11 @@ export async function POST(request: Request) {
         const KPS_DIVISIONS = ['OP', 'OS', 'UQ', 'OT', 'OCS'];
         const DIVISIONS_WITHOUT_JABATAN = ['UQ', 'OT'];
         const KPS_JABATAN_OPTIONS = ['Staff', 'Analyst', 'Division Head', 'Group Head', 'VP'];
+        // Head-office leadership positions get the ANALYST role scoped to their division.
+        const KPS_ANALYST_POSITIONS = ['Analyst', 'Division Head', 'Group Head', 'VP'];
+        // Branch positions are a closed set — the role comes from this choice,
+        // no longer from the email domain.
+        const BRANCH_JABATAN_OPTIONS = ['Manager', 'Staff'];
 
         const unitText = typeof unit_kerja === 'string' ? unit_kerja.trim() : '';
         const jabatanText = typeof jabatan === 'string' ? jabatan.trim() : '';
@@ -91,9 +97,9 @@ export async function POST(request: Request) {
                     { status: 400 }
                 );
             }
-            if (!jabatanText || jabatanText.length > 80) {
+            if (!BRANCH_JABATAN_OPTIONS.includes(jabatanText)) {
                 return NextResponse.json(
-                    { error: 'Jabatan wajib diisi (maks. 80 karakter)' },
+                    { error: 'Jabatan tidak valid' },
                     { status: 400 }
                 );
             }
@@ -170,22 +176,21 @@ export async function POST(request: Request) {
 
         const hashedPassword = await hashPassword(password);
 
-        const isGapuraEmail = email.toLowerCase().endsWith('@gapura.id');
-
         let role: string;
         let userDivision: string;
         let unitValue: string | null;
         let positionValue: string | null;
 
         if (isKPS) {
-            // Divisi + jabatan dipetakan ke role: Analyst -> ANALYST,
-            // jabatan lain -> DIVISI_<divisi>; UQ/OT tanpa jabatan.
+            // Divisi + jabatan dipetakan ke role: Analyst/Division Head/Group
+            // Head/VP -> ANALYST (tetap terikat divisinya), Staff ->
+            // DIVISI_<divisi>; UQ/OT tanpa jabatan.
             userDivision = divisionInput;
             unitValue = null;
             if (DIVISIONS_WITHOUT_JABATAN.includes(divisionInput)) {
                 role = `DIVISI_${divisionInput}`;
                 positionValue = null;
-            } else if (jabatanText === 'Analyst') {
+            } else if (KPS_ANALYST_POSITIONS.includes(jabatanText)) {
                 role = 'ANALYST';
                 positionValue = jabatanText;
             } else {
@@ -193,7 +198,7 @@ export async function POST(request: Request) {
                 positionValue = jabatanText;
             }
         } else {
-            role = isGapuraEmail ? 'MANAGER_CABANG' : 'STAFF_CABANG';
+            role = jabatanText === 'Manager' ? 'MANAGER_CABANG' : 'STAFF_CABANG';
             userDivision = 'GENERAL';
             unitValue = unitText;
             positionValue = jabatanText;
@@ -213,9 +218,11 @@ export async function POST(request: Request) {
             status: 'pending',
         };
 
-        const { error: insertError } = await supabase
+        const { data: insertedUser, error: insertError } = await supabase
             .from('users')
-            .insert(userData);
+            .insert(userData)
+            .select('id')
+            .single();
 
         if (insertError) {
             console.error('Insert error:', insertError);
@@ -230,6 +237,28 @@ export async function POST(request: Request) {
                 { error: 'Gagal mendaftarkan user. Silakan coba lagi.' },
                 { status: 500 }
             );
+        }
+
+        // Branch managers approve STAFF_CABANG at their own station, so they get
+        // told as soon as one registers. Sent after the response so a slow or
+        // failing SMTP hop never blocks (or fails) the registration itself.
+        if (role === 'STAFF_CABANG' && insertedUser?.id) {
+            after(async () => {
+                try {
+                    await notifyNewStaffRegistration({
+                        userId: insertedUser.id,
+                        fullName: userData.full_name,
+                        email: userData.email,
+                        nik: userData.nik,
+                        phone: userData.phone,
+                        unit: unitValue,
+                        position: positionValue,
+                        stationId: stationRow.id,
+                    });
+                } catch (notifyError) {
+                    console.warn('[AUTH_API] Manager registration notice failed (non-blocking):', notifyError);
+                }
+            });
         }
 
         return NextResponse.json({

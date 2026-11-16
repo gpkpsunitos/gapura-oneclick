@@ -10,6 +10,8 @@ services:
     image: gapura-oneclick:web
     container_name: gapura-oneclick
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - ${PRODUCTION_ENV_FILE:-.env.production}
     environment:
@@ -17,6 +19,9 @@ services:
       NEXT_TELEMETRY_DISABLED: "1"
       PORT: "3000"
       HOSTNAME: "0.0.0.0"
+      LOCAL_STORAGE_DIR: /app/storage
+    volumes:
+      - ./storage:/app/storage
     ports:
       - "${WEB_PRODUCTION_PORT:-3001}:3000"
     healthcheck:

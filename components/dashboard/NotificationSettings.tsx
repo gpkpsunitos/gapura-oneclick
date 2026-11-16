@@ -20,7 +20,7 @@ interface Recipient {
 
 const ENTITIES = [
     { value: '', label: 'All Entities' },
-    { value: 'IRRS_NEW_RECORD', label: 'IRRS New Record' },
+    { value: 'REPORT_NEW_RECORD', label: 'New Record' },
     { value: 'GPKPSUNITOS', label: 'GPKPS Unit OS' },
 ];
 
@@ -29,7 +29,7 @@ export default function NotificationSettings() {
     const [loading, setLoading] = useState(true);
     const [submitting, setSubmitting] = useState(false);
     const [newEmail, setNewEmail] = useState('');
-    const [selectedEntity, setSelectedEntity] = useState('IRRS_NEW_RECORD');
+    const [selectedEntity, setSelectedEntity] = useState('REPORT_NEW_RECORD');
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [testEmail, setTestEmail] = useState('');
     const [testLoading, setTestLoading] = useState(false);

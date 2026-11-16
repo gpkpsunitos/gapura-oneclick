@@ -106,9 +106,9 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
   const [exportError, setExportError] = useState<string | null>(null);
   const [joumpaReports, setJoumpaReports] = useState<Report[]>([]);
   const [joumpaLoading, setJoumpaLoading] = useState(false);
-  const [irrsReports, setIrrsReports] = useState<Report[] | null>(null);
-  const [irrsLoading, setIrrsLoading] = useState(false);
-  const [irrsPrefetchFailed, setIrrsPrefetchFailed] = useState(false);
+  const [irregularityReports, setIrregularityReports] = useState<Report[] | null>(null);
+  const [irregularityLoading, setIrregularityLoading] = useState(false);
+  const [irregularityPrefetchFailed, setIrregularityPrefetchFailed] = useState(false);
 
   const isJoumpa = filters.source === "JOUMPA";
 
@@ -139,26 +139,26 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
   // array on every render, and including it here caused this effect to refire
   // (and refetch) on every parent re-render instead of once per modal open.
   useEffect(() => {
-    if (!open || irrsReports || irrsPrefetchFailed) return;
-    setIrrsLoading(true);
+    if (!open || irregularityReports || irregularityPrefetchFailed) return;
+    setIrregularityLoading(true);
     fetchAllDetailedReports()
       .then((data) => {
-        setIrrsReports(data);
-        setIrrsPrefetchFailed(false);
+        setIrregularityReports(data);
+        setIrregularityPrefetchFailed(false);
       })
       .catch((err) => {
         console.error('Failed to prefetch detailed reports for export:', err);
         setExportError('Failed to load complete report data for export.');
-        setIrrsPrefetchFailed(true);
+        setIrregularityPrefetchFailed(true);
       })
-      .finally(() => setIrrsLoading(false));
-  }, [open, irrsReports, irrsPrefetchFailed]);
+      .finally(() => setIrregularityLoading(false));
+  }, [open, irregularityReports, irregularityPrefetchFailed]);
 
   // Never fall back to the (possibly partial) `reports` prop after a failed
   // prefetch — an incomplete silent export is worse than a blocked one.
-  const irrsActiveReports = irrsReports ?? (irrsPrefetchFailed ? EMPTY_REPORTS : reports);
-  const activeReports = isJoumpa ? joumpaReports : irrsActiveReports;
-  const activeLoading = isJoumpa ? joumpaLoading : (irrsLoading && !irrsReports);
+  const irregularityActiveReports = irregularityReports ?? (irregularityPrefetchFailed ? EMPTY_REPORTS : reports);
+  const activeReports = isJoumpa ? joumpaReports : irregularityActiveReports;
+  const activeLoading = isJoumpa ? joumpaLoading : (irregularityLoading && !irregularityReports);
 
   const options = useMemo(() => {
     const base = buildReportFilterOptions(activeReports);
@@ -166,13 +166,13 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
     return base;
   }, [activeReports]);
 
-  // When not JOUMPA, always include JOUMPA in source options from the IRRS reports
+  // When not JOUMPA, always include JOUMPA in source options from the irregularity reports
   const sourceOptions = useMemo(() => {
     if (isJoumpa) return options.sources;
-    const base = buildReportFilterOptions(irrsActiveReports);
+    const base = buildReportFilterOptions(irregularityActiveReports);
     if (!base.sources.includes("JOUMPA")) base.sources.push("JOUMPA");
     return base.sources;
-  }, [isJoumpa, options.sources, irrsActiveReports]);
+  }, [isJoumpa, options.sources, irregularityActiveReports]);
 
   const filteredReports = useMemo(() => filterReportsForExport(activeReports, filters), [activeReports, filters]);
   const summary = useMemo(() => reportFilterSummary(filters), [filters]);
@@ -199,7 +199,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
     try {
       let reportsToExport = filteredReports;
       if (!isJoumpa) {
-        const fullReports = irrsReports ?? await fetchAllDetailedReports();
+        const fullReports = irregularityReports ?? await fetchAllDetailedReports();
         reportsToExport = filterReportsForExport(fullReports, filters);
       }
 
@@ -267,7 +267,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
             {/* Source — always visible, drives JOUMPA mode */}
             <SelectField label="Source" value={filters.source} options={sourceOptions} icon={Database} emptyLabel="All sources" onChange={(v) => updateFilter("source", v)} />
 
-            {/* IRRS-specific filters */}
+            {/* Irregularity-report-specific filters */}
             {!isJoumpa && (
               <>
                 <SelectField label="Area" value={filters.area} options={options.areas} icon={MapPin} emptyLabel="All areas" onChange={(v) => updateFilter("area", v)} />
@@ -330,12 +330,12 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
           {exportError && (
             <p role="alert" className="mr-auto flex items-center gap-3 self-center text-sm font-semibold text-red-600">
               {exportError}
-              {!isJoumpa && irrsPrefetchFailed && (
+              {!isJoumpa && irregularityPrefetchFailed && (
                 <button
                   type="button"
                   onClick={() => {
                     setExportError(null);
-                    setIrrsPrefetchFailed(false);
+                    setIrregularityPrefetchFailed(false);
                   }}
                   className="underline underline-offset-2 hover:text-red-700"
                 >
@@ -354,7 +354,7 @@ export function ReportsExportModal({ open, reports, onClose }: ReportsExportModa
               <Button
                 key={item.format}
                 type="button"
-                disabled={exporting !== null || filteredReports.length === 0 || activeLoading || (!isJoumpa && irrsPrefetchFailed)}
+                disabled={exporting !== null || filteredReports.length === 0 || activeLoading || (!isJoumpa && irregularityPrefetchFailed)}
                 onClick={() => handleExport(item.format)}
                 className={cn("h-14 rounded-2xl px-6 text-xs font-black uppercase tracking-[0.18em] text-white", item.className)}
               >

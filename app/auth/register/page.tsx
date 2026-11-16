@@ -14,6 +14,9 @@ interface Station { id: string; code: string; name: string; }
 const KPS_DIVISIONS = ['OP', 'OS', 'UQ', 'OT', 'OCS'] as const;
 const DIVISIONS_WITHOUT_JABATAN = ['UQ', 'OT'];
 const KPS_JABATAN_OPTIONS = ['Staff', 'Analyst', 'Division Head', 'Group Head', 'VP'];
+// Branch positions are a fixed pair: Manager grants MANAGER_CABANG, Staff grants
+// STAFF_CABANG. Role no longer depends on the email domain.
+const BRANCH_JABATAN_OPTIONS = ['Manager', 'Staff'];
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -34,7 +37,6 @@ export default function RegisterPage() {
     const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
-    const [emailHint, setEmailHint] = useState('');
 
     const [stations, setStations] = useState<Station[]>([]);
 
@@ -44,12 +46,6 @@ export default function RegisterPage() {
     }, [formData.station_id, stations]);
 
     const needsJabatanSelect = isKPS && !!formData.division && !DIVISIONS_WITHOUT_JABATAN.includes(formData.division);
-
-    useEffect(() => {
-        if (isKPS) {
-            setEmailHint('');
-        }
-    }, [isKPS]);
 
     useEffect(() => {
         const fetchStations = async () => {
@@ -111,21 +107,6 @@ export default function RegisterPage() {
     const handleChange = (name: string, value: string) => {
 
         if (name === 'nik') value = value.toUpperCase();
-
-        if (name === 'email') {
-            if (!isKPS) {
-                const emailLower = value.toLowerCase();
-                if (emailLower.endsWith('@gapura.id')) {
-                    setEmailHint('✓ You will be registered as Manager/Supervisor');
-                } else if (value.includes('@')) {
-                    setEmailHint('ℹ You will be registered as Staff (requires Manager approval)');
-                } else {
-                    setEmailHint('');
-                }
-            } else {
-                setEmailHint('');
-            }
-        }
 
         setFormData(prev => ({ ...prev, [name]: value }));
 
@@ -341,21 +322,12 @@ export default function RegisterPage() {
                                                 type="email"
                                                 required
                                                 className={fieldErrors.email ? inputErrorStyle : inputStyle}
-                                                placeholder="email@gapura.co.id"
+                                                placeholder="email@company.com"
                                                 value={formData.email}
                                                 onChange={(e) => handleChange('email', e.target.value)}
                                             />
                                         </div>
                                         {fieldErrors.email && <p className="text-[10px] sm:text-xs text-red-500 mt-1">{fieldErrors.email}</p>}
-                                        {!fieldErrors.email && emailHint && !isKPS && (
-                                            <p
-                                                className={`text-[10px] sm:text-xs mt-1 ${emailHint.startsWith('✓') ? 'text-emerald-600' : 'text-blue-600'}`}
-                                                role="status"
-                                                aria-live="polite"
-                                            >
-                                                {emailHint}
-                                            </p>
-                                        )}
                                     </div>
                                     <div>
                                         <label className={labelStyle}>WhatsApp Number</label>
@@ -468,16 +440,18 @@ export default function RegisterPage() {
                                                 <label className={labelStyle}>Position</label>
                                                 <div className="relative">
                                                     <Briefcase className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-                                                    <input
-                                                        type="text"
+                                                    <select
                                                         required
-                                                        maxLength={80}
-                                                        className={inputStyle}
-                                                        placeholder="e.g. Supervisor, Officer"
+                                                        className={selectStyle}
                                                         value={formData.jabatan}
                                                         onChange={(e) => handleChange('jabatan', e.target.value)}
                                                         disabled={!formData.station_id}
-                                                    />
+                                                    >
+                                                        <option value="">Select Position</option>
+                                                        {BRANCH_JABATAN_OPTIONS.map((j) => (
+                                                            <option key={j} value={j}>{j}</option>
+                                                        ))}
+                                                    </select>
                                                 </div>
                                             </div>
                                             {!formData.station_id && (

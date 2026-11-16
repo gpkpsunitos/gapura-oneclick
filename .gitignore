@@ -27,6 +27,8 @@ public/sw*
 # misc
 .DS_Store
 *.pem
+.nvmrc
+skills-lock.json
 
 # debug
 npm-debug.log*
@@ -68,9 +70,12 @@ supabase/export/seed_data.sql
 /tmp/
 /sidang_prep/
 
-# AI tool configs (keep .claude tracked)
+# AI tool configs
 .agent/
 .agents/
+.claude/
+.codex/
+.impeccable/
 .kilo/
 .kilocode/
 .kiro/
@@ -94,3 +99,10 @@ sheets_dump.txt
 .worktrees/
 .env*
 !.env.web-build.example
+.agentsroom/handoff-transcript-*.txt
+.agentsroom/handoff-summary-*.md
+
+# Local storage & SQL dumps (do not commit)
+/storage/
+/mysql/gapura_oneclick_backup.sql
+/gapura_oneclick_local.sql

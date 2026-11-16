@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     }
 
     try {
-        const { email, entity = 'IRRS_NEW_RECORD', channel = 'EMAIL' } = await req.json();
+        const { email, entity = 'REPORT_NEW_RECORD', channel = 'EMAIL' } = await req.json();
 
         if (!email || !email.includes('@')) {
             return NextResponse.json({ error: 'Email tidak valid' }, { status: 400 });

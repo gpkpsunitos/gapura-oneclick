@@ -4,7 +4,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useSearchParams, useRouter } from 'next/navigation';
-import { LogOut, Menu, Undo2, X } from 'lucide-react';
+import { LogOut, Menu, Undo2, UserCog, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, memo, useCallback } from 'react';
 
@@ -44,6 +44,9 @@ interface NavContentProps {
     showBell: boolean;
 
     setMobileOpen: (value: boolean) => void;
+
+    /** Signed-in user's own name; falls back to the role label until it loads. */
+    displayName: string | null;
 }
 
 const ROLE_DISPLAY: Record<string, string> = {
@@ -78,8 +81,12 @@ const NavContent = memo(function NavContent({
     loading,
     switchingOrigin,
     showBell,
-    setMobileOpen
+    setMobileOpen,
+    displayName
 }: NavContentProps) {
+    const roleLabel = resolveRoleDisplayName(role);
+    const primaryName = displayName || roleLabel;
+    const isProfileActive = pathname === '/dashboard/settings/profile';
     return (<div className="flex flex-col h-full bg-[var(--surface-1)] text-[var(--text-primary)]">
         <div className="p-4 border-b border-dashed border-gray-200 flex justify-center md:p-6 md:pb-6">
              <Image
@@ -212,20 +219,43 @@ const NavContent = memo(function NavContent({
 
         <div className="p-3 border-t border-dashed border-gray-200 bg-[var(--surface-1)] md:p-4">
              <div className="bg-[var(--surface-2)] rounded-xl p-2.5 md:p-3 border border-gray-100 shadow-sm relative">
-                <div className="flex items-center gap-2 md:gap-3 mb-2 md:mb-3 group/user">
-                     <div className="relative shrink-0">
-                         <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-[10px] md:text-xs font-bold text-white shadow-sm">
-                             {resolveRoleDisplayName(role).charAt(0).toUpperCase()}
-                         </div>
-                         <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[var(--surface-2)]" />
-                     </div>
-                     <div className="min-w-0 flex-1">
-                         <p className="text-[11px] md:text-xs font-bold text-[var(--text-primary)] truncate group-hover/user:text-[var(--brand-primary)] transition-colors">
-                            {resolveRoleDisplayName(role)}
-                        </p>
-                         <p className="text-[9px] md:text-[10px] text-[var(--text-muted)] truncate">Active Account</p>
-                     </div>
-                     {showBell && <CommentNotificationBell role={role} />}
+                {/* The identity row IS the way into profile settings — the
+                    conventional place users look, instead of a separate button
+                    competing with Sign Out. */}
+                <div className="flex items-center gap-1 mb-2 md:mb-3">
+                    <Link
+                        href="/dashboard/settings/profile"
+                        onClick={() => setMobileOpen(false)}
+                        aria-label="Open profile settings"
+                        aria-current={isProfileActive ? 'page' : undefined}
+                        className={cn(
+                            "group/user flex min-w-0 flex-1 items-center gap-2 md:gap-3 rounded-lg p-1 -m-1 transition-colors",
+                            isProfileActive ? "bg-[var(--surface-3)]" : "hover:bg-[var(--surface-3)]"
+                        )}
+                    >
+                        <div className="relative shrink-0">
+                            <div className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-[10px] md:text-xs font-bold text-white shadow-sm">
+                                {primaryName.charAt(0).toUpperCase()}
+                            </div>
+                            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[var(--surface-2)]" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                            <p className="text-[11px] md:text-xs font-bold text-[var(--text-primary)] truncate group-hover/user:text-[var(--brand-primary)] transition-colors">
+                                {primaryName}
+                            </p>
+                            <p className="text-[9px] md:text-[10px] text-[var(--text-muted)] truncate">{roleLabel}</p>
+                        </div>
+                        <UserCog
+                            size={14}
+                            className={cn(
+                                "shrink-0 transition-colors",
+                                isProfileActive
+                                    ? "text-[var(--brand-primary)]"
+                                    : "text-[var(--text-muted)] group-hover/user:text-[var(--brand-primary)]"
+                            )}
+                        />
+                    </Link>
+                    {showBell && <CommentNotificationBell role={role} />}
                 </div>
 
                 {role.startsWith('DIVISI_') && (
@@ -283,15 +313,21 @@ export default function Sidebar({ role, division }: { role: string; division?: s
         }>;
     } | null>(role ? '/api/auth/bundle' : null);
 
+    // /api/auth/me resolves the ACTIVE account, so an escalation user who has
+    // switched into another workspace sees that account's name here.
+    const { data: currentUser } = useStaticData<{ full_name?: string | null }>(
+        role ? '/api/auth/me' : null
+    );
+
     const isOcsOrOs = role === 'DIVISI_OCS' || role === 'PARTNER_OCS' || role === 'DIVISI_OS' || role === 'PARTNER_OS';
 
     // ponytail: OCS/OS users keep their Schedule/calendar links only off Operational
-    // Monitoring (/dashboard/op) and off the shared create-report page when it was
+    // Monitoring (/dashboard/operasional) and off the shared create-report page when it was
     // opened in ground-handling mode (not ?type=joumpa) — otherwise navigating there
     // from Operational Monitoring would snap the sidebar back to Customer Service.
     // Calendar stays visible on their own All Reports list — it's a real nav item,
     // not something tied to the ground-handling report view.
-    const isOnOperationalMonitoring = isOcsOrOs && pathname.startsWith('/dashboard/op');
+    const isOnOperationalMonitoring = isOcsOrOs && pathname.startsWith('/dashboard/operasional');
     const isOnOperationalCreateReport = isOcsOrOs
         && pathname === '/dashboard/employee/new' && searchParams.get('type') !== 'joumpa';
     const isOperationalContext = isOnOperationalMonitoring || isOnOperationalCreateReport;
@@ -304,15 +340,15 @@ export default function Sidebar({ role, division }: { role: string; division?: s
         // The nav config is fixed per role, so "Dashboard"/"All Reports" always
         // point at the user's own division. While actually browsing Operational
         // Monitoring (or filing a ground-handling report from it), repoint those
-        // two links at /dashboard/op so they don't yank the user back to their
+        // two links at /dashboard/operasional so they don't yank the user back to their
         // own Customer Service dashboard mid-browse.
         if (!isOperationalContext) return withoutSchedule;
         return withoutSchedule.map((group) => group.title !== 'Monitoring' ? group : {
             ...group,
             items: group.items.map((item) => ({
                 ...item,
-                href: item.label === 'Dashboard' ? '/dashboard/op'
-                    : item.label === 'All Reports' ? '/dashboard/op/reports'
+                href: item.label === 'Dashboard' ? '/dashboard/operasional'
+                    : item.label === 'All Reports' ? '/dashboard/operasional/reports'
                     : item.href,
             })),
         });
@@ -327,7 +363,7 @@ export default function Sidebar({ role, division }: { role: string; division?: s
     const confirmLogout = useCallback(() => {
         setLogoutConfirmOpen(false);
         setLoading(true);
-        performOptimisticLogout();
+        void performOptimisticLogout();
     }, []);
 
     const handleReturnToOrigin = useCallback(async () => {
@@ -366,6 +402,7 @@ export default function Sidebar({ role, division }: { role: string; division?: s
         pathname,
         searchParams,
         role,
+        displayName: currentUser?.full_name?.trim() || null,
         onLogout: handleLogout,
         onReturnToOrigin: handleReturnToOrigin,
         canReturnToOrigin,
@@ -373,7 +410,7 @@ export default function Sidebar({ role, division }: { role: string; division?: s
         switchingOrigin,
         showBell,
         setMobileOpen
-    }), [groups, pathname, searchParams, role, handleLogout, handleReturnToOrigin, canReturnToOrigin, loading, switchingOrigin, showBell]);
+    }), [groups, pathname, searchParams, role, currentUser, handleLogout, handleReturnToOrigin, canReturnToOrigin, loading, switchingOrigin, showBell]);
 
     useEffect(() => {
         if (typeof window !== 'undefined') {

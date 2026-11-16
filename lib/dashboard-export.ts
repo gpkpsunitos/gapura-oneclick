@@ -287,7 +287,7 @@ async function fetchInsights(payload: ExportPayload): Promise<DashboardInsights 
  * @example
  * ```ts
  * await exportToPptx({
- *   dashboardName: 'IRRS Dashboard',
+ *   dashboardName: 'OneClick Dashboard',
  *   pages: dashboardPages,
  *   chartsData: resultsMap
  * });

@@ -15,7 +15,7 @@ import {
   normalizeSeverityLevel
 } from '@/lib/constants/report-status';
 import { Report } from '@/types';
-import { cn } from '@/lib/utils';
+import { cn, splitReportTimestamp } from '@/lib/utils';
 import { exportSingleReportToDocx } from '@/lib/reports-export';
 import { resolveAreaType } from '@/lib/report-normalization';
 import { StatusUpdateSuccessDialog } from '@/components/dashboard/StatusUpdateSuccessDialog';
@@ -515,7 +515,7 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
             || '-';
           const reporter = cleanDisplayValue(report.users?.full_name) || cleanDisplayValue(report.reporter_name) || '-';
           const title = report.report || report.title || '(Tanpa Judul)';
-          const createdAt = new Date(report.created_at);
+          const createdStamp = splitReportTimestamp(report.created_at);
           const sourceTag = resolveAreaTag(report);
           const flightNumber = cleanDisplayValue(report.flight_number);
           const route = cleanDisplayValue(report.route);
@@ -608,10 +608,10 @@ export const ReportsDetailTable = memo(function ReportsDetailTable({
                   <ClassificationSeverityCell report={report} />
                   <span className="ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] font-medium text-slate-400 tabular-nums">
                     <CalendarDays size={11} className="shrink-0" />
-                    {createdAt.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: '2-digit' })}
-                    <span className="hidden sm:inline">
-                      {createdAt.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
+                    {createdStamp.date}
+                    {createdStamp.time && (
+                      <span className="hidden sm:inline">{createdStamp.time}</span>
+                    )}
                   </span>
                 </div>
 
