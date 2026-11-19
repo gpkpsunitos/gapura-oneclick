@@ -104,6 +104,7 @@ export default async function proxy(request: NextRequest) {
                              path.startsWith('/share') ||
                              path.startsWith('/api/quick-access') ||
                              path.startsWith('/api/master-data') ||
+                             path.startsWith('/api/storage') ||
                              path.startsWith('/api/reports/public') ||
                              path.startsWith('/api/reports/duplicates/check') ||
                              path.startsWith('/api/uploads/evidence/token') ||

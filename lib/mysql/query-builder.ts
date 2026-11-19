@@ -79,10 +79,12 @@ function parseSelectExpression(selectExpr: string): {
       let fkColumn = fkHint || '';
 
       if (second) {
-        // e.g. stations:station_id(...) or user:users!user_id(...)
-        if (second.endsWith('_id')) {
+        // e.g. stations:station_id(...), users:created_by(...), created_by_user:created_by(...), or user:users!user_id(...)
+        const userFkCols = new Set(['created_by', 'updated_by', 'reviewed_by', 'deleted_by', 'assigned_to', 'actor_id', 'user_id']);
+        const isFkHint = second.endsWith('_id') || second.endsWith('_by') || userFkCols.has(second);
+        if (isFkHint) {
           alias = first;
-          table = first;
+          table = userFkCols.has(second) ? 'users' : first;
           fkColumn = fkHint || second;
         } else {
           alias = first;
