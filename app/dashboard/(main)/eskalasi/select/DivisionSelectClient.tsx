@@ -92,9 +92,11 @@ export function DivisionSelectClient({ role, division }: DivisionSelectClientPro
 
     useEffect(() => {
         visibleCards.forEach((card) => {
-            router.prefetch(card.href ?? divisionDashboardPath(card.code));
+            if (!isEskalasi || card.href) {
+                router.prefetch(card.href ?? divisionDashboardPath(card.code));
+            }
         });
-    }, [router, visibleCards]);
+    }, [router, visibleCards, isEskalasi]);
 
     const switchDivision = async (code: string) => {
         try {
@@ -122,8 +124,7 @@ export function DivisionSelectClient({ role, division }: DivisionSelectClientPro
             void mutate('/api/auth/bundle');
 
             const redirectPath = data?.redirectPath || divisionDashboardPath(code);
-            router.replace(redirectPath);
-            router.refresh();
+            window.location.assign(redirectPath);
         } catch (err) {
             console.error('Failed to switch division:', err);
             setError(err instanceof Error ? err.message : 'Failed to switch division account');
