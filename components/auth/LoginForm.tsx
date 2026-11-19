@@ -89,7 +89,7 @@ export default function LoginForm() {
 
             const normalizedRole = data?.role ? String(data.role).trim().toUpperCase() : '';
             const dest = roleRedirects[normalizedRole] || '/dashboard/employee';
-            router.push(dest);
+            window.location.assign(dest);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : 'Login failed');
         } finally {

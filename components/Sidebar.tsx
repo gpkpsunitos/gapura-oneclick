@@ -382,8 +382,7 @@ export default function Sidebar({ role, division }: { role: string; division?: s
                 throw new Error(data?.error || 'Failed to switch back to escalation');
             }
 
-            router.push('/dashboard/eskalasi/select');
-            router.refresh();
+            window.location.assign('/dashboard/eskalasi/select');
         } catch (error) {
             console.error('Failed to switch back to eskalasi:', error);
             setSwitchingOrigin(false);
