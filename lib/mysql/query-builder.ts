@@ -46,20 +46,47 @@ const NON_UUID_PK_TABLES = new Set([
 function splitTopLevelCommas(input: string): string[] {
   const parts: string[] = [];
   let depth = 0;
+  let inQuotes = false;
+  let escaped = false;
   let start = 0;
   for (let i = 0; i < input.length; i++) {
     const ch = input[i];
-    if (ch === '(') depth++;
-    else if (ch === ')') depth = Math.max(0, depth - 1);
-    else if (ch === ',' && depth === 0) {
-      const token = input.slice(start, i).trim();
-      if (token) parts.push(token);
-      start = i + 1;
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === '\\' && inQuotes) {
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+    if (!inQuotes) {
+      if (ch === '(') depth++;
+      else if (ch === ')') depth = Math.max(0, depth - 1);
+      else if (ch === ',' && depth === 0) {
+        const token = input.slice(start, i).trim();
+        if (token) parts.push(token);
+        start = i + 1;
+      }
     }
   }
   const tail = input.slice(start).trim();
   if (tail) parts.push(tail);
   return parts;
+}
+
+function unquotePostgrestValue(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed
+      .slice(1, -1)
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, '\\');
+  }
+  return trimmed;
 }
 
 function parseSelectExpression(selectExpr: string): {
@@ -166,13 +193,14 @@ function buildSinglePostgrestToken(token: string, params: unknown[]): string | n
   }
   if (op === 'in') {
     const inner = rawVal.replace(/^\(/, '').replace(/\)$/, '');
-    const items = inner.split(',').map((s) => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
+    const items = splitTopLevelCommas(inner).map((s) => unquotePostgrestValue(s)).filter(Boolean);
     if (items.length === 0) return '1 = 0';
     params.push(...items);
     return `${qCol} IN (${items.map(() => '?').join(', ')})`;
   }
+  const unquoted = unquotePostgrestValue(rawVal);
   if (op === 'like' || op === 'ilike') {
-    params.push(rawVal.replace(/\*/g, '%'));
+    params.push(unquoted.replace(/\*/g, '%'));
     return `${qCol} LIKE ?`;
   }
   const opMap: Record<string, string> = {
@@ -184,7 +212,7 @@ function buildSinglePostgrestToken(token: string, params: unknown[]): string | n
     lte: '<=',
   };
   const sqlOp = opMap[op] || '=';
-  params.push(toMysqlValue(rawVal, col));
+  params.push(toMysqlValue(unquoted, col));
   return `${qCol} ${sqlOp} ?`;
 }
 
@@ -680,6 +708,21 @@ export class MysqlQueryBuilder<T = any> implements PromiseLike<PostgrestResponse
 
     if (!this.returnSelect) {
       return { data: null, error: null, count: totalCount };
+    }
+
+    if (updateRes.affectedRows === 0) {
+      if (this.singleMode === 'single') {
+        return {
+          data: null,
+          error: { message: 'JSON object requested, multiple (or no) rows returned', code: 'PGRST116' },
+          count: totalCount,
+        };
+      }
+      return {
+        data: (this.singleMode === 'maybeSingle' ? null : []) as unknown as T,
+        error: null,
+        count: totalCount,
+      };
     }
 
     const [updatedRows] =

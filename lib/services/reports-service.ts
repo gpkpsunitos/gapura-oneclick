@@ -558,14 +558,16 @@ function syncEscalationDivisionAliases<T extends Partial<Report>>(report: T): T 
 
 function matchesEsklasiRegex(report: Partial<Report>, pattern?: string): boolean {
   if (!pattern) return true;
-  const rawEsklasi = String(report.esklasi_divisi || '').trim();
+  const rawEsklasi = String(report.esklasi_divisi || '').trim().toLowerCase();
   if (!rawEsklasi) return false;
 
-  try {
-    return new RegExp(pattern, 'i').test(rawEsklasi);
-  } catch {
-    return rawEsklasi.toLowerCase().includes(pattern.toLowerCase());
-  }
+  const tokens = pattern
+    .split('|')
+    .map((part) => part.trim().toLowerCase())
+    .filter(Boolean);
+  if (tokens.length === 0) return true;
+
+  return tokens.some((token) => rawEsklasi.includes(token));
 }
 
 function isGseRelatedReport(report: Partial<Report>): boolean {

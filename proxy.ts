@@ -1,7 +1,7 @@
 
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { verifySession, TRUSTED_SESSION_HEADER } from '@/lib/auth-utils';
+import { verifySession, TRUSTED_SESSION_HEADER, signTrustedSessionHeader } from '@/lib/auth-utils';
 
 // Division roles land on the escalation select screen first; from there they
 // navigate to their own dashboard (or the green Customer Service card for OS/OCS).
@@ -111,6 +111,9 @@ export default async function proxy(request: NextRequest) {
                              path.startsWith('/api/uploads/evidence/public') ||
                              (path === '/api/dashboards' && request.method === 'GET') ||
                              (path.startsWith('/api/reports/analytics') && request.method === 'GET') ||
+                             path === '/api/integrations/joumpa/webhook' ||
+                             path === '/api/admin/sync-reports/cron' ||
+                             path === '/api/ml/retrain/cron' ||
                              (isGoogleSheetsWebhook && (hasGoogleSheetsWebhookSecret || isDevelopment)) ||
 
                              (isSyncEndpoint && isDevelopment);
@@ -129,7 +132,7 @@ export default async function proxy(request: NextRequest) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.delete(TRUSTED_SESSION_HEADER);
     if (payload) {
-        requestHeaders.set(TRUSTED_SESSION_HEADER, JSON.stringify(payload));
+        requestHeaders.set(TRUSTED_SESSION_HEADER, signTrustedSessionHeader(payload));
     }
 
     if (!isPublicPath && !payload && !isDemo) {

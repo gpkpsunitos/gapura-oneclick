@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { verifySession } from '@/lib/auth-utils';
+import { quoteForPostgrestFilter } from '@/lib/security/postgrest';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { CalendarEvent, CreateCalendarEventInput } from '@/types';
 import { isValidUrl } from '@/lib/utils/calendar-utils';
@@ -48,7 +49,8 @@ export async function GET(request: Request) {
       .order('event_date', { ascending: true });
 
     if (search) {
-      query = query.or(`title.ilike.%${search}%,notes.ilike.%${search}%`);
+      const quoted = quoteForPostgrestFilter(`%${search}%`);
+      query = query.or(`title.ilike.${quoted},notes.ilike.${quoted}`);
     }
 
     if (created_by) {

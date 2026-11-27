@@ -1,5 +1,6 @@
 
 import 'server-only';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { SessionPayload } from '@/types';
 import bcrypt from 'bcryptjs';
 import { SignJWT, jwtVerify, type JWTPayload } from 'jose';
@@ -60,6 +61,28 @@ export function evictSessionCache(sid: string): void {
 // responsible for stripping any client-supplied copy before setting its own.
 export const TRUSTED_SESSION_HEADER = 'x-irrs-verified-session';
 
+export function signTrustedSessionHeader(payload: SessionPayload): string {
+    const encoded = Buffer.from(JSON.stringify(payload), 'utf8').toString('base64url');
+    const sig = createHmac('sha256', SECRET_KEY!).update(encoded).digest('base64url');
+    return `${encoded}.${sig}`;
+}
+
+function verifyTrustedSessionHeader(raw: string): SessionPayload | null {
+    const dotIdx = raw.indexOf('.');
+    if (dotIdx <= 0) return null;
+    const encoded = raw.slice(0, dotIdx);
+    const sig = raw.slice(dotIdx + 1);
+    const expected = createHmac('sha256', SECRET_KEY!).update(encoded).digest('base64url');
+    const a = Buffer.from(expected, 'utf8');
+    const b = Buffer.from(sig, 'utf8');
+    if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
+    try {
+        return JSON.parse(Buffer.from(encoded, 'base64url').toString('utf8')) as SessionPayload;
+    } catch {
+        return null;
+    }
+}
+
 async function getTrustedHeaderPayload(): Promise<SessionPayload | null> {
     try {
         // headers() throws when called outside a Server Component/Route
@@ -68,7 +91,7 @@ async function getTrustedHeaderPayload(): Promise<SessionPayload | null> {
         const hdrs = await headers();
         const raw = hdrs.get(TRUSTED_SESSION_HEADER);
         if (!raw) return null;
-        return JSON.parse(raw) as SessionPayload;
+        return verifyTrustedSessionHeader(raw);
     } catch {
         return null;
     }
